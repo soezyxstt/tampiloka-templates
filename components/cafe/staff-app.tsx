@@ -59,7 +59,12 @@ const STAFF_CREDENTIALS: Record<
 > = {
   staff_owner: {
     pin: '1111',
-    roleLabel: 'Pemilik & Manajer',
+    roleLabel: 'Pemilik Outlet',
+    defaultSection: 'kasir',
+  },
+  staff_manager: {
+    pin: '1111',
+    roleLabel: 'Manajer Operasional',
     defaultSection: 'kasir',
   },
   staff_cashier: {
@@ -67,15 +72,20 @@ const STAFF_CREDENTIALS: Record<
     roleLabel: 'Kasir Utama',
     defaultSection: 'kasir',
   },
-  staff_barista: {
-    pin: '3333',
-    roleLabel: 'Barista & Dapur',
-    defaultSection: 'dapur',
-  },
   staff_waiter: {
     pin: '4444',
     roleLabel: 'Pelayan Lantai',
     defaultSection: 'meja',
+  },
+  staff_bar: {
+    pin: '3333',
+    roleLabel: 'Barista & Minuman',
+    defaultSection: 'dapur',
+  },
+  staff_kitchen: {
+    pin: '3333',
+    roleLabel: 'Koki Dapur Utama',
+    defaultSection: 'dapur',
   },
 };
 
@@ -191,7 +201,7 @@ export function StaffApp({
   const [actionError, setActionError] = useState<string>('');
 
   // Kasir & Pesanan state
-  const [selectedBillId, setSelectedBillId] = useState<string>('bill_m01_main');
+  const [selectedBillId, setSelectedBillId] = useState<string>('bill_demo_m04');
   const [selectedUnitIdsForSplit, setSelectedUnitIdsForSplit] = useState<string[]>([]);
   const [showSplitMergePanel, setShowSplitMergePanel] = useState<boolean>(false);
   const [splitNewOwnerLabel, setSplitNewOwnerLabel] = useState<string>('Tagihan Pisah #2');
@@ -279,7 +289,7 @@ export function StaffApp({
   const [newPromoValue, setNewPromoValue] = useState<number>(10000);
   const [newPromoMinSpend, setNewPromoMinSpend] = useState<number>(40000);
 
-  const staffList = snapshot?.staffAccounts || [];
+  const staffList = snapshot?.staffRoles || snapshot?.staffAccounts || [];
   const currentStaffObj =
     staffList.find((s: any) => s.id === activeStaff) ||
     staffList[0] || {
@@ -313,7 +323,11 @@ export function StaffApp({
 
   const activeBills = useMemo(() => snapshot?.bills || [], [snapshot]);
   const selectedBill = useMemo(
-    () => activeBills.find((b: any) => b.id === selectedBillId) || activeBills[0] || null,
+    () =>
+      activeBills.find((b: any) => b.id === selectedBillId) ||
+      activeBills.find((b: any) => b.balanceIdr > 0) ||
+      activeBills[0] ||
+      null,
     [activeBills, selectedBillId]
   );
 
@@ -350,7 +364,7 @@ export function StaffApp({
       b.id,
       `${b.tableLabel} - ${b.ownerLabel}`,
       b.paymentState,
-      b.totalIdr,
+      b.originalTotalIdr ?? b.totalIdr ?? 0,
       b.verifiedReceiptsIdr,
       b.balanceIdr,
     ]);
@@ -725,7 +739,14 @@ export function StaffApp({
 
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {pendingOrderRequests.map((req: any) => {
-                    const lines = (req.linesJson as any[]) || [];
+                    const matchedQuote = (snapshot?.quotes || []).find(
+                      (q: any) => q.id === req.quoteId
+                    );
+                    const lines =
+                      (matchedQuote?.itemsSnapshotJson as any[]) ||
+                      (req.linesJson as any[]) ||
+                      [];
+                    const reqTotalIdr = matchedQuote?.totalIdr ?? req.totalIdr ?? 0;
                     return (
                       <div
                         key={req.id}
@@ -741,7 +762,9 @@ export function StaffApp({
                           <div className="text-[13px] text-[var(--muted-foreground)] space-y-0.5">
                             {lines.map((ln: any, idx: number) => (
                               <p key={idx}>
-                                <strong className="text-[var(--foreground)]">{ln.qty}×</strong>{' '}
+                                <strong className="text-[var(--foreground)]">
+                                  {ln.quantity ?? ln.qty ?? 1}×
+                                </strong>{' '}
                                 {ln.itemName} ({ln.variantName})
                                 {ln.modifiers?.length ? ` · ${ln.modifiers.join(', ')}` : ''}
                                 {ln.note ? ` — Catatan: "${ln.note}"` : ''}
@@ -755,7 +778,7 @@ export function StaffApp({
                             <span className="block text-[11px] text-[var(--muted-foreground)]">
                               Total Pesanan
                             </span>
-                            <Money amount={req.totalIdr} className="font-bold text-[16px]" />
+                            <Money amount={reqTotalIdr} className="font-bold text-[16px]" />
                           </div>
 
                           <Button
@@ -845,7 +868,11 @@ export function StaffApp({
                         </div>
                         <div className="text-right space-y-1 shrink-0">
                           <Money
-                            amount={b.balanceIdr > 0 ? b.balanceIdr : b.totalIdr}
+                            amount={
+                              b.balanceIdr > 0
+                                ? b.balanceIdr
+                                : b.originalTotalIdr ?? b.totalIdr ?? 0
+                            }
                             className="block font-bold text-[15px] text-[var(--foreground)]"
                           />
                           <StatusLabel label={payBadge.label} tone={payBadge.tone} />
@@ -2365,7 +2392,7 @@ export function StaffApp({
                       <div key={fb.id} className="py-3 space-y-1 text-[14px]">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold">{fb.customerName}</span>
-                          <StatusLabel label={`★ ${fb.overallRating}/5`} tone="success" />
+                          <StatusLabel label={`Rating ${fb.overallRating}/5`} tone="success" />
                         </div>
                         <p className="text-[var(--muted-foreground)]">{fb.comment}</p>
                       </div>

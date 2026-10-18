@@ -401,20 +401,20 @@ export function FloorPlanEditor({
                     )}
                     <text
                       x={cx}
-                      y={cy - 40}
+                      y={cy - 35}
                       textAnchor="middle"
                       fill="#181B18"
-                      fontSize="270"
+                      fontSize="250"
                       fontWeight="700"
                     >
-                      {t.label} ({t.capacity} kursi)
+                      {t.label}
                     </text>
                     <text
                       x={cx}
-                      y={cy + 220}
+                      y={cy + 185}
                       textAnchor="middle"
                       fill="#4A524B"
-                      fontSize="200"
+                      fontSize="185"
                       fontWeight="500"
                     >
                       {stateShort}

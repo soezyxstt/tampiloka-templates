@@ -1295,25 +1295,33 @@ export function CustomerApp({
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {(snapshot?.orderRequests || [])
                       .filter((r: any) => r.state === 'REQUESTED')
-                      .map((req: any) => (
-                        <div key={req.id} className="py-3.5 space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-[15px]">
-                              Meja {req.tableLabel} · {req.customerName}
-                            </span>
-                            <StatusLabel label="Menunggu konfirmasi staf" tone="warning" />
+                      .map((req: any) => {
+                        const matchedQuote = (snapshot?.quotes || []).find(
+                          (q: any) => q.id === req.quoteId
+                        );
+                        return (
+                          <div key={req.id} className="py-3.5 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-[15px]">
+                                Meja {req.tableLabel} · {req.customerName}
+                              </span>
+                              <StatusLabel label="Menunggu konfirmasi staf" tone="warning" />
+                            </div>
+                            <p className="text-[13px] text-[var(--muted-foreground)]">
+                              Total estimasi:{' '}
+                              <Money
+                                amount={matchedQuote?.totalIdr ?? req.totalIdr ?? 0}
+                                className="font-semibold"
+                              />{' '}
+                              · Diajukan pukul{' '}
+                              {new Date(req.createdAt).toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
                           </div>
-                          <p className="text-[13px] text-[var(--muted-foreground)]">
-                            Total estimasi:{' '}
-                            <Money amount={req.totalIdr} className="font-semibold" /> · Diajukan
-                            pukul{' '}
-                            {new Date(req.createdAt).toLocaleTimeString('id-ID', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </section>
               )}
@@ -1337,10 +1345,13 @@ export function CustomerApp({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
-                              Pesanan #{ord.orderNumber} · {ord.customerName}
+                              Pesanan #{ord.orderNumber || String(ord.id).slice(-6).toUpperCase()} ·{' '}
+                              {ord.customerName}
                             </p>
                             <p className="text-[12px] text-[var(--muted-foreground)]">
-                              {ord.mode === 'DINE_IN' ? `Meja ${ord.tableLabel}` : 'Bawa Pulang'}
+                              {ord.mode === 'DINE_IN'
+                                ? `Meja ${ord.tableLabelSnapshot || ord.tableLabel}`
+                                : 'Bawa Pulang'}
                             </p>
                           </div>
 
@@ -1368,13 +1379,18 @@ export function CustomerApp({
                             >
                               <div>
                                 <span className="font-medium text-[var(--foreground)]">
-                                  1× {u.itemName}
+                                  1× {u.itemNameSnapshot || u.itemName}
                                 </span>{' '}
                                 <span className="text-[var(--muted-foreground)]">
-                                  ({u.variantName})
+                                  ({u.variantNameSnapshot || u.variantName})
                                 </span>
                                 <p className="text-[12px] text-[var(--muted-foreground)]">
-                                  Stasiun: {u.stationCode}
+                                  Stasiun:{' '}
+                                  {u.stationCode === 'BAR'
+                                    ? 'Bar & Kopi'
+                                    : u.stationCode === 'PASTRY'
+                                    ? 'Pastry & Roti'
+                                    : 'Dapur Utama'}
                                   {u.note ? ` · Catatan: "${u.note}"` : ''}
                                 </p>
                               </div>
@@ -1472,12 +1488,17 @@ export function CustomerApp({
                           className="py-2.5 flex items-center justify-between gap-3 text-[14px]"
                         >
                           <div>
-                            <span className="font-medium">{u.itemName}</span>{' '}
+                            <span className="font-medium">
+                              {u.itemNameSnapshot || u.itemName}
+                            </span>{' '}
                             <span className="text-[var(--muted-foreground)]">
-                              ({u.variantName})
+                              ({u.variantNameSnapshot || u.variantName})
                             </span>
                           </div>
-                          <Money amount={u.finalUnitTotalIdr} className="font-medium" />
+                          <Money
+                            amount={u.netIdr ?? u.grossIdr ?? u.finalUnitTotalIdr ?? 0}
+                            className="font-medium"
+                          />
                         </div>
                       ))}
                     </div>
@@ -1521,7 +1542,7 @@ export function CustomerApp({
                       discountIdr={selectedBill.discountIdr}
                       serviceIdr={selectedBill.serviceIdr}
                       taxIdr={selectedBill.taxIdr}
-                      totalIdr={selectedBill.totalIdr}
+                      totalIdr={selectedBill.originalTotalIdr ?? selectedBill.totalIdr ?? 0}
                       creditAdjustmentsIdr={selectedBill.creditAdjustmentsIdr}
                       verifiedReceiptsIdr={selectedBill.verifiedReceiptsIdr}
                       refundedIdr={selectedBill.refundedIdr}
@@ -1702,9 +1723,12 @@ export function CustomerApp({
                         {(selectedBill.allocatedUnits || []).map((u: any) => (
                           <div key={u.id} className="flex justify-between tabular-nums">
                             <span>
-                              1× {u.itemName} ({u.variantName})
+                              1× {u.itemNameSnapshot || u.itemName} (
+                              {u.variantNameSnapshot || u.variantName})
                             </span>
-                            <span>{formatIdr(u.finalUnitTotalIdr)}</span>
+                            <span>
+                              {formatIdr(u.netIdr ?? u.grossIdr ?? u.finalUnitTotalIdr ?? 0)}
+                            </span>
                           </div>
                         ))}
                       </div>
