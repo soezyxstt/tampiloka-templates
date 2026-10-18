@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#EFECE6"/>
+  <circle cx="200" cy="155" r="95" fill="#E4DEC8"/>
+  <rect x="135" y="75" width="130" height="150" rx="12" fill="#FFFFFF" stroke="#CFC8BC" stroke-width="3"/>
+  <path d="M139 115 H261 V180 H139 Z" fill="#F5F1E9"/>
+  <path d="M139 180 H261 V215 Q261 222 253 222 H147 Q139 222 139 215 Z" fill="#4A2C11"/>
+  <path d="M192 25 L208 25 L203 135 L197 135 Z" fill="#5C3A21"/>
+  <ellipse cx="200" cy="135" rx="34" ry="12" fill="#6F4E37"/>
+  <text x="200" y="268" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5A554C" font-weight="600">Tuangan Double Ristretto Segar</text>
+</svg>

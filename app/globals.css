@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #FAFAF8;
+  --surface: #FFFFFF;
+  --foreground: #181B18;
+  --muted-foreground: #626A63;
+  --border: #E1E5DF;
+  --primary: #244C3D;
+  --primary-foreground: #FFFFFF;
+  --accent-surface: #EDF2EC;
+
+  --status-success-fg: #1A5C38;
+  --status-success-bg: #EBF5EE;
+  --status-warning-fg: #8A5300;
+  --status-warning-bg: #FDF4E7;
+  --status-danger-fg: #9E2A2B;
+  --status-danger-bg: #FDECEC;
+  --status-info-fg: #1F4E79;
+  --status-info-bg: #EBF2FA;
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--font-heading), system-ui, -apple-system, sans-serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

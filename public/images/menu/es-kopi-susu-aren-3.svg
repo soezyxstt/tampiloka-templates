@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#EBE7DF"/>
+  <ellipse cx="200" cy="242" rx="110" ry="16" fill="#D8D1C5"/>
+  <rect x="148" y="68" width="104" height="168" rx="10" fill="#FAF8F5" stroke="#C8C0B4" stroke-width="3"/>
+  <rect x="140" y="54" width="120" height="18" rx="6" fill="#244C3D"/>
+  <rect x="148" y="122" width="104" height="46" fill="#244C3D"/>
+  <text x="200" y="149" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#FFFFFF" font-weight="700">MERANTI</text>
+  <text x="200" y="272" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5A554C" font-weight="600">Kemasan Cup Segel Rapat</text>
+</svg>

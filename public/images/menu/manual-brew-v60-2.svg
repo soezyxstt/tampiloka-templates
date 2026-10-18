@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#F3EFEA"/>
+  <polygon points="145,65 255,65 222,145 178,145" fill="#FFFFFF" stroke="#C8C0B4" stroke-width="3"/>
+  <rect x="165" y="145" width="70" height="10" rx="4" fill="#244C3D"/>
+  <path d="M162 155 L238 155 L252 232 Q252 242 240 242 L160 242 Q148 242 148 232 Z" fill="#FFFFFF" fill-opacity="0.85" stroke="#C8C0B4" stroke-width="3"/>
+  <path d="M153 188 L247 188 L249 230 Q249 238 238 238 L162 238 Q151 238 151 230 Z" fill="#5A2D18"/>
+  <text x="200" y="272" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5A554C" font-weight="600">Seduhan Dripper V60 &amp; Carafe Kaca</text>
+</svg>

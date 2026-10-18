@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#F4F1EA"/>
+  <circle cx="200" cy="148" r="96" fill="#FFFFFF" stroke="#D5CFC4" stroke-width="4"/>
+  <circle cx="170" cy="135" r="42" fill="#FAF7F0" stroke="#E5DFD3" stroke-width="2"/>
+  <path d="M195 105 Q255 100 262 152 Q245 195 190 182 Z" fill="#B85D19"/>
+  <circle cx="165" cy="188" r="22" fill="#D9381E"/>
+  <circle cx="165" cy="188" r="14" fill="#F26430"/>
+  <circle cx="222" cy="192" r="16" fill="#3B7A57"/>
+  <text x="200" y="272" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5A554C" font-weight="600">Detail Sambal Matah &amp; Lalapan Segar</text>
+</svg>
