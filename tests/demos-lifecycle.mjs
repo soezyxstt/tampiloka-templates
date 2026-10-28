@@ -595,11 +595,11 @@ async function exceptionJourney(context) {
   pass('manager exception: short reasons blocked, departure recorded, unpaid debt retained and shown for follow-up');
 }
 
-async function externalCounterJourney(context) {
-  const { staff, customer, baseline } = await setupPages(context, 'order-at-cashier');
+async function externalCounterJourney(context, preset = 'order-at-cashier') {
+  const { staff, customer, baseline } = await setupPages(context, preset);
   const fixture = { name: 'Tono Uji Kasir Eksternal', tableId: 'tbl_m06' };
   const table = baseline.tables.find(table => table.id === fixture.tableId);
-  await open(customer, qrUrl(table, 'order-at-cashier'));
+  await open(customer, qrUrl(table, preset));
   const request = await orderFromCustomer(customer, staff, fixture, 'item_teh_melati');
   const sale = await accept(staff, fixture.name, request.id);
   const visit = sale.snapshot.visits.find(visit => visit.id === sale.order.visitId);
@@ -632,7 +632,7 @@ async function externalCounterJourney(context) {
   assert.equal(completed.tables.find(entry => entry.id === table.id).physicalState, 'AVAILABLE', 'A package without floor controls must release the table for the next visit.');
   await geometry(customer, 'external-counter-customer-390');
   await geometry(staff, 'external-counter-staff-1024');
-  pass('order-at-cashier: actual UI order → simple fulfillment → confirmed external receipt → customer paid status → completed visit');
+  pass(`${preset}: actual UI order → waiter inbox → fulfillment → offline receipt → completed visit`);
 }
 
 async function openCustomerWaitlist(customer) {
@@ -766,6 +766,7 @@ const cases = [
   { id: 'split-merge', run: splitMergeJourney },
   { id: 'exception-departure', run: exceptionJourney },
   { id: 'external-counter', run: externalCounterJourney },
+  { id: 'catalog-waiter', run: context => externalCounterJourney(context, 'catalog') },
   { id: 'waitlist-customer-staff', run: waitlistJourney },
   { id: 'scenario-picker', run: scenarioPicker },
 ];

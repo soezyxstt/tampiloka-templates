@@ -31,13 +31,15 @@ try {
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   if (!ready) throw new Error('The static demo preview did not become available.');
-  for (const script of ['tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs']) {
+  const failures = [];
+  for (const script of ['tests/demos-compact-ui.mjs', 'tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs']) {
     if (interrupted) throw new Error('Browser verification interrupted.');
     currentTest = spawn(process.execPath, ['--experimental-strip-types', script], { cwd: root, env, stdio: 'inherit' });
     const [code, signal] = await once(currentTest, 'exit');
     currentTest = undefined;
-    if (code !== 0) throw new Error(`${script} failed (${signal || code}).`);
+    if (code !== 0) failures.push(`${script} failed (${signal || code}).`);
   }
+  if (failures.length) throw new Error(failures.join("\n"));
 } finally {
   currentTest?.kill('SIGTERM');
   preview.kill('SIGTERM');

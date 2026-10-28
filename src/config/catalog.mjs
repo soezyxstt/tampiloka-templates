@@ -22,7 +22,7 @@ export const THEMES = Object.freeze({
 export const THEME_ALIASES = Object.freeze({ boxie: 'boxy', roundy: 'rounded', fun: 'playful', loose: 'airy' });
 
 export const PRESETS = Object.freeze({
-  catalog: { label: 'Menu only', modules: ['catalog'], paymentMode: 'cashier' },
+  catalog: { label: 'Menu + waiter requests', modules: ['catalog', 'ordering'], paymentMode: 'cashier' },
   'order-at-cashier': { label: 'Menu + ordering, pay at cashier', modules: ['catalog', 'ordering'], paymentMode: 'cashier' },
   'order-and-pay': { label: 'Menu + ordering + online payment', modules: ['catalog', 'ordering', 'payments'], paymentMode: 'online' },
   cashier: { label: 'Cashier only', modules: ['cashier'], paymentMode: 'cashier' },

@@ -1,5 +1,7 @@
 # Create a client demo
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
+
 The template has one public configuration file, `config/cafe.json`. Service modules decide what a client gets. The theme decides how components look. Brand identity stays separate from both. A menu-only client can serve static content without a database. Ordering and staff transactions currently use the demo runtime.
 
 Use Node.js 22.12 or newer. Use a separate project directory, database, and deployment for each client.
@@ -45,7 +47,7 @@ The multiline example uses POSIX line continuation. On Windows, put the command 
 
 `init` copies the app, reusable components, static content, database code, scripts, tests, docs, and public product assets. It changes the package name, brand, and route slugs.
 
-A `catalog` client starts in static mode with `CAFE_DEMO_DB=0`; use `npm run dev`. Other packages start with demo mode and `CAFE_DEMO_EMPTY=1` enabled; use `npm run demo`. A fresh ordering demo gets sample menu items and tables, with no sample sales. A cashier package also gets an empty open shift.
+A client with exactly `--modules catalog` starts in static mode with `CAFE_DEMO_DB=0`; use `npm run dev`. The `catalog` preset and other transactional packages start with demo mode and `CAFE_DEMO_EMPTY=1` enabled; use `npm run demo`. A fresh ordering demo gets sample menu items and tables, with no sample sales. A cashier package also gets an empty open shift.
 
 To use the supplied sales examples for a demonstration, remove `CAFE_DEMO_EMPTY=1` before the first startup. This setting affects a fresh database; it does not erase or replace existing orders.
 
@@ -59,7 +61,7 @@ The CLI refuses to overwrite an existing directory. A failed validation creates 
 
 ```bash
 npm run cafe -- init ../kopi-senja \
-  --name "Kopi Senja" --preset catalog --theme airy --dry-run --json
+  --name "Kopi Senja" --modules catalog --theme airy --dry-run --json
 ```
 
 `--dry-run` validates the whole selection without writing anything. `--json` returns data for scripts and disables prompts.
@@ -67,7 +69,7 @@ npm run cafe -- init ../kopi-senja \
 ## Publish a menu-only catalog
 
 ```bash
-npm run cafe -- init ../menu-client --name "Kopi Senja" --preset catalog --theme editorial --yes
+npm run cafe -- init ../menu-client --name "Kopi Senja" --modules catalog --theme editorial --yes
 cd ../menu-client
 npm ci
 npm run dev
@@ -87,7 +89,7 @@ npm start
 
 Leave `CAFE_DEMO_DB` unset or `0`. With exactly the `catalog` module enabled, the app serves the static JSON menu and table QR routes. It does not need a database or expose order/payment/staff actions. Build and deploy each client separately. QR links use `/t/<tenantSlug>/<outletSlug>/m/<qrToken>` at the client's deployed domain.
 
-If you switch an existing demo to `catalog` with `configure`, also disable `CAFE_DEMO_DB` in that project's environment. `configure` changes public settings only; it does not rewrite environment files or erase stored data.
+If you switch an existing demo to exactly `--modules catalog` with `configure`, also disable `CAFE_DEMO_DB` in that project's environment. `configure` changes public settings only; it does not rewrite environment files or erase stored data.
 
 ### Export a menu you edited in the demo
 
@@ -109,8 +111,8 @@ npm run cafe -- modules
 
 | Preset | Modules | Customer payment |
 | --- | --- | --- |
-| `catalog` | Menu catalog | No order or checkout flow |
-| `order-at-cashier` | Catalog, customer ordering | Pay at the cashier |
+| `catalog` | Catalog, guest lists and waiter inbox | Offline; staff confirms an external-register receipt |
+| `order-at-cashier` | Compatibility alias for `catalog` | Same offline flow |
 | `order-and-pay` | Catalog, customer ordering, online payments | Online checkout |
 | `cashier` | Cashier / POS | Staff handles payment |
 | `cashier-kitchen` | Cashier, kitchen | Staff handles payment |

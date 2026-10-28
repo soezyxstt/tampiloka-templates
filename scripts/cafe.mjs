@@ -52,7 +52,8 @@ Examples:
   npm run cafe -- configure --preset cashier-kitchen --theme boxy --color '#173E35' --yes
   npm run cafe -- init ../ruang --name "Ruang" --modules catalog,ordering,cashier,kitchen --yes
 
-Menu-only projects serve editable static content without a database. Ordering
+Use --modules catalog for a read-only menu without a database. The catalog
+preset includes guest lists and the waiter inbox with offline payment. Ordering
 projects start with demo data; real payments and staff authentication need
 production adapters before a client starts taking live orders.
 `;

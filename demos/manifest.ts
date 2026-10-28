@@ -5,7 +5,7 @@ export const DEMO_DOMAIN = 'tampiloka.site';
 export const DEMO_HUB = `https://cafe.${DEMO_DOMAIN}`;
 
 const definitions: Array<[string, string, string, string, string, ThemeId]> = [
-  ['catalog', 'Menu catalog', 'A clear, searchable menu guests can open from a table QR.', 'For cafes that take orders directly with staff.', 'cafe-catalog', 'editorial'],
+  ['catalog', 'Menu and waiter requests', 'Guests keep their own order list and send it to the waiter. Payment stays offline.', 'For table ordering handled by staff, without a POS or online payment.', 'cafe-catalog', 'editorial'],
   ['order-at-cashier', 'Order, pay at the counter', 'Guests send their order. Staff receive it and handle payment at the counter.', 'For self-ordering without online checkout.', 'cafe-order', 'rounded'],
   ['order-and-pay', 'Order and pay', 'The customer journey from a table menu to a simulated online payment.', 'For a complete guest checkout experience.', 'cafe-pay', 'airy'],
   ['cashier', 'Cashier', 'Build an order, apply a discount, take cash and manage the shift.', 'For counter service and walk-in orders.', 'cafe-pos', 'boxy'],

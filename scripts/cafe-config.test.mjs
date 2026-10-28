@@ -200,7 +200,7 @@ function cli(args, cwd = fixture) {
 
 test('init creates a reusable client with selected modules and no old secrets or data', async () => {
   const destination = join(scratch, 'kopi-senja');
-  const result = cli(['init', destination, '--name', 'Kopi Senja', '--preset', 'catalog', '--theme', 'editorial', '--color', '#204C38', '--yes', '--json']);
+  const result = cli(['init', destination, '--name', 'Kopi Senja', '--modules', 'catalog', '--theme', 'editorial', '--color', '#204C38', '--yes', '--json']);
   assert.equal(result.status, 0, result.stderr);
   const saved = JSON.parse(await readFile(join(destination, 'config/cafe.json'), 'utf8'));
   assert.deepEqual(saved.modules, ['catalog']); assert.equal(saved.brand.name, 'Kopi Senja'); assert.equal(saved.venue.tenantSlug, 'kopi-senja'); assert.equal(saved.theme, 'editorial');
@@ -298,4 +298,16 @@ test('local logo copying works and doctor catches a missing local logo', async (
 test('package listing is machine-readable and preserves exact service selections', () => {
   const result = cli(['presets', '--json']); assert.equal(result.status, 0, result.stderr);
   const data = JSON.parse(result.stdout); assert.deepEqual(data['order-at-cashier'].modules, ['catalog', 'ordering']); assert.deepEqual(data.cashier.modules, ['cashier']);
+});
+
+test('catalog preset generates the waiter inbox with empty client transactions', async () => {
+ const destination=join(scratch,'waiter-menu');
+ const result=cli(['init',destination,'--name','Waiter Menu','--preset','catalog','--yes']);
+ assert.equal(result.status,0,result.stderr);
+ const saved=JSON.parse(await readFile(join(destination,'config/cafe.json'),'utf8'));
+ assert.deepEqual(saved.modules,['catalog','ordering']);
+ assert.equal(saved.payment.mode,'cashier');
+ const env=await readFile(join(destination,'.env.local'),'utf8');
+ assert.match(env,/CAFE_DEMO_DB=1/);assert.match(env,/CAFE_DEMO_EMPTY=1/);
+ assert.equal(await exists(join(destination,'.local')),false);
 });

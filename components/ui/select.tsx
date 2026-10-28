@@ -4,6 +4,7 @@ import * as React from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fieldStyles } from './field-styles';
 
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
@@ -16,7 +17,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex min-h-[42px] w-full items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus:outline-none focus:border-[var(--primary-ink)] focus:ring-2 focus:ring-[var(--primary-ink)]/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 cursor-pointer',
+      fieldStyles, 'flex items-center justify-between gap-2 [&>span]:truncate',
       className
     )}
     {...props}
@@ -145,11 +146,11 @@ export interface SelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectE
 const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
   ({ className, wrapperClassName, children, ...props }, ref) => {
     return (
-      <div className={cn('relative flex items-center w-full', wrapperClassName)}>
+      <div className={cn('ui-field relative flex items-center w-full min-w-0 max-w-full', wrapperClassName)}>
         <select
           ref={ref}
           className={cn(
-            'flex min-h-[42px] w-full appearance-none rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-9 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:border-[var(--primary-ink)] focus-visible:ring-2 focus-visible:ring-[var(--primary-ink)]/20 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
+            fieldStyles, 'appearance-none pr-9 cursor-pointer',
             className
           )}
           {...props}

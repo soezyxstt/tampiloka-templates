@@ -233,7 +233,7 @@ async function checkPreset(preset, index) {
 async function checkStaticCatalog(index) {
   const directory = join(work, 'static-catalog');
   const slug = 'verify-static-catalog';
-  await run(process.execPath, [join(root, 'scripts/cafe.mjs'), 'init', directory, '--name', 'Verify Static Menu', '--slug', slug, '--preset', 'catalog', '--yes', '--json']);
+  await run(process.execPath, [join(root, 'scripts/cafe.mjs'), 'init', directory, '--name', 'Verify Static Menu', '--slug', slug, '--modules', 'catalog', '--yes', '--json']);
   await symlink(join(root, 'node_modules'), join(directory, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
   // Prove this mode works without either a demo flag or any database credentials.
   await rm(join(directory, '.env.local'));

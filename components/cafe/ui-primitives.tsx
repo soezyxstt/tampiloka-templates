@@ -3,6 +3,9 @@
 import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
+import { InlineNotice } from '@/components/ui/workspace-primitives';
+export { InlineNotice, Surface, StatStrip } from '@/components/ui/workspace-primitives';
+export { ChoiceStrip, FilterToggle } from '@/components/ui/choice-strip';
 import {
   Search,
   Minus,
@@ -123,14 +126,14 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-[var(--border)]',
+        'min-w-0 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--border)]',
         className
       )}
     >
       <h1 className="font-heading text-[22px] leading-[28px] md:text-[26px] md:leading-[34px] font-bold text-[var(--foreground)] tracking-tight">
         {title}
       </h1>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actions && <div className="min-w-0 flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -149,7 +152,7 @@ export function SectionHeader({
       <h2 className="font-heading text-[17px] leading-[24px] md:text-[18px] md:leading-[26px] font-semibold text-[var(--foreground)]">
         {title}
       </h2>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actions && <div className="min-w-0 flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -216,7 +219,7 @@ export function StatusLabel({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'inline-flex items-center gap-1.5 text-[12px] leading-[16px] font-medium whitespace-nowrap shrink-0',
+        'inline-flex max-w-full min-w-0 items-start gap-1.5 text-[12px] leading-[16px] font-medium whitespace-normal [overflow-wrap:anywhere]',
         cfg.fg,
         withSurface ? cn(cfg.bg, 'px-2 py-1 rounded-[6px]') : '',
         className
@@ -359,7 +362,7 @@ export function QuantityControl({
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
         aria-label={`Kurangi jumlah ${itemLabel}`}
-        className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
       >
         <Minus className="w-4 h-4" />
       </motion.button>
@@ -383,7 +386,7 @@ export function QuantityControl({
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
         aria-label={`Tambah jumlah ${itemLabel}`}
-        className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
       >
         <Plus className="w-4 h-4" />
       </motion.button>
@@ -573,41 +576,8 @@ export function EmptyState({
   );
 }
 
-export function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) {
-  return (
-    <AnimatePresence>
-      {message && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.16 }}
-          role="alert"
-          className="p-3 rounded-[8px] bg-[var(--status-danger-bg)] border border-[#F3C5C5] text-[var(--status-danger-fg)] flex items-start justify-between gap-3 text-[14px] leading-[20px]"
-        >
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
-            <span>{message}</span>
-          </div>
-          {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="font-semibold underline whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Coba lagi
-            </button>
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+export function InlineError({ message, className }: { message?:string|null; className?:string }) {
+  return message ? <InlineNotice tone="danger" className={className}>{message}</InlineNotice> : null;
 }
 
 export function ConnectionStatus({

@@ -13,6 +13,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const [error, setError] = useState('');
   const [resetting, setResetting] = useState(false);
   const base = demoBasePath(demo);
+  const readOnlyCatalog = cafeConfig.modules.length === 1 && isModuleEnabled('catalog');
   const hub = location.hostname.endsWith(`.${DEMO_DOMAIN}`) ? DEMO_HUB : '/';
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       const token = location.pathname.match(/\/m\/([^/]+)\/?$/)?.[1];
       let snapshot;
       let runtime: typeof import('../src/demo-runtime/index') | undefined;
-      if (demo.id === 'catalog') {
+      if (readOnlyCatalog) {
         const [{ buildStaticCatalogSnapshot }, { default: menu }, { default: tables }] = await Promise.all([
           import('../src/catalog/static-catalog'), import('../content/menu.json'), import('../content/tables.json'),
         ]);
@@ -45,13 +46,13 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       if (active) setPrepared({ snapshot, view, tableId: view === 'pelanggan' ? table?.id : undefined, billId });
     })().catch(caught => { console.error('Demo initialization failed', caught); if (active) setError(caught instanceof Error ? caught.message : 'Demo belum dapat dibuka.'); });
     return () => { active = false; cleanup?.(); };
-  }, [demo.id]);
+  }, [demo.id, readOnlyCatalog]);
 
   const reset = async () => {
     if (!confirm('Mulai ulang demo ini? Pesanan dan perubahan demo di browser ini akan dihapus.')) return;
     setResetting(true);
     try {
-      if (demo.id !== 'catalog') await (await import('../src/demo-runtime/index')).resetBrowserDemo();
+      if (!readOnlyCatalog) await (await import('../src/demo-runtime/index')).resetBrowserDemo();
       const prefix = `cafe:${cafeConfig.venue.tenantSlug}:${cafeConfig.venue.outletSlug}`;
       for (const key of Object.keys(localStorage)) if (key.startsWith(prefix)) localStorage.removeItem(key);
       sessionStorage.removeItem(`${prefix}:scenario`);
@@ -70,7 +71,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       </div>
     </div>
     <details className="demo-context"><summary>Demo interaktif · tidak ada pembayaran nyata</summary><p>Perubahan tersimpan di browser ini. Tab pelanggan dan staf pada alamat demo yang sama berbagi data. Perangkat atau browser lain memiliki sesi sendiri. Gunakan “Ulangi” untuk memulai kembali.</p></details>
-    {prepared?.view === 'staf' && demo.id !== 'catalog' && <ScenarioPanel snapshot={prepared.snapshot} />}
+    {prepared?.view === 'staf' && !readOnlyCatalog && <ScenarioPanel snapshot={prepared.snapshot} />}
     {error ? <main className="demo-loading" role="alert"><h1>Demo belum dapat dibuka</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>Coba lagi</button><a href={hub}>Pilih demo lain</a></main>
       : prepared ? <KafeWorkspace initialSnapshot={prepared.snapshot} initialView={prepared.view} initialTableId={prepared.tableId} initialBillId={prepared.billId} />
       : <main className="demo-loading" aria-live="polite"><span className="demo-spinner" /><h1>Menyiapkan demo…</h1><p>Pembukaan pertama membutuhkan beberapa saat. Setelah itu, data demo tersimpan di browser ini.</p></main>}

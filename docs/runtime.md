@@ -1,8 +1,10 @@
 # Runtime and operational scope
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
+
 ## Public catalog without a database
 
-The `catalog` preset (`modules: ["catalog"]`) can serve a real, read-only menu without a database, demo flag, staff login or payment provider. Configure the client, edit `content/menu.json` and `content/tables.json`, and run `npm run dev` or `npm run build` followed by `npm start`. Leave `CAFE_DEMO_DB` unset or `0`. Root and table QR routes use the same public JSON content. Search, category filtering, item details, images, variant prices and local favorites work; ordering, staff access and payment actions remain unavailable.
+An explicitly read-only project (`--modules catalog`, or `modules: ["catalog"]`) can serve a real, read-only menu without a database, demo flag, staff login or payment provider. Configure the client, edit `content/menu.json` and `content/tables.json`, and run `npm run dev` or `npm run build` followed by `npm start`. Leave `CAFE_DEMO_DB` unset or `0`. Root and table QR routes use the same public JSON content. Search, category filtering, item details, images, variant prices and local favorites work; ordering, staff access and payment actions remain unavailable.
 
 The default content has `sample: true`. Replace the fictional menu, prices, allergens, hours and facilities with the client's checked content, then explicitly change `sample` to `false`. A brand change alone does not make sample menu data real. Static availability is manually maintained; this mode does not know live stock or table occupancy. Table QR tokens identify public menu links and grant no staff access.
 
@@ -31,7 +33,7 @@ Set `CAFE_DEMO_EMPTY=1` before the first run for a clean demo. This keeps the fi
 
 Customer snapshots use an allowlist and include the selected table's active visit plus the current demo guest's own order history. A new guest does not inherit a departed party's orders when a table is reused. Private waitlist status is retrieved through the guest's own ticket token. Customer snapshots omit staff accounts, session assurances, audit events, cash shifts, stock movements and other guests' member records. The demo surface selector is not an access token. Treat every person who can access the demo server as a trusted demo participant.
 
-The ordering-only `order-at-cashier` package accepts an explicit external-counter payment confirmation with a receipt reference. It does not expose POS or change an application cash drawer. Packages with cashier or online-payment modules use their respective payment controls instead.
+The ordering-only `catalog` preset and its `order-at-cashier` compatibility alias accepts an explicit external-counter payment confirmation with a receipt reference. It does not expose POS or change an application cash drawer. Packages with cashier or online-payment modules use their respective payment controls instead.
 
 ## Visit lifecycle
 
@@ -47,13 +49,13 @@ Quote submission checks the guest, table, order type and catalog/policy versions
 
 ## Live launch boundary
 
-The existing repository used browser-only demo PINs, fictional accounts and an unsigned webhook. Those cannot protect a real cafe. The public catalog described above can run live. Transactional and staff flows fail with `LIVE_ADAPTER_REQUIRED` outside explicit demo mode instead of seeding or exposing a real PostgreSQL database. The webhook returns `PAYMENT_PROVIDER_NOT_CONFIGURED` and never marks a bill paid.
+The existing repository used browser-only demo PINs, fictional accounts and an unsigned webhook. Those cannot protect a real cafe. The explicit read-only catalog described above can run live. The new `catalog` preset includes requests and therefore has the transactional launch requirements below. Transactional and staff flows fail with `LIVE_ADAPTER_REQUIRED` outside explicit demo mode instead of seeding or exposing a real PostgreSQL database. The webhook returns `PAYMENT_PROVIDER_NOT_CONFIGURED` and never marks a bill paid.
 
 Before taking real customer orders, add and verify:
 
 - Server-side staff sessions, role checks and customer sessions bound to an outlet/table.
 - Tenant/outlet isolation for all database reads and mutations; the current fixture is one client per database.
-- A real payment provider account, signed webhook verification, amount/account matching and replay handling.
+- A real payment provider account, signed webhook verification, amount/account matching and replay handling only when online payments are enabled. Offline waiter-request packages still need authenticated staff, private shared storage and durable receipts.
 - Production migrations, backups, monitoring and recovery for failed writes.
 - A real member login/OTP provider if loyalty is part of the package.
 

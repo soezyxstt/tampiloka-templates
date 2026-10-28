@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "../components/ui/workspace.css";
 
 :root {
   --background: #F7F5F1;
@@ -24,12 +25,12 @@
   --status-info-fg: #1F4E79;
   --status-info-bg: #EBF2FA;
 
-  --radius-control: 12px;
-  --radius-panel: 20px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
   --radius-image: 14px;
-  --card-padding: 18px;
-  --section-gap: 28px;
-  --control-height: 48px;
+  --card-padding: 12px;
+  --section-gap: 16px;
+  --control-height: 44px;
   --border-width: 1px;
   --shadow-panel: none;
   --font-heading: var(--font-brand-heading), system-ui, sans-serif;
@@ -64,10 +65,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--primary-ink); o
 }
 
 /* Shape, density, type and composition change independently of brand color. */
-:root[data-theme="boxy"] { --radius-control:2px; --radius-panel:2px; --radius-image:0px; --card-padding:16px; --section-gap:24px; --border-width:1.5px; }
-:root[data-theme="editorial"] { --radius-control:0px; --radius-panel:0px; --radius-image:0px; --card-padding:16px; --section-gap:32px; --font-heading:Georgia, 'Times New Roman', serif; }
-:root[data-theme="playful"] { --radius-control:18px; --radius-panel:26px; --radius-image:20px; --card-padding:18px; --section-gap:24px; --border-width:2px; --shadow-panel:3px 3px 0 var(--foreground); }
-:root[data-theme="airy"] { --radius-control:8px; --radius-panel:12px; --radius-image:8px; --card-padding:24px; --section-gap:40px; }
+:root[data-theme="boxy"] { --radius-control:2px; --radius-panel:2px; --radius-image:0px; --card-padding:12px; --section-gap:16px; --border-width:1.5px; }
+:root[data-theme="editorial"] { --radius-control:0px; --radius-panel:0px; --radius-image:0px; --card-padding:12px; --section-gap:20px; --font-heading:Georgia, 'Times New Roman', serif; }
+:root[data-theme="playful"] { --radius-control:10px; --radius-panel:16px; --radius-image:20px; --card-padding:14px; --section-gap:18px; --border-width:2px; --shadow-panel:3px 3px 0 var(--foreground); }
+:root[data-theme="airy"] { --radius-control:8px; --radius-panel:12px; --radius-image:8px; --card-padding:16px; --section-gap:24px; }
 :root[data-theme="playful"] h1, :root[data-theme="playful"] h2 { font-weight:800; letter-spacing:-.035em; }
 :root[data-theme="editorial"] h1 { font-weight:400; letter-spacing:-.04em; }
 :root[data-theme="airy"] h1 { font-weight:600; letter-spacing:-.035em; }
@@ -76,7 +77,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--primary-ink); o
 .cafe-staff :is(.rounded-xl,.rounded-2xl,.rounded-3xl) { border-radius:var(--radius-panel); }
 .cafe-staff :is(input,select,button.rounded-xl) { border-radius:var(--radius-control); }
 .cafe-staff :is(section.border,.pos-summary) { border-width:var(--border-width); box-shadow:var(--shadow-panel); }
-:root[data-theme="airy"] .cafe-staff main { padding-top:36px; }
+
 input:focus-visible,textarea:focus-visible,select:focus-visible { outline:2px solid var(--primary-ink); outline-offset:2px; }
 button { cursor:pointer; }
 button:disabled { cursor:not-allowed; }
@@ -87,45 +88,5 @@ button:disabled { cursor:not-allowed; }
 
 @media (min-width:768px) and (max-width:1279px) { .staff-metrics > button { padding:14px; } .staff-metrics > button p { margin-top:8px; } .staff-metrics > button p.text-3xl { font-size:24px; line-height:28px; } }
 
-/* The staff shell may follow demo controls. Keep it in document flow rather
-   than pinning its sidebar over content owned by a parent page. */
-@media screen and (min-width: 1280px) {
-  .cafe-staff:has(> aside) {
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    align-items: start;
-  }
-  .cafe-staff > aside {
-    position: sticky;
-    inset: auto;
-    top: 0;
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    align-self: start;
-    width: auto;
-    height: 100vh;
-    height: 100dvh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .cafe-staff > header {
-    grid-column: 2;
-    grid-row: 1;
-    min-width: 0;
-    margin-left: 0;
-  }
-  .cafe-staff > main {
-    grid-column: 2;
-    grid-row: 2;
-    min-width: 0;
-    margin-left: 0;
-  }
-}
-@media screen and (min-width: 768px) {
-  .cafe-staff > header :has(> select[aria-label="Petugas aktif"]) {
-    width: 360px;
-    max-width: 100%;
-  }
-}
-#staff-content { scroll-margin-top: 100px; }
+
+.connection-notice{min-width:0;align-items:flex-start;overflow-wrap:anywhere}.connection-notice>span{min-width:0;flex:1;white-space:normal}.connection-notice>button{flex-shrink:0}

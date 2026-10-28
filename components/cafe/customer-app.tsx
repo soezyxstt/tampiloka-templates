@@ -10,6 +10,9 @@ import { summarizeOrderBilling } from '@/src/domain/order-billing';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Button,
+  PageHeader,
+  ChoiceStrip,
+  FilterToggle,
   Input,
   Textarea,
   Label,
@@ -607,7 +610,6 @@ export function CustomerApp({
     }
   };
 
-  const heroImageSource = snapshot?.catalog?.find((item: any) => item.isAvailable)?.photos?.[0] || snapshot?.catalog?.[0]?.photoUrl;
 
   const configuringPhotos: string[] = useMemo(() => {
     if (!configuringItem) return [];
@@ -624,7 +626,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       <a className="skip-link" href="#customer-content">Ke menu utama</a>
       <header className="sticky top-0 z-30 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--border)]">
-        <div className="max-w-[1080px] mx-auto px-4 py-3 flex items-center justify-between gap-2">
+        <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
           <div className="flex items-center gap-2 min-w-0">
             {activeScreen !== 'menu' ? (
@@ -761,7 +763,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       {/* MAIN MOBILE-FIRST CONTENT CONTAINER (ANIMATED VIEWS, LESS CARDS)      */}
       {/* ===================================================================== */}
-      <main id="customer-content" className="flex-1 w-full max-w-[1080px] mx-auto px-4 sm:px-6 pt-5 pb-44">
+      <main id="customer-content" className="flex-1 w-full max-w-[1080px] mx-auto px-4 sm:px-6 pt-3 pb-28 min-w-0">
         <AnimatePresence mode="wait" initial={false}>
           {/* ================================================================= */}
           {/* SCREEN 1: MENU PELANGGAN (C01, C02, C14)                          */}
@@ -773,34 +775,23 @@ export function CustomerApp({
               animate={{ opacity: 1, y: 0 }}
               exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="space-y-4"
+              className="space-y-3"
             >
-              <section className={styles.hero}>
-                <div className={styles.heroContent}>
-                  <h1 className="font-heading text-[28px] sm:text-4xl font-semibold tracking-tight">Menu hari ini</h1>
-                  <p className="mt-3 text-sm text-[var(--muted-foreground)]">{cafeConfig.brand.description}</p>
-
-                </div>
-                {heroImageSource && <div className={styles.heroPhoto}>
-                  <Image src={heroImageSource} alt="Pilihan menu kedai" width={640} height={480} unoptimized />
-                </div>}
-              </section>
+              <PageHeader title="Menu" className="border-b-0 pb-0" />
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
               {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
-                <button type="button" onClick={() => setActiveScreen('pesanan')} className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl border border-[var(--border)] bg-white text-left">
-                  <span className="flex items-center gap-3"><span className="rounded-full bg-[var(--accent-surface)] p-2.5"><Receipt className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
+                <button type="button" onClick={() => setActiveScreen('pesanan')} className="w-full min-h-[44px] flex items-center justify-between gap-3 py-2 border-b border-[var(--border)] text-left">
+                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><Receipt className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
               <div className={styles.menuToolbar}>
                 <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Cari menu" />
-                <div className={styles.categories} aria-label="Kategori menu">
-                  {categoriesWithCounts.map((category: any) => <button type="button" key={category.id} aria-pressed={activeCategoryId === category.id} onClick={() => setActiveCategoryId(category.id)} className={`${styles.category} ${activeCategoryId === category.id ? styles.categoryActive : ''}`}>{category.id === 'ALL' ? 'Semua' : category.name}</button>)}
-                </div>
+                <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?'Semua':category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel="Kategori menu" variant="underline" />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? 'Favorit' : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', 'Semua menu')}</h2>
-                <div className="flex items-center gap-2"><button type="button" aria-pressed={onlyFavorites} onClick={() => setOnlyFavorites(!onlyFavorites)} className={`sm:hidden rounded-[var(--radius-control)] px-3 py-2 text-xs border border-[var(--border)] ${onlyFavorites ? 'bg-[var(--primary)] text-[var(--primary-foreground)]' : 'bg-[var(--surface)]'}`}>Favorit</button><button type="button" aria-pressed={onlyAvailable} onClick={() => setOnlyAvailable(!onlyAvailable)} className={`rounded-[var(--radius-control)] px-3 py-2 text-xs ${onlyAvailable ? 'bg-[var(--primary)] text-[var(--primary-foreground)]' : 'text-[var(--muted-foreground)] bg-white border border-[var(--border)]'}`}>Tersedia saja</button></div>
+                <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">Favorit</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>Tersedia saja</FilterToggle></div>
               </div>
               {filteredCatalog.length === 0 ? (
                 <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci atau kategori lain." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
@@ -823,9 +814,9 @@ export function CustomerApp({
                       <div className={styles.menuCardBody}>
                         <button type="button" onClick={() => openItemModal(item)} className="text-left font-heading font-semibold text-[15px] sm:text-base leading-snug">{item.name}</button>
                         <p className={styles.menuDescription}>{item.description}</p>
-                        <div className="flex items-center justify-between gap-2 mt-auto pt-4">
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-2">
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          {canOrder && <button type="button" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className={styles.addButton}><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></button>}
+                          {canOrder && <Button variant="subtle" size="sm" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></Button>}
                         </div>
                       </div>
                     </article>;
