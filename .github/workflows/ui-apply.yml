@@ -1,0 +1,53 @@
+name: Apply compact UI changes
+on:
+  push:
+    branches: [feat/compact-ui-catalog-list]
+    paths: [.github/workflows/ui-apply.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/compact-ui-catalog-list
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply reviewed source and documentation changes
+        run: |
+          node scripts/apply-compact-ui.mjs
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'test: synchronize injected defects and complete catalog documentation'
+          git push origin HEAD:feat/compact-ui-catalog-list
+          git rev-parse HEAD
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck && npm run lint && npm run demos:build
+      - run: npx playwright install --with-deps chromium > "$RUNNER_TEMP/browser.log" 2>&1
+      - name: Run all browser suites and retain failures from each
+        run: |
+          set +e
+          npm run test:demo-all > "$RUNNER_TEMP/browser-tests.log" 2>&1
+          result=$?
+          grep -E 'PASS |FAIL |checks passed|cases passed|presets passed|Error:' "$RUNNER_TEMP/browser-tests.log" | tail -n 100
+          exit "$result"
+      - name: Report exact failures and tested revision
+        if: always()
+        run: |
+          git rev-parse HEAD
+          node --input-type=module <<'NODE'
+          import {readFile} from 'node:fs/promises';
+          for(const path of ['compact-ui/report.json','staff-layout/report.json','demos/demo-browser.json','lifecycle/lifecycle-browser.json']) {
+            try {const r=JSON.parse(await readFile('test-results/'+path,'utf8'));console.log(path,JSON.stringify({checks:r.checks?.length,failures:r.failures,cases:r.cases?.map(c=>({id:c.id,status:c.status,error:c.error})),errors:r.errors,pageErrors:r.pageErrors,consoleErrors:r.consoleErrors}));} catch {}
+          }
+          NODE
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compact-ui-browser-evidence
+          path: test-results/
+          retention-days: 7
