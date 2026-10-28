@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { Pool } from 'pg';
 import { resolve } from 'node:path';
 import * as schema from './schema.ts';
+import { cafeConfig } from '../config/cafe.ts';
 
 declare global {
   var _postgresPool: Pool | undefined;
@@ -32,7 +33,7 @@ export const createPool = () => {
 
 function getDemoDatabase() {
   if (!global._cafeDemoDatabase) {
-    global._cafeDemoDatabase = new PGlite(resolve(process.env.CAFE_DEMO_DATA_DIR || '.local/cafe-db'));
+    global._cafeDemoDatabase = new PGlite(resolve(process.env.CAFE_DEMO_DATA_DIR || `.local/${cafeConfig.venue.outletSlug}/cafe-db`));
   }
   return global._cafeDemoDatabase;
 }

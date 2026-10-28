@@ -8,11 +8,12 @@
   --muted-foreground: #776F68;
   --border: #E7E1DA;
   --primary: #A84A30;
+  --primary-ink: #A84A30;
   --primary-foreground: #FFFFFF;
-  --primary-hover: #873B27;
+  --primary-hover: color-mix(in srgb, var(--primary) 82%, black);
   --surface-muted: #F0ECE6;
   --border-strong: #CCC0B5;
-  --accent-surface: #F3E7DE;
+  --accent-surface: var(--brand-tint, #F3E7DE);
 
   --status-success-fg: #1A5C38;
   --status-success-bg: #EBF5EE;
@@ -25,12 +26,20 @@
 
   --radius-control: 12px;
   --radius-panel: 20px;
+  --radius-image: 14px;
+  --card-padding: 18px;
+  --section-gap: 28px;
+  --control-height: 48px;
+  --border-width: 1px;
+  --shadow-panel: none;
+  --font-heading: var(--font-brand-heading), system-ui, sans-serif;
+  --font-body: var(--font-sans), system-ui, sans-serif;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 24px;
   -webkit-font-smoothing: antialiased;
@@ -48,8 +57,32 @@ html { scroll-behavior: smooth; }
 body { margin: 0; }
 ::selection { background: #E9CDBD; color: #2C2521; }
 button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--primary-ink); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Shape, density, type and composition change independently of brand color. */
+:root[data-theme="boxy"] { --radius-control:2px; --radius-panel:2px; --radius-image:0px; --card-padding:16px; --section-gap:24px; --border-width:1.5px; }
+:root[data-theme="editorial"] { --radius-control:0px; --radius-panel:0px; --radius-image:0px; --card-padding:16px; --section-gap:32px; --font-heading:Georgia, 'Times New Roman', serif; }
+:root[data-theme="playful"] { --radius-control:18px; --radius-panel:26px; --radius-image:20px; --card-padding:18px; --section-gap:24px; --border-width:2px; --shadow-panel:3px 3px 0 var(--foreground); }
+:root[data-theme="airy"] { --radius-control:8px; --radius-panel:12px; --radius-image:8px; --card-padding:24px; --section-gap:40px; }
+:root[data-theme="playful"] h1, :root[data-theme="playful"] h2 { font-weight:800; letter-spacing:-.035em; }
+:root[data-theme="editorial"] h1 { font-weight:400; letter-spacing:-.04em; }
+:root[data-theme="airy"] h1 { font-weight:600; letter-spacing:-.035em; }
+.brand-mark { width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-control); font-size:14px; }
+.cafe-staff { --control-height:44px; }
+.cafe-staff :is(.rounded-xl,.rounded-2xl,.rounded-3xl) { border-radius:var(--radius-panel); }
+.cafe-staff :is(input,select,button.rounded-xl) { border-radius:var(--radius-control); }
+.cafe-staff :is(section.border,.pos-summary) { border-width:var(--border-width); box-shadow:var(--shadow-panel); }
+:root[data-theme="airy"] .cafe-staff main { padding-top:36px; }
+input:focus-visible,textarea:focus-visible,select:focus-visible { outline:2px solid var(--primary-ink); outline-offset:2px; }
+button { cursor:pointer; }
+button:disabled { cursor:not-allowed; }
+.skip-link { position:fixed; top:8px; left:12px; z-index:100; transform:translateY(-180%); background:var(--surface); padding:12px 18px; color:var(--foreground); border:2px solid var(--primary); }
+.skip-link:focus { transform:translateY(0); }
+.connection-notice { position:fixed; z-index:80; left:50%; bottom:calc(90px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); max-width:calc(100vw - 32px); width:max-content; display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid var(--status-warning-fg); background:var(--status-warning-bg); color:var(--status-warning-fg); border-radius:var(--radius-control); box-shadow:0 4px 20px #0001; font-size:14px; }
+@media print { nav,aside,button,.connection-notice { display:none!important; } main { margin:0!important; padding:0!important; } }
+
+@media (min-width:768px) and (max-width:1279px) { .staff-metrics > button { padding:14px; } .staff-metrics > button p { margin-top:8px; } .staff-metrics > button p.text-3xl { font-size:24px; line-height:28px; } }

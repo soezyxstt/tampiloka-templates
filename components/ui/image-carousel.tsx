@@ -60,12 +60,7 @@ export function ImageCarousel({
     0,
   ]);
 
-  React.useEffect(() => {
-    if (typeof controlledIndex === 'number' && controlledIndex !== internalPage) {
-      const dir = controlledIndex > internalPage ? 1 : -1;
-      setPage([controlledIndex, dir]);
-    }
-  }, [controlledIndex, internalPage]);
+  const page = controlledIndex ?? internalPage;
 
   const validPhotos = React.useMemo(
     () => (Array.isArray(photos) ? photos.filter(Boolean) : []),
@@ -76,7 +71,7 @@ export function ImageCarousel({
     return null;
   }
 
-  const safeIndex = ((internalPage % validPhotos.length) + validPhotos.length) % validPhotos.length;
+  const safeIndex = ((page % validPhotos.length) + validPhotos.length) % validPhotos.length;
 
   const paginate = (newDirection: number) => {
     if (validPhotos.length <= 1) return;

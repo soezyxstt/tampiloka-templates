@@ -265,7 +265,7 @@ export function FloorPlanEditor({
               type="checkbox"
               checked={warningsAcknowledged}
               onChange={(e) => setWarningsAcknowledged(e.target.checked)}
-              className="w-4 h-4 accent-[var(--primary)]"
+              className="w-4 h-4 accent-[var(--primary-ink)]"
             />
             <span>Tetap lanjutkan</span>
           </label>

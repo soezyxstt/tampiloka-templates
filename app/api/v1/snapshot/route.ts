@@ -1,51 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getFullApplicationSnapshot,
-  getOrCreateFirebaseUser,
-  createPresenceChallenge,
-  verifyCustomerPresence,
-  createQuoteForCart,
-  submitCustomerOrderRequest,
-  acceptOrderRequestByStaff,
-  rejectOrderRequestByStaff,
-  transitionOrderUnits,
-  splitBillByUnits,
-  mergeOpenBills,
-  recordBillPayment,
-  settleOrCancelExternalPaymentAttempt,
-  cancelUnitAndRefundOrCredit,
-  moveOrUpdateTableAndVisit,
-  manageWaitlistEntry,
-  createOrUpdateServiceRequest,
-  updateFloorPlanLayout,
-  manageMenuAndStock,
-  manageCashShift,
-  updateOutletSettingsOrPromoOrFeedback,
-  makeId,
-} from '@/src/db/service';
-import { adminAuth } from '@/src/lib/firebase-admin';
+import { randomUUID } from 'node:crypto';
+import { getStaticCatalogSnapshot, isStaticCatalogMode } from '@/src/catalog/static-catalog';
+import { cafeConfig, hasStaffModules, isModuleEnabled } from '@/src/config/cafe';
+import { assertCommandAllowed, CapabilityError } from '@/src/domain/capabilities';
+import { assertDemoRuntime } from '@/src/db/runtime';
 
 export const dynamic = 'force-dynamic';
+const makeId = (prefix: string) => `${prefix}_${randomUUID()}`;
 
 export async function GET(req: NextRequest) {
   const requestId = makeId('req');
   try {
-    const authHeader = req.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      try {
-        const decoded = await adminAuth.verifyIdToken(token);
-        if (decoded?.uid && decoded?.email) {
-          await getOrCreateFirebaseUser(decoded.uid, decoded.email, decoded.name);
-        }
-      } catch {
-        // Optional Firebase auth sync on snapshot read
-      }
-    }
-
     const { searchParams } = new URL(req.url);
-    const outletSlug = searchParams.get('outlet') || 'kedai-meranti';
-    const snapshot = await getFullApplicationSnapshot(outletSlug);
+    const surface = searchParams.get('surface') === 'staff' ? 'staff' : 'customer';
+    if ((surface === 'customer' && !isModuleEnabled('catalog')) || (surface === 'staff' && !hasStaffModules())) {
+      throw new CapabilityError('MODULE_DISABLED', 'Halaman ini tidak aktif dalam paket kafe ini.', 404);
+    }
+    const outletSlug = searchParams.get('outlet') || cafeConfig.venue.outletSlug;
+    let snapshot;
+    if (isStaticCatalogMode()) {
+      if (outletSlug !== cafeConfig.venue.outletSlug) throw new CapabilityError('OUTLET_NOT_FOUND', 'Kedai tidak ditemukan.', 404);
+      snapshot = getStaticCatalogSnapshot();
+    } else {
+      assertDemoRuntime();
+      const { getFullApplicationSnapshot, getSurfaceSnapshot } = await import('@/src/db/service');
+      const full = await getFullApplicationSnapshot(outletSlug);
+      snapshot = getSurfaceSnapshot(full, surface, searchParams.get('table') || undefined, searchParams.get('principal') || undefined);
+    }
 
     return NextResponse.json(
       {
@@ -66,13 +47,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: {
-          code: 'SNAPSHOT_ERROR',
+          code: error.code || 'SNAPSHOT_ERROR',
           message: error.message || 'Gagal memuat data kafe.',
           retryable: true,
         },
         meta: { requestId },
       },
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }
@@ -80,8 +61,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const requestId = makeId('req');
   try {
+    assertDemoRuntime();
     const body = await req.json();
+    if (!body || typeof body !== 'object' || typeof body.command !== 'string' || !body.payload || typeof body.payload !== 'object' || Array.isArray(body.payload)) {
+      throw new CapabilityError('INVALID_REQUEST', 'Perintah dan data permintaan wajib diisi.', 400);
+    }
     const { command, payload } = body;
+    const surface = body.surface === 'staff' ? 'staff' : 'customer';
+    assertCommandAllowed(command, payload, { modules: cafeConfig.modules, surface, demo: true });
 
     // Staff assurance check (Spec 4.2, A04: customer OTP login alone does not grant staff API access)
     if (payload?.staffLoginMethod === 'CUSTOMER_OTP_ONLY') {
@@ -99,6 +86,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+        const {
+      getFullApplicationSnapshot,
+      getSurfaceSnapshot,
+      getOrCreateFirebaseUser,
+      createPresenceChallenge,
+      verifyCustomerPresence,
+      createQuoteForCart,
+      submitCustomerOrderRequest,
+      acceptOrderRequestByStaff,
+      rejectOrderRequestByStaff,
+      transitionOrderUnits,
+      splitBillByUnits,
+      mergeOpenBills,
+      recordBillPayment,
+      settleOrCancelExternalPaymentAttempt,
+      cancelUnitAndRefundOrCredit,
+      moveOrUpdateTableAndVisit,
+      manageWaitlistEntry,
+      createOrUpdateServiceRequest,
+      updateFloorPlanLayout,
+      manageMenuAndStock,
+      manageCashShift,
+      updateOutletSettingsOrPromoOrFeedback,
+    } = await import('@/src/db/service');
     let result: any;
 
     switch (command) {
@@ -109,7 +120,7 @@ export async function POST(req: NextRequest) {
         result = await verifyCustomerPresence(payload);
         break;
       case 'CREATE_QUOTE':
-        result = await createQuoteForCart(payload);
+        result = await createQuoteForCart({ ...payload, source: surface });
         break;
       case 'SUBMIT_ORDER_REQUEST':
         result = await submitCustomerOrderRequest(payload);
@@ -185,7 +196,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const updatedSnapshot = await getFullApplicationSnapshot('kedai-meranti');
+    const updatedSnapshot = getSurfaceSnapshot(await getFullApplicationSnapshot(), surface, body.tableId || payload.tableId, body.principalId || payload.principalId);
 
     return NextResponse.json({
       data: {
@@ -200,7 +211,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('API v1 POST command error:', error);
     const status =
-      error.code === 'IDEMPOTENCY_CONFLICT' || error.code === 'QUOTE_CHANGED' ? 409 : 422;
+      error.status || (error.code === 'IDEMPOTENCY_CONFLICT' || error.code === 'QUOTE_CHANGED' ? 409 : 422);
     return NextResponse.json(
       {
         error: {

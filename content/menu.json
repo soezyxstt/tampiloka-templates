@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "sample": true,
+  "info": {
+    "openHoursText": "07:00 – 22:00 WIB",
+    "facilitiesText": "Ruang Indoor AC, Teras Kebun, Mushola, Stopkontak tiap meja, Toilet bersih",
+    "availabilityNote": "Ketersediaan dapat berubah. Konfirmasi pesanan langsung ke staf.",
+    "serviceChargeBps": 500,
+    "taxBps": 1000,
+    "taxInclusiveDisplay": false,
+    "serviceInTaxBase": true
+  },
+  "categories": [
+    {
+      "id": "cat_kopi",
+      "name": "Kopi Espresso & Susu",
+      "sortOrder": 1,
+      "active": true
+    },
+    {
+      "id": "cat_manual_brew",
+      "name": "Manual Brew & Single Origin",
+      "sortOrder": 2,
+      "active": true
+    },
+    {
+      "id": "cat_non_kopi",
+      "name": "Non-Kopi & Matcha",
+      "sortOrder": 3,
+      "active": true
+    },
+    {
+      "id": "cat_teh",
+      "name": "Teh & Seduhan Daun Asli",
+      "sortOrder": 4,
+      "active": true
+    },
+    {
+      "id": "cat_makanan",
+      "name": "Makanan Utama Nusantara",
+      "sortOrder": 5,
+      "active": true
+    },
+    {
+      "id": "cat_pastry",
+      "name": "Pastry & Viennoiserie",
+      "sortOrder": 6,
+      "active": true
+    },
+    {
+      "id": "cat_kudapan",
+      "name": "Kudapan & Gorengan Hangat",
+      "sortOrder": 7,
+      "active": true
+    }
+  ],
+  "items": [
+    {
+      "id": "item_kopi_aren",
+      "categoryId": "cat_kopi",
+      "name": "Es Kopi Susu Gula Aren",
+      "description": "Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.",
+      "photos": [
+        "/images/menu/es-kopi-susu-aren.svg",
+        "/images/menu/es-kopi-susu-aren-2.svg",
+        "/images/menu/es-kopi-susu-aren-3.svg"
+      ],
+      "allergens": [
+        "Susu sapi"
+      ],
+      "tags": [
+        "kopi susu",
+        "gula aren",
+        "favorit",
+        "dingin"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 1,
+      "variants": [
+        {
+          "id": "var_kopi_aren_reg",
+          "name": "Regular (250 ml)",
+          "priceIdr": 28000,
+          "isDefault": true,
+          "available": true
+        },
+        {
+          "id": "var_kopi_aren_lrg",
+          "name": "Large (360 ml)",
+          "priceIdr": 34000,
+          "isDefault": false,
+          "available": true
+        }
+      ],
+      "modifierGroups": [
+        {
+          "id": "modgrp_kopi_gula",
+          "name": "Takaran Gula (Wajib)",
+          "required": true,
+          "minSelect": 1,
+          "maxSelect": 1,
+          "options": [
+            {
+              "id": "modopt_gula_normal",
+              "name": "Gula Normal (100%)",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_gula_less",
+              "name": "Kurang Manis (70%)",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_gula_zero",
+              "name": "Tanpa Gula",
+              "priceIdr": 0
+            }
+          ]
+        },
+        {
+          "id": "modgrp_kopi_es",
+          "name": "Takaran Es (Wajib)",
+          "required": true,
+          "minSelect": 1,
+          "maxSelect": 1,
+          "options": [
+            {
+              "id": "modopt_es_normal",
+              "name": "Es Normal",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_es_less",
+              "name": "Es Sedikit",
+              "priceIdr": 0
+            }
+          ]
+        },
+        {
+          "id": "modgrp_kopi_addon",
+          "name": "Tambahan Opsional",
+          "required": false,
+          "minSelect": 0,
+          "maxSelect": 3,
+          "options": [
+            {
+              "id": "modopt_addon_oat",
+              "name": "Ganti Susu Oat",
+              "priceIdr": 8000
+            },
+            {
+              "id": "modopt_addon_shot",
+              "name": "Extra Shot Espresso",
+              "priceIdr": 6000
+            },
+            {
+              "id": "modopt_addon_jelly",
+              "name": "Jeli Kopi Aren",
+              "priceIdr": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item_v60_garut",
+      "categoryId": "cat_manual_brew",
+      "name": "Manual Brew V60 Arabika Garut Kamojang Single Origin Natural",
+      "description": "Seduhan manual V60 biji kopi Arabika Kamojang Garut dengan karakter rasa buah tropis, teh hitam, dan cokelat manis.",
+      "photos": [
+        "/images/menu/manual-brew-v60.svg",
+        "/images/menu/manual-brew-v60-2.svg"
+      ],
+      "allergens": [],
+      "tags": [
+        "manual brew",
+        "v60",
+        "filter",
+        "arabika",
+        "garut"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 2,
+      "variants": [
+        {
+          "id": "var_v60_hot",
+          "name": "Panas (Carafe)",
+          "priceIdr": 36000,
+          "isDefault": true,
+          "available": true
+        },
+        {
+          "id": "var_v60_ice",
+          "name": "Dingin (Japanese Iced)",
+          "priceIdr": 38000,
+          "isDefault": false,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_teh_melati",
+      "categoryId": "cat_teh",
+      "name": "Teh Melati Dingin Daun Asli",
+      "description": "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
+      "photos": [],
+      "allergens": [],
+      "tags": [
+        "teh",
+        "melati",
+        "segar",
+        "non-kopi"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 3,
+      "variants": [
+        {
+          "id": "var_teh_std",
+          "name": "Gelas Tinggi",
+          "priceIdr": 18000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_matcha_uji",
+      "categoryId": "cat_non_kopi",
+      "name": "Matcha Latte Uji Kyoto",
+      "description": "Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.",
+      "photos": [
+        "/images/menu/matcha-latte-uji.svg"
+      ],
+      "allergens": [
+        "Susu sapi"
+      ],
+      "tags": [
+        "matcha",
+        "hijau",
+        "latte",
+        "non-kopi"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 4,
+      "variants": [
+        {
+          "id": "var_matcha_ice",
+          "name": "Dingin",
+          "priceIdr": 32000,
+          "isDefault": true,
+          "available": true
+        },
+        {
+          "id": "var_matcha_hot",
+          "name": "Panas",
+          "priceIdr": 30000,
+          "isDefault": false,
+          "available": true
+        }
+      ],
+      "modifierGroups": [
+        {
+          "id": "modgrp_matcha_gula",
+          "name": "Tingkat Manis (Wajib)",
+          "required": true,
+          "minSelect": 1,
+          "maxSelect": 1,
+          "options": [
+            {
+              "id": "modopt_matcha_normal",
+              "name": "Manis Standar",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_matcha_less",
+              "name": "Less Sweet",
+              "priceIdr": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item_nasi_ayam",
+      "categoryId": "cat_makanan",
+      "name": "Nasi Ayam Panggang Rempah Sambal Matah",
+      "description": "Paha ayam panggang bumbu rempah nusantara dengan nasi putih hangat, lalapan segar, dan sambal pilihan.",
+      "photos": [
+        "/images/menu/nasi-ayam-rempah.svg",
+        "/images/menu/nasi-ayam-rempah-2.svg"
+      ],
+      "allergens": [
+        "Kemiri",
+        "Terasi pada sambal"
+      ],
+      "tags": [
+        "nasi",
+        "ayam",
+        "sambal matah",
+        "makan siang"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 5,
+      "variants": [
+        {
+          "id": "var_ayam_reg",
+          "name": "Porsi Reguler",
+          "priceIdr": 45000,
+          "isDefault": true,
+          "available": true
+        },
+        {
+          "id": "var_ayam_jumbo",
+          "name": "Porsi Jumbo (2 Potong Ayam)",
+          "priceIdr": 58000,
+          "isDefault": false,
+          "available": true
+        }
+      ],
+      "modifierGroups": [
+        {
+          "id": "modgrp_ayam_sambal",
+          "name": "Pilihan Sambal (Wajib)",
+          "required": true,
+          "minSelect": 1,
+          "maxSelect": 1,
+          "options": [
+            {
+              "id": "modopt_sambal_matah",
+              "name": "Sambal Matah Bali",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_sambal_korek",
+              "name": "Sambal Korek Bawang",
+              "priceIdr": 0
+            },
+            {
+              "id": "modopt_sambal_pisah",
+              "name": "Sambal Dipisah",
+              "priceIdr": 0
+            }
+          ]
+        },
+        {
+          "id": "modgrp_ayam_addon",
+          "name": "Lauk Tambahan",
+          "required": false,
+          "minSelect": 0,
+          "maxSelect": 2,
+          "options": [
+            {
+              "id": "modopt_ayam_telur",
+              "name": "Telur Ceplok Setengah Matang",
+              "priceIdr": 6000
+            },
+            {
+              "id": "modopt_ayam_kerupuk",
+              "name": "Kerupuk Kaleng",
+              "priceIdr": 4000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "item_croissant",
+      "categoryId": "cat_pastry",
+      "name": "Croissant Mentega Prancis",
+      "description": "Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.",
+      "photos": [
+        "/images/menu/croissant-mentega.svg"
+      ],
+      "allergens": [
+        "Gandum / Gluten",
+        "Susu / Mentega",
+        "Telur"
+      ],
+      "tags": [
+        "roti",
+        "croissant",
+        "pastry",
+        "teman kopi"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 6,
+      "variants": [
+        {
+          "id": "var_croissant_std",
+          "name": "Hangat Standar",
+          "priceIdr": 24000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_pisang_goreng",
+      "categoryId": "cat_kudapan",
+      "name": "Pisang Goreng Keju Gula Palem",
+      "description": "Pisang tanduk goreng tepung renyah dengan taburan keju parut dan gula palem.",
+      "photos": [],
+      "allergens": [
+        "Susu / Keju",
+        "Gluten"
+      ],
+      "tags": [
+        "pisang",
+        "gorengan",
+        "manis"
+      ],
+      "active": true,
+      "available": false,
+      "sortOrder": 7,
+      "variants": [
+        {
+          "id": "var_pisang_std",
+          "name": "Isi 4 Potong",
+          "priceIdr": 22000,
+          "isDefault": true,
+          "available": false
+        }
+      ],
+      "modifierGroups": []
+    }
+  ]
+}

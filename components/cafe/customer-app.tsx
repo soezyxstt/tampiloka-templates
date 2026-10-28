@@ -2,7 +2,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
+import Image from 'next/image';
 import styles from './customer-app.module.css';
+import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
+import { BrandMark } from './brand';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Button,
@@ -81,6 +84,8 @@ export function CustomerApp({
   onOpenStaffPortal,
   onRefresh,
   initialTableId,
+  initialBillId,
+  onContextChange,
 }: {
   snapshot: any;
   onCommand: (command: string, payload: any) => Promise<any>;
@@ -88,17 +93,32 @@ export function CustomerApp({
   onOpenStaffPortal?: () => void;
   onRefresh?: () => Promise<void>;
   initialTableId?: string;
+  initialBillId?: string;
+  onContextChange?: (tableId: string, principalId: string) => void;
 }) {
   const shouldReduceMotion = useReducedMotion();
+  const canOrder = isModuleEnabled('ordering');
+  const canPayOnline = isModuleEnabled('payments');
+  const canUseTables = isModuleEnabled('tables');
+  const canUseLoyalty = isModuleEnabled('loyalty');
+  const canUsePromos = isModuleEnabled('marketing');
+  const storageKey = `cafe:${cafeConfig.venue.tenantSlug}:${cafeConfig.venue.outletSlug}`;
+  const [customerPrincipalId, setCustomerPrincipalId] = useState('');
+  const screenEnabled = (screen: CustomerScreenView) => {
+    if (['keranjang', 'pesanan', 'pembayaran'].includes(screen)) return canOrder;
+    if (['bantuan', 'antrean'].includes(screen)) return canUseTables;
+    if (screen === 'member') return canUseLoyalty || canUsePromos;
+    return true;
+  };
 
   // Navigation & Drawer state
-  const [activeScreen, setActiveScreen] = useState<CustomerScreenView>('menu');
+  const [activeScreen, setActiveScreen] = useState<CustomerScreenView>(initialBillId && canOrder ? 'pembayaran' : 'menu');
   const [profileDrawerOpen, setProfileDrawerOpen] = useState<boolean>(false);
   const [tableModalOpen, setTableModalOpen] = useState<boolean>(false);
 
   // Table & Order Mode context
   const [orderMode, setOrderMode] = useState<'DINE_IN' | 'TAKEAWAY'>('DINE_IN');
-  const [selectedTableId, setSelectedTableId] = useState<string>(initialTableId || 'tbl_m01');
+  const [selectedTableId, setSelectedTableId] = useState<string>(initialTableId || snapshot?.tables?.[0]?.id || '');
 
   // Menu Filtering (Shadcn SelectField Category + Search + Favorites filter)
   const [activeCategoryId, setActiveCategoryId] = useState<string>('ALL');
@@ -123,7 +143,7 @@ export function CustomerApp({
   const [shareOpen, setShareOpen] = useState(false);
   const [shareQr, setShareQr] = useState('');
   const [shareUrl, setShareUrl] = useState('');
-  const [paymentQr, setPaymentQr] = useState('');
+  const [paymentQrImage, setPaymentQrImage] = useState({ payload: '', url: '' });
   const [confirmOrderOpen, setConfirmOrderOpen] = useState(false);
 
 
@@ -149,14 +169,13 @@ export function CustomerApp({
   const [checkoutSuccessMsg, setCheckoutSuccessMsg] = useState<string>('');
 
   // Payment screen state (C08 / C09)
-  const [selectedBillId, setSelectedBillId] = useState<string>('');
+  const [selectedBillId, setSelectedBillId] = useState<string>(initialBillId || '');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'QRIS' | 'VIRTUAL_ACCOUNT'>(
     'QRIS'
   );
   const [paymentFeedback, setPaymentFeedback] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string>('');
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sharedBillHandled = useRef(false);
 
   // Table Help / Service Request state (C10)
   const [helpType, setHelpType] = useState<
@@ -183,7 +202,7 @@ export function CustomerApp({
   const selectedTable = useMemo(() => {
     return (
       snapshot?.tables?.find((t: any) => t.id === selectedTableId) ||
-      snapshot?.tables?.[0] || { id: 'tbl_m01', label: 'M01', areaName: 'Ruang Utama (Indoor)' }
+      snapshot?.tables?.[0] || { id: '', label: '', areaName: '' }
     );
   }, [snapshot, selectedTableId]);
 
@@ -197,34 +216,43 @@ export function CustomerApp({
     return new Set<string>([...((currentMember?.favoriteMenuIdsJson as string[]) || []), ...localFavoriteIds]);
   }, [currentMember, localFavoriteIds]);
 
+  // Hydrate browser-owned storage after SSR. The initial server and client render
+  // must agree; the cart stays unwritable until this one-time synchronization ends.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem('meranti-customer-cart') || '{}');
-      if (Array.isArray(stored.cart)) setCart(stored.cart.filter((line: CartLineDraft) => line.quantity > 0 && line.quantity <= 20 && line.menuItemId && line.variantId));
+      const stored = JSON.parse(localStorage.getItem(`${storageKey}:cart`) || '{}');
+      if (Array.isArray(stored.cart)) setCart(stored.cart.filter((line: CartLineDraft) => line && Number.isInteger(line.quantity) && line.quantity > 0 && line.quantity <= 20 && typeof line.menuItemId === 'string' && typeof line.variantId === 'string' && typeof line.cartLineId === 'string' && typeof line.itemName === 'string' && typeof line.variantName === 'string' && typeof line.note === 'string' && Number.isFinite(line.unitPriceIdr) && line.unitPriceIdr >= 0 && Array.isArray(line.modifierOptionIds) && line.modifierOptionIds.every((id) => typeof id === 'string') && Array.isArray(line.modifierNames) && line.modifierNames.every((name) => typeof name === 'string')));
       if (typeof stored.name === 'string') setGuestName(stored.name);
-      if (Array.isArray(stored.favorites)) setLocalFavoriteIds(stored.favorites);
+      if (Array.isArray(stored.favorites)) setLocalFavoriteIds(stored.favorites.filter((id: unknown) => typeof id === 'string'));
     } catch { /* A damaged local cart starts empty. */ }
+    let principal = '';
+    try { principal = localStorage.getItem(`${storageKey}:guest`) || ''; } catch { /* Private storage. */ }
+    if (!/^guest_[a-z0-9-]+$/i.test(principal)) principal = `guest_${crypto.randomUUID()}`;
+    setCustomerPrincipalId(principal);
+    try { localStorage.setItem(`${storageKey}:guest`, principal); } catch { /* In-memory session still works. */ }
     setCartLoaded(true);
-  }, []);
+  }, [storageKey]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (customerPrincipalId) onContextChange?.(selectedTableId, customerPrincipalId);
+  }, [selectedTableId, customerPrincipalId, onContextChange]);
 
   useEffect(() => {
     if (cartLoaded) {
-      try { localStorage.setItem('meranti-customer-cart', JSON.stringify({ cart, name: guestName, favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
+      try { localStorage.setItem(`${storageKey}:cart`, JSON.stringify({ cart, name: guestName, favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
     }
-  }, [cart, guestName, localFavoriteIds, cartLoaded]);
-
-  useEffect(() => {
-    setPresenceVerified(false);
-    setActiveQuote(null);
-  }, [selectedTableId, orderMode, guestName, identityMode]);
+  }, [cart, guestName, localFavoriteIds, cartLoaded, storageKey]);
 
   useEffect(() => {
     if (!shareOpen) return;
     let active = true;
-    const url = new URL(`/t/kedai-meranti-group/${snapshot?.outlet?.slug || 'kedai-meranti'}/m/${selectedTable.qrToken}`, window.location.origin).toString();
-    setShareUrl(url);
+    const path = selectedTable.qrToken ? `/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(selectedTable.qrToken)}` : '/';
+    const url = new URL(path, window.location.origin).toString();
     QRCode.toDataURL(url, { width: 320, margin: 2, color: { dark: '#30231f', light: '#ffffff' } })
-      .then((url) => { if (active) setShareQr(url); });
+      .then((image) => { if (active) { setShareUrl(url); setShareQr(image); } })
+      .catch(() => { if (active) setShareQr(''); });
     return () => { active = false; };
   }, [shareOpen, selectedTable.qrToken, snapshot?.outlet?.slug]);
 
@@ -235,17 +263,6 @@ export function CustomerApp({
   const customerOrders = (snapshot?.orders || []).filter(tableMatches);
   const customerRequests = (snapshot?.orderRequests || []).filter(tableMatches);
   const customerBills = (snapshot?.bills || []).filter((bill: any) => tableMatches(bill) || customerOrders.some((order: any) => order.visitId === bill.visitId));
-
-  useEffect(() => {
-    if (sharedBillHandled.current) return;
-    const token = new URLSearchParams(window.location.search).get('bill');
-    if (!token) { sharedBillHandled.current = true; return; }
-    const bill = customerBills.find((candidate: any) => candidate.shareToken === token);
-    if (!bill) return;
-    sharedBillHandled.current = true;
-    setSelectedBillId(bill.id);
-    setActiveScreen('pembayaran');
-  }, [customerBills]);
 
   useEffect(() => () => {
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
@@ -312,7 +329,7 @@ export function CustomerApp({
   }, [cart, snapshot]);
 
   // Active table orders & bills for quick status banner
-  const activeOrdersCount = customerRequests.filter((r: any) => r.state === 'REQUESTED').length + customerOrders.length;
+  const activeOrdersCount = customerRequests.filter((r: any) => r.state === 'REQUESTED').length + customerOrders.filter((order: any) => (snapshot?.orderUnits || []).some((unit: any) => unit.orderId === order.id && !['CANCELLED', 'DELIVERED', 'PICKED_UP', 'SERVED'].includes(unit.fulfillmentStatus))).length;
   const unpaidBills = customerBills.filter((bill: any) => bill.lifecycle !== 'VOID' && bill.balanceIdr > 0);
 
   const updateCart = (next: CartLineDraft[]) => {
@@ -408,7 +425,7 @@ export function CustomerApp({
     navigator.geolocation.getCurrentPosition(async (position) => {
       try {
         const res = await onCommand('VERIFY_PRESENCE', {
-          principalId: identityMode === 'MEMBER' ? loggedInMemberId : `guest_${guestName}`,
+          principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
           lat: position.coords.latitude, lng: position.coords.longitude, accuracyMeters: position.coords.accuracy,
         });
         const check = res?.result || res;
@@ -423,7 +440,7 @@ export function CustomerApp({
     setCheckoutError('');
     try {
       const res = await onCommand('VERIFY_PRESENCE', {
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : `guest_${guestName}`,
+        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
         joinCode: joinCodeInput,
       });
       const check = res?.result || res;
@@ -447,11 +464,11 @@ export function CustomerApp({
     }
     try {
       const res = await onCommand('CREATE_QUOTE', {
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : `guest_${guestName}`,
+        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
         memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
         mode: orderMode,
         tableId: orderMode === 'DINE_IN' ? selectedTableId : undefined,
-        promoCode: codeToApply || undefined,
+        promoCode: canUsePromos ? codeToApply || undefined : undefined,
         items: cart.map((c) => ({
           menuItemId: c.menuItemId,
           variantId: c.variantId,
@@ -460,10 +477,20 @@ export function CustomerApp({
           quantity: c.quantity,
         })),
       });
-      setActiveQuote(res?.result || res);
+      const quote = res?.result || res;
+      setActiveQuote(quote);
+      return quote;
     } catch (err: any) {
       setCheckoutError(err.message);
+      return null;
     }
+  };
+
+  const handleReviewOrder = async () => {
+    if (guestName.trim().length < 2) { setCheckoutError('Isi nama pemesan, minimal 2 karakter.'); return; }
+    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError('Verifikasi lokasi atau masukkan kode meja.'); return; }
+    const quote = await handleRequestQuote();
+    if (quote) setConfirmOrderOpen(true);
   };
 
   const handleSubmitOrderRequest = async () => {
@@ -476,36 +503,23 @@ export function CustomerApp({
       );
       return;
     }
-    if (!hasTableQrContext && !presenceVerified) {
+    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) {
       setCheckoutError('Verifikasi lokasi atau masukkan kode meja.');
       return;
     }
 
     try {
-      let quoteToUse = activeQuote;
-      if (!quoteToUse) {
-        const qRes = await onCommand('CREATE_QUOTE', {
-          principalId: identityMode === 'MEMBER' ? loggedInMemberId : `guest_${guestName}`,
-          memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
-          mode: orderMode,
-          tableId: orderMode === 'DINE_IN' ? selectedTableId : undefined,
-          promoCode: promoCodeInput.trim() || undefined,
-          items: cart.map((c) => ({
-            menuItemId: c.menuItemId,
-            variantId: c.variantId,
-            modifierOptionIds: c.modifierOptionIds,
-            note: c.note,
-            quantity: c.quantity,
-          })),
-        });
-        quoteToUse = qRes?.result || qRes;
-        setActiveQuote(quoteToUse);
+      const quoteToUse = activeQuote;
+      if (!quoteToUse || Date.parse(quoteToUse.expiresAt) <= Date.now()) {
+        const renewed = await handleRequestQuote();
+        if (renewed) setCheckoutError('Harga telah diperbarui. Periksa total, lalu kirim pesanan lagi.');
+        return;
       }
 
       const idemKey = `idem_${quoteToUse.quoteId}`;
       const subRes = await onCommand('SUBMIT_ORDER_REQUEST', {
         quoteId: quoteToUse.quoteId,
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : `guest_${guestName}`,
+        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
         memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
         customerName: guestName.trim(),
         mode: orderMode,
@@ -545,7 +559,7 @@ export function CustomerApp({
 
   const getBillShareUrl = (bill: any) => {
     const url = new URL(
-      `/t/kedai-meranti-group/${encodeURIComponent(snapshot?.outlet?.slug || 'kedai-meranti')}/m/${encodeURIComponent(selectedTable.qrToken)}`,
+      `/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(selectedTable.qrToken)}`,
       window.location.origin
     );
     url.searchParams.set('bill', bill.shareToken);
@@ -556,13 +570,15 @@ export function CustomerApp({
   const pendingAttempt = (selectedBill?.attempts || []).find((attempt: any) => ['PENDING', 'CREATING', 'UNKNOWN'].includes(attempt.status));
   const paymentInstructions = pendingAttempt?.instructionsJson || {};
   const paymentIsDemo = Boolean(paymentInstructions.isDemo || snapshot?.paymentAccount?.isDemo);
+  const paymentQrPayload = paymentInstructions.qrPayload || '';
+  const paymentQr = paymentQrImage.payload === paymentQrPayload ? paymentQrImage.url : '';
   useEffect(() => {
     let active = true;
-    setPaymentQr('');
-    if (paymentInstructions.qrPayload) QRCode.toDataURL(paymentInstructions.qrPayload, { width: 320, margin: 2 })
-      .then((url) => { if (active) setPaymentQr(url); });
+    if (paymentQrPayload) QRCode.toDataURL(paymentQrPayload, { width: 320, margin: 2 })
+      .then((url) => { if (active) setPaymentQrImage({ payload: paymentQrPayload, url }); })
+      .catch(() => { if (active) setPaymentQrImage({ payload: paymentQrPayload, url: '' }); });
     return () => { active = false; };
-  }, [paymentInstructions.qrPayload]);
+  }, [paymentQrPayload]);
 
   const navigateFromDrawer = (screen: CustomerScreenView) => {
     setActiveScreen(screen);
@@ -571,6 +587,8 @@ export function CustomerApp({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const heroImageSource = snapshot?.catalog?.find((item: any) => item.isAvailable)?.photos?.[0] || snapshot?.catalog?.[0]?.photoUrl;
 
   const configuringPhotos: string[] = useMemo(() => {
     if (!configuringItem) return [];
@@ -585,6 +603,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
+      <a className="skip-link" href="#customer-content">Ke menu utama</a>
       <header className="sticky top-0 z-30 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-3 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
@@ -595,36 +614,36 @@ export function CustomerApp({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveScreen('menu')}
                 aria-label="Kembali ke menu utama"
-                className="w-9 h-9 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary)] cursor-pointer shrink-0 transition-colors"
+                className="w-9 h-9 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
               </motion.button>
             ) : null}
 
+            <BrandMark className="hidden min-[370px]:inline-flex" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-heading text-[21px] leading-[25px] font-bold text-[var(--foreground)] truncate">
-                  {snapshot?.outlet?.name || 'Kedai Meranti'}
+                  {cafeConfig.brand.name}
                 </span>
-                <span className="text-[12px] font-medium text-[var(--status-success-fg)] shrink-0">
-                  · Buka
-                </span>
+                {snapshot?.runtime?.demo && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Demo</span>}
+                {snapshot?.runtime?.sampleMenu && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Contoh menu</span>}
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
-              <button
+              {selectedTable.id ? <button
                 type="button"
                 onClick={() => setTableModalOpen(true)}
                 className="mt-0.5 inline-flex items-center gap-1 text-[13px] leading-[18px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer max-w-full"
               >
-                <MapPin className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-[var(--primary-ink)] shrink-0" />
                 <span className="truncate">
                   {orderMode === 'DINE_IN'
                     ? `Meja ${selectedTable.label} (${selectedTable.areaName})`
                     : 'Bawa pulang'}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-              </button>
+              </button> : <p className="text-xs mt-1 text-[var(--muted-foreground)]">{cafeConfig.venue.address}</p>}
             </div>
           </div>
 
@@ -644,10 +663,10 @@ export function CustomerApp({
               }}
               aria-label="Filter menu favorit"
               aria-pressed={onlyFavorites}
-              className={`relative w-10 h-10 flex items-center justify-center transition-colors cursor-pointer ${
+              className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
                 onlyFavorites
                   ? 'text-[#9E2A2B]'
-                  : 'text-[var(--foreground)] hover:text-[var(--primary)]'
+                  : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
               }`}
             >
               <Heart className={`w-5 h-5 ${onlyFavorites ? 'fill-[#9E2A2B]' : ''}`} />
@@ -666,18 +685,18 @@ export function CustomerApp({
               </AnimatePresence>
             </motion.button>
 
-            {/* 2. Actual Shopping Cart Icon Button (No card wrapper) */}
-            <motion.button
+            {/* Cart is absent in catalog-only packages. */}
+            {canOrder && <motion.button
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() =>
                 setActiveScreen(activeScreen === 'keranjang' ? 'menu' : 'keranjang')
               }
               aria-label={`Keranjang belanja (${cartSummary.totalQty} item)`}
-              className={`relative w-10 h-10 flex items-center justify-center transition-colors cursor-pointer ${
+              className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
                 activeScreen === 'keranjang'
-                  ? 'text-[var(--primary)]'
-                  : 'text-[var(--foreground)] hover:text-[var(--primary)]'
+                  ? 'text-[var(--primary-ink)]'
+                  : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
               }`}
             >
               <ShoppingCart
@@ -698,19 +717,20 @@ export function CustomerApp({
               </AnimatePresence>
             </motion.button>
 
+            }
             {/* 3. Profile, Orders, Payment & Table Services Icon Button (No card wrapper) */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => setProfileDrawerOpen(true)}
               aria-label="Menu profil, pesanan, dan layanan meja"
-              className={`relative w-10 h-10 flex items-center justify-center transition-colors cursor-pointer ${
+              className={`relative w-12 h-12 flex items-center justify-center transition-colors cursor-pointer ${
                 profileDrawerOpen ||
                 ['pesanan', 'pembayaran', 'bantuan', 'wifi', 'member', 'antrean'].includes(
                   activeScreen
                 )
-                  ? 'text-[var(--primary)]'
-                  : 'text-[var(--foreground)] hover:text-[var(--primary)]'
+                  ? 'text-[var(--primary-ink)]'
+                  : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
               }`}
             >
               <User className="w-5 h-5" />
@@ -722,7 +742,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       {/* MAIN MOBILE-FIRST CONTENT CONTAINER (ANIMATED VIEWS, LESS CARDS)      */}
       {/* ===================================================================== */}
-      <main className="flex-1 w-full max-w-[1080px] mx-auto px-4 sm:px-6 pt-5 pb-44">
+      <main id="customer-content" className="flex-1 w-full max-w-[1080px] mx-auto px-4 sm:px-6 pt-5 pb-44">
         <AnimatePresence mode="wait" initial={false}>
           {/* ================================================================= */}
           {/* SCREEN 1: MENU PELANGGAN (C01, C02, C14)                          */}
@@ -738,18 +758,18 @@ export function CustomerApp({
             >
               <section className={styles.hero}>
                 <div className={styles.heroContent}>
-                  <h1 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tight">Menu</h1>
-                  <p className="mt-3 text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name || 'Kedai Meranti'}</p>
-                  <button type="button" onClick={() => setTableModalOpen(true)} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium shadow-sm"><Utensils className="h-4 w-4" />{orderMode === 'DINE_IN' ? `Meja ${selectedTable.label}` : 'Bawa pulang'}<ChevronDown className="h-3.5 w-3.5" /></button>
+                  <h1 className="font-heading text-[28px] sm:text-4xl font-semibold tracking-tight">Menu hari ini</h1>
+                  <p className="mt-3 text-sm text-[var(--muted-foreground)]">{cafeConfig.brand.description}</p>
+
                 </div>
-                <div className={styles.heroPhoto}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={snapshot?.catalog?.find((item: any) => item.isAvailable)?.photos?.[0] || snapshot?.catalog?.[0]?.photoUrl || '/images/coffee.jpg'} alt="Pilihan menu kedai" />
-                </div>
+                {heroImageSource && <div className={styles.heroPhoto}>
+                  <Image src={heroImageSource} alt="Pilihan menu kedai" width={640} height={480} unoptimized />
+                </div>}
               </section>
-              {(activeOrdersCount > 0 || unpaidBills.length > 0) && (
+              {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
+              {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
                 <button type="button" onClick={() => setActiveScreen('pesanan')} className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl border border-[var(--border)] bg-white text-left">
-                  <span className="flex items-center gap-3"><span className="rounded-full bg-[var(--accent-surface)] p-2.5"><Receipt className="h-4 w-4 text-[var(--primary)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
+                  <span className="flex items-center gap-3"><span className="rounded-full bg-[var(--accent-surface)] p-2.5"><Receipt className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
@@ -759,9 +779,9 @@ export function CustomerApp({
                   {categoriesWithCounts.map((category: any) => <button type="button" key={category.id} aria-pressed={activeCategoryId === category.id} onClick={() => setActiveCategoryId(category.id)} className={`${styles.category} ${activeCategoryId === category.id ? styles.categoryActive : ''}`}>{category.id === 'ALL' ? 'Semua' : category.name}</button>)}
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? 'Favorit' : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', 'Semua menu')}</h2>
-                <button type="button" aria-pressed={onlyAvailable} onClick={() => setOnlyAvailable(!onlyAvailable)} className={`rounded-full px-3 py-2 text-xs ${onlyAvailable ? 'bg-[var(--primary)] text-white' : 'text-[var(--muted-foreground)] bg-white border border-[var(--border)]'}`}>Tersedia saja</button>
+                <div className="flex items-center gap-2"><button type="button" aria-pressed={onlyFavorites} onClick={() => setOnlyFavorites(!onlyFavorites)} className={`sm:hidden rounded-[var(--radius-control)] px-3 py-2 text-xs border border-[var(--border)] ${onlyFavorites ? 'bg-[var(--primary)] text-[var(--primary-foreground)]' : 'bg-[var(--surface)]'}`}>Favorit</button><button type="button" aria-pressed={onlyAvailable} onClick={() => setOnlyAvailable(!onlyAvailable)} className={`rounded-[var(--radius-control)] px-3 py-2 text-xs ${onlyAvailable ? 'bg-[var(--primary)] text-[var(--primary-foreground)]' : 'text-[var(--muted-foreground)] bg-white border border-[var(--border)]'}`}>Tersedia saja</button></div>
               </div>
               {filteredCatalog.length === 0 ? (
                 <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci atau kategori lain." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
@@ -775,17 +795,18 @@ export function CustomerApp({
                     return <article key={item.id} role="listitem" className={`${styles.menuCard} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
                         <button type="button" onClick={() => openItemModal(item)} aria-label={`Lihat ${item.name}`} className="w-full h-full">
-                          {photos[0] ? <img src={photos[0]} alt={item.name} loading="lazy" /> : <Coffee className="w-12 h-12 text-[var(--primary)] mx-auto" />}
+                          {photos[0] ? <Image src={photos[0]} alt={item.name} width={640} height={480} unoptimized loading="lazy" /> : <Coffee className="w-12 h-12 text-[var(--primary-ink)] mx-auto" />}
                         </button>
-                        <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? 'Hapus' : 'Simpan'} ${item.name} ${favorite ? 'dari' : 'ke'} favorit`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary)] text-[var(--primary)]' : ''}`} /></button>
+                        <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? 'Hapus' : 'Simpan'} ${item.name} ${favorite ? 'dari' : 'ke'} favorit`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
                         {!item.isAvailable && <span className={styles.soldOutBadge}>Habis</span>}
-                        {quantity > 0 && <span className={styles.quantityBadge}>{quantity} di keranjang</span>}
+                        {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} di keranjang</span>}
                       </div>
                       <div className={styles.menuCardBody}>
                         <button type="button" onClick={() => openItemModal(item)} className="text-left font-heading font-semibold text-[15px] sm:text-base leading-snug">{item.name}</button>
+                        <p className={styles.menuDescription}>{item.description}</p>
                         <div className="flex items-center justify-between gap-2 mt-auto pt-4">
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          <button type="button" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className={styles.addButton}><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></button>
+                          {canOrder && <button type="button" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className={styles.addButton}><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></button>}
                         </div>
                       </div>
                     </article>;
@@ -799,7 +820,7 @@ export function CustomerApp({
           {/* ================================================================= */}
           {/* SCREEN 2: KERANJANG, IDENTITAS, LOKASI & QUOTE PROMO (C03–C06)    */}
           {/* ================================================================= */}
-          {activeScreen === 'keranjang' && (
+          {screenEnabled('keranjang') && activeScreen === 'keranjang' && (
             <motion.div
               key="screen-keranjang"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -824,7 +845,7 @@ export function CustomerApp({
                 />
               ) : (
                 <div className="space-y-6">
-                  {/* 1. Daftar Item Keranjang (Open Hairline List — No outer box card) */}
+                  {/* 1. Daftar Item Keranjang (Open Hairline List · No outer box card) */}
                   <section className="space-y-2">
                     <h2 className="font-heading text-[16px] font-semibold">
                       Menu ({cartSummary.totalQty} item)
@@ -853,7 +874,7 @@ export function CustomerApp({
                             )}
                             <div className="flex items-center gap-4 pt-2">
                               <Money amount={line.unitPriceIdr * line.quantity} className="font-semibold text-[14px]" />
-                              <button type="button" className="text-sm text-[var(--primary)] inline-flex items-center gap-1" onClick={() => editCartLine(line)}><Pencil className="h-3 w-3" /> Ubah</button>
+                              <button type="button" className="text-sm text-[var(--primary-ink)] inline-flex items-center gap-1" onClick={() => editCartLine(line)}><Pencil className="h-3 w-3" /> Ubah</button>
                             </div>
                           </div>
 
@@ -879,16 +900,16 @@ export function CustomerApp({
                   <section className="space-y-3 pt-1">
                     <div className="flex items-center justify-between gap-2">
                       <h2 className="font-heading text-[16px] font-semibold">Nama pemesan</h2>
-                      <AnimatedSegmentedControl
+                      {canUseLoyalty && <AnimatedSegmentedControl
                         options={[
                           { value: 'GUEST', label: 'Tamu' },
                           { value: 'MEMBER', label: 'Member' },
                         ]}
                         value={identityMode}
-                        onChange={setIdentityMode}
+                        onChange={(mode) => { setIdentityMode(mode); setActiveQuote(null); }}
                         ariaLabel="Mode identitas pemesan"
                         layoutId="customer-identity-mode"
-                      />
+                      />}
                     </div>
 
                     {identityMode === 'GUEST' ? (
@@ -899,20 +920,20 @@ export function CustomerApp({
                         <Input
                           id="guest-name-input"
                           value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
+                          onChange={(e) => { setGuestName(e.target.value); setActiveQuote(null); }}
                           placeholder="Nama Anda"
                         />
                       </div>
                     ) : (
                       <div className="rounded-xl bg-[var(--accent-surface)] p-4 space-y-3">
                         <p className="text-sm text-[var(--muted-foreground)]">Login member belum tersedia.</p>
-                        <Button variant="secondary" onClick={() => setIdentityMode('GUEST')}>Lanjut sebagai tamu</Button>
+                        <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>Lanjut sebagai tamu</Button>
                       </div>
                     )}
                   </section>
 
                   {/* 3. Verifikasi Kehadiran Meja (Unboxed Section with Hairline Top Divider) */}
-                  {!hasTableQrContext && <section className="pt-5 border-t border-[var(--border)] space-y-3">
+                  {orderMode === 'DINE_IN' && !hasTableQrContext && <section className="pt-5 border-t border-[var(--border)] space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h2 className="font-heading text-[16px] font-semibold">
                         Verifikasi meja
@@ -964,12 +985,12 @@ export function CustomerApp({
                       Ringkasan
                     </h2>
 
-                    <div className="space-y-2">
+                    {canUsePromos && <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Input
                           id="promo-code-input"
                           value={promoCodeInput}
-                          onChange={(e) => setPromoCodeInput(e.target.value)}
+                          onChange={(e) => { setPromoCodeInput(e.target.value); setActiveQuote(null); }}
                           placeholder="Masukkan kode promo (mis. HEMAT10)"
                           className="uppercase"
                         />
@@ -993,16 +1014,16 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[#CBDAC8] text-[12px] font-semibold text-[var(--primary)] hover:bg-[#DFE8DD] cursor-pointer transition-colors"
+                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[#CBDAC8] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[#DFE8DD] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
                           ))}
                         </div>
                       )}
-                    </div>
+                    </div>}
 
-                    <div className="p-4 rounded-[12px] bg-[var(--surface)] border border-[var(--border)] space-y-3">
+                    <div className="p-4 rounded-[var(--radius-panel)] bg-[var(--surface)] border border-[var(--border)] space-y-3">
                       <PaymentBreakdown
                         subtotalIdr={activeQuote?.subtotalIdr ?? cartSummary.subtotalIdr}
                         discountIdr={activeQuote?.discountIdr ?? cartSummary.discountIdr}
@@ -1015,7 +1036,7 @@ export function CustomerApp({
                       />
 
                       {activeQuote && (
-                        <div className="pt-2 border-t border-[var(--border)] text-[12px] text-[var(--primary)] font-medium">
+                        <div className="pt-2 border-t border-[var(--border)] text-[12px] text-[var(--primary-ink)] font-medium">
                           Harga berlaku
                           hingga{' '}
                           {new Date(activeQuote.expiresAt).toLocaleTimeString('id-ID', {
@@ -1036,9 +1057,9 @@ export function CustomerApp({
                       size="lg"
                       className="w-full"
                       disabled={busy}
-                      onClick={() => setConfirmOrderOpen(true)}
+                      onClick={handleReviewOrder}
                     >
-                      Checkout · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
+                      Periksa pesanan · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
                     </Button>
                   </section>
                 </div>
@@ -1047,9 +1068,9 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 3: STATUS PESANAN 3 SUMBU (C07 — Less Cards, Clean Dividers)*/}
+          {/* SCREEN 3: STATUS PESANAN 3 SUMBU (C07 · Less Cards, Clean Dividers)*/}
           {/* ================================================================= */}
-          {activeScreen === 'pesanan' && (
+          {screenEnabled('pesanan') && activeScreen === 'pesanan' && (
             <motion.div
               key="screen-pesanan"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -1070,7 +1091,8 @@ export function CustomerApp({
                 </Button>
               </div>
 
-              {activeOrdersCount === 0 && <EmptyState title="Belum ada pesanan" description="Pesanan Anda akan muncul di sini." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
+              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title="Belum ada pesanan" description="Pesanan Anda akan muncul di sini." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
+              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? 'Pesanan kedaluwarsa' : 'Pesanan dibatalkan'} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || 'Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.'}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>Pilih menu lagi</Button></section>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
                 0 && (
@@ -1217,7 +1239,7 @@ export function CustomerApp({
           {/* ================================================================= */}
           {/* SCREEN 4: PEMBAYARAN TAGIHAN & STRUK DIGITAL (C08, C09)           */}
           {/* ================================================================= */}
-          {activeScreen === 'pembayaran' && (
+          {screenEnabled('pembayaran') && activeScreen === 'pembayaran' && (
             <motion.div
               key="screen-pembayaran"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -1236,7 +1258,7 @@ export function CustomerApp({
                 >
                   {customerBills.map((b: any) => (
                     <option key={b.id} value={b.id}>
-                      {b.ownerLabel} — Sisa {formatIdr(b.balanceIdr)}
+                      {b.ownerLabel} · Sisa {formatIdr(b.balanceIdr)}
                     </option>
                   ))}
                 </SelectField>
@@ -1334,13 +1356,14 @@ export function CustomerApp({
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
                     />
 
-                    {selectedBill.balanceIdr > 0 && (
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">Bayar di kasir</p><p className="mt-1 text-sm">Sebutkan nama pemesan atau nomor meja. Staf akan mencatat pembayaran Anda.</p></div>}
+                    {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
                           <>
                             <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: 'Transfer bank' }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel="Metode pembayaran" layoutId="payment-method-selector" />
                             <div className="rounded-2xl bg-white border border-[var(--border)] p-6 text-center space-y-3">
-                              <QrCode className="w-10 h-10 mx-auto text-[var(--primary)]" />
+                              <QrCode className="w-10 h-10 mx-auto text-[var(--primary-ink)]" />
                               <p className="font-semibold">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</p>
                               <Money amount={selectedBill.balanceIdr} className="block text-2xl font-semibold" />
                               {snapshot?.paymentAccount?.isDemo && <StatusLabel label="Demo" tone="neutral" />}
@@ -1357,8 +1380,8 @@ export function CustomerApp({
                             <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>{paymentIsDemo && <StatusLabel label="Demo" tone="neutral" />}</div>
                             <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
                             <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-semibold" />
-                            {pendingAttempt.method === 'QRIS' && paymentQr ? <img src={paymentQr} alt={paymentIsDemo ? 'Kode QR demo, tidak dapat dibayar' : 'Kode QRIS pembayaran'} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || 'Menyiapkan instruksi…'}</div>}
-                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? 'Demo — tidak dapat dibayar.' : 'Pindai dengan mobile banking atau e-wallet.'}</p>
+                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? 'Kode QR demo, tidak dapat dibayar' : 'Kode QRIS pembayaran'} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || 'Menyiapkan instruksi…'}</div>}
+                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? 'Kode demo. Tidak dapat dibayar.' : 'Pindai dengan mobile banking atau e-wallet.'}</p>
                             <StatusLabel label="Menunggu pembayaran" tone="warning" />
                             {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">Berlaku sampai {new Date(pendingAttempt.expiresAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>}
                             <div className="flex justify-center gap-2">
@@ -1368,7 +1391,7 @@ export function CustomerApp({
                           </section>
                         )}
                         {paymentFeedback && <p role="status" className="text-sm text-[var(--muted-foreground)]">{paymentFeedback}</p>}
-                        <button type="button" onClick={() => setActiveScreen('bantuan')} className="text-sm text-[var(--primary)] underline underline-offset-4">Bayar di kasir</button>
+                        {cafeConfig.payment.mode === 'both' && <p className="text-sm text-[var(--muted-foreground)]">Anda juga bisa membayar langsung di kasir.</p>}
                       </div>
                     )}
                   </section>
@@ -1380,13 +1403,13 @@ export function CustomerApp({
                       <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
                         <div>
                           <p className="font-heading font-bold text-[16px]">
-                            Struk Digital — {snapshot?.outlet?.name}
+                            Struk Digital · {snapshot?.outlet?.name}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)]">
                             {snapshot?.outlet?.address}
                           </p>
                         </div>
-                        <StatusLabel label="Lunas" tone="success" />
+                        <StatusLabel label={selectedBill.paymentState === 'SETTLED' ? 'Lunas' : 'Dibayar sebagian'} tone={selectedBill.paymentState === 'SETTLED' ? 'success' : 'warning'} />
                       </div>
                       <div className="text-[13px] space-y-1 tabular-nums">
                         <div className="flex justify-between">
@@ -1423,7 +1446,7 @@ export function CustomerApp({
                       </div>
                       <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[14px] tabular-nums">
                         <span>Total Diterima Kasir/QRIS</span>
-                        <span className="text-[var(--primary)]">
+                        <span className="text-[var(--primary-ink)]">
                           {formatIdr(selectedBill.verifiedReceiptsIdr)}
                         </span>
                       </div>
@@ -1435,9 +1458,9 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 5: BANTUAN MEJA / PANGGIL STAF (C10 — Less Cards)          */}
+          {/* SCREEN 5: BANTUAN MEJA / PANGGIL STAF (C10 · Less Cards)          */}
           {/* ================================================================= */}
-          {activeScreen === 'bantuan' && (
+          {screenEnabled('bantuan') && activeScreen === 'bantuan' && (
             <motion.div
               key="screen-bantuan"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -1470,12 +1493,12 @@ export function CustomerApp({
                         onClick={() => setHelpType(opt.code as any)}
                         className={`w-full py-3.5 px-2 flex items-center justify-between text-left text-[15px] transition-colors cursor-pointer ${
                           active
-                            ? 'text-[var(--primary)] font-semibold bg-[var(--accent-surface)]/50'
+                            ? 'text-[var(--primary-ink)] font-semibold bg-[var(--accent-surface)]/50'
                             : 'text-[var(--foreground)] hover:bg-[var(--accent-surface)]/30 font-medium'
                         }`}
                       >
                         <span>{opt.label}</span>
-                        {active && <Check className="w-4 h-4 text-[var(--primary)]" />}
+                        {active && <Check className="w-4 h-4 text-[var(--primary-ink)]" />}
                       </button>
                     );
                   })}
@@ -1522,7 +1545,7 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 6: WI-FI GRATIS & INFO OUTLET (C12 — Less Cards)           */}
+          {/* SCREEN 6: WI-FI GRATIS & INFO OUTLET (C12 · Less Cards)           */}
           {/* ================================================================= */}
           {activeScreen === 'wifi' && (
             <motion.div
@@ -1534,10 +1557,10 @@ export function CustomerApp({
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                Wi-Fi
+                Info kedai
               </h1>
 
-              <section className="space-y-3">
+              {snapshot?.wifiNetworks?.length > 0 && <section className="space-y-3">
                 <h2 className="font-heading text-[16px] font-semibold">Wi-Fi</h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {(snapshot?.wifiNetworks || []).map((w: any) => (
@@ -1578,7 +1601,7 @@ export function CustomerApp({
                     </div>
                   ))}
                 </div>
-              </section>
+              </section>}
 
               <section className="space-y-2.5 text-[14px]">
                 <h2 className="font-heading text-[16px] font-semibold">Jam Buka &amp; Fasilitas</h2>
@@ -1611,9 +1634,9 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 7: MEMBER, STEMPEL LOYALITAS & ULASAN (C11 — Less Cards)   */}
+          {/* SCREEN 7: MEMBER, STEMPEL LOYALITAS & ULASAN (C11 · Less Cards)   */}
           {/* ================================================================= */}
-          {activeScreen === 'member' && (
+          {screenEnabled('member') && activeScreen === 'member' && (
             <motion.div
               key="screen-member"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -1698,9 +1721,9 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 8: ANTREAN MEJA / WAITLIST (C13 — Less Cards)              */}
+          {/* SCREEN 8: ANTREAN MEJA / WAITLIST (C13 · Less Cards)              */}
           {/* ================================================================= */}
-          {activeScreen === 'antrean' && (
+          {screenEnabled('antrean') && activeScreen === 'antrean' && (
             <motion.div
               key="screen-antrean"
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -1792,9 +1815,9 @@ export function CustomerApp({
         <footer className="mt-10 pt-5 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--muted-foreground)]">
           <div>
             <span className="font-semibold text-[var(--foreground)]">
-              {snapshot?.outlet?.name || 'Kedai Meranti'}
+              {cafeConfig.brand.name}
             </span>{' '}
-            · {snapshot?.outlet?.address || 'Jl. Meranti No. 18, Bandung'}
+            · {cafeConfig.venue.address}
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <button
@@ -1802,20 +1825,14 @@ export function CustomerApp({
               onClick={() => setActiveScreen('wifi')}
               className="hover:text-[var(--foreground)] hover:underline cursor-pointer"
             >
-              Wi-Fi &amp; Info
+              Info kedai
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveScreen('bantuan')}
-              className="hover:text-[var(--foreground)] hover:underline cursor-pointer"
-            >
-              Panggil pelayan
-            </button>
+            {canUseTables && <button type="button" onClick={() => setActiveScreen('bantuan')} className="hover:text-[var(--foreground)] hover:underline cursor-pointer">Panggil pelayan</button>}
             {onOpenStaffPortal && (
               <button
                 type="button"
                 onClick={onOpenStaffPortal}
-                className="inline-flex items-center gap-1 font-medium text-[var(--primary)] hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
               >
                 <Lock className="w-3 h-3" />
                 <span>Portal Staf &amp; Kasir</span>
@@ -1829,7 +1846,7 @@ export function CustomerApp({
       {/* ANIMATED STICKY BOTTOM CART BAR ON MENU VIEW (MOBILE-FIRST)           */}
       {/* ===================================================================== */}
       <AnimatePresence>
-        {activeScreen === 'menu' && cart.length > 0 && (
+        {canOrder && activeScreen === 'menu' && cart.length > 0 && (
           <motion.div
             initial={shouldReduceMotion ? { opacity: 0 } : { y: 64, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -1856,14 +1873,14 @@ export function CustomerApp({
       </AnimatePresence>
 
       <nav className={styles.bottomNav} aria-label="Navigasi pelanggan">
-        {([{ screen: 'menu', label: 'Menu', icon: Coffee }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingCart }, { screen: 'pesanan', label: 'Pesanan', icon: Receipt }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" /><span>{label}</span></button>)}
-        <button type="button" onClick={() => setShareOpen(true)}><QrCode className="w-5 h-5" /><span>Kode pesanan</span></button>
+        {([{ screen: 'menu', label: 'Menu', icon: Coffee }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingCart }, { screen: 'pesanan', label: 'Pesanan', icon: Receipt }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" /><span>{label}</span></button>)}
+        <button type="button" onClick={() => setShareOpen(true)}><QrCode className="w-5 h-5" /><span>Bagikan menu</span></button>
       </nav>
-      <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title="Kode pesanan">
+      <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title="Bagikan menu">
         <div className="text-center space-y-4">
-          {shareQr && <img src={shareQr} alt="Kode QR tautan menu" className="w-64 h-64 mx-auto" />}
-          <p className="text-sm text-[var(--muted-foreground)]">Bagikan menu ke teman semeja.</p>
-          <Button className="w-full" onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? 'Tersalin' : 'Salin tautan'}</Button>
+          {shareQr && <Image src={shareQr} width={320} height={320} unoptimized alt="Kode QR tautan menu" className="w-64 h-64 mx-auto" />}
+          <p className="text-sm text-[var(--muted-foreground)]">Bagikan menu ke teman.</p>
+          <Button className="w-full" disabled={!shareUrl} onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? 'Tersalin' : 'Salin tautan'}</Button>
         </div>
       </DialogModal>
       <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title="Kirim pesanan?">
@@ -1890,14 +1907,11 @@ export function CustomerApp({
               <p className="font-heading font-semibold text-[15px]">{guestName || 'Pelanggan baru'}</p>
               <p className="text-[12px] text-[var(--muted-foreground)]">
                 {orderMode === 'DINE_IN'
-                  ? `Meja ${selectedTable.label} · ${selectedTable.areaName}`
+                  ? selectedTable.id ? `Meja ${selectedTable.label} · ${selectedTable.areaName}` : cafeConfig.venue.address
                   : 'Bawa pulang'}
               </p>
             </div>
-            <StatusLabel
-              label={`${currentMember?.qualifiedVisitsCount ?? 0}/5 Stempel Member`}
-              tone="active"
-            />
+            {canUseLoyalty && <StatusLabel label={`${currentMember?.qualifiedVisitsCount ?? 0}/5 stempel`} tone="active" />}
           </div>
 
           {/* Clean Hairline Tap Rows (No outer box border!) */}
@@ -1941,7 +1955,7 @@ export function CustomerApp({
               },
               {
                 id: 'wifi' as CustomerScreenView,
-                label: 'Wi-Fi',
+                label: 'Info kedai',
                 desc: 'Info outlet',
                 icon: Wifi,
               },
@@ -1951,7 +1965,7 @@ export function CustomerApp({
                 desc: 'Daftar antrean',
                 icon: Clock,
               },
-            ].map((item) => {
+            ].filter(item => screenEnabled(item.id)).map((item) => {
               const Icon = item.icon;
               return (
                 <motion.button
@@ -1962,7 +1976,7 @@ export function CustomerApp({
                   className="w-full py-2.5 px-1 flex items-center justify-between gap-2.5 text-left hover:bg-[var(--accent-surface)]/50 transition-colors cursor-pointer rounded-[6px]"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Icon className="w-4 h-4 text-[var(--primary)] shrink-0" />
+                    <Icon className="w-4 h-4 text-[var(--primary-ink)] shrink-0" />
                     <div className="min-w-0">
                       <p className="font-semibold text-[14px] leading-[19px] text-[var(--foreground)]">
                         {item.label}
@@ -1972,7 +1986,7 @@ export function CustomerApp({
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {item.badge && (
-                      <span className="px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary)] text-[11px] font-semibold tabular-nums">
+                      <span className="px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)] text-[11px] font-semibold tabular-nums">
                         {item.badge}
                       </span>
                     )}
@@ -2014,7 +2028,7 @@ export function CustomerApp({
         title="Meja & layanan"
       >
         <div className="space-y-4">
-          <div className="space-y-1.5">
+          {canOrder && <div className="space-y-1.5">
             <Label>Pilih Mode Layanan</Label>
             <AnimatedSegmentedControl
               options={[
@@ -2022,12 +2036,12 @@ export function CustomerApp({
                 { value: 'TAKEAWAY', label: 'Bawa pulang' },
               ]}
               value={orderMode}
-              onChange={(mode) => { setOrderMode(mode); setActiveQuote(null); }}
+              onChange={(mode) => { setOrderMode(mode); setActiveQuote(null); setPresenceVerified(false); }}
               ariaLabel="Mode layanan pesanan"
               layoutId="order-mode-segmented"
               className="w-full grid grid-cols-2"
             />
-          </div>
+          </div>}
 
           {orderMode === 'DINE_IN' && (
             <div className="space-y-1.5">
@@ -2035,13 +2049,13 @@ export function CustomerApp({
               <SelectField
                 id="modal-select-table"
                 value={selectedTableId}
-                onChange={(e) => setSelectedTableId(e.target.value)}
+                onChange={(e) => { setSelectedTableId(e.target.value); setActiveQuote(null); setPresenceVerified(false); }}
               >
                 {(snapshot?.tables || [])
                   .filter((t: any) => t.physicalState !== 'OUT_OF_SERVICE')
                   .map((t: any) => (
                     <option key={t.id} value={t.id}>
-                      Meja {t.label} — {t.areaName} ({t.capacity} kursi)
+                      Meja {t.label} · {t.areaName} ({t.capacity} kursi)
                     </option>
                   ))}
               </SelectField>
@@ -2103,7 +2117,7 @@ export function CustomerApp({
                           checked={active}
                           disabled={disabled}
                           onChange={() => setSelectedVariantId(v.id)}
-                          className="w-4 h-4 accent-[var(--primary)]"
+                          className="w-4 h-4 accent-[var(--primary-ink)]"
                         />
                         <span className="text-[14px]">{v.name}</span>
                       </div>
@@ -2161,7 +2175,7 @@ export function CustomerApp({
                                 setSelectedModOptionIds([...selectedModOptionIds, opt.id]);
                               }
                             }}
-                            className="w-4 h-4 accent-[var(--primary)]"
+                            className="w-4 h-4 accent-[var(--primary-ink)]"
                           />
                           <span className="text-[14px]">{opt.name}</span>
                         </div>
@@ -2179,8 +2193,8 @@ export function CustomerApp({
               </div>
             ))}
 
-            {/* Item Note (Shadcn Input) */}
-            <div className="space-y-1.5 pt-2">
+            {/* Ordering controls stay out of catalog-only detail sheets. */}
+            {canOrder && <><div className="space-y-1.5 pt-2">
               <Label htmlFor="item-note-input">Catatan (opsional)</Label>
               <Input
                 id="item-note-input"
@@ -2205,7 +2219,8 @@ export function CustomerApp({
               <Button variant="primary" className="flex-1" onClick={handleConfirmModalAdd}>
                 {editingLineId ? 'Simpan perubahan' : 'Tambah ke keranjang'}
               </Button>
-            </div>
+            </div></>}
+            {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">Untuk memesan, hubungi staf di kasir.</p>}
           </div>
         )}
       </DialogModal>

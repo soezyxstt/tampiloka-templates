@@ -322,3 +322,26 @@ test('Demo payment instructions cannot be mistaken for payable QRIS or bank acco
   assert.equal(va.vaNumber, 'DEMO-TEST123');
   assert.match(va.notice, /tidak dapat dibayar/);
 });
+
+test('Receipt validation rejects zero, fractional, excessive and insufficient cash payments', async () => {
+  const { calculatePaymentAmounts } = await import('./rules.ts');
+  for (const amountIdr of [0, -1, 1.5, 60000, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(() => calculatePaymentAmounts({ balanceIdr: 50000, amountIdr, method: 'CASH' }));
+  }
+  assert.throws(() => calculatePaymentAmounts({ balanceIdr: 50000, amountIdr: 30000, tenderedIdr: 20000, method: 'CASH' }));
+  assert.deepEqual(calculatePaymentAmounts({ balanceIdr: 50000, amountIdr: 30000, tenderedIdr: 50000, method: 'CASH' }), { amountToPay: 30000, tendered: 50000, changeIdr: 20000 });
+  assert.deepEqual(calculatePaymentAmounts({ balanceIdr: 50000, amountIdr: 50000, method: 'QRIS' }), { amountToPay: 50000, tendered: 50000, changeIdr: 0 });
+});
+
+test('Fulfillment moves forward and standalone packages can finish accepted orders', async () => {
+  const { canTransitionUnit } = await import('./rules.ts');
+  assert.equal(canTransitionUnit('QUEUED', 'PREPARING'), true);
+  assert.equal(canTransitionUnit('PREPARING', 'READY'), true);
+  assert.equal(canTransitionUnit('READY', 'DELIVERED'), true);
+  assert.equal(canTransitionUnit('DELIVERED', 'PREPARING'), false);
+  assert.equal(canTransitionUnit('QUEUED', 'DELIVERED'), false);
+  assert.equal(canTransitionUnit('QUEUED', 'DELIVERED', true), true);
+  assert.equal(canTransitionUnit('HELD_FOR_PAYMENT', 'DELIVERED', true), false);
+  assert.equal(canTransitionUnit('CANCELLED', 'READY'), false);
+  assert.equal(canTransitionUnit('READY', 'ARBITRARY'), false);
+});
