@@ -18,10 +18,12 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: |
+      - name: Apply source fixes without changing CI permissions
+        run: |
           node scripts/apply-compact-ui.mjs
+          git restore --source=HEAD -- .github/workflows/ci.yml
           git add -A
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: constrain measured overflow sources and verify generated clients'
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: constrain measured overflow sources and verify release assets'
           git push origin HEAD:feat/compact-ui-catalog-list
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck && npm run lint && npm run demos:build
