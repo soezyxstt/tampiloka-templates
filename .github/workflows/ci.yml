@@ -36,5 +36,9 @@ jobs:
         run: npm run lint
       - name: Test config, catalog, domain, and database commands
         run: npm test
+      - name: Test browser demo adapters when included
+        run: npm run test:demo-runtime --if-present
       - name: Build application
         run: npm run build
+      - name: Build public demos when included
+        run: npm run demos:build --if-present

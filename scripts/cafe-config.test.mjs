@@ -23,16 +23,48 @@ await copyFile(join(root, 'src', 'config', 'catalog.mjs'), join(fixture, 'src', 
 await writeFile(join(fixture, 'config', 'cafe.json'), JSON.stringify(DEFAULT_CONFIG));
 await writeFile(join(fixture, 'content', 'menu.json'), JSON.stringify({ schemaVersion: 1, sample: true, items: [] }));
 await writeFile(join(fixture, 'content', 'tables.json'), JSON.stringify({ schemaVersion: 1, tables: [] }));
-await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: 'template', private: true, scripts: { cafe: 'node scripts/cafe.mjs' } }));
-await writeFile(join(fixture, 'package-lock.json'), JSON.stringify({ name: 'template', lockfileVersion: 3, packages: { '': { name: 'template' } } }));
-for (const directory of ['app', '.local/cafe-db', '.git', '.github/workflows/nested', '.github/private', 'node_modules/private-package', 'public/benchmarks', 'public/images', 'src/nested']) await mkdir(join(fixture, directory), { recursive: true });
+const showcasePackages = ['@fontsource/manrope', '@fontsource/source-sans-3', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler'];
+const fixturePackage = {
+  name: 'template', private: true,
+  scripts: {
+    cafe: 'node scripts/cafe.mjs', build: 'next build', demo: 'node scripts/run-demo.mjs',
+    'test:config': 'node --test scripts/cafe-config.test.mjs',
+    'test:browser-runtime': 'node --test tests/browser-runtime-crypto.test.mjs',
+    'test:demo-browser': 'node tests/demos-browser.mjs',
+    test: 'npm run test:config && npm run test:browser-runtime',
+    'demos:dev': 'vite --config demos/vite.config.ts',
+    'demos:build': 'vite build --config demos/vite.config.ts',
+    'demos:deploy': 'wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos',
+  },
+  dependencies: { next: '15.5.28', react: '19.2.1' },
+  devDependencies: { typescript: '5.9.3', ...Object.fromEntries(showcasePackages.map(name => [name, '1.0.0'])) },
+};
+const fixtureLock = {
+  name: 'template', lockfileVersion: 3,
+  packages: {
+    '': { name: 'template', dependencies: fixturePackage.dependencies, devDependencies: fixturePackage.devDependencies },
+    'node_modules/next': { version: '15.5.28', dependencies: { shared: '1.0.0', 'nested-parent': '1.0.0' }, optionalDependencies: { 'optional-native': '1.0.0' }, peerDependencies: { react: '19.2.1', 'peer-helper': '1.0.0' } },
+    'node_modules/react': { version: '19.2.1' },
+    'node_modules/typescript': { version: '5.9.3', dev: true },
+    'node_modules/shared': { version: '1.0.0' },
+    'node_modules/nested-parent': { version: '1.0.0', dependencies: { shared: '2.0.0' } },
+    'node_modules/nested-parent/node_modules/shared': { version: '2.0.0', integrity: 'sha512-retain-nested-version' },
+    'node_modules/optional-native': { version: '1.0.0', optional: true, os: ['darwin'] },
+    'node_modules/peer-helper': { version: '1.0.0' },
+    ...Object.fromEntries(showcasePackages.map(name => [`node_modules/${name}`, { version: '1.0.0', dev: true, dependencies: { shared: '1.0.0', 'showcase-private': '1.0.0' } }])),
+    'node_modules/showcase-private': { version: '1.0.0', dev: true },
+  },
+};
+await writeFile(join(fixture, 'package.json'), JSON.stringify(fixturePackage));
+await writeFile(join(fixture, 'package-lock.json'), JSON.stringify(fixtureLock));
+for (const directory of ['app', '.local/cafe-db', '.git', '.github/workflows/nested', '.github/private', 'node_modules/private-package', 'public/benchmarks', 'public/images', 'src/nested', 'src/demo-runtime', 'demos', 'tests/browser-runtime-harness']) await mkdir(join(fixture, directory), { recursive: true });
 await writeFile(join(fixture, 'app', 'page.tsx'), 'export default function Page() { return null; }');
 await writeFile(join(fixture, '.env.local'), 'SECRET_PAYMENT_KEY=must-not-copy');
 await writeFile(join(fixture, '.env.production'), 'LIVE_DATABASE_PASSWORD=must-not-copy');
 await writeFile(join(fixture, '.env.example'), 'CAFE_DEMO_DB=1');
 await writeFile(join(fixture, '.local/cafe-db/private.db'), 'private client sales');
 await writeFile(join(fixture, '.git/config'), 'private git credentials');
-await writeFile(join(fixture, '.github/workflows/ci.yml'), 'name: Verify template\njobs: {}\n');
+await writeFile(join(fixture, '.github/workflows/ci.yml'), 'name: Verify template\njobs:\n  verify:\n    steps:\n      - run: npm run build\n      - run: npm run demos:build --if-present\n');
 await writeFile(join(fixture, '.github/workflows/deploy.yml'), 'private deployment workflow');
 await writeFile(join(fixture, '.github/workflows/nested/ci.yml'), 'unreviewed nested workflow');
 await writeFile(join(fixture, '.github/private/.env.local'), 'PRIVATE_DEPLOY_TOKEN=must-not-copy');
@@ -43,6 +75,14 @@ await writeFile(join(fixture, 'public/images/menu.svg'), '<svg />');
 await writeFile(join(fixture, 'src/nested/.env.local'), 'NESTED_SECRET=must-not-copy');
 await writeFile(join(fixture, 'src/nested/service-account.json'), '{"private_key":"must-not-copy"}');
 await symlink(join(fixture, '.env.local'), join(fixture, 'src/nested/linked-secret.txt'));
+await writeFile(join(fixture, 'demos/manifest.ts'), 'public nine-host portfolio');
+await writeFile(join(fixture, 'src/demo-runtime/index.ts'), 'browser-only database adapter');
+await writeFile(join(fixture, 'tests/browser-runtime.integration.mjs'), 'browser runtime integration');
+await writeFile(join(fixture, 'tests/browser-runtime-crypto.test.mjs'), 'browser runtime crypto checks');
+await writeFile(join(fixture, 'tests/browser-runtime-harness/main.ts'), 'browser runtime test harness');
+await writeFile(join(fixture, 'tests/demos-browser.mjs'), 'public portfolio browser tests');
+await writeFile(join(fixture, 'tests/preset-integration.mjs'), 'normal client integration');
+await writeFile(join(fixture, 'scripts/generate-demo-schema.ts'), 'browser-only schema generator');
 
 
 test('every named package is a valid independent configuration', () => {
@@ -171,9 +211,37 @@ test('init creates a reusable client with selected modules and no old secrets or
   assert.equal(await readFile(join(destination, 'content/menu.json'), 'utf8'), await readFile(join(fixture, 'content/menu.json'), 'utf8'));
   assert.equal(await readFile(join(destination, 'content/tables.json'), 'utf8'), await readFile(join(fixture, 'content/tables.json'), 'utf8'));
   assert.equal(await readFile(join(destination, '.github/workflows/ci.yml'), 'utf8'), await readFile(join(fixture, '.github/workflows/ci.yml'), 'utf8'));
-  for (const path of ['.env.production', '.local', '.git', '.github/workflows/deploy.yml', '.github/workflows/nested', '.github/private', '.github/deployment.json', 'node_modules', 'public/benchmarks', 'src/nested/.env.local', 'src/nested/service-account.json', 'src/nested/linked-secret.txt']) assert.equal(await exists(join(destination, path)), false, path);
+  for (const path of ['.env.production', '.local', '.git', '.github/workflows/deploy.yml', '.github/workflows/nested', '.github/private', '.github/deployment.json', 'node_modules', 'public/benchmarks', 'src/nested/.env.local', 'src/nested/service-account.json', 'src/nested/linked-secret.txt', 'demos', 'src/demo-runtime', 'tests/browser-runtime.integration.mjs', 'tests/browser-runtime-crypto.test.mjs', 'tests/browser-runtime-harness', 'tests/demos-browser.mjs', 'scripts/generate-demo-schema.ts']) assert.equal(await exists(join(destination, path)), false, path);
+  assert.equal(await exists(join(destination, 'tests/preset-integration.mjs')), true);
+  assert.match(await readFile(join(destination, '.github/workflows/ci.yml'), 'utf8'), /npm run demos:build --if-present/);
   const env = await readFile(join(destination, '.env.local'), 'utf8');
   assert.match(env, /CAFE_DEMO_DB=0/); assert.doesNotMatch(env, /SECRET_PAYMENT_KEY/);
+});
+
+test('client package and npm lock omit showcase tooling while retaining shared, nested, optional and peer dependencies', async () => {
+  const destination = join(scratch, 'independent-client');
+  const result = cli(['init', destination, '--name', 'Independent Client', '--preset', 'full', '--yes']);
+  assert.equal(result.status, 0, result.stderr);
+  const pkg = JSON.parse(await readFile(join(destination, 'package.json'), 'utf8'));
+  const lock = JSON.parse(await readFile(join(destination, 'package-lock.json'), 'utf8'));
+  assert.equal(pkg.scripts.build, 'next build');
+  assert.equal(pkg.scripts.demo, 'node scripts/run-demo.mjs');
+  assert.equal(pkg.scripts.test, 'npm run test:config');
+  assert.equal(pkg.scripts['test:browser-runtime'], undefined);
+  assert.equal(pkg.scripts['test:demo-browser'], undefined);
+  assert.equal(Object.keys(pkg.scripts).some(name => name.startsWith('demos:')), false);
+  assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
+  assert.deepEqual(lock.packages[''].devDependencies, pkg.devDependencies);
+  for (const name of showcasePackages) {
+    assert.equal(pkg.devDependencies[name], undefined, name);
+    assert.equal(lock.packages[`node_modules/${name}`], undefined, name);
+  }
+  assert.equal(lock.packages['node_modules/showcase-private'], undefined);
+  for (const path of ['node_modules/next', 'node_modules/react', 'node_modules/typescript', 'node_modules/shared', 'node_modules/nested-parent', 'node_modules/nested-parent/node_modules/shared', 'node_modules/optional-native', 'node_modules/peer-helper']) {
+    assert.deepEqual(lock.packages[path], fixtureLock.packages[path], path);
+  }
+  assert.equal(lock.name, 'independent-client');
+  assert.equal(lock.packages[''].name, 'independent-client');
 });
 
 test('init never overwrites an existing directory', async () => {

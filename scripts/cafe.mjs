@@ -2,7 +2,7 @@
 import { constants as fsConstants } from 'node:fs';
 import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, posix, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
@@ -184,16 +184,104 @@ async function canonicalDestination(path) {
 }
 
 const ROOT_DIRECTORIES = new Set(['app', 'components', 'config', 'content', 'hooks', 'lib', 'public', 'scripts', 'src', 'docs', 'tests', '.github']);
-const ROOT_FILES = new Set(['package.json', 'package-lock.json', 'bun.lock', 'pnpm-lock.yaml', 'yarn.lock', 'next-env.d.ts', 'next.config.ts', 'next.config.mjs', 'tsconfig.json', 'eslint.config.mjs', 'postcss.config.mjs', '.gitignore', '.env.example', 'README.md', 'LICENSE', 'firebase-applet-config.json']);
+const ROOT_FILES = new Set(['package.json', 'package-lock.json', 'bun.lock', 'pnpm-lock.yaml', 'yarn.lock', 'next-env.d.ts', 'next.config.ts', 'next.config.mjs', 'tsconfig.json', 'eslint.config.mjs', 'postcss.config.mjs', '.gitignore', '.env.example', 'README.md', 'LICENSE']);
 const EXCLUDED_DIRECTORIES = new Set(['node_modules', '.git', '.next', '.local', '.aistudio', '.agents', '.codex', 'coverage', 'dist', 'build', 'test-results', 'playwright-report', '__pycache__']);
 // Traverse only the two ancestors of the reviewed CI file; no other GitHub
 // settings, deployment workflows, credentials, or hidden files are inherited.
 const CI_PATHS = new Set(['.github', join('.github', 'workflows'), join('.github', 'workflows', 'ci.yml')]);
+const SHOWCASE_PACKAGES = new Set(['@fontsource/manrope', '@fontsource/source-sans-3', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler']);
+const DEPENDENCY_GROUPS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
+
+function clientPackage(source, name) {
+  const pkg = structuredClone(source);
+  pkg.name = name;
+  pkg.private = true;
+  const excludedScripts = new Set();
+  for (const [id, command] of Object.entries(pkg.scripts || {})) {
+    if (id.startsWith('demos:') || id.startsWith('test:demo-') || /(?:^|[\s"'])demos\//.test(command) || /(?:src\/demo-runtime\/|tests\/(?:browser-runtime|demos[.-])|scripts\/generate-demo-schema)/.test(command)) {
+      excludedScripts.add(id);
+      delete pkg.scripts[id];
+    }
+  }
+  // Keep a core test pipeline usable if the template also chains optional
+  // showcase tests. Only remove an exact npm script invocation, not shell text.
+  for (const [id, command] of Object.entries(pkg.scripts || {})) {
+    const parts = command.split(/\s*&&\s*/).filter(part => {
+      const invocation = part.match(/^npm\s+run\s+([^\s]+)$/);
+      return !invocation || !excludedScripts.has(invocation[1]);
+    });
+    if (parts.length) pkg.scripts[id] = parts.join(' && ');
+    else delete pkg.scripts[id];
+  }
+  for (const group of DEPENDENCY_GROUPS) {
+    for (const dependency of SHOWCASE_PACKAGES) {
+      if (pkg[group]) delete pkg[group][dependency];
+      if (group === 'peerDependencies' && pkg.peerDependenciesMeta) delete pkg.peerDependenciesMeta[dependency];
+    }
+  }
+  return pkg;
+}
+
+function clientLockfile(source, pkg) {
+  const lock = structuredClone(source);
+  if (!lock.packages?.['']) throw new Error('Client generation needs an npm v2/v3 package-lock.json. Run npm install in the template first.');
+  lock.name = pkg.name;
+  lock.version = pkg.version ?? lock.version;
+  const root = { ...lock.packages[''], name: pkg.name };
+  for (const group of DEPENDENCY_GROUPS) {
+    if (pkg[group]) root[group] = structuredClone(pkg[group]);
+    else delete root[group];
+  }
+  if (pkg.peerDependenciesMeta) root.peerDependenciesMeta = structuredClone(pkg.peerDependenciesMeta);
+  else delete root.peerDependenciesMeta;
+  lock.packages[''] = root;
+
+  const resolveDependency = (from, name) => {
+    let parent = from;
+    while (true) {
+      const candidate = posix.join(parent, 'node_modules', name);
+      if (Object.hasOwn(lock.packages, candidate)) return candidate;
+      if (!parent) return null;
+      parent = posix.dirname(parent);
+      if (parent === '.') parent = '';
+    }
+  };
+  const retained = new Set(['']);
+  const pending = [''];
+  while (pending.length) {
+    const path = pending.pop();
+    const entry = lock.packages[path];
+    if (entry.link) throw new Error('Client generation cannot copy linked npm dependencies. Use published dependencies and regenerate the lockfile.');
+    const dependencies = new Set([
+      ...Object.keys(entry.dependencies || {}),
+      ...Object.keys(entry.optionalDependencies || {}),
+      ...Object.keys(entry.peerDependencies || {}),
+      ...(path === '' ? Object.keys(entry.devDependencies || {}) : []),
+    ]);
+    for (const dependency of dependencies) {
+      const resolved = resolveDependency(path, dependency);
+      if (resolved && !retained.has(resolved)) {
+        retained.add(resolved);
+        pending.push(resolved);
+      }
+    }
+  }
+  // npm ci installs orphaned entries from a copied lock, even after root
+  // devDependencies change. Keep only the normal/optional/peer graph reachable
+  // from this client, with its existing versions, integrity hashes and paths.
+  lock.packages = Object.fromEntries(Object.entries(lock.packages).filter(([path]) => retained.has(path)));
+  lock.lockfileVersion = 3;
+  delete lock.dependencies; // Redundant v2 metadata must not retain showcase nodes.
+  return lock;
+}
 
 function includeFile(path) {
   const parts = path.split(sep);
   const name = parts[parts.length - 1];
   if (parts[0] === '.github') return CI_PATHS.has(path);
+  if (parts[0] === 'src' && parts[1] === 'demo-runtime') return false;
+  if (parts[0] === 'tests' && /^(?:browser-runtime|demos)(?:[.-]|$)/.test(parts[1] || '')) return false;
+  if (parts[0] === 'scripts' && /^(?:demos[.-]|(?:build|deploy)-demos[.-]|generate-demo-schema[.-])/.test(name)) return false;
   if (parts.some(part => EXCLUDED_DIRECTORIES.has(part))) return false;
   if (parts.some(part => part.startsWith('.') && !['.gitignore', '.env.example'].includes(part))) return false;
   if (/^(?:credentials|service[-_]account)/i.test(name) || /\.(?:pem|key|p12|pfx|db|sqlite|sqlite3|log)$/i.test(name)) return false;
@@ -239,7 +327,11 @@ async function init(target, options) {
   const config = validateConfig(draft);
   const staticCatalog = config.modules.length === 1 && config.modules[0] === 'catalog';
   const files = (await sourceFiles()).filter(path => path !== logo?.relativePath);
-  const result = { command: 'init', dryRun: Boolean(options['dry-run']), directory: destination, config: summary(config), copiedFiles: files.length + 3 };
+  const pkg = clientPackage(JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package.json'), 'utf8')), config.venue.tenantSlug);
+  const lock = await exists(join(TEMPLATE_ROOT, 'package-lock.json'))
+    ? clientLockfile(JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package-lock.json'), 'utf8')), pkg)
+    : null;
+  const result = { command: 'init', dryRun: Boolean(options['dry-run']), directory: destination, config: summary(config), copiedFiles: files.length + 3 + (lock ? 1 : 0) + (logo ? 1 : 0) };
   if (options['dry-run']) {
     output(options, result, `Dry run: create ${destination}\n${JSON.stringify(summary(config), null, 2)}\nNo files written.`);
     return;
@@ -254,14 +346,8 @@ async function init(target, options) {
     }
     await mkdir(join(destination, 'config'), { recursive: true });
     await writeFile(join(destination, 'config', 'cafe.json'), `${JSON.stringify(config, null, 2)}\n`, { flag: 'wx' });
-    const pkg = JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package.json'), 'utf8'));
-    pkg.name = config.venue.tenantSlug;
-    pkg.private = true;
     await writeFile(join(destination, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`, { flag: 'wx' });
-    if (await exists(join(TEMPLATE_ROOT, 'package-lock.json'))) {
-      const lock = JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package-lock.json'), 'utf8'));
-      lock.name = pkg.name;
-      if (lock.packages?.['']) lock.packages[''].name = pkg.name;
+    if (lock) {
       await writeFile(join(destination, 'package-lock.json'), `${JSON.stringify(lock, null, 2)}\n`, { flag: 'wx' });
     }
     await writeFile(join(destination, '.env.local'), staticCatalog
@@ -315,7 +401,7 @@ async function doctor(options) {
   const config = await readConfig(directory);
   const checks = [{ name: 'Configuration', status: 'pass', detail: 'Valid settings, modules, payment mode, and theme.' }];
   const [major, minor] = process.versions.node.split('.').map(Number);
-  checks.push({ name: 'Node.js', status: major > 22 || (major === 22 && minor >= 6) ? 'pass' : 'fail', detail: `Running ${process.versions.node}; use Node.js 22.6 or newer.` });
+  checks.push({ name: 'Node.js', status: major > 22 || (major === 22 && minor >= 12) ? 'pass' : 'fail', detail: `Running ${process.versions.node}; use Node.js 22.12 or newer.` });
   if (config.brand.logo.startsWith('/')) {
     const path = resolve(directory, 'public', `.${config.brand.logo.split(/[?#]/)[0]}`);
     let valid = false;

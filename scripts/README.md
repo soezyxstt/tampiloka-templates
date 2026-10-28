@@ -1,6 +1,6 @@
 # Scripts and local verification
 
-Run these commands from the project root using Node.js **22.6 or newer**. Install the lockfile's dependencies with `npm ci`. GitHub Actions uses Node.js 22.
+Run these commands from the project root using Node.js **22.12 or newer**. Install the lockfile's dependencies with `npm ci`. GitHub Actions uses Node.js 22.
 
 ## Start a transaction demo
 
@@ -86,7 +86,7 @@ npm run cafe -- modules
 npm run cafe -- doctor
 ```
 
-`cafe.mjs` supports `init` for a separate project, `configure` for existing public settings, and `doctor` for local configuration checks. The canonical menu-only preset is `catalog`. The CLI refuses an existing destination and validates before copying. It excludes credentials, dependencies, local databases, Git history, and generated output. Detailed flags and package dependencies are in [client setup](../docs/client-setup.md).
+`cafe.mjs` supports `init` for a separate project, `configure` for existing public settings, and `doctor` for local configuration checks. The canonical menu-only preset is `catalog`. The CLI refuses an existing destination and validates before copying. It excludes credentials, dependencies, local databases, Git history, generated output, and the public nine-demo showcase. Generated clients keep the standard Next.js commands and core CI; showcase scripts, Vite/Cloudflare deployment dependencies, the browser-only runtime, and its tests are omitted. The npm lockfile keeps the existing versions and integrity hashes of reachable normal, optional, and peer dependencies while removing unused showcase nodes. No install or network request runs during generation. Detailed flags and package dependencies are in [client setup](../docs/client-setup.md).
 
 ## Verification
 
@@ -137,6 +137,6 @@ npm run test:browser
 
 `tests/browser-workflows.mjs` uses `http://127.0.0.1:3000` by default. `CAFE_TEST_URL` selects another running demo; `CAFE_CHROMIUM_EXECUTABLE` can select an installed Chromium executable. It refuses mutation when the snapshot is not explicitly a demo. On Linux, missing browser system libraries may require Playwright's dependency installation in the test environment.
 
-The suite checks customer search, table QR entry, order submission, staff acceptance, simulated online payment, bill sharing, multi-item POS with discount, and theme layouts. It checks for page errors and broken images, and writes screenshots plus `browser-workflows.json` under `design-runs/2026-10-28/evidence/`. This is the script's current output location. It creates named demo orders and payments and does not reset that database.
+The suite checks customer search, table QR entry, order submission, staff acceptance, simulated online payment, bill sharing, multi-item POS with discount, and theme layouts. It checks for page errors and broken images, and writes screenshots plus `browser-workflows.json` under the ignored `test-results/` directory. It creates named demo orders and payments and does not reset that database. Recorded evidence from the previous verified revision is linked in [the verification record](../docs/verification.md#historical-evidence).
 
-These commands describe repeatable checks. A successful test run is evidence for the exercised paths, not proof of production authentication or real payment settlement. Archived benchmark screenshots and older verification notes are historical references; they are not the current CI result.
+These commands describe repeatable checks. A successful test run is evidence for the exercised paths, not proof of production authentication or real payment settlement. [Benchmark notes](../docs/benchmark-notes.md) preserve the useful historical observations and link to the original GitHub revision. Generated galleries and screenshots are excluded from the reusable source tree.

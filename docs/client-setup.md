@@ -2,7 +2,7 @@
 
 The template has one public configuration file, `config/cafe.json`. Service modules decide what a client gets. The theme decides how components look. Brand identity stays separate from both. A menu-only client can serve static content without a database. Ordering and staff transactions currently use the demo runtime.
 
-Use Node.js 22.6 or newer. Use a separate project directory, database, and deployment for each client.
+Use Node.js 22.12 or newer. Use a separate project directory, database, and deployment for each client.
 
 ## Start the supplied demo
 
@@ -50,6 +50,8 @@ A `catalog` client starts in static mode with `CAFE_DEMO_DB=0`; use `npm run dev
 To use the supplied sales examples for a demonstration, remove `CAFE_DEMO_EMPTY=1` before the first startup. This setting affects a fresh database; it does not erase or replace existing orders.
 
 It excludes dependencies, Git history, environment files with credentials, local databases, build output, test output, stored benchmark screenshots, and symlinks. It keeps `.env.example` and the verification workflow `.github/workflows/ci.yml`; other GitHub settings and workflows are not copied. It does not install packages, create a hosted database, publish a site, or use any of the source project's payment accounts.
+
+The public nine-demo portfolio belongs to the template repository. Client projects omit `demos/`, `src/demo-runtime/`, browser-runtime test fixtures, showcase scripts, and Vite/Cloudflare deployment dependencies. Their package and lockfile contain the standard Next.js application and its reachable dependencies, preserving pinned versions and integrity hashes. The copied CI builds the client; the template's optional showcase build uses `--if-present` and is skipped in a client project. Generation performs no package installation or network request.
 
 The CLI refuses to overwrite an existing directory. A failed validation creates no client files. A failed copy removes only the new directory that this run created.
 

@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 
 const base = process.env.CAFE_TEST_URL || 'http://127.0.0.1:3000';
 const config = JSON.parse(await readFile(new URL('../config/cafe.json', import.meta.url), 'utf8'));
-const out = new URL('../design-runs/2026-10-28/evidence/', import.meta.url).pathname;
+const out = process.env.CAFE_TEST_OUTPUT || new URL('../test-results/browser/', import.meta.url).pathname;
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.CAFE_CHROMIUM_EXECUTABLE ? { executablePath: process.env.CAFE_CHROMIUM_EXECUTABLE } : {}) });
 const checks = [];

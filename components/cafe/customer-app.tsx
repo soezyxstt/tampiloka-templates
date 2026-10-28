@@ -627,7 +627,7 @@ export function CustomerApp({
                   {cafeConfig.brand.name}
                 </span>
                 {snapshot?.runtime?.demo && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Demo</span>}
-                {snapshot?.runtime?.sampleMenu && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Contoh menu</span>}
+                {!snapshot?.runtime?.demo && snapshot?.runtime?.sampleMenu && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Contoh menu</span>}
               </div>
 
               {/* Interactive Table / Order Mode Selector */}

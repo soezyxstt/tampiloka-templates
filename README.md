@@ -2,16 +2,37 @@
 
 A reusable cafe website and operations template with independent choices for **brand identity**, **component style**, and **service scope**. Customer screens start with phone layouts; staff workspaces prioritize tablets and desktop screens. The application currently uses Indonesian copy, integer Indonesian Rupiah prices, and a configurable outlet timezone.
 
-There are two runtime paths:
+There are three runtime paths:
 
 | Runtime | What you can use now |
 | --- | --- |
 | Public menu catalog | Publish a client's checked menu and table QR links from local JSON files. No database, staff login, or payment account is required. |
 | Ordering and staff demo | Demonstrate customer ordering, POS, kitchen, tables, payments, and reports using a persisted local database. Staff access and online settlement are demo implementations. Live transactions require the adapters described below. |
+| Public preset showcase | Share all nine preset demos on Cloudflare Pages. Each visitor gets a separate database in their browser; customer and staff tabs at the same preset address share that visitor's data. |
+
+## Show the demos to clients
+
+Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packages and component themes. Every preset has a dedicated address, and each applicable demo offers customer and staff views. The customer layout starts on phones; the staff workspace starts on tablets and desktops.
+
+| Preset | Client demo |
+| --- | --- |
+| Menu catalog | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) |
+| Order, pay at the counter | [cafe-order.tampiloka.site](https://cafe-order.tampiloka.site) |
+| Order and pay | [cafe-pay.tampiloka.site](https://cafe-pay.tampiloka.site) |
+| Cashier | [cafe-pos.tampiloka.site](https://cafe-pos.tampiloka.site) |
+| Cashier and kitchen | [cafe-kitchen.tampiloka.site](https://cafe-kitchen.tampiloka.site) |
+| Cafe operations | [cafe-operations.tampiloka.site](https://cafe-operations.tampiloka.site) |
+| Menu and cashier | [cafe-menu-pos.tampiloka.site](https://cafe-menu-pos.tampiloka.site) |
+| Menu, orders and cashier | [cafe-menu-order-pos.tampiloka.site](https://cafe-menu-order-pos.tampiloka.site) |
+| Full service | [cafe-full.tampiloka.site](https://cafe-full.tampiloka.site) |
+
+The demos use fictional sample data and cannot collect money. Open customer and staff views in the **same browser at the same demo address** to demonstrate their connected workflow. Separate devices or browsers have separate sessions. Changes survive a page reload; **Ulangi** resets that preset for your browser. The first transactional visit downloads and initializes its local database.
+
+See the [showcase guide](docs/demos.md) for a presentation walkthrough, local development, browser requirements, and Cloudflare Pages deployment. New client projects created by the CLI exclude the portfolio and its Vite/Wrangler dependencies.
 
 ## Start the supplied demo
 
-Use Node.js **22.6 or newer** and npm. From this repository:
+Use Node.js **22.12 or newer** and npm. From this repository:
 
 ```sh
 npm ci
@@ -183,9 +204,10 @@ Built with Next.js, React, TypeScript, Tailwind CSS, Drizzle, and PGlite/Postgre
 The editable [Cafe Template v2 Figma kit](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=116-43) contains the theme comparison, customer and staff references, components, and service map. [Design-system documentation](docs/design-system.md) maps the kit to implementation files and records differences. This is an explicit shared design contract; it does not provide automatic two-way Figma synchronization.
 
 - [Client setup, branding, presets, and CLI reference](docs/client-setup.md)
+- [Public demos, presentation walkthrough, and Cloudflare Pages](docs/demos.md)
 - [Public catalog content](content/README.md)
 - [Runtime and live integration requirements](docs/runtime.md)
 - [Scripts, local database, and verification](scripts/README.md)
 - [Design system and Figma source map](docs/design-system.md)
 - [Verification results and screenshots](docs/verification.md)
-- [Archived benchmark observations](public/benchmarks/README.md)
+- [Benchmark notes and historical source](docs/benchmark-notes.md)

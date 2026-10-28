@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tampiloka-cafe-demos",
+  "pages_build_output_dir": "./dist-demos",
+  "compatibility_date": "2026-10-28"
+}
