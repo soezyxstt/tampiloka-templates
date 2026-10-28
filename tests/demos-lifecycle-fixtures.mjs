@@ -30,6 +30,7 @@ export const LIFECYCLE_CASES = Object.freeze([
   { id: 'deferred-refund', title: 'Pengembalian tertunda memblokir penutupan sampai uang benar-benar dikembalikan' },
   { id: 'split-merge', title: 'Pisah dan gabung mempertahankan total serta status tagihan pesanan pelanggan' },
   { id: 'exception-departure', title: 'Kepulangan bermasalah membutuhkan alasan dan mempertahankan piutang' },
+  { id: 'catalog-waiter', title: 'Katalog: daftar tamu, inbox pelayan, penyajian dan struk pembayaran offline' },
   { id: 'external-counter', title: 'Paket kasir eksternal: konfirmasi struk, penyajian sederhana, dan kunjungan selesai' },
   { id: 'waitlist-customer-staff', title: 'Antrean pelanggan, pemanggilan staf, meja ditahan, duduk, dan status pribadi tersimpan' },
   { id: 'scenario-picker', title: 'Semua data contoh skenario dapat dimuat ulang dengan keadaan yang sesuai' },

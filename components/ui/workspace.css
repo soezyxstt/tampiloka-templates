@@ -71,3 +71,5 @@ button.stat-item:hover{background:var(--accent-surface)}
 
 .stat-strip:has(>.stat-item:only-child){grid-template-columns:1fr}
 .cafe-staff .visit-row h3,.cafe-staff .visit-row p{overflow-wrap:anywhere}
+
+@media(max-width:639px){.choice-strip[data-variant=segmented] .choice-item{min-height:44px}}

@@ -146,6 +146,9 @@ try {
         await top(page);
         const overflow = await page.addStyleTag({ content: '#staff-content { min-width: 500px !important; }' });
         try {
+          // Assert that the injected defect has actually reached browser layout.
+          await page.waitForFunction(() => { const main=document.getElementById('staff-content'); return main && getComputedStyle(main).minWidth==='500px' && main.getBoundingClientRect().width>=500; }, null, { timeout:5000 });
+          await settle(page);
           await assert.rejects(() => assertLayout(page, 'Injected persistent overflow'), /horizontal overflow/);
         } finally {
           await overflow.evaluate(element => element.remove());

@@ -20,7 +20,7 @@ Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packa
 
 | Preset | Client demo |
 | --- | --- |
-| Menu catalog | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) |
+| Menu and waiter requests | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) |
 | Order, pay at the counter | [cafe-order.tampiloka.site](https://cafe-order.tampiloka.site) |
 | Order and pay | [cafe-pay.tampiloka.site](https://cafe-pay.tampiloka.site) |
 | Cashier | [cafe-pos.tampiloka.site](https://cafe-pos.tampiloka.site) |
@@ -86,9 +86,9 @@ npm run demo
 
 Omit `--yes` in a terminal for interactive choices. Add `--dry-run` to preview a configuration without creating files. The CLI copies application code, public assets, content, scripts, tests, and docs, and sets the client's identity and route slugs. Dependencies, Git history, secrets, local databases, and generated output are excluded.
 
-Each client has its own project and database. Generated transaction demos start with sample menu items and tables, no sample sales, and an empty cash shift when cashier is enabled. Their `.env.local` sets `CAFE_DEMO_EMPTY=1` and a project-local database directory. This flag affects new databases; it does not delete existing orders. Generated `catalog` projects use the database-free path instead.
+Each client has its own project and database. Generated transaction demos start with sample menu items and tables, no sample sales, and an empty cash shift when cashier is enabled. Their `.env.local` sets `CAFE_DEMO_EMPTY=1` and a project-local database directory. This flag affects new databases; it does not delete existing orders. Only projects generated with exactly `--modules catalog` use the database-free path. The `catalog` preset includes the waiter inbox and uses the transactional runtime.
 
-### Nine service presets
+### Service presets and compatibility aliases
 
 ```sh
 npm run cafe -- presets
@@ -97,8 +97,8 @@ npm run cafe -- modules
 
 | Preset | Included experience |
 | --- | --- |
-| `catalog` | Public menu and table QR entry |
-| `order-at-cashier` | Menu, customer ordering, and a staff inbox; payment is handled outside online checkout |
+| `catalog` | Public menu, personal order list, waiter inbox and offline payment confirmation |
+| `order-at-cashier` | Compatibility alias for `catalog`, with the same modules and offline payment flow |
 | `order-and-pay` | Menu, customer ordering, and online checkout simulation |
 | `cashier` | Staff POS, discounts, bills, payments, and cash shifts |
 | `cashier-kitchen` | Cashier plus preparation queues |
@@ -149,7 +149,7 @@ The configuration and content JSON files are public. Keep private credentials ou
 
 ## Publish a real menu catalog
 
-Create an exact `catalog` project:
+Create a read-only project with exactly the `catalog` module:
 
 ```sh
 npm run cafe -- init ../menu-client --name "Kopi Senja" --modules catalog --theme editorial --yes

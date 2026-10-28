@@ -1,34 +1,25 @@
-# Staff layout regression
+# Responsive staff and customer regression coverage
 
-The desktop sidebar used `position: fixed; top: 0` while the demo toolbar, disclaimer and scenario picker lived above the staff application in normal document flow. At the 1280 px sidebar breakpoint this covered the left-hand demo controls. Earlier acceptance tests focused on 1024 px staff views, where that sidebar is hidden.
+The original desktop sidebar used viewport-fixed positioning and covered the demo toolbar, disclaimer and scenario picker. The shared staff shell now uses an in-flow grid with a sticky sidebar and header. Expanding a demo panel needs no hard-coded offset. The current desktop sidebar is 216 px; tablet navigation stays above the workspace. Staff selection shows a name, with the role separately below the brand, and occupies a full-width mobile row or a 280 px tablet/desktop column.
 
-The shared staff stylesheet now uses a two-column desktop grid. The sidebar stays in normal flow and becomes sticky only after the staff shell reaches the viewport top. Header and main content occupy the second column without the old 232 px margins. Expanding either demo disclosure changes the shell position naturally; there are no hard-coded demo-header heights or resize listeners. Tablets retain top navigation. The staff account selector gets enough width for its longest seeded name and role at tablet/desktop widths.
+## Interaction-state overflow
 
-## Regression coverage
+Payment feedback previously used a non-shrinking status badge. Long text widened the entire page. InlineNotice now wraps locally, including unbroken references; the root document never hides overflow. A new 320 px test also identified a narrow demo-toolbar overflow, and kitchen navigation exposed a flex wrapper whose minimum content width exceeded the phone viewport. Both constraints are fixed on their owning components.
 
-`tests/demos-staff-layout.mjs` checks all eight staff-enabled presets at 390, 768, 1024, 1279, 1280, 1440, 1920 and 2560 px. It checks top-of-page and scrolled geometry, hit-testing of demo and staff controls, the sidebar breakpoint, duplicate gutters, horizontal overflow, name/role clipping, expanded disclosures and new-order dialog stacking. Temporary negative controls must detect the original fixed-sidebar overlap and an injected, persistent 500 px content width on a 390 px viewport. Three repeated desktop-to-phone resize cycles exercise the operations preset. The complete layout suite has 158 checks.
+## Browser gates
 
-## Viewport synchronization
+- demos-compact-ui.mjs triggers a real demo payment instruction, checks feedback at 320, 360, 390, 412, 768, 1280 and 1920 px, checks long unbroken text and tests all five customer themes. It exercises keyboard navigation, category filtering and account selection. A temporary no-wrap override must reproduce the feedback defect.
+- demos-staff-layout.mjs checks all nine staff-enabled presets at 390, 768, 1024, 1279, 1280, 1440, 1920 and 2560 px, at the top and after scrolling. It tests hit targets, panels, account labels, sidebar geometry and dialog stacking. Negative controls must detect the old fixed sidebar and an injected 500 px content width on a 390 px viewport.
+- demos-browser.mjs checks every preset and its allowed customer/staff controls.
+- demos-lifecycle.mjs checks customer/staff journeys, including catalog-waiter with fulfillment and an offline receipt, and all 14 mock states.
 
-The first post-deployment run of PR #3 failed at operations / 390 px with a reported document width of 484 px. A diagnostic run on the unchanged deployed application measured 192 samples across operations, cashier and full presets. In 47 of 48 immediate resize samples, Chromium reported the new 390 px `innerWidth` while the account selector still had its old 360 px desktop width. All 144 subsequent samples at 32 ms or later had the correct 390 px document width. Fonts had already finished loading. The navigation bar's intentionally scrollable children were not the source of document overflow.
+Viewport changes wait for actual dimensions, media queries, sidebar visibility and account-control width to agree. Injected negative controls must first reach browser layout, then fail the unchanged geometry assertions. Tests never wait for overflow to disappear, loosen tolerances or retry failures until green. All suites run even when one fails, so a single run retains evidence for every suite and still exits unsuccessfully if any failed.
 
-The test now waits, for at most five seconds, for the requested viewport dimensions, media-query matches, sidebar display and account-selector width to agree. It does not wait for the no-overflow assertion to pass, add an arbitrary sleep, loosen geometry tolerances, hide document overflow or retry a failed test. Incorrect responsive styles time out, and independent geometry assertions still reject real overflow. The injected-overflow negative control verifies that distinction. Application code and business data do not change in this synchronization patch.
-
-Diagnostic evidence: [run 40746149902](https://github.com/soezyxstt/cafe-template/actions/runs/40746149902), artifact `cafe-resize-diagnostic`. The temporary diagnostic workflow/script were removed after investigation; reports stay in CI artifacts rather than the source tree.
-
-## Run the checks
-
-Run all local browser gates after building:
+Run locally after installing Chromium:
 
 ```sh
 npm run demos:build
 npm run test:demo-all
 ```
 
-Run only the deployed layout checks:
-
-```sh
-CAFE_DEMO_BASE_DOMAIN=tampiloka.site node --experimental-strip-types tests/demos-staff-layout.mjs
-```
-
-The Verify template workflow also offers a manual `live_layout` input for the deployed checks. Main releases compare the tested CSS bytes with the hub and all nine deployed presets before running the live layout suite. Reports and screenshots are uploaded as CI artifacts, not committed. Tests use fresh browser storage, verify the explicit local-only demo runtime, and block real network mutations. They do not reset any user's demo session or send real orders/payments.
+Main-release verification compares the exact tested entry CSS and JavaScript on the hub and all nine hosts before running live layout, compact interaction and catalog handoff checks. CI also runs HTTP integration against freshly generated client projects. Evidence stays in CI artifacts, not the source tree. Public browser checks use fresh browser-local demo data and block network writes; they do not reset existing users' sessions.

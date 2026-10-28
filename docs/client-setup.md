@@ -47,7 +47,7 @@ The multiline example uses POSIX line continuation. On Windows, put the command 
 
 `init` copies the app, reusable components, static content, database code, scripts, tests, docs, and public product assets. It changes the package name, brand, and route slugs.
 
-A `catalog` client starts in static mode with `CAFE_DEMO_DB=0`; use `npm run dev`. Other packages start with demo mode and `CAFE_DEMO_EMPTY=1` enabled; use `npm run demo`. A fresh ordering demo gets sample menu items and tables, with no sample sales. A cashier package also gets an empty open shift.
+A client with exactly `--modules catalog` starts in static mode with `CAFE_DEMO_DB=0`; use `npm run dev`. The `catalog` preset and other transactional packages start with demo mode and `CAFE_DEMO_EMPTY=1` enabled; use `npm run demo`. A fresh ordering demo gets sample menu items and tables, with no sample sales. A cashier package also gets an empty open shift.
 
 To use the supplied sales examples for a demonstration, remove `CAFE_DEMO_EMPTY=1` before the first startup. This setting affects a fresh database; it does not erase or replace existing orders.
 
@@ -89,7 +89,7 @@ npm start
 
 Leave `CAFE_DEMO_DB` unset or `0`. With exactly the `catalog` module enabled, the app serves the static JSON menu and table QR routes. It does not need a database or expose order/payment/staff actions. Build and deploy each client separately. QR links use `/t/<tenantSlug>/<outletSlug>/m/<qrToken>` at the client's deployed domain.
 
-If you switch an existing demo to `catalog` with `configure`, also disable `CAFE_DEMO_DB` in that project's environment. `configure` changes public settings only; it does not rewrite environment files or erase stored data.
+If you switch an existing demo to exactly `--modules catalog` with `configure`, also disable `CAFE_DEMO_DB` in that project's environment. `configure` changes public settings only; it does not rewrite environment files or erase stored data.
 
 ### Export a menu you edited in the demo
 
@@ -111,8 +111,8 @@ npm run cafe -- modules
 
 | Preset | Modules | Customer payment |
 | --- | --- | --- |
-| `catalog` | Menu catalog | No order or checkout flow |
-| `order-at-cashier` | Catalog, customer ordering | Pay at the cashier |
+| `catalog` | Catalog, guest lists and waiter inbox | Offline; staff confirms an external-register receipt |
+| `order-at-cashier` | Compatibility alias for `catalog` | Same offline flow |
 | `order-and-pay` | Catalog, customer ordering, online payments | Online checkout |
 | `cashier` | Cashier / POS | Staff handles payment |
 | `cashier-kitchen` | Cashier, kitchen | Staff handles payment |

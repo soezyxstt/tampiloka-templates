@@ -2,13 +2,13 @@
 
 > Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
 
-The [demo hub](https://cafe.tampiloka.site) is a client presentation portfolio for the reusable template. It compares nine service packages, shows five independent component themes, and links to working customer and staff experiences.
+The [demo hub](https://cafe.tampiloka.site) is a client presentation portfolio for the reusable template. It compares service presets, including the legacy `order-at-cashier` alias, shows five independent component themes, and links to working customer and staff experiences.
 
 ## Addresses and scope
 
 | CLI preset | Address | What to demonstrate |
 | --- | --- | --- |
-| `catalog` | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) | Searchable menu, item details and QR entry; no customer ordering or staff workspace |
+| `catalog` | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) | Searchable menu, guest order list, waiter inbox, fulfillment and offline receipt confirmation |
 | `order-at-cashier` | [cafe-order.tampiloka.site](https://cafe-order.tampiloka.site) | Customer order submission and a staff inbox; payment is handled outside online checkout |
 | `order-and-pay` | [cafe-pay.tampiloka.site](https://cafe-pay.tampiloka.site) | Customer order, staff acceptance and simulated online settlement |
 | `cashier` | [cafe-pos.tampiloka.site](https://cafe-pos.tampiloka.site) | Staff-entered order, discount, cash payment, change and cash shift |
@@ -18,7 +18,7 @@ The [demo hub](https://cafe.tampiloka.site) is a client presentation portfolio f
 | `menu-order-cashier` | [cafe-menu-order-pos.tampiloka.site](https://cafe-menu-order-pos.tampiloka.site) | Table ordering and a full cashier workspace |
 | `full` | [cafe-full.tampiloka.site](https://cafe-full.tampiloka.site) | The complete customer and staff workflow, including tables, loyalty and promotions |
 
-Add `/staff` to any package that includes staff functions. The public root opens the customer view when catalog is enabled, or the staff view for staff-only packages. Every package has an independent hostname and database scope. The catalog package reads validated public menu JSON without initializing a database.
+Add `/staff` to any package that includes staff functions. The public root opens the customer view when catalog is enabled, or the staff view for staff-only packages. Every package has an independent hostname and database scope. The catalog preset now initializes the same browser-local transaction runtime as ordering. Only a separately generated `--modules catalog` project stays database-free.
 
 Themes are intentionally varied across packages: editorial for the catalog, rounded for table ordering, airy for online checkout, boxy for POS/operations, and playful for cashier/kitchen. The hub previews all five treatments. A theme does not change which service modules are enabled.
 
@@ -48,7 +48,7 @@ The worker serializes complete domain operations and shares database ownership a
 
 Version 0.3.1 starts a new local demo storage generation so a tab left open on the earlier version cannot execute old lifecycle rules for the updated interface. Previous demonstration records are not migrated into this generation. New customer/staff tabs share the updated dataset, and committed commands notify peer tabs immediately with polling as a fallback.
 
-Use a current browser with Web Workers, Web Locks, BroadcastChannel and IndexedDB, over HTTPS or localhost. Browser storage must be available. Private browsing, storage limits or clearing site data can remove demo changes. The first transactional visit downloads the database engine and sample state; subsequent operations use the local copy. The hub and catalog do not wait for that engine.
+Use a current browser with Web Workers, Web Locks, BroadcastChannel and IndexedDB, over HTTPS or localhost. Browser storage must be available. Private browsing, storage limits or clearing site data can remove demo changes. The first transactional visit downloads the database engine and sample state; subsequent operations use the local copy. Only the hub and explicit read-only catalog projects avoid that engine.
 
 All data is fictional demonstration content. Payment simulation never collects money. A real client transaction deployment still needs the authentication, database and provider integrations described in the [runtime guide](runtime.md).
 
@@ -126,7 +126,7 @@ npm run build
 npm run demos:build
 ```
 
-Run both browser suites against an automatically started local preview of the built artifact:
+Run the interaction, layout, preset and lifecycle suites against an automatically started local preview of the built artifact:
 
 ```sh
 npx playwright install chromium
@@ -140,4 +140,4 @@ CAFE_DEMO_BASE_DOMAIN=tampiloka.site npm run test:demo-browser
 CAFE_DEMO_BASE_DOMAIN=tampiloka.site npm run test:demo-lifecycle
 ```
 
-The suites use isolated browser contexts and first check that transactional snapshots are marked `localOnly` before creating fictional orders. They write evidence to ignored `test-results/demos/` and `test-results/lifecycle/`. Individual suites also support an already running preview through `CAFE_DEMO_BASE_URL`; the default is `http://127.0.0.1:4174`. CI runs both browser gates and retains their JSON and screenshots as an artifact. Read the [verification record](verification.md) for recorded results; a build passing alone is not evidence that the interactive flows work.
+The suites use isolated browser contexts and first check that transactional snapshots are marked `localOnly` before creating fictional orders. They write evidence to ignored `test-results/demos/` and `test-results/lifecycle/`. Individual suites also support an already running preview through `CAFE_DEMO_BASE_URL`; the default is `http://127.0.0.1:4174`. CI runs all browser gates and retains their JSON and screenshots as an artifact. Read the [verification record](verification.md) for recorded results; a build passing alone is not evidence that the interactive flows work.
