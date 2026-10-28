@@ -1,0 +1,48 @@
+name: Apply compact UI changes
+on:
+  push:
+    branches: [feat/compact-ui-catalog-list]
+    paths: [.github/workflows/ui-apply.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/compact-ui-catalog-list
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply reviewed source transformations
+        run: node scripts/apply-compact-ui.mjs
+      - name: Publish changes to the isolated feature branch
+        run: |
+          git diff --stat
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'refactor: compact shared UI and waiter request catalog'
+          git push origin HEAD:feat/compact-ui-catalog-list
+      - run: npm ci
+      - name: Types
+        run: npm run typecheck
+      - name: Lint
+        if: always()
+        run: npm run lint
+      - name: Core tests
+        if: always()
+        run: npm test
+      - name: Browser runtime tests
+        if: always()
+        run: npm run test:demo-runtime
+      - name: Demo build
+        if: always()
+        run: npm run demos:build
+      - name: Keep source and small diagnostic summaries
+        if: always()
+        run: |
+          git diff --stat HEAD~1
+          git status --short
