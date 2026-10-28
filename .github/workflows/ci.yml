@@ -54,6 +54,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify layouts, all presets, and customer/staff lifecycle in the browser
         run: npm run test:demo-all --if-present
+      - name: Verify the matching Cloudflare release and deployed staff layouts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('demos/manifest.ts') != ''
+        run: node --experimental-strip-types scripts/demos-live-verify.mjs
       - name: Keep browser verification evidence
         if: always() && hashFiles('test-results/**/*.json') != ''
         uses: actions/upload-artifact@v7
