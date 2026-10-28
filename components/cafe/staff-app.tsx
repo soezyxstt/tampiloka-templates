@@ -1246,7 +1246,7 @@ export function StaffApp({
             className="space-y-6"
           >
             <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 max-w-full flex flex-wrap items-center gap-3">
 
                 <AnimatedSegmentedControl
                   ariaLabel="Filter stasiun kerja"

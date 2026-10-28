@@ -27,3 +27,6 @@
 .demo-spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--primary-ink); border-radius:50%; animation:demo-spin 1s linear infinite; }
 @keyframes demo-spin { to { transform:rotate(360deg); } }
 @media(max-width:620px) { .demo-toolbar { padding:5px 8px; gap:4px; font-size:12px; } .demo-package-name { display:none; } .demo-back { flex:1; } .demo-toolbar-actions { gap:0; } .demo-toolbar a,.demo-toolbar button { min-height:44px; padding:0 7px; } .demo-context summary { padding:7px 16px; } .demo-context p { padding:2px 16px 12px; } }
+
+/* Narrow demo chrome wraps rather than making the whole app wider. */
+@media(max-width:359px){.demo-toolbar{flex-wrap:wrap;gap:0}.demo-toolbar-actions{margin-left:auto;min-width:0;flex-wrap:wrap}.demo-back{flex:0 0 auto}}

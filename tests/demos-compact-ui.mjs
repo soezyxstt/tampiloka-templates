@@ -36,7 +36,11 @@ async function geometry(page,name,screenshot=true){
 }
 async function resize(page,width){
  await page.setViewportSize({width,height:844});
- await page.waitForFunction(width=>innerWidth===width&&matchMedia('(min-width:768px)').matches===(width>=768),width);
+ await page.waitForFunction(width=>{
+   if(innerWidth!==width||matchMedia('(min-width:768px)').matches!==(width>=768)||matchMedia('(min-width:1280px)').matches!==(width>=1280))return false;
+   const account=document.querySelector('.staff-account'),aside=document.querySelector('.staff-sidebar');
+   return !account||Math.abs(account.getBoundingClientRect().width-(width>=768?280:width-32))<1&&getComputedStyle(aside).display===(width>=1280?'flex':'none');
+  },width,{timeout:5000});
  await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
 }
 async function run(id,fn){const ctx=await context();try{await fn(ctx);}catch(e){failures.push({id,error:e.stack});console.error('FAIL '+id+': '+e.message);for(const [i,p]of ctx.pages().entries()){await p.screenshot({path:join(out,id+'-failure-'+i+'.png'),fullPage:true}).catch(()=>{});await writeFile(join(out,id+'-failure-'+i+'.txt'),await p.locator('body').innerText().catch(()=>''));}}finally{await ctx.close();}}
