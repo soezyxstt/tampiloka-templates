@@ -1,0 +1,33 @@
+name: Diagnose staff resize
+on:
+  push:
+    branches: [fix/staff-mobile-overflow]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run demos:build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cafe-demo-build-for-resize
+          path: dist-demos/
+          retention-days: 3
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/demos-resize-diagnostic.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cafe-resize-diagnostic
+          path: test-results/resize-diagnostic/
+          retention-days: 14
