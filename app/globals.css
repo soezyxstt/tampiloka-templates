@@ -86,3 +86,46 @@ button:disabled { cursor:not-allowed; }
 @media print { nav,aside,button,.connection-notice { display:none!important; } main { margin:0!important; padding:0!important; } }
 
 @media (min-width:768px) and (max-width:1279px) { .staff-metrics > button { padding:14px; } .staff-metrics > button p { margin-top:8px; } .staff-metrics > button p.text-3xl { font-size:24px; line-height:28px; } }
+
+/* The staff shell may follow demo controls. Keep it in document flow rather
+   than pinning its sidebar over content owned by a parent page. */
+@media screen and (min-width: 1280px) {
+  .cafe-staff:has(> aside) {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .cafe-staff > aside {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    width: auto;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .cafe-staff > header {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .cafe-staff > main {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    margin-left: 0;
+  }
+}
+@media screen and (min-width: 768px) {
+  .cafe-staff > header :has(> select[aria-label="Petugas aktif"]) {
+    width: 360px;
+    max-width: 100%;
+  }
+}
+#staff-content { scroll-margin-top: 100px; }
