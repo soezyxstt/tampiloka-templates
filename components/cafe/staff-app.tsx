@@ -5,6 +5,10 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Button,
+  PageHeader,
+  InlineNotice,
+  StatStrip,
+  Surface,
   Input,
   Textarea,
   Label,
@@ -642,7 +646,7 @@ export function StaffApp({
 
   return (
     <div className="cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <aside className="hidden xl:flex fixed inset-y-0 left-0 z-40 w-[232px] flex-col border-r border-[var(--border)] bg-[var(--surface)] p-5">
+      <aside className="staff-sidebar">
         <div className="flex items-center gap-3 px-2 py-3">
           <BrandMark />
           <div className="min-w-0"><p className="font-heading font-bold text-base leading-snug break-words">{cafeConfig.brand.name}</p></div>
@@ -661,37 +665,34 @@ export function StaffApp({
           {onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary-ink)]">Lihat menu pelanggan<ArrowUpRight className="h-4 w-4" /></button>}
         </div>
       </aside>
-      <header className="sticky top-0 z-30 xl:ml-[232px] border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-7 py-4">
-          <div className="flex items-center gap-3">
-            {onBackToCustomer && <button type="button" onClick={onBackToCustomer} aria-label="Kembali ke menu pelanggan" className="xl:hidden p-2 rounded-full border border-[var(--border)]"><ArrowLeft className="w-4 h-4" /></button>}
-            <div><p className="text-sm font-medium">{cafeConfig.brand.name}</p>{lastUpdated && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{lastUpdated}</p>}</div>
+      <header className="staff-header">
+        <div className="staff-toolbar">
+          <div className="staff-identity">
+            {onBackToCustomer && <Button variant="ghost" size="icon" onClick={onBackToCustomer} aria-label="Kembali ke menu pelanggan" className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
+            <div><p className="text-sm font-semibold">{cafeConfig.brand.name}</p><p id="active-staff-role" className="text-xs text-[var(--muted-foreground)]">{STAFF_CREDENTIALS[activeStaff]?.roleLabel || currentStaffObj.role}</p></div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="sm" disabled={busy || !onRefresh} onClick={onRefresh} aria-label="Perbarui data operasional"><RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /></Button>
-            <SelectField aria-label="Petugas aktif" value={activeStaff} onChange={(e) => handleSwitchStaff(e.target.value)} wrapperClassName="w-[156px] sm:w-[210px]" className="min-h-[36px] py-1 text-[12px]">
-              {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.userName} · {STAFF_CREDENTIALS[s.id]?.roleLabel || s.role}</option>)}
-            </SelectField>
-            <button type="button" onClick={() => setIsAuthenticated(false)} aria-label="Keluar dari portal staf" className="p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--background)]"><LogOut className="h-4 w-4" /></button>
+          <SelectField aria-label="Petugas aktif" aria-describedby="active-staff-role" value={activeStaff} onChange={(e) => handleSwitchStaff(e.target.value)} wrapperClassName="staff-account">
+            {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.userName}</option>)}
+          </SelectField>
+          <div className="staff-actions">
+            <Button variant="ghost" size="icon" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label="Perbarui data operasional"><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} aria-label="Keluar dari portal staf"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
-        <div className="xl:hidden px-4"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel="Navigasi operasional kafe" layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
+        <div className="staff-mobile-nav"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel="Navigasi operasional kafe" layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
       </header>
       <a href="#staff-content" className="skip-link">Ke ruang kerja</a>
-      <main id="staff-content" className="xl:ml-[232px] px-4 sm:px-7 xl:px-10 py-7 space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-heading text-3xl sm:text-[34px] font-semibold tracking-tight">{navItems.find(item => item.id === activeSection)?.label}</h1>
-          {canCashier && activeSection === 'kasir' && <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />Pesanan baru</Button>}
-        </div>
+      <main id="staff-content" className="staff-main">
+        <PageHeader title={navItems.find(item => item.id === activeSection)?.label || 'Operasional'} actions={canCashier && activeSection === 'kasir' ? <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />Pesanan baru</Button> : undefined} />
         <AnimatePresence>
           {(actionNotice || actionError) && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="flex items-center justify-between gap-3"
+              className="staff-feedback"
             >
-              {actionNotice && <StatusLabel label={actionNotice} tone="success" />}
+              {actionNotice && <InlineNotice tone="success">{actionNotice}</InlineNotice>}
               {actionError && <InlineError message={actionError} />}
             </motion.div>
           )}
@@ -705,20 +706,20 @@ export function StaffApp({
             key="pos-kasir"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="workspace-stack"
           >
-            <div className="staff-metrics grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              <button type="button" onClick={() => document.getElementById('incoming-orders')?.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Pesanan baru</span><Receipt className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{pendingOrderRequests.length}</p><p className="mt-2 text-[11px] text-[var(--primary-ink)]">Perlu konfirmasi</p></button>
-              {canTables && <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('DENAH'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Meja terisi</span><LayoutGrid className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.tables || []).filter((t: any) => t.physicalState === 'OCCUPIED').length}<span className="text-base font-normal text-[var(--muted-foreground)]"> / {(snapshot?.tables || []).length}</span></p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Lihat denah meja</p></button>}
-              {canKitchen && <button type="button" onClick={() => { setActiveSection('dapur'); setKitchenStatusFilter('ACTIVE'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Dalam proses</span><ChefHat className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.orderUnits || []).filter((u: any) => ['QUEUED', 'PREPARING'].includes(u.fulfillmentStatus)).length}</p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Porsi di dapur & bar</p></button>}
-              {canTables && <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('ANTREAN'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Panggilan tamu</span><Bell className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{openHelpCount}</p><p className="mt-2 text-[11px] text-[var(--primary-ink)]">{openHelpCount ? 'Menunggu layanan tim' : 'Semua tamu terlayani'}</p></button>}
-            </div>
+            <StatStrip items={[
+              { id:'new', label:'Pesanan baru', value:pendingOrderRequests.length, icon:Receipt, onSelect:()=>document.getElementById('incoming-orders')?.scrollIntoView({ behavior:'smooth', block:'center' }) },
+              ...(canTables ? [{ id:'tables', label:'Meja terisi', value:(snapshot?.tables || []).filter((t:any)=>t.physicalState==='OCCUPIED').length, icon:LayoutGrid, onSelect:()=>{setActiveSection('meja');setFloorSubTab('DENAH');} }] : []),
+              ...(canKitchen ? [{ id:'preparing', label:'Dalam proses', value:(snapshot?.orderUnits || []).filter((u:any)=>['QUEUED','PREPARING'].includes(u.fulfillmentStatus)).length, icon:ChefHat, onSelect:()=>{setActiveSection('dapur');setKitchenStatusFilter('ACTIVE');} }] : []),
+              ...(canTables ? [{ id:'help', label:'Panggilan tamu', value:openHelpCount, icon:Bell, onSelect:()=>{setActiveSection('meja');setFloorSubTab('ANTREAN');} }] : []),
+            ]} />
 
             {canCashier && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
 
             {/* Incoming Customer QR Order Requests (If any) */}
             {pendingOrderRequests.length > 0 && (
-              <section id="incoming-orders" className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 scroll-mt-28">
+              <Surface id="incoming-orders" variant="ruled" className="space-y-3 scroll-mt-28">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#B45309] animate-pulse" />
@@ -745,7 +746,7 @@ export function StaffApp({
                         data-request-id={req.id}
                         className="py-3.5 flex flex-wrap items-center justify-between gap-4"
                       >
-                        <div className="space-y-1 min-w-[240px] flex-1">
+                        <div className="space-y-1 min-w-0 basis-[240px] flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-heading text-[16px] font-bold">
                               Meja {req.tableLabel} · {req.customerName}
@@ -766,7 +767,7 @@ export function StaffApp({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex flex-wrap items-center gap-3 min-w-0">
                           <div className="text-right mr-2">
                             <span className="block text-[11px] text-[var(--muted-foreground)]">
                               Total
@@ -805,14 +806,14 @@ export function StaffApp({
                     );
                   })}
                 </div>
-              </section>
+              </Surface>
             )}
 
             <DemoPaymentControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />
             {!canKitchen && <OrderInbox snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
             {!canTables && <VisitService snapshot={snapshot} busy={busy} canTables={false} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />}
             {/* The cashier workspace is separate from the ordering inbox. */}
-            {canCashier && <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {canCashier && <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
               <div className="lg:col-span-4 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="flex items-center justify-between gap-2">

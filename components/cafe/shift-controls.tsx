@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Button, Input, Label, InlineError, Money, StatusLabel } from './ui-primitives';
+import { Button, Input, Label, InlineError, Money, StatusLabel, Surface, InlineNotice } from './ui-primitives';
 import { isModuleEnabled } from '@/src/config/cafe';
 
 type Shift = {
@@ -64,14 +64,14 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
     finally { setPending(false); }
   };
 
-  return <section className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 space-y-4" aria-label="Shift kasir">
+  return <Surface variant="ruled" className="space-y-3" aria-label="Shift kasir">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3"><h2 className="font-semibold">Kasir</h2><StatusLabel label={active ? 'Shift terbuka' : 'Shift ditutup'} tone={active ? 'success' : 'warning'} />{active && <span className="text-sm text-[var(--muted-foreground)]">Perkiraan laci <Money amount={active.expectedCashIdr} className="font-semibold text-[var(--foreground)]" /></span>}</div>
       <Button variant="secondary" size="sm" aria-expanded={expanded} aria-controls={`${prefix}-details`} onClick={() => setExpanded(value => !value)}>{expanded ? 'Tutup rincian' : active ? 'Kelola kas & shift' : 'Buka shift'}</Button>
     </div>
     {!active && !expanded && <p className="text-sm text-[var(--muted-foreground)]">Buka shift sebelum menerima pembayaran tunai.</p>}
     <InlineError message={error} />
-    {notice && <p role="status" className="text-sm text-[var(--status-success-fg)]">{notice}</p>}
+    {notice && <InlineNotice tone="success">{notice}</InlineNotice>}
     {expanded && <div id={`${prefix}-details`}>
       {!active ? <div className="flex flex-wrap items-end gap-3"><div className="space-y-1"><Label htmlFor={`${prefix}-opening`}>Modal awal laci (Rp)</Label><Input id={`${prefix}-opening`} type="number" inputMode="numeric" min={0} step={1} value={opening} disabled={locked} onChange={event => setOpening(event.target.value)} /></div><Button disabled={locked} onClick={() => run('OPEN_SHIFT')}>{pending ? 'Menyimpan…' : 'Buka shift kasir'}</Button></div> : <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-3"><p className="text-sm font-semibold">{active.drawerName}</p><dl className="space-y-2 text-sm"><div className="flex justify-between gap-2"><dt>Modal awal</dt><dd><Money amount={active.openingFloatIdr} /></dd></div><div className="flex justify-between gap-2"><dt>Pembayaran tunai</dt><dd><Money amount={active.cashReceiptsIdr} /></dd></div><div className="flex justify-between gap-2"><dt>Kas masuk</dt><dd><Money amount={active.cashInIdr} /></dd></div><div className="flex justify-between gap-2"><dt>Kas keluar</dt><dd><Money amount={active.cashOutIdr} /></dd></div><div className="flex justify-between gap-2"><dt>Pengembalian tunai</dt><dd><Money amount={active.cashRefundsIdr} /></dd></div><div className="flex justify-between gap-2 border-t border-[var(--border)] pt-2 font-semibold"><dt>Perkiraan laci</dt><dd><Money amount={active.expectedCashIdr} /></dd></div></dl></div>
@@ -79,5 +79,5 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
         <div className="space-y-3"><h3 className="font-semibold text-sm">Tutup shift</h3><div><Label htmlFor={`${prefix}-counted`}>Uang fisik terhitung (Rp)</Label><Input id={`${prefix}-counted`} type="number" inputMode="numeric" min={0} step={1} value={counted} disabled={locked} onChange={event => setCounted(event.target.value)} /></div><div><Label htmlFor={`${prefix}-close-reason`}>Catatan / alasan selisih</Label><Input id={`${prefix}-close-reason`} value={closeReason} maxLength={200} disabled={locked} onChange={event => setCloseReason(event.target.value)} /></div><Button variant="primary" size="sm" disabled={locked} onClick={() => run('CLOSE_SHIFT')}>Simpan hitungan & tutup shift</Button></div>
       </div>}
     </div>}
-  </section>;
+  </Surface>;
 }

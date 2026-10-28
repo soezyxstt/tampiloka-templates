@@ -1,3 +1,4 @@
+import { Button, SelectField, Label } from '../../components/cafe/ui-primitives';
 import { useState } from 'react';
 import { cafeConfig } from '../config';
 import { availableDemoScenarios } from '../../src/demo-runtime/scenario-catalog';
@@ -38,11 +39,11 @@ export function ScenarioPanel({ snapshot }: { snapshot: any }) {
     <summary>Data untuk mencoba alur operasional</summary>
     <div className="demo-scenario-content">
       <div className="demo-scenario-controls">
-        <label htmlFor="demo-scenario">Skenario uji</label>
-        <select id="demo-scenario" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}>
+        <Label htmlFor="demo-scenario">Skenario uji</Label>
+        <SelectField wrapperClassName="min-w-0 flex-1" id="demo-scenario" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}>
           {scenarios.map(entry => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
-        </select>
-        <button type="button" disabled={busy} onClick={load}>{busy ? 'Menyiapkan data…' : 'Muat skenario'}</button>
+        </SelectField>
+        <Button variant="secondary" disabled={busy} onClick={load}>{busy ? 'Menyiapkan data…' : 'Muat skenario'}</Button>
       </div>
       <p>{scenario.description}</p>
       <p><strong>Yang perlu diperiksa:</strong> {scenario.expected}</p>

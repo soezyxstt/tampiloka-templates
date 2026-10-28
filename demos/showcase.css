@@ -14,8 +14,6 @@
 .demo-scenario-content { display:grid; gap:10px; padding-bottom:18px; max-width:900px; }
 .demo-scenario-controls { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
 .demo-scenario-controls label { font-weight:600; }
-.demo-scenario-controls select { min-width:0; max-width:100%; min-height:44px; padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--radius-control); background:var(--surface); }
-.demo-scenario-controls button { min-height:44px; padding:8px 16px; border:1px solid var(--border-strong); border-radius:var(--radius-control); background:var(--accent-surface); font-weight:600; }
 .demo-scenario-controls :disabled { opacity:.6; }
 .demo-scenario-content p { margin:0; color:var(--muted-foreground); line-height:1.5; }
 .demo-scenario-content a { width:fit-content; min-height:44px; display:inline-flex; align-items:center; text-decoration:underline; font-weight:600; }
