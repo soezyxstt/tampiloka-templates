@@ -4,16 +4,23 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      live_layout:
+        description: "Check staff layouts on the deployed tampiloka.site demos only"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
   verify:
+    if: github.event_name != 'workflow_dispatch' || inputs.live_layout != true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -45,12 +52,50 @@ jobs:
       - name: Install Chromium for public demo acceptance tests
         if: hashFiles('demos/manifest.ts') != ''
         run: npx playwright install --with-deps chromium
-      - name: Verify all presets and customer/staff lifecycle in the browser
+      - name: Verify layouts, all presets, and customer/staff lifecycle in the browser
         run: npm run test:demo-all --if-present
+      - name: Verify the matching Cloudflare release and deployed staff layouts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('demos/manifest.ts') != ''
+        run: node --experimental-strip-types scripts/demos-live-verify.mjs
       - name: Keep browser verification evidence
         if: always() && hashFiles('test-results/**/*.json') != ''
         uses: actions/upload-artifact@v7
         with:
           name: cafe-browser-verification
+          path: test-results/
+          retention-days: 14
+
+  live_layout:
+    if: github.event_name == 'workflow_dispatch' && inputs.live_layout == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CAFE_DEMO_BASE_DOMAIN: tampiloka.site
+      CAFE_LAYOUT_OUTPUT: test-results/staff-layout-live
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 22
+        if: hashFiles('demos/manifest.ts') != ''
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        if: hashFiles('demos/manifest.ts') != ''
+        run: npm ci
+      - name: Install Chromium
+        if: hashFiles('demos/manifest.ts') != ''
+        run: npx playwright install --with-deps chromium
+      - name: Verify deployed staff layouts without server mutations
+        if: hashFiles('demos/manifest.ts') != ''
+        run: node --experimental-strip-types tests/demos-staff-layout.mjs
+      - name: Keep deployed layout evidence
+        if: always() && hashFiles('test-results/**/*.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: cafe-layout-live
           path: test-results/
           retention-days: 14
