@@ -77,7 +77,7 @@ export async function ensureSeeded(): Promise<void> {
   return seedingPromise;
 }
 
-async function runSeedInternal(force = false): Promise<void> {
+async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPTY === '1'): Promise<void> {
   try {
     if (!force) {
       const existingOutlet = await db
@@ -904,7 +904,7 @@ async function runSeedInternal(force = false): Promise<void> {
 
     // A clean client demo keeps the sample menu and floor plan, without sample sales.
     // This flag only affects the first seed of a new database or an explicit reset.
-    if (process.env.CAFE_DEMO_EMPTY === '1') {
+    if (empty) {
       await db.update(cafeTables).set({ physicalState: 'AVAILABLE' }).where(eq(cafeTables.outletId, DEFAULT_OUTLET_ID));
       await db.update(stockPools).set({ reserved: 0 }).where(eq(stockPools.outletId, DEFAULT_OUTLET_ID));
       await db.update(promotionRules).set({ quotaUsed: 0, quotaReserved: 0 }).where(eq(promotionRules.outletId, DEFAULT_OUTLET_ID));
@@ -1669,7 +1669,7 @@ async function runSeedInternal(force = false): Promise<void> {
   }
 }
 
-export async function resetDemoData(): Promise<{ ok: boolean }> {
+export async function resetDemoData(options: { empty?: boolean } = {}): Promise<{ ok: boolean }> {
   assertDemoRuntime();
   // A dedicated demo database contains one configured client. Clear the entire
   // fixture consistently; leaving receipts, idempotency keys or stock reservations
@@ -1689,6 +1689,6 @@ export async function resetDemoData(): Promise<{ ok: boolean }> {
     ];
     for (const table of tablesToReset) await tx.delete(table);
   });
-  await runSeedInternal(true);
+  await runSeedInternal(true, options.empty ?? process.env.CAFE_DEMO_EMPTY === '1');
   return { ok: true };
 }

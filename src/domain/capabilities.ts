@@ -67,6 +67,10 @@ export function assertCommandAllowed(
       } else if (payload.method === 'CASH' || payload.method === 'MANUAL_TRANSFER') {
         staff();
         requireAny('cashier');
+      } else if (payload.method === 'EXTERNAL_COUNTER') {
+        staff();
+        requireAny('ordering');
+        if (has('cashier') || has('payments')) throw new CapabilityError('MODULE_DISABLED', 'Catat pembayaran melalui modul pembayaran yang aktif.');
       } else {
         throw new CapabilityError('INVALID_PAYMENT_METHOD', 'Metode pembayaran tidak valid.', 422);
       }
@@ -76,11 +80,19 @@ export function assertCommandAllowed(
       if (!context.demo) throw new CapabilityError('LIVE_ADAPTER_REQUIRED', 'Konfirmasi pembayaran memerlukan penyedia pembayaran yang terverifikasi.', 503);
       break;
     case 'TABLE_OR_VISIT_ACTION':
+      staff();
+      // Minimal ordering and POS packages still finish visits without a floor plan.
+      if (payload.action === 'DEPART_VISIT' || payload.action === 'DEPART_VISIT_EXCEPTION') requireAny('tables', 'cashier', 'ordering');
+      else requireAny('tables');
+      break;
     case 'FLOOR_PLAN_ACTION':
       staff();
       requireAny('tables');
       break;
     case 'WAITLIST_ACTION':
+      requireAny('tables');
+      if (payload.action !== 'CREATE' && payload.action !== 'GET_STATUS') staff();
+      break;
     case 'SERVICE_REQUEST_ACTION':
       requireAny('tables');
       if (payload.action !== 'CREATE' && payload.action !== 'JOIN') staff();

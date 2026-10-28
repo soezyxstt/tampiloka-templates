@@ -29,7 +29,15 @@ Set `CAFE_DEMO_EMPTY=1` before the first run for a clean demo. This keeps the fi
 
 `src/domain/capabilities.ts` applies module checks before API commands. Disabling a module removes its navigation and rejects its API commands. Cashier-only still receives catalog data internally. Customer quoting needs `ordering`; staff POS quoting needs `cashier`. An ordering-only package has a staff inbox and can finish orders without a cashier screen or dedicated kitchen screen. Cash and manual-transfer recording need `cashier`; online instruction creation needs `payments`. The module checks do not replace authentication.
 
-Customer snapshots use an allowlist and include only the selected table's orders plus the current demo guest's takeaway orders. They omit staff accounts, session assurances, audit events, cash shifts, stock movements and other guests' member records. The demo surface selector is not an access token. Treat every person who can access the demo server as a trusted demo participant.
+Customer snapshots use an allowlist and include the selected table's active visit plus the current demo guest's own order history. A new guest does not inherit a departed party's orders when a table is reused. Private waitlist status is retrieved through the guest's own ticket token. Customer snapshots omit staff accounts, session assurances, audit events, cash shifts, stock movements and other guests' member records. The demo surface selector is not an access token. Treat every person who can access the demo server as a trusted demo participant.
+
+The ordering-only `order-at-cashier` package accepts an explicit external-counter payment confirmation with a receipt reference. It does not expose POS or change an application cash drawer. Packages with cashier or online-payment modules use their respective payment controls instead.
+
+## Visit lifecycle
+
+The [lifecycle guide](lifecycle.md) documents seating, payment policy, fulfillment, departure, table cleaning and reproducible test data. Backend transactions serialize changes per outlet so seating, acceptance, payment and departure cannot read an outdated lifecycle state during concurrent requests. Normal departure requires zero outstanding balances/refunds, no active payment instructions, no pending order requests, and all food/service requests completed. An explicit manager/owner exception records physical departure while retaining obligations for follow-up.
+
+Order payment labels resolve current unit allocations, including split and merged bills. They never infer payment from another order at the same table. Closed visits invalidate participant admission and join codes. Quotes are bound to the seating generation, preventing an old cart review from silently entering a new party's visit.
 
 ## Monetary and order behavior
 

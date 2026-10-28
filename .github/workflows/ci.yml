@@ -15,7 +15,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -42,3 +42,15 @@ jobs:
         run: npm run build
       - name: Build public demos when included
         run: npm run demos:build --if-present
+      - name: Install Chromium for public demo acceptance tests
+        if: hashFiles('demos/manifest.ts') != ''
+        run: npx playwright install --with-deps chromium
+      - name: Verify all presets and customer/staff lifecycle in the browser
+        run: npm run test:demo-all --if-present
+      - name: Keep browser verification evidence
+        if: always() && hashFiles('test-results/**/*.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: cafe-browser-verification
+          path: test-results/
+          retention-days: 14

@@ -20,6 +20,10 @@ test('isolated database: quote, discounted POS, duplicate submission, cash recei
   await migration.apply();
   await setup.close();
 
+  const { cafeConfig, MODULES } = await import('../config/cafe.ts');
+  const originalModules = [...cafeConfig.modules];
+  // Domain fixtures exercise all commands regardless of the generated client's chosen preset.
+  cafeConfig.modules = Object.keys(MODULES) as typeof cafeConfig.modules;
   const service = await import('./service.ts');
   const { db } = await import('./index.ts');
   const { eq } = await import('drizzle-orm');
@@ -100,6 +104,7 @@ test('isolated database: quote, discounted POS, duplicate submission, cash recei
     assert.equal((await db.select().from(schema.paymentReceipts)).length, 0);
     assert.equal((await db.select().from(schema.idempotencyRecords)).length, 0);
   } finally {
+    cafeConfig.modules = originalModules;
     await global._cafeDemoDatabase?.close();
     global._cafeDemoDatabase = undefined;
     await rm(dir, { recursive: true, force: true });

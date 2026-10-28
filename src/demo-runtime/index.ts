@@ -16,12 +16,24 @@ export function getBrowserSnapshot(context: BrowserSnapshotContext = {}, signal?
   return withBrowserDemoLock(() => requestBrowserOperation<Snapshot>({ kind: 'snapshot', context }), signal);
 }
 
-export function executeBrowserCommand(input: BrowserCommand, signal?: AbortSignal): Promise<CommandResult> {
-  return withBrowserDemoLock(() => requestBrowserOperation<CommandResult>({ kind: 'command', input }), signal);
+export async function executeBrowserCommand(input: BrowserCommand, signal?: AbortSignal): Promise<CommandResult> {
+  const result = await withBrowserDemoLock(() => requestBrowserOperation<CommandResult>({ kind: 'command', input }), signal);
+  // The write has already committed durably. Notify peer tabs without making a
+  // best-effort refresh failure look like a failed order or payment.
+  try {
+    const channel = new BroadcastChannel(`${browserDemoScope}:refresh`);
+    channel.postMessage({ type: 'cafe-data-changed' });
+    channel.close();
+  } catch { /* Normal polling remains available in every tab. */ }
+  return result;
 }
 
 export async function resetBrowserDemo() {
   return executeBrowserCommand({ command: 'RESET_DEMO_DATA', payload: {}, surface: 'staff' });
+}
+
+export async function loadBrowserDemoScenario(scenarioId: string) {
+  return executeBrowserCommand({ command: 'LOAD_DEMO_SCENARIO', payload: { scenarioId }, surface: 'staff' });
 }
 
 function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}) {
@@ -41,6 +53,10 @@ let uninstallFetch: (() => void) | undefined;
 export function installBrowserDemoFetch(): () => void {
   if (uninstallFetch) return uninstallFetch;
   const original = globalThis.fetch;
+  const updates = new BroadcastChannel(`${browserDemoScope}:refresh`);
+  updates.onmessage = event => {
+    if (event.data?.type === 'cafe-data-changed') window.dispatchEvent(new Event('cafe:data-changed'));
+  };
   const localFetch: typeof fetch = async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), globalThis.location.href);
     if (url.origin !== globalThis.location.origin || !url.pathname.startsWith('/api/v1/')) return original.call(globalThis, input, init);
@@ -78,6 +94,7 @@ export function installBrowserDemoFetch(): () => void {
   };
   globalThis.fetch = localFetch;
   uninstallFetch = () => {
+    updates.close();
     if (globalThis.fetch === localFetch) globalThis.fetch = original;
     uninstallFetch = undefined;
   };

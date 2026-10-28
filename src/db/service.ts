@@ -61,6 +61,7 @@ import {
 } from './seed.ts';
 import {
   computePricingBreakdown,
+  summarizeVisitLifecycle,
   createDemoPaymentInstructions,
   isValidOrderQuantity,
   calculatePaymentAmounts,
@@ -82,6 +83,88 @@ import { eq, and, desc, asc, inArray, isNull } from 'drizzle-orm';
 import { cafeConfig, isModuleEnabled } from '../config/cafe.ts';
 import { filterSnapshotByModules, type Surface } from '../domain/capabilities.ts';
 import { assertDemoRuntime, assertValidOutlet } from './runtime.ts';
+
+type CafeTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Serialize outlet mutations before reading lifecycle state, including on real SQL connections. */
+async function withOutletTransaction<T>(operation: (tx: CafeTransaction) => Promise<T>): Promise<T> {
+  return db.transaction(async tx => {
+    await tx.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID)).for('update');
+    return operation(tx);
+  });
+}
+
+function operationError(code: string, message: string) {
+  return Object.assign(new Error(message), { code });
+}
+
+function validPartySize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 50) {
+    throw operationError('INVALID_PARTY_SIZE', 'Jumlah tamu harus bilangan bulat antara 1 dan 50.');
+  }
+  return value;
+}
+
+async function assertTableAvailable(tx: CafeTransaction, tableId: string, partySize: number, ownWaitlistId?: string) {
+  const [table] = await tx.select().from(cafeTables).where(and(eq(cafeTables.id, tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID))).for('update');
+  if (!table || !table.active || table.physicalState !== 'AVAILABLE') throw operationError('TABLE_NOT_AVAILABLE', 'Meja belum tersedia. Pastikan tamu sebelumnya sudah pulang dan meja sudah dibersihkan.');
+  if (partySize > table.capacity) throw operationError('TABLE_CAPACITY_EXCEEDED', `Meja ${table.label} hanya cukup untuk ${table.capacity} tamu.`);
+  const activeAssignments = await tx.select().from(tableAssignments).where(and(eq(tableAssignments.tableId, table.id), isNull(tableAssignments.endedAt)));
+  const activeVisits = await tx.select().from(visits).where(and(eq(visits.primaryTableId, table.id), eq(visits.status, 'OPEN')));
+  if (activeAssignments.length || activeVisits.length) throw operationError('TABLE_OCCUPIED', 'Meja masih terhubung ke kunjungan aktif.');
+  const holds = await tx.select().from(waitlistEntries).where(and(eq(waitlistEntries.heldTableId, table.id), eq(waitlistEntries.status, 'CALLED')));
+  if (holds.some(hold => hold.id !== ownWaitlistId && hold.holdExpiresAt && hold.holdExpiresAt.getTime() > Date.now())) throw operationError('TABLE_HELD', 'Meja sedang ditahan untuk tamu antrean lain.');
+  return table;
+}
+
+async function createSeatedVisit(tx: CafeTransaction, table: typeof cafeTables.$inferSelect, name: string, partySize: number) {
+  const visitId = makeId('visit');
+  await tx.insert(visits).values({ id: visitId, tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, businessDate: getBusinessDate(), mode: 'DINE_IN', status: 'OPEN', primaryTableId: table.id, tableLabelsJson: [table.label], customerName: name, partySize });
+  await tx.update(cafeTables).set({ physicalState: isModuleEnabled('tables') ? 'OCCUPIED' : 'AVAILABLE', version: table.version + 1 }).where(eq(cafeTables.id, table.id));
+  await tx.insert(tableAssignments).values({ id: makeId('tassign'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, visitId, tableId: table.id });
+  // Bind requests already submitted for this exact seating generation. They must
+  // never silently migrate into the next party's visit after a table is reused.
+  await tx.update(orderRequests).set({ visitId }).where(and(eq(orderRequests.tableId, table.id), eq(orderRequests.tableVersion, table.version), eq(orderRequests.state, 'REQUESTED'), isNull(orderRequests.visitId)));
+  await tx.update(serviceRequests).set({ visitId }).where(and(eq(serviceRequests.tableLabel, table.label), isNull(serviceRequests.visitId), inArray(serviceRequests.state, ['OPEN', 'ACKNOWLEDGED'])));
+  return { visitId, status: 'OPEN', tableId: table.id, tableLabel: table.label, partySize };
+}
+
+type StockRequirement = { poolId: string; quantity: number };
+
+async function unitStockRequirements(tx: CafeTransaction, unit: typeof orderItemUnits.$inferSelect): Promise<StockRequirement[]> {
+  const [line] = await tx.select().from(orderLines).where(eq(orderLines.id, unit.orderLineId));
+  const snapshot = line?.modifiersSnapshotJson as { stockConsumptions?: StockRequirement[] } | undefined;
+  if (snapshot && !Array.isArray(snapshot) && Array.isArray(snapshot.stockConsumptions)) return snapshot.stockConsumptions;
+  // Legacy sample orders only tracked their base variant.
+  return unit.stockPoolId ? [{ poolId: unit.stockPoolId, quantity: unit.consumptionUnits }] : [];
+}
+
+async function releaseSettledPrepayUnits(tx: CafeTransaction, bill: typeof bills.$inferSelect, actorName: string) {
+  const billAllocations = await tx.select().from(billUnitAllocations).where(and(eq(billUnitAllocations.billId, bill.id), eq(billUnitAllocations.active, true)));
+  if (!billAllocations.length) return;
+  const allocatedUnits = await tx.select().from(orderItemUnits).where(inArray(orderItemUnits.id, billAllocations.map(allocation => allocation.orderUnitId)));
+  // A merged bill can contain multiple original promotion/funding groups. Each
+  // group must inspect every active allocation, including siblings split off earlier.
+  for (const fundingGroupId of new Set(allocatedUnits.map(unit => unit.fundingGroupId))) {
+    const groupUnits = await tx.select().from(orderItemUnits).where(eq(orderItemUnits.fundingGroupId, fundingGroupId));
+    const allocations = await tx.select().from(billUnitAllocations).where(and(inArray(billUnitAllocations.orderUnitId, groupUnits.map(unit => unit.id)), eq(billUnitAllocations.active, true)));
+    const billIds = [...new Set(allocations.map(allocation => allocation.billId))];
+    if (!billIds.length) continue;
+    const groupBills = await tx.select().from(bills).where(inArray(bills.id, billIds));
+    if (!canReleasePromoGroupToKitchen({ paymentPolicy: 'PREPAY', groupBills: groupBills.map(entry => ({ billId: entry.id, paymentState: entry.paymentState, lifecycle: entry.lifecycle })) })) continue;
+    for (const unit of groupUnits.filter(unit => unit.fulfillmentStatus === 'HELD_FOR_PAYMENT')) {
+      await tx.update(orderItemUnits).set({ fulfillmentStatus: 'QUEUED', queuedAt: new Date(), version: unit.version + 1 }).where(eq(orderItemUnits.id, unit.id));
+      for (const requirement of await unitStockRequirements(tx, unit)) {
+        const [pool] = await tx.select().from(stockPools).where(eq(stockPools.id, requirement.poolId));
+        if (!pool || pool.mode !== 'FINITE') continue;
+        if (pool.reserved < requirement.quantity || pool.onHand < requirement.quantity) throw operationError('STOCK_RESERVATION_INVALID', 'Reservasi stok pesanan tidak sesuai. Periksa stok sebelum melepas ke dapur.');
+        const onHand = pool.onHand - requirement.quantity;
+        await tx.update(stockPools).set({ onHand, reserved: pool.reserved - requirement.quantity, version: pool.version + 1 }).where(eq(stockPools.id, pool.id));
+        await tx.insert(stockMovements).values({ id: makeId('smov'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, poolId: pool.id, orderUnitId: unit.id, type: 'CONSUME', quantity: requirement.quantity, beforeOnHand: pool.onHand, afterOnHand: onHand, actor: actorName, reason: 'Pelepasan pesanan setelah seluruh kewajiban PREPAY selesai', effectKey: `eff_settle_consume_${unit.id}_${pool.id}` });
+      }
+    }
+  }
+}
 
 export function makeId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`;
@@ -278,7 +361,7 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
       rooms: roomRows,
       tables: tableRows,
       layoutVersions: layoutRows,
-      visits: visitRows,
+      visits: visitRows.map(visit => ({ ...visit, lifecycleSummary: summarizeVisitLifecycle({ visitId: visit.id, bills: billRows, orderUnits: unitRows, orderRequests: requestRows, paymentAttempts: attemptRows, refunds: refundRows, serviceRequests: serviceReqRows }) })),
       participants: participantRows,
       joinCodes: joinCodeRows,
       quotes: quoteRows.map((quote) => ({ ...quote, expired: new Date(quote.expiresAt).getTime() <= Date.now() })),
@@ -341,16 +424,14 @@ export function getSurfaceSnapshot(
 ) {
   if (surface === 'staff') return snapshot;
   const table = snapshot.tables.find((row) => row.id === tableId) || snapshot.tables[0];
-  const tableMatches = (row: { tableId?: string | null; tableLabel?: string | null; tableLabelSnapshot?: string | null }) =>
-    Boolean(table && (row.tableId === table.id || row.tableLabel === table.label || row.tableLabelSnapshot === table.label));
-  const requests = snapshot.orderRequests.filter((row) => tableMatches(row) || Boolean(principalId && row.principalId === principalId));
-  const requestIds = new Set(requests.map((row) => row.id));
-  const quoteIds = new Set(requests.map((row) => row.quoteId));
-  const ordersForGuest = snapshot.orders.filter((row) => tableMatches(row) || requestIds.has(row.orderRequestId || ''));
-  const visitIds = new Set(ordersForGuest.map((row) => row.visitId));
-  const orderIds = new Set(ordersForGuest.map((row) => row.id));
-  const visitsForGuest = snapshot.visits.filter((row) => row.primaryTableId === table?.id || visitIds.has(row.id));
-  for (const visit of visitsForGuest) visitIds.add(visit.id);
+  const activeTableVisitIds = new Set(snapshot.visits.filter(visit => visit.status === 'OPEN' && visit.primaryTableId === table?.id).map(visit => visit.id));
+  const requests = snapshot.orderRequests.filter(request => Boolean(principalId && request.principalId === principalId) || Boolean(request.visitId && activeTableVisitIds.has(request.visitId)) || (!request.visitId && request.state === 'REQUESTED' && request.tableId === table?.id));
+  const requestIds = new Set(requests.map(request => request.id));
+  const quoteIds = new Set(requests.map(request => request.quoteId));
+  const ordersForGuest = snapshot.orders.filter(order => activeTableVisitIds.has(order.visitId) || requestIds.has(order.orderRequestId || ''));
+  const visitIds = new Set([...activeTableVisitIds, ...ordersForGuest.map(order => order.visitId)]);
+  const orderIds = new Set(ordersForGuest.map(order => order.id));
+  const visitsForGuest = snapshot.visits.filter(visit => visitIds.has(visit.id));
   return {
     runtime: snapshot.runtime,
     outlet: snapshot.outlet,
@@ -373,7 +454,7 @@ export function getSurfaceSnapshot(
     members: [],
     rewardEntitlements: [],
     wifiNetworks: snapshot.wifiNetworks,
-    serviceRequests: snapshot.serviceRequests.filter((row) => row.tableLabel === table?.label),
+    serviceRequests: snapshot.serviceRequests.filter(row => row.visitId ? activeTableVisitIds.has(row.visitId) : row.tableLabel === table?.label && ['OPEN', 'ACKNOWLEDGED'].includes(row.state)),
     waitlistEntries: [],
     feedbackEntries: [],
     serverTime: snapshot.serverTime,
@@ -452,7 +533,8 @@ export async function verifyCustomerPresence(input: {
           message: 'Kode gabung meja tidak ditemukan.',
         };
       }
-      if (found.usedAt || new Date(found.expiresAt).getTime() < Date.now()) {
+      const [codeVisit] = await db.select().from(visits).where(eq(visits.id, found.visitId));
+      if (!codeVisit || codeVisit.status !== 'OPEN' || found.usedAt || new Date(found.expiresAt).getTime() <= Date.now()) {
         return {
           eligible: false,
           result: 'EXPIRED_JOIN_CODE',
@@ -562,6 +644,15 @@ export async function createQuoteForCart(input: {
       throw new Error('Outlet sedang tidak menerima pesanan baru saat ini.');
     }
 
+    let tableContext: { tableVersion?: number; visitId?: string | null } = {};
+    if (input.mode === 'DINE_IN') {
+      if (!input.tableId) throw operationError('TABLE_REQUIRED', 'Pilih meja untuk makan di tempat.');
+      const [table] = await db.select().from(cafeTables).where(and(eq(cafeTables.id, input.tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID)));
+      if (!table || !table.active || !['AVAILABLE', 'OCCUPIED'].includes(table.physicalState)) throw operationError('TABLE_NOT_AVAILABLE', 'Meja belum siap menerima pesanan.');
+      const [visit] = await db.select().from(visits).where(and(eq(visits.primaryTableId, table.id), eq(visits.status, 'OPEN')));
+      tableContext = { tableVersion: table.version, visitId: visit?.id || null };
+    }
+
     const poolMap = new Map(poolRows.map((p) => [p.id, p]));
     const requestedByPool = new Map<string, number>();
     const expandedUnits: Array<{
@@ -585,6 +676,7 @@ export async function createQuoteForCart(input: {
       itemName: string;
       variantName: string;
       modifiers: string[];
+      stockConsumptions: StockRequirement[];
       note: string;
       quantity: number;
       unitPriceIdr: number;
@@ -639,6 +731,18 @@ export async function createQuoteForCart(input: {
         }
       }
 
+      const stockConsumptions = new Map<string, number>();
+      if (variant.stockPoolId) stockConsumptions.set(variant.stockPoolId, variant.consumptionUnits);
+      for (const option of selectedOptions) {
+        if (!option.stockPoolId) continue;
+        const pool = poolMap.get(option.stockPoolId);
+        if (!pool) throw operationError('STOCK_POOL_NOT_FOUND', `Stok tambahan ${option.name} tidak ditemukan.`);
+        const needed = (requestedByPool.get(pool.id) || 0) + line.quantity;
+        requestedByPool.set(pool.id, needed);
+        if (computeAvailableStock(pool) < needed) throw operationError('MODIFIER_OUT_OF_STOCK', `Tambahan ${option.name} tidak cukup untuk seluruh pesanan.`);
+        stockConsumptions.set(pool.id, (stockConsumptions.get(pool.id) || 0) + 1);
+      }
+
       const modifiersPriceIdr = selectedOptions.reduce((acc, o) => acc + o.priceIdr, 0);
       const unitGrossIdr = variant.priceIdr + modifiersPriceIdr;
       const modifiersNames = selectedOptions.map((o) => o.name);
@@ -650,6 +754,7 @@ export async function createQuoteForCart(input: {
         itemName: menuItem.name,
         variantName: variant.name,
         modifiers: modifiersNames,
+        stockConsumptions: [...stockConsumptions].map(([poolId, quantity]) => ({ poolId, quantity })),
         note: cleanNote,
         quantity: line.quantity,
         unitPriceIdr: unitGrossIdr,
@@ -750,7 +855,7 @@ export async function createQuoteForCart(input: {
       promoRuleId: appliedPromoRuleId,
       promoCode: appliedPromoCode,
       itemsSnapshotJson: normalizedLines,
-      pricingSnapshotJson: { ...pricing, manualDiscountIdr, source: input.source || 'customer' },
+      pricingSnapshotJson: { ...tableContext, ...pricing, manualDiscountIdr, source: input.source || 'customer' },
       subtotalIdr: pricing.subtotalIdr,
       discountIdr: pricing.discountIdr,
       serviceIdr: pricing.serviceIdr,
@@ -793,26 +898,13 @@ export async function submitCustomerOrderRequest(input: {
 }) {
   try {
     await ensureSeeded();
+    return await withOutletTransaction(async tx => {
     const cleanName = (input.customerName || '').trim();
     if (!input.idempotencyKey || typeof input.idempotencyKey !== 'string' || input.idempotencyKey.length > 160) {
       throw new Error('Kunci pengiriman pesanan tidak valid. Muat ulang halaman.');
     }
     if (cleanName.length < 2 || cleanName.length > 60) {
       throw new Error('Nama pemesan wajib diisi (2–60 karakter).');
-    }
-    let tableQrValidated = false;
-    if (input.tableQrToken) {
-      if (input.mode !== 'DINE_IN' || !input.tableId) throw new Error('Kode QR hanya berlaku untuk meja yang dipindai.');
-      const [qrTable] = await db.select().from(cafeTables).where(and(
-        eq(cafeTables.id, input.tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID), eq(cafeTables.active, true)
-      ));
-      if (!qrTable || qrTable.physicalState === 'OUT_OF_SERVICE' || qrTable.qrToken !== input.tableQrToken) {
-        throw new Error('Kode QR meja tidak valid. Pindai ulang kode pada meja Anda.');
-      }
-      tableQrValidated = true;
-    }
-    if (input.mode === 'DINE_IN' && !input.presenceVerified && !tableQrValidated) {
-      throw new Error('Kehadiran lokasi belum terverifikasi. Pindai QR meja, gunakan cek GPS, atau kode staf.');
     }
 
     // Check Idempotency first (Spec 14.1, A09)
@@ -821,7 +913,7 @@ export async function submitCustomerOrderRequest(input: {
       .update(JSON.stringify({ quoteId: input.quoteId, principalId: input.principalId, customerName: cleanName, mode: input.mode, tableId: input.tableId || null, memberId: input.memberId || null }))
       .digest('hex');
 
-    const existingIdem = await db
+    const existingIdem = await tx
       .select()
       .from(idempotencyRecords)
       .where(
@@ -841,7 +933,23 @@ export async function submitCustomerOrderRequest(input: {
       return existingIdem[0].responseJson;
     }
 
-    const quoteRows = await db.select().from(quotes).where(eq(quotes.id, input.quoteId));
+    let tableQrValidated = false;
+    if (input.tableQrToken) {
+      if (input.mode !== 'DINE_IN' || !input.tableId) throw new Error('Kode QR hanya berlaku untuk meja yang dipindai.');
+      const [qrTable] = await tx.select().from(cafeTables).where(and(
+        eq(cafeTables.id, input.tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID), eq(cafeTables.active, true)
+      ));
+      if (!qrTable || !['AVAILABLE', 'OCCUPIED'].includes(qrTable.physicalState) || qrTable.qrToken !== input.tableQrToken) {
+        throw new Error('Kode QR meja tidak valid. Pindai ulang kode pada meja Anda.');
+      }
+      tableQrValidated = true;
+    }
+    if (input.mode === 'DINE_IN' && !input.presenceVerified && !tableQrValidated) {
+      throw new Error('Kehadiran lokasi belum terverifikasi. Pindai QR meja, gunakan cek GPS, atau kode staf.');
+    }
+
+
+    const quoteRows = await tx.select().from(quotes).where(eq(quotes.id, input.quoteId));
     const quote = quoteRows[0];
     if (!quote) {
       throw new Error('Quote harga tidak ditemukan. Silakan hitung ulang keranjang.');
@@ -853,7 +961,7 @@ export async function submitCustomerOrderRequest(input: {
       throw new Error('Masa berlaku quote harga telah habis. Silakan konfirmasi harga terbaru.');
     }
 
-    const outletRows = await db.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
+    const outletRows = await tx.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
     const outlet = outletRows[0];
 
     if (quote.catalogVersion !== outlet.catalogVersion || quote.policyVersion !== outlet.policyVersion) {
@@ -870,18 +978,24 @@ export async function submitCustomerOrderRequest(input: {
       if (!input.tableId) {
         throw new Error('Meja wajib dipilih untuk pesanan makan di tempat.');
       }
-      const tblRows = await db.select().from(cafeTables).where(eq(cafeTables.id, input.tableId));
+      const tblRows = await tx.select().from(cafeTables).where(eq(cafeTables.id, input.tableId));
       const tbl = tblRows[0];
-      if (!tbl || !tbl.active || tbl.physicalState === 'OUT_OF_SERVICE') {
+      if (!tbl || !tbl.active || !['AVAILABLE', 'OCCUPIED'].includes(tbl.physicalState)) {
         throw new Error('Meja sedang tidak dapat digunakan.');
       }
+      const quoteContext = quote.pricingSnapshotJson as { tableVersion?: number; visitId?: string | null };
+      if (quoteContext.tableVersion !== undefined && quoteContext.tableVersion !== tbl.version) throw operationError('TABLE_CONTEXT_CHANGED', 'Status meja berubah sejak harga dihitung. Periksa meja dan hitung ulang keranjang.');
+      const heldEntries = await tx.select().from(waitlistEntries).where(and(eq(waitlistEntries.heldTableId, tbl.id), eq(waitlistEntries.status, 'CALLED')));
+      if (heldEntries.some(hold => hold.holdExpiresAt && hold.holdExpiresAt.getTime() > Date.now())) throw operationError('TABLE_HELD', 'Meja sedang ditahan untuk antrean. Minta staf mendudukkan tamu terlebih dahulu.');
       tableLabel = tbl.label;
       tableVersion = tbl.version;
 
-      const openVisits = await db
+      const openVisits = await tx
         .select()
         .from(visits)
         .where(and(eq(visits.primaryTableId, tbl.id), eq(visits.status, 'OPEN')));
+      if (openVisits.length > 1 || (tbl.physicalState === 'OCCUPIED' && openVisits.length !== 1)) throw operationError('TABLE_VISIT_CONFLICT', 'Status meja tidak cocok dengan kunjungan aktif. Minta bantuan staf.');
+      if (quoteContext.visitId && !openVisits.some(visit => visit.id === quoteContext.visitId)) throw operationError('VISIT_CLOSED', 'Kunjungan untuk pesanan ini sudah berakhir.');
       if (openVisits.length > 0) {
         existingOpenVisitId = openVisits[0].id;
       }
@@ -890,7 +1004,7 @@ export async function submitCustomerOrderRequest(input: {
     const reqId = makeId('req');
     const expiresAt = new Date(Date.now() + outlet.requestExpiryMinutes * 60 * 1000);
 
-    const insertedRequests = await db.insert(orderRequests).values({
+    const insertedRequests = await tx.insert(orderRequests).values({
       id: reqId,
       tenantId: DEFAULT_TENANT_ID,
       outletId: DEFAULT_OUTLET_ID,
@@ -909,7 +1023,7 @@ export async function submitCustomerOrderRequest(input: {
       expiresAt,
     }).onConflictDoNothing().returning();
     if (insertedRequests.length === 0) {
-      const [existing] = await db.select().from(orderRequests).where(and(
+      const [existing] = await tx.select().from(orderRequests).where(and(
         eq(orderRequests.outletId, DEFAULT_OUTLET_ID), eq(orderRequests.idempotencyKey, input.idempotencyKey),
       ));
       if (!existing || existing.quoteId !== input.quoteId || existing.principalId !== input.principalId || existing.customerName !== cleanName || existing.mode !== input.mode || (existing.tableId || null) !== (input.tableId || null)) {
@@ -923,7 +1037,7 @@ export async function submitCustomerOrderRequest(input: {
     // Check if participant is already admitted to this active visit and auto_accept_participant is enabled (Spec 8.1, A15)
     let autoAcceptedResult: any = null;
     if (outlet.autoAcceptParticipant && existingOpenVisitId) {
-      const existingParticipants = await db
+      const existingParticipants = await tx
         .select()
         .from(visitParticipants)
         .where(
@@ -933,8 +1047,8 @@ export async function submitCustomerOrderRequest(input: {
             eq(visitParticipants.status, 'ACTIVE')
           )
         );
-      if (existingParticipants.length > 0) {
-        autoAcceptedResult = await acceptOrderRequestByStaff({
+      if (existingParticipants.some(participant => participant.expiresAt.getTime() > Date.now())) {
+        autoAcceptedResult = await acceptOrderRequestInTransaction(tx, {
           orderRequestId: reqId,
           actorName: 'SYSTEM_POLICY',
           actorRole: 'SYSTEM',
@@ -950,7 +1064,7 @@ export async function submitCustomerOrderRequest(input: {
       message: 'Permintaan pesanan terkirim dan menunggu pengesahan staf.',
     };
 
-    await db.insert(idempotencyRecords).values({
+    await tx.insert(idempotencyRecords).values({
       id: makeId('idem'),
       tenantId: DEFAULT_TENANT_ID,
       actorScope: input.principalId,
@@ -962,6 +1076,7 @@ export async function submitCustomerOrderRequest(input: {
     });
 
     return responsePayload;
+    });
   } catch (error: any) {
     console.error('Submit order request error:', error);
     if (error instanceof Error) throw error;
@@ -969,16 +1084,14 @@ export async function submitCustomerOrderRequest(input: {
   }
 }
 
-export async function acceptOrderRequestByStaff(input: {
+type AcceptOrderRequestInput = {
   orderRequestId: string;
   actorName: string;
   actorRole: string;
   paymentPolicyOverride?: 'PREPAY' | 'PAY_LATER';
-}) {
-  try {
-    await ensureSeeded();
+};
 
-    return await db.transaction(async (tx) => {
+async function acceptOrderRequestInTransaction(tx: CafeTransaction, input: AcceptOrderRequestInput) {
       const reqRows = await tx
         .select()
         .from(orderRequests)
@@ -988,17 +1101,10 @@ export async function acceptOrderRequestByStaff(input: {
         throw new Error('Permintaan pesanan tidak ditemukan.');
       }
       if (req.state === 'ACCEPTED' && req.acceptedOrderId) {
-        const existingBills = await tx
-          .select()
-          .from(bills)
-          .where(eq(bills.visitId, req.visitId || ''));
-        return {
-          orderRequestId: req.id,
-          state: 'ACCEPTED',
-          orderId: req.acceptedOrderId,
-          visitId: req.visitId,
-          billId: existingBills[0]?.id ?? null,
-        };
+        const existingUnits = await tx.select().from(orderItemUnits).where(eq(orderItemUnits.orderId, req.acceptedOrderId));
+        const allocations = existingUnits.length ? await tx.select().from(billUnitAllocations).where(and(inArray(billUnitAllocations.orderUnitId, existingUnits.map(unit => unit.id)), eq(billUnitAllocations.active, true))) : [];
+        const billIds = [...new Set(allocations.map(allocation => allocation.billId))];
+        return { orderRequestId: req.id, state: 'ACCEPTED', orderId: req.acceptedOrderId, visitId: req.visitId, billId: billIds[0] || null, billIds, duplicateIgnored: true };
       }
       if (req.state !== 'REQUESTED') {
         throw new Error(`Permintaan pesanan sudah berstatus ${req.state}.`);
@@ -1020,6 +1126,35 @@ export async function acceptOrderRequestByStaff(input: {
       const linesSnapshot = (quote.itemsSnapshotJson as any[]) || [];
       const unitBreakdowns = (pricing?.units as any[]) || [];
 
+      if (!outlet.acceptingOrders) throw operationError('ORDERING_PAUSED', 'Outlet sedang tidak menerima pesanan baru.');
+      let visitId = req.visitId;
+      let tableLabel = req.tableLabel || 'Bungkus';
+      let existingVisit: typeof visits.$inferSelect | undefined;
+      if (visitId) {
+        [existingVisit] = await tx.select().from(visits).where(and(eq(visits.id, visitId), eq(visits.outletId, DEFAULT_OUTLET_ID))).for('update');
+        if (!existingVisit || existingVisit.status !== 'OPEN') throw operationError('VISIT_CLOSED', 'Kunjungan sudah berakhir. Permintaan pesanan ini tidak dapat diterima.');
+        if (existingVisit.mode !== req.mode) throw operationError('VISIT_MODE_MISMATCH', 'Jenis kunjungan tidak cocok dengan pesanan.');
+      }
+      if (req.mode === 'DINE_IN') {
+        const tableId = existingVisit?.primaryTableId || req.tableId;
+        if (!tableId) throw operationError('TABLE_REQUIRED', 'Meja pesanan tidak ditemukan.');
+        const [table] = await tx.select().from(cafeTables).where(and(eq(cafeTables.id, tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID))).for('update');
+        if (!table || !table.active || !['AVAILABLE', 'OCCUPIED'].includes(table.physicalState)) throw operationError('TABLE_NOT_AVAILABLE', 'Meja pesanan belum siap digunakan.');
+        tableLabel = table.label;
+        if (!visitId) {
+          if (req.tableVersion !== table.version) throw operationError('TABLE_CONTEXT_CHANGED', 'Meja sudah digunakan kunjungan lain. Minta pelanggan mengirim pesanan baru.');
+          const availableTable = await assertTableAvailable(tx, table.id, 1);
+          visitId = (await createSeatedVisit(tx, availableTable, req.customerName, 1)).visitId;
+        } else if (isModuleEnabled('tables') && table.physicalState !== 'OCCUPIED') {
+          throw operationError('TABLE_VISIT_CONFLICT', 'Meja kunjungan tidak berstatus terisi.');
+        }
+      }
+      if (!visitId) {
+        visitId = makeId('visit');
+        tableLabel = `TW-${Date.now().toString(36).slice(-5).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+        await tx.insert(visits).values({ id: visitId, tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, businessDate: getBusinessDate(), mode: 'TAKEAWAY', status: 'OPEN', tableLabelsJson: [tableLabel], pickupNumber: tableLabel, customerName: req.customerName, partySize: 1 });
+      }
+
       // Lock & validate stock pools (F04, A10)
       const variantRows = await tx
         .select()
@@ -1031,16 +1166,13 @@ export async function acceptOrderRequestByStaff(input: {
         .where(eq(stockPools.outletId, DEFAULT_OUTLET_ID)).for('update');
 
       const poolConsumption = new Map<string, number>();
-      for (const u of unitBreakdowns) {
-        const v = variantRows.find((vr) => vr.id === u.variantId);
-        if (v?.stockPoolId) {
-          poolConsumption.set(
-            v.stockPoolId,
-            (poolConsumption.get(v.stockPoolId) ?? 0) + v.consumptionUnits
-          );
-        }
+      for (const line of linesSnapshot) {
+        const variant = variantRows.find(variant => variant.id === line.variantId);
+        const requirements: StockRequirement[] = line.stockConsumptions || (variant?.stockPoolId ? [{ poolId: variant.stockPoolId, quantity: variant.consumptionUnits }] : []);
+        for (const requirement of requirements) poolConsumption.set(requirement.poolId, (poolConsumption.get(requirement.poolId) || 0) + requirement.quantity * line.quantity);
       }
 
+      if (input.paymentPolicyOverride !== undefined && !['PREPAY', 'PAY_LATER'].includes(input.paymentPolicyOverride)) throw operationError('INVALID_PAYMENT_POLICY', 'Kebijakan pembayaran harus PREPAY atau PAY_LATER.');
       const effectivePolicy =
         (!isModuleEnabled('cashier') && !isModuleEnabled('payments') ? 'PAY_LATER' : input.paymentPolicyOverride) ||
         (req.mode === 'TAKEAWAY' ? outlet.takeawayPaymentPolicy : outlet.paymentPolicy);
@@ -1099,50 +1231,10 @@ export async function acceptOrderRequestByStaff(input: {
         }
       }
 
-      // Create or attach Visit & Table Assignment
-      let visitId = req.visitId;
-      let tableLabel = req.tableLabel || 'Bungkus';
-      if (!visitId) {
-        visitId = makeId('visit');
-        const pickupNumber =
-          req.mode === 'TAKEAWAY'
-            ? `TW-${String(Math.floor(100 + Math.random() * 899))}`
-            : null;
-        if (pickupNumber) {
-          tableLabel = pickupNumber;
-        }
-        await tx.insert(visits).values({
-          id: visitId,
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          businessDate: getBusinessDate(),
-          mode: req.mode,
-          status: 'OPEN',
-          primaryTableId: req.tableId ?? null,
-          tableLabelsJson: [tableLabel],
-          pickupNumber,
-          customerName: req.customerName,
-          partySize: 2,
-          version: 1,
-        });
-
-        if (req.mode === 'DINE_IN' && req.tableId) {
-          await tx
-            .update(cafeTables)
-            .set({ physicalState: 'OCCUPIED', version: (req.tableVersion || 1) + 1 })
-            .where(eq(cafeTables.id, req.tableId));
-          await tx.insert(tableAssignments).values({
-            id: makeId('tassign'),
-            tenantId: DEFAULT_TENANT_ID,
-            outletId: DEFAULT_OUTLET_ID,
-            visitId,
-            tableId: req.tableId,
-          });
-        }
-      }
-
-      const participantId = makeId('part');
-      await tx.insert(visitParticipants).values({
+      const [admittedParticipant] = await tx.select().from(visitParticipants).where(and(eq(visitParticipants.visitId, visitId), eq(visitParticipants.principalId, req.principalId), eq(visitParticipants.status, 'ACTIVE')));
+      const participantId = admittedParticipant?.id || makeId('part');
+      if (admittedParticipant) await tx.update(visitParticipants).set({ expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000) }).where(eq(visitParticipants.id, admittedParticipant.id));
+      if (!admittedParticipant) await tx.insert(visitParticipants).values({
         id: participantId,
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
@@ -1192,7 +1284,7 @@ export async function acceptOrderRequestByStaff(input: {
           variantId: line.variantId,
           itemNameSnapshot: line.itemName,
           variantNameSnapshot: line.variantName,
-          modifiersSnapshotJson: line.modifiers || [],
+          modifiersSnapshotJson: { labels: line.modifiers || [], stockConsumptions: line.stockConsumptions || (variantRows.find(variant => variant.id === line.variantId)?.stockPoolId ? [{ poolId: variantRows.find(variant => variant.id === line.variantId)!.stockPoolId!, quantity: variantRows.find(variant => variant.id === line.variantId)!.consumptionUnits }] : []) },
           note: line.note || '',
           unitBasePriceIdr: line.unitPriceIdr,
           quantity: line.quantity,
@@ -1319,12 +1411,11 @@ export async function acceptOrderRequestByStaff(input: {
         paymentPolicy: effectivePolicy,
         totalIdr: quote.totalIdr,
       };
-    });
-  } catch (error: any) {
-    console.error('Accept order request error:', error);
-    if (error instanceof Error) throw error;
-    throw new Error(error.message || 'Gagal menerima permintaan pesanan.', { cause: error });
-  }
+}
+
+export async function acceptOrderRequestByStaff(input: AcceptOrderRequestInput) {
+  await ensureSeeded();
+  return withOutletTransaction(tx => acceptOrderRequestInTransaction(tx, input));
 }
 
 export async function rejectOrderRequestByStaff(input: {
@@ -1334,13 +1425,18 @@ export async function rejectOrderRequestByStaff(input: {
 }) {
   try {
     await ensureSeeded();
+    return await withOutletTransaction(async tx => {
+      const [request] = await tx.select().from(orderRequests).where(eq(orderRequests.id, input.orderRequestId)).for('update');
+      if (!request) throw operationError('REQUEST_NOT_FOUND', 'Permintaan pesanan tidak ditemukan.');
+      if (request.state === 'REJECTED') return { orderRequestId: request.id, state: request.state, reason: request.reason, duplicateIgnored: true };
+      if (request.state !== 'REQUESTED') throw operationError('REQUEST_NOT_PENDING', 'Hanya permintaan yang menunggu dapat ditolak.');
     const cleanReason = (input.reason || '').trim() || 'Ditolak oleh staf operasional';
-    await db
+    await tx
       .update(orderRequests)
       .set({ state: 'REJECTED', reason: cleanReason, updatedAt: new Date() })
       .where(eq(orderRequests.id, input.orderRequestId));
 
-    await db.insert(auditEvents).values({
+    await tx.insert(auditEvents).values({
       id: makeId('aud'),
       tenantId: DEFAULT_TENANT_ID,
       outletId: DEFAULT_OUTLET_ID,
@@ -1354,6 +1450,7 @@ export async function rejectOrderRequestByStaff(input: {
       requestId: makeId('reqid'),
     });
     return { orderRequestId: input.orderRequestId, state: 'REJECTED', reason: cleanReason };
+    });
   } catch (error: any) {
     console.error('Reject order request error:', error);
     if (error instanceof Error) throw error;
@@ -1373,20 +1470,21 @@ export async function transitionOrderUnits(input: {
       throw new Error('Pilih minimal satu porsi unit untuk diperbarui.');
     }
 
-    return await db.transaction(async (tx) => {
+    return await withOutletTransaction(async (tx) => {
       const units = await tx
         .select()
         .from(orderItemUnits)
         .where(inArray(orderItemUnits.id, input.unitIds));
 
-      if (units.length === 0) {
-        throw new Error('Unit pesanan tidak ditemukan.');
-      }
+      if (units.length !== new Set(input.unitIds).size) throw operationError('UNIT_NOT_FOUND', 'Salah satu unit pesanan tidak ditemukan.');
+      const relatedOrders = await tx.select().from(orders).where(inArray(orders.id, [...new Set(units.map(unit => unit.orderId))]));
 
       const now = new Date();
       let updatedCount = 0;
 
       for (const u of units) {
+        const order = relatedOrders.find(order => order.id === u.orderId);
+        if ((input.targetStatus === 'DELIVERED' && order?.mode !== 'DINE_IN') || (input.targetStatus === 'PICKED_UP' && order?.mode !== 'TAKEAWAY')) throw operationError('FULFILLMENT_MODE_MISMATCH', 'Gunakan status diantar untuk makan di tempat dan diserahkan untuk bungkus.');
         if (u.fulfillmentStatus === 'CANCELLED') continue;
         if (u.fulfillmentStatus === input.targetStatus) continue;
         if (u.fulfillmentStatus === 'HELD_FOR_PAYMENT') {
@@ -1446,7 +1544,7 @@ export async function splitBillByUnits(input: {
 }) {
   try {
     await ensureSeeded();
-    return await db.transaction(async (tx) => {
+    return await withOutletTransaction(async (tx) => {
       const billRows = await tx.select().from(bills).where(eq(bills.id, input.sourceBillId));
       const sourceBill = billRows[0];
       if (!sourceBill) throw new Error('Tagihan asal tidak ditemukan.');
@@ -1482,6 +1580,7 @@ export async function splitBillByUnits(input: {
         );
 
       const movingAllocs = activeAllocs.filter((a) => input.unitIdsToMove.includes(a.orderUnitId));
+      if (movingAllocs.length !== new Set(input.unitIdsToMove).size) throw operationError('UNIT_ALLOCATION_MISMATCH', 'Salah satu item tidak lagi berada pada tagihan asal.');
       if (movingAllocs.length === 0) {
         throw new Error('Pilih minimal satu item unit untuk dipisahkan ke tagihan baru.');
       }
@@ -1608,7 +1707,7 @@ export async function mergeOpenBills(input: {
       throw new Error('Tagihan sumber dan tujuan tidak boleh sama.');
     }
 
-    return await db.transaction(async (tx) => {
+    return await withOutletTransaction(async (tx) => {
       const [srcRows, tgtRows] = await Promise.all([
         tx.select().from(bills).where(eq(bills.id, input.sourceBillId)),
         tx.select().from(bills).where(eq(bills.id, input.targetBillId)),
@@ -1616,6 +1715,8 @@ export async function mergeOpenBills(input: {
       const src = srcRows[0];
       const tgt = tgtRows[0];
       if (!src || !tgt) throw new Error('Tagihan tidak ditemukan.');
+      if (src.visitId !== tgt.visitId) throw operationError('BILL_VISIT_MISMATCH', 'Tagihan hanya dapat digabung dalam kunjungan yang sama.');
+      if (src.paymentPolicy !== tgt.paymentPolicy) throw operationError('BILL_POLICY_MISMATCH', 'Tagihan dengan kebijakan pembayaran berbeda tidak dapat digabung.');
 
       for (const b of [src, tgt]) {
         const atts = await tx
@@ -1715,17 +1816,36 @@ export async function mergeOpenBills(input: {
 
 export async function recordBillPayment(input: {
   billId: string;
-  method: 'CASH' | 'QRIS' | 'VIRTUAL_ACCOUNT' | 'MANUAL_TRANSFER';
+  method: 'CASH' | 'QRIS' | 'VIRTUAL_ACCOUNT' | 'MANUAL_TRANSFER' | 'EXTERNAL_COUNTER';
   amountIdr: number;
   tenderedIdr?: number;
   referenceCode?: string;
+  idempotencyKey?: string;
   actorName: string;
   createExternalAttemptOnly?: boolean;
 }, settlingAttemptId?: string) {
   try {
     await ensureSeeded();
 
-    return await db.transaction(async (tx) => {
+    if (!['CASH', 'QRIS', 'VIRTUAL_ACCOUNT', 'MANUAL_TRANSFER', 'EXTERNAL_COUNTER'].includes(input.method)) throw operationError('INVALID_PAYMENT_METHOD', 'Metode pembayaran tidak valid.');
+    if (input.method === 'EXTERNAL_COUNTER') {
+      if (isModuleEnabled('cashier') || isModuleEnabled('payments') || !isModuleEnabled('ordering')) throw operationError('EXTERNAL_COUNTER_UNAVAILABLE', 'Konfirmasi kasir luar hanya untuk paket pesanan tanpa modul kasir atau pembayaran.');
+      if ((input.referenceCode || '').trim().length < 3 || input.createExternalAttemptOnly) throw operationError('EXTERNAL_REFERENCE_REQUIRED', 'Masukkan nomor struk kasir luar minimal 3 karakter.');
+    }
+    if (input.idempotencyKey && input.idempotencyKey.length > 160) throw operationError('INVALID_IDEMPOTENCY_KEY', 'Kunci pembayaran tidak valid.');
+    return await withOutletTransaction(async (tx) => {
+      const requestHash = crypto.createHash('sha256').update(JSON.stringify({ billId: input.billId, method: input.method, amountIdr: input.amountIdr, tenderedIdr: input.tenderedIdr ?? null, referenceCode: input.referenceCode?.trim() || null, createExternalAttemptOnly: !!input.createExternalAttemptOnly })).digest('hex');
+      if (input.idempotencyKey) {
+        const [previous] = await tx.select().from(idempotencyRecords).where(and(eq(idempotencyRecords.tenantId, DEFAULT_TENANT_ID), eq(idempotencyRecords.operation, 'RECORD_PAYMENT'), eq(idempotencyRecords.idempotencyKey, input.idempotencyKey)));
+        if (previous) {
+          if (previous.requestHash !== requestHash) throw operationError('IDEMPOTENCY_CONFLICT', 'Kunci pembayaran sudah dipakai untuk rincian berbeda.');
+          return previous.responseJson as any;
+        }
+      }
+      const saveResult = async <T>(response: T): Promise<T> => {
+        if (input.idempotencyKey) await tx.insert(idempotencyRecords).values({ id: makeId('idem'), tenantId: DEFAULT_TENANT_ID, actorScope: input.actorName, operation: 'RECORD_PAYMENT', idempotencyKey: input.idempotencyKey, requestHash, state: 'COMPLETED', responseJson: response });
+        return response;
+      };
       const billRows = await tx.select().from(bills).where(eq(bills.id, input.billId)).for('update');
       const bill = billRows[0];
       if (!bill) throw new Error('Tagihan tidak ditemukan.');
@@ -1792,14 +1912,14 @@ export async function recordBillPayment(input: {
           expiresAt,
         });
 
-        return {
+        return saveResult({
           mode: 'ATTEMPT_CREATED',
           isDemo: true,
           attemptId,
           providerOrderId,
           expectedAmountIdr: amountToPay,
           expiresAt: expiresAt.toISOString(),
-        };
+        });
       }
 
       const receiptId = makeId('rcpt');
@@ -1883,93 +2003,7 @@ export async function recordBillPayment(input: {
         })
         .where(eq(bills.id, bill.id));
 
-      // Check if PREPAY units should now be released to Kitchen/Bar (Spec 9.3, A13, A25, A55)
-      if (fin.paymentState === 'SETTLED') {
-        const groupBills = await tx
-          .select()
-          .from(bills)
-          .where(eq(bills.pricingGroupId, bill.pricingGroupId));
-
-        const updatedGroupBills = groupBills.map((gb) =>
-          gb.id === bill.id ? { ...gb, paymentState: 'SETTLED', lifecycle: 'FINALIZED' } : gb
-        );
-
-        if (
-          canReleasePromoGroupToKitchen({
-            paymentPolicy: bill.paymentPolicy,
-            groupBills: updatedGroupBills.map((gb) => ({
-              billId: gb.id,
-              paymentState: gb.paymentState,
-              lifecycle: gb.lifecycle,
-            })),
-          })
-        ) {
-          const groupBillIds = updatedGroupBills.map((gb) => gb.id);
-          const allocs = await tx
-            .select()
-            .from(billUnitAllocations)
-            .where(
-              and(
-                inArray(billUnitAllocations.billId, groupBillIds),
-                eq(billUnitAllocations.active, true)
-              )
-            );
-          const unitIds = allocs.map((a) => a.orderUnitId);
-          if (unitIds.length > 0) {
-            const heldUnits = await tx
-              .select()
-              .from(orderItemUnits)
-              .where(inArray(orderItemUnits.id, unitIds));
-
-            for (const hu of heldUnits) {
-              if (hu.fulfillmentStatus === 'HELD_FOR_PAYMENT') {
-                await tx
-                  .update(orderItemUnits)
-                  .set({
-                    fulfillmentStatus: 'QUEUED',
-                    queuedAt: new Date(),
-                    version: hu.version + 1,
-                  })
-                  .where(eq(orderItemUnits.id, hu.id));
-
-                if (hu.stockPoolId) {
-                  const poolRows = await tx
-                    .select()
-                    .from(stockPools)
-                    .where(eq(stockPools.id, hu.stockPoolId));
-                  const pool = poolRows[0];
-                  if (pool && pool.mode === 'FINITE') {
-                    const newOnHand = Math.max(0, pool.onHand - hu.consumptionUnits);
-                    const newReserved = Math.max(0, pool.reserved - hu.consumptionUnits);
-                    await tx
-                      .update(stockPools)
-                      .set({ onHand: newOnHand, reserved: newReserved, version: pool.version + 1 })
-                      .where(eq(stockPools.id, pool.id));
-
-                    await tx
-                      .insert(stockMovements)
-                      .values({
-                        id: makeId('smov'),
-                        tenantId: DEFAULT_TENANT_ID,
-                        outletId: DEFAULT_OUTLET_ID,
-                        poolId: pool.id,
-                        orderUnitId: hu.id,
-                        type: 'CONSUME',
-                        quantity: hu.consumptionUnits,
-                        beforeOnHand: pool.onHand,
-                        afterOnHand: newOnHand,
-                        actor: input.actorName,
-                        reason: 'Konsumsi stok saat pembayaran lunas PREPAY',
-                        effectKey: `eff_settle_consume_${hu.id}`,
-                      })
-                      .onConflictDoNothing();
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      if (fin.paymentState === 'SETTLED') await releaseSettledPrepayUnits(tx, bill, input.actorName);
 
       await tx.insert(auditEvents).values({
         id: makeId('aud'),
@@ -1998,7 +2032,7 @@ export async function recordBillPayment(input: {
           .where(eq(paymentAttempts.id, settlingAttempt.id));
       }
 
-      return {
+      return saveResult({
         mode: 'RECEIPT_RECORDED',
         receiptId,
         billId: bill.id,
@@ -2006,7 +2040,7 @@ export async function recordBillPayment(input: {
         changeIdr,
         balanceIdr: fin.balanceIdr,
         paymentState: fin.paymentState,
-      };
+      });
     });
   } catch (error: any) {
     console.error('Record bill payment error:', error);
@@ -2032,7 +2066,7 @@ export async function settleOrCancelExternalPaymentAttempt(input: {
 
     if (input.action === 'CANCEL' || input.action === 'EXPIRE') {
       const nextStatus = input.action === 'CANCEL' ? 'CANCELLED' : 'EXPIRED';
-      return await db.transaction(async (tx) => {
+      return await withOutletTransaction(async (tx) => {
         // Use the same bill lock as settlement so cancellation cannot undo a receipt.
         await tx.select().from(bills).where(eq(bills.id, att.billId)).for('update');
         const [current] = await tx.select().from(paymentAttempts).where(eq(paymentAttempts.id, att.id));
@@ -2071,496 +2105,220 @@ export async function cancelUnitAndRefundOrCredit(input: {
   actorName: string;
   approverName: string;
 }) {
-  try {
-    await ensureSeeded();
-    const cleanReason = (input.reason || '').trim();
-    if (!cleanReason) {
-      throw new Error('Alasan pembatalan/koreksi wajib diisi.');
+  await ensureSeeded();
+  const reason = (input.reason || '').trim();
+  if (!reason) throw operationError('CANCELLATION_REASON_REQUIRED', 'Alasan pembatalan atau refund wajib diisi.');
+  if (!['RESTOCK', 'WASTE'].includes(input.restockChoice)) throw operationError('INVALID_RESTOCK_CHOICE', 'Pilih penanganan stok yang valid.');
+  return withOutletTransaction(async tx => {
+    const [unit] = await tx.select().from(orderItemUnits).where(eq(orderItemUnits.id, input.unitId)).for('update');
+    if (!unit) throw operationError('UNIT_NOT_FOUND', 'Unit pesanan tidak ditemukan.');
+    const [allocation] = await tx.select().from(billUnitAllocations).where(and(eq(billUnitAllocations.orderUnitId, unit.id), eq(billUnitAllocations.active, true)));
+    if (!allocation) throw operationError('ALLOCATION_NOT_FOUND', 'Alokasi tagihan unit tidak ditemukan.');
+    const [bill] = await tx.select().from(bills).where(eq(bills.id, allocation.billId)).for('update');
+    if (!bill || bill.lifecycle === 'VOID') throw operationError('BILL_NOT_ACTIVE', 'Tagihan terkait tidak aktif.');
+    const attempts = await tx.select().from(paymentAttempts).where(eq(paymentAttempts.billId, bill.id));
+    if (attempts.some(attempt => ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status))) throw operationError('PAYMENT_ATTEMPT_ACTIVE', 'Selesaikan atau batalkan instruksi pembayaran sebelum membatalkan item.');
+    const alreadyCancelled = unit.fulfillmentStatus === 'CANCELLED';
+    const creditAmount = alreadyCancelled ? 0 : Math.max(0, unit.netIdr - unit.refundedCreditIdr);
+    let adjustmentId: string | null = null;
+    if (!alreadyCancelled) {
+      const recordWaste = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(unit.fulfillmentStatus) || input.restockChoice === 'WASTE';
+      await tx.update(orderItemUnits).set({ fulfillmentStatus: 'CANCELLED', cancelReason: reason, cancelledBy: input.actorName, wasteRecorded: recordWaste, refundedCreditIdr: unit.netIdr, cancelledAt: new Date(), version: unit.version + 1 }).where(eq(orderItemUnits.id, unit.id));
+      for (const requirement of await unitStockRequirements(tx, unit)) {
+        const [pool] = await tx.select().from(stockPools).where(eq(stockPools.id, requirement.poolId));
+        if (!pool || pool.mode !== 'FINITE') continue;
+        let type: 'RELEASE' | 'RESTOCK' | 'WASTE';
+        let onHand = pool.onHand;
+        let reserved = pool.reserved;
+        if (unit.fulfillmentStatus === 'HELD_FOR_PAYMENT') {
+          if (reserved < requirement.quantity) throw operationError('STOCK_RESERVATION_INVALID', 'Reservasi stok tidak cukup untuk dibatalkan.');
+          reserved -= requirement.quantity; type = 'RELEASE';
+        } else if (!recordWaste && input.restockChoice === 'RESTOCK') {
+          onHand += requirement.quantity; type = 'RESTOCK';
+        } else type = 'WASTE';
+        await tx.update(stockPools).set({ onHand, reserved, version: pool.version + 1 }).where(eq(stockPools.id, pool.id));
+        await tx.insert(stockMovements).values({ id: makeId('smov'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, poolId: pool.id, orderUnitId: unit.id, type, quantity: requirement.quantity, beforeOnHand: pool.onHand, afterOnHand: onHand, actor: input.actorName, reason, effectKey: `eff_cancel_${type.toLowerCase()}_${unit.id}_${pool.id}` });
+      }
+      adjustmentId = makeId('fadj');
+      await tx.insert(financialAdjustments).values({ id: adjustmentId, tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, billId: bill.id, orderUnitId: unit.id, type: 'CREDIT', category: 'UNIT_CANCELLED', amountIdr: creditAmount, reason, createdBy: input.actorName, approvedBy: input.approverName || input.actorName });
+    } else {
+      const [adjustment] = await tx.select().from(financialAdjustments).where(and(eq(financialAdjustments.orderUnitId, unit.id), eq(financialAdjustments.type, 'CREDIT')));
+      adjustmentId = adjustment?.id || null;
     }
-
-    return await db.transaction(async (tx) => {
-      const unitRows = await tx
-        .select()
-        .from(orderItemUnits)
-        .where(eq(orderItemUnits.id, input.unitId));
-      const unit = unitRows[0];
-      if (!unit) throw new Error('Unit item pesanan tidak ditemukan.');
-      if (unit.fulfillmentStatus === 'CANCELLED') {
-        throw new Error('Unit ini sudah dibatalkan sebelumnya.');
-      }
-
-      const allocRows = await tx
-        .select()
-        .from(billUnitAllocations)
-        .where(
-          and(
-            eq(billUnitAllocations.orderUnitId, unit.id),
-            eq(billUnitAllocations.active, true)
-          )
-        );
-      const alloc = allocRows[0];
-      if (!alloc) throw new Error('Alokasi tagihan untuk unit ini tidak ditemukan.');
-
-      const billRows = await tx.select().from(bills).where(eq(bills.id, alloc.billId));
-      const bill = billRows[0];
-      if (!bill) throw new Error('Tagihan terkait tidak ditemukan.');
-
-      const creditAmount = unit.netIdr - unit.refundedCreditIdr;
-      if (creditAmount <= 0) {
-        throw new Error('Unit ini sudah dikreditkan penuh (A57).');
-      }
-
-      // Update unit status
-      const wasAlreadyPrepared = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(
-        unit.fulfillmentStatus
-      );
-      const recordWaste = wasAlreadyPrepared || input.restockChoice === 'WASTE';
-
-      await tx
-        .update(orderItemUnits)
-        .set({
-          fulfillmentStatus: 'CANCELLED',
-          cancelReason: cleanReason,
-          cancelledBy: input.actorName,
-          wasteRecorded: recordWaste,
-          refundedCreditIdr: unit.netIdr,
-          cancelledAt: new Date(),
-          version: unit.version + 1,
-        })
-        .where(eq(orderItemUnits.id, unit.id));
-
-      // Handle stock release or restock (Spec 6.3, A31: refund does NOT auto-restock cooked items)
-      if (unit.stockPoolId) {
-        const poolRows = await tx
-          .select()
-          .from(stockPools)
-          .where(eq(stockPools.id, unit.stockPoolId));
-        const pool = poolRows[0];
-        if (pool && pool.mode === 'FINITE') {
-          if (unit.fulfillmentStatus === 'HELD_FOR_PAYMENT') {
-            const nextRes = Math.max(0, pool.reserved - unit.consumptionUnits);
-            await tx
-              .update(stockPools)
-              .set({ reserved: nextRes, version: pool.version + 1 })
-              .where(eq(stockPools.id, pool.id));
-            await tx.insert(stockMovements).values({
-              id: makeId('smov'),
-              tenantId: DEFAULT_TENANT_ID,
-              outletId: DEFAULT_OUTLET_ID,
-              poolId: pool.id,
-              orderUnitId: unit.id,
-              type: 'RELEASE',
-              quantity: unit.consumptionUnits,
-              beforeOnHand: pool.onHand,
-              afterOnHand: pool.onHand,
-              actor: input.actorName,
-              reason: `Pelepasan hold stok karena batal: ${cleanReason}`,
-              effectKey: `eff_cancel_release_${unit.id}`,
-            });
-          } else if (!recordWaste && input.restockChoice === 'RESTOCK') {
-            const nextOnHand = pool.onHand + unit.consumptionUnits;
-            await tx
-              .update(stockPools)
-              .set({ onHand: nextOnHand, version: pool.version + 1 })
-              .where(eq(stockPools.id, pool.id));
-            await tx.insert(stockMovements).values({
-              id: makeId('smov'),
-              tenantId: DEFAULT_TENANT_ID,
-              outletId: DEFAULT_OUTLET_ID,
-              poolId: pool.id,
-              orderUnitId: unit.id,
-              type: 'RESTOCK',
-              quantity: unit.consumptionUnits,
-              beforeOnHand: pool.onHand,
-              afterOnHand: nextOnHand,
-              actor: input.actorName,
-              reason: `Restock sebelum dimasak: ${cleanReason}`,
-              effectKey: `eff_cancel_restock_${unit.id}`,
-            });
-          } else {
-            await tx.insert(stockMovements).values({
-              id: makeId('smov'),
-              tenantId: DEFAULT_TENANT_ID,
-              outletId: DEFAULT_OUTLET_ID,
-              poolId: pool.id,
-              orderUnitId: unit.id,
-              type: 'WASTE',
-              quantity: unit.consumptionUnits,
-              beforeOnHand: pool.onHand,
-              afterOnHand: pool.onHand,
-              actor: input.actorName,
-              reason: `Barang sudah dibuat / waste: ${cleanReason}`,
-              effectKey: `eff_cancel_waste_${unit.id}`,
-            });
-          }
+    const creditTotal = bill.creditAdjustmentsIdr + creditAmount;
+    let refundedTotal = bill.refundedIdr;
+    const afterCredit = computeBillFinancialState({ ...bill, creditAdjustmentsIdr: creditTotal });
+    const createdRefundIds: string[] = [];
+    if (input.issueRefundNow && afterCredit.balanceIdr < 0) {
+      const unitRefunds = await tx.select().from(refunds).where(and(eq(refunds.orderUnitId, unit.id), eq(refunds.state, 'SUCCEEDED')));
+      const alreadyRefunded = unitRefunds.reduce((total, refund) => total + refund.amountIdr, 0);
+      const refundNeeded = Math.min(-afterCredit.balanceIdr, unit.netIdr - alreadyRefunded);
+      let remaining = refundNeeded;
+      const receipts = await tx.select().from(paymentReceipts).where(eq(paymentReceipts.billId, bill.id)).orderBy(asc(paymentReceipts.receivedAt));
+      if (receipts.reduce((total, receipt) => total + Math.max(0, receipt.amountIdr - receipt.refundedFromReceiptIdr), 0) < remaining) throw operationError('REFUND_EXCEEDS_RECEIPTS', 'Saldo penerimaan pembayaran tidak cukup untuk refund.');
+      for (const receipt of receipts) {
+        const amount = Math.min(remaining, receipt.amountIdr - receipt.refundedFromReceiptIdr);
+        if (amount <= 0) continue;
+        const refundId = makeId('rfnd');
+        if (receipt.method === 'CASH') {
+          const [shift] = await tx.select().from(cashShifts).where(and(eq(cashShifts.outletId, DEFAULT_OUTLET_ID), eq(cashShifts.state, 'OPEN')));
+          if (!shift) throw operationError('CASH_SHIFT_REQUIRED', 'Buka shift kasir sebelum mengembalikan uang tunai.');
+          const cashRefundsIdr = shift.cashRefundsIdr + amount;
+          const expectedCashIdr = shift.openingFloatIdr + shift.cashReceiptsIdr + shift.cashInIdr - cashRefundsIdr - shift.cashOutIdr;
+          if (expectedCashIdr < 0) throw operationError('INSUFFICIENT_CASH', 'Kas shift tidak cukup untuk refund. Catat kas masuk terlebih dahulu.');
+          await tx.update(cashShifts).set({ cashRefundsIdr, expectedCashIdr }).where(eq(cashShifts.id, shift.id));
+          await tx.insert(cashMovements).values({ id: makeId('cmov'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, shiftId: shift.id, type: 'CASH_REFUND', amountIdr: amount, actor: input.actorName, reason: `Refund ${unit.itemNameSnapshot}`, referenceId: refundId });
         }
+        await tx.insert(refunds).values({ id: refundId, tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, businessDate: getBusinessDate(), billId: bill.id, receiptId: receipt.id, adjustmentId, orderUnitId: unit.id, amountIdr: amount, method: receipt.method, reason, state: 'SUCCEEDED', requestedBy: input.actorName, approvedBy: input.approverName || input.actorName, referenceCode: `RFN-${crypto.randomBytes(6).toString('hex').toUpperCase()}` });
+        await tx.update(paymentReceipts).set({ refundedFromReceiptIdr: receipt.refundedFromReceiptIdr + amount }).where(eq(paymentReceipts.id, receipt.id));
+        createdRefundIds.push(refundId);
+        remaining -= amount;
+        refundedTotal += amount;
+        if (!remaining) break;
       }
-
-      // Create financial credit adjustment on bill (Spec 9.6, A29)
-      const adjId = makeId('fadj');
-      await tx.insert(financialAdjustments).values({
-        id: adjId,
-        tenantId: DEFAULT_TENANT_ID,
-        outletId: DEFAULT_OUTLET_ID,
-        billId: bill.id,
-        orderUnitId: unit.id,
-        type: 'CREDIT',
-        category: 'UNIT_CANCELLED',
-        amountIdr: creditAmount,
-        reason: cleanReason,
-        createdBy: input.actorName,
-        approvedBy: input.approverName || input.actorName,
-      });
-
-      let newCreditTotal = bill.creditAdjustmentsIdr + creditAmount;
-      let newRefundedTotal = bill.refundedIdr;
-      let createdRefundId: string | null = null;
-
-      const stateAfterCredit = computeBillFinancialState({
-        originalTotalIdr: bill.originalTotalIdr,
-        debitAdjustmentsIdr: bill.debitAdjustmentsIdr,
-        creditAdjustmentsIdr: newCreditTotal,
-        verifiedReceiptsIdr: bill.verifiedReceiptsIdr,
-        refundedIdr: newRefundedTotal,
-        lifecycle: bill.lifecycle,
-      });
-
-      if (input.issueRefundNow && stateAfterCredit.balanceIdr < 0) {
-        const refundNeededIdr = Math.abs(stateAfterCredit.balanceIdr);
-        const receiptRows = await tx
-          .select()
-          .from(paymentReceipts)
-          .where(eq(paymentReceipts.billId, bill.id));
-        const targetReceipt = receiptRows.find(
-          (r) => r.amountIdr - r.refundedFromReceiptIdr >= refundNeededIdr
-        );
-        if (!targetReceipt) {
-          throw new Error('Tidak ada receipt dengan sisa saldo mencukupi untuk refund ini (A30).');
-        }
-
-        const limitCheck = validateRefundAndCreditLimits({
-          unitNetIdr: unit.netIdr,
-          unitExistingCreditIdr: unit.refundedCreditIdr,
-          requestedCreditIdr: creditAmount,
-          receiptAmountIdr: targetReceipt.amountIdr,
-          receiptExistingRefundedIdr: targetReceipt.refundedFromReceiptIdr,
-          requestedRefundIdr: refundNeededIdr,
-        });
-        if (!limitCheck.valid) {
-          throw new Error(limitCheck.message);
-        }
-
-        createdRefundId = makeId('rfnd');
-        await tx.insert(refunds).values({
-          id: createdRefundId,
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          businessDate: getBusinessDate(),
-          billId: bill.id,
-          receiptId: targetReceipt.id,
-          adjustmentId: adjId,
-          orderUnitId: unit.id,
-          amountIdr: refundNeededIdr,
-          method: targetReceipt.method,
-          reason: cleanReason,
-          state: 'SUCCEEDED',
-          requestedBy: input.actorName,
-          approvedBy: input.approverName || 'Nadia Kusuma',
-          referenceCode: `RFN-${Date.now().toString(36).toUpperCase()}`,
-        });
-
-        await tx
-          .update(paymentReceipts)
-          .set({
-            refundedFromReceiptIdr: targetReceipt.refundedFromReceiptIdr + refundNeededIdr,
-          })
-          .where(eq(paymentReceipts.id, targetReceipt.id));
-
-        if (targetReceipt.method === 'CASH') {
-          const openShifts = await tx
-            .select()
-            .from(cashShifts)
-            .where(and(eq(cashShifts.outletId, DEFAULT_OUTLET_ID), eq(cashShifts.state, 'OPEN')));
-          if (openShifts[0]) {
-            const sh = openShifts[0];
-            const nextCashRefunds = sh.cashRefundsIdr + refundNeededIdr;
-            const nextExp =
-              sh.openingFloatIdr +
-              sh.cashReceiptsIdr +
-              sh.cashInIdr -
-              nextCashRefunds -
-              sh.cashOutIdr;
-            await tx
-              .update(cashShifts)
-              .set({ cashRefundsIdr: nextCashRefunds, expectedCashIdr: nextExp })
-              .where(eq(cashShifts.id, sh.id));
-            await tx.insert(cashMovements).values({
-              id: makeId('cmov'),
-              tenantId: DEFAULT_TENANT_ID,
-              outletId: DEFAULT_OUTLET_ID,
-              shiftId: sh.id,
-              type: 'CASH_REFUND',
-              amountIdr: refundNeededIdr,
-              actor: input.actorName,
-              reason: `Refund tunai item ${unit.itemNameSnapshot}`,
-              referenceId: createdRefundId,
-            });
-          }
-        }
-
-        newRefundedTotal += refundNeededIdr;
-      }
-
-      const finalBillState = computeBillFinancialState({
-        originalTotalIdr: bill.originalTotalIdr,
-        debitAdjustmentsIdr: bill.debitAdjustmentsIdr,
-        creditAdjustmentsIdr: newCreditTotal,
-        verifiedReceiptsIdr: bill.verifiedReceiptsIdr,
-        refundedIdr: newRefundedTotal,
-        lifecycle: bill.lifecycle,
-      });
-
-      await tx
-        .update(bills)
-        .set({
-          creditAdjustmentsIdr: newCreditTotal,
-          refundedIdr: newRefundedTotal,
-          balanceIdr: finalBillState.balanceIdr,
-          paymentState: finalBillState.paymentState,
-          version: bill.version + 1,
-          updatedAt: new Date(),
-        })
-        .where(eq(bills.id, bill.id));
-
-      await tx.insert(auditEvents).values({
-        id: makeId('aud'),
-        tenantId: DEFAULT_TENANT_ID,
-        outletId: DEFAULT_OUTLET_ID,
-        actor: input.actorName,
-        actorRole: 'MANAGER',
-        action: createdRefundId ? 'UNIT_CANCELLED_AND_REFUNDED' : 'UNIT_CANCELLED_WITH_CREDIT',
-        entityType: 'order_item_unit',
-        entityId: unit.id,
-        reason: cleanReason,
-        approvedBy: input.approverName || input.actorName,
-        diffSummaryJson: {
-          unitId: unit.id,
-          creditAmount,
-          refundId: createdRefundId,
-          finalBalanceIdr: finalBillState.balanceIdr,
-          paymentState: finalBillState.paymentState,
-        },
-        requestId: makeId('reqid'),
-      });
-
-      return {
-        unitId: unit.id,
-        billId: bill.id,
-        creditAmountIdr: creditAmount,
-        refundId: createdRefundId,
-        balanceIdr: finalBillState.balanceIdr,
-        paymentState: finalBillState.paymentState,
-      };
-    });
-  } catch (error: any) {
-    console.error('Cancel unit & refund error:', error);
-    if (error instanceof Error) throw error;
-    throw new Error(error.message || 'Gagal membatalkan item atau memproses pengembalian uang.', {
-      cause: error,
-    });
-  }
+    }
+    const financialState = computeBillFinancialState({ ...bill, creditAdjustmentsIdr: creditTotal, refundedIdr: refundedTotal });
+    await tx.update(bills).set({ creditAdjustmentsIdr: creditTotal, refundedIdr: refundedTotal, balanceIdr: financialState.balanceIdr, paymentState: financialState.paymentState, lifecycle: financialState.balanceIdr === 0 ? 'FINALIZED' : bill.lifecycle, version: bill.version + 1, updatedAt: new Date() }).where(eq(bills.id, bill.id));
+    if (financialState.paymentState === 'SETTLED') await releaseSettledPrepayUnits(tx, bill, input.actorName);
+    if (!alreadyCancelled || createdRefundIds.length) await tx.insert(auditEvents).values({ id: makeId('aud'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, actor: input.actorName, actorRole: 'MANAGER', action: alreadyCancelled ? 'UNIT_REFUND_COMPLETED' : createdRefundIds.length ? 'UNIT_CANCELLED_AND_REFUNDED' : 'UNIT_CANCELLED_WITH_CREDIT', entityType: 'order_item_unit', entityId: unit.id, reason, approvedBy: input.approverName || input.actorName, diffSummaryJson: { creditAmountIdr: creditAmount, refundIds: createdRefundIds, balanceIdr: financialState.balanceIdr }, requestId: makeId('reqid') });
+    return { unitId: unit.id, billId: bill.id, creditAmountIdr: creditAmount, refundId: createdRefundIds[0] || null, refundIds: createdRefundIds, balanceIdr: financialState.balanceIdr, paymentState: financialState.paymentState, duplicateIgnored: alreadyCancelled && !createdRefundIds.length };
+  });
 }
 
 export async function moveOrUpdateTableAndVisit(input: {
-  action: 'MOVE_TABLE' | 'DEPART_VISIT' | 'MARK_CLEAN' | 'DISABLE_TABLE' | 'ENABLE_TABLE' | 'ISSUE_JOIN_CODE';
+  action: 'START_VISIT' | 'MOVE_TABLE' | 'DEPART_VISIT' | 'DEPART_VISIT_EXCEPTION' | 'MARK_CLEAN' | 'DISABLE_TABLE' | 'ENABLE_TABLE' | 'ISSUE_JOIN_CODE';
   visitId?: string;
   fromTableId?: string;
   toTableId?: string;
   tableId?: string;
+  customerName?: string;
+  partySize?: number;
+  idempotencyKey?: string;
   reason?: string;
   actorName: string;
+  actorRole?: string;
 }) {
-  try {
-    await ensureSeeded();
+  await ensureSeeded();
+  return withOutletTransaction(async tx => {
+    if (input.action === 'START_VISIT') {
+      const name = (input.customerName || '').trim();
+      if (name.length < 2 || name.length > 60) throw operationError('INVALID_CUSTOMER_NAME', 'Nama tamu wajib diisi (2–60 karakter).');
+      const partySize = validPartySize(input.partySize);
+      if (!input.tableId) throw operationError('TABLE_REQUIRED', 'Pilih meja untuk tamu.');
+      if (!input.idempotencyKey || input.idempotencyKey.length > 160) throw operationError('IDEMPOTENCY_KEY_REQUIRED', 'Kunci pembukaan kunjungan wajib diisi.');
+      const requestHash = crypto.createHash('sha256').update(JSON.stringify({ tableId: input.tableId, customerName: name, partySize })).digest('hex');
+      const [previous] = await tx.select().from(idempotencyRecords).where(and(eq(idempotencyRecords.tenantId, DEFAULT_TENANT_ID), eq(idempotencyRecords.operation, 'START_VISIT'), eq(idempotencyRecords.idempotencyKey, input.idempotencyKey)));
+      if (previous) {
+        if (previous.requestHash !== requestHash) throw operationError('IDEMPOTENCY_CONFLICT', 'Kunci kunjungan sudah digunakan untuk tamu atau meja lain.');
+        return previous.responseJson as { visitId: string; status: string; tableId: string; tableLabel: string; partySize: number };
+      }
+      const table = await assertTableAvailable(tx, input.tableId, partySize);
+      const response = await createSeatedVisit(tx, table, name, partySize);
+      await tx.insert(idempotencyRecords).values({ id: makeId('idem'), tenantId: DEFAULT_TENANT_ID, actorScope: input.actorName, operation: 'START_VISIT', idempotencyKey: input.idempotencyKey, requestHash, state: 'COMPLETED', responseJson: response });
+      await tx.insert(auditEvents).values({ id: makeId('aud'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, actor: input.actorName, actorRole: input.actorRole || 'STAFF', action: 'VISIT_STARTED', entityType: 'visit', entityId: response.visitId, reason: 'Tamu duduk di meja', diffSummaryJson: response, requestId: makeId('reqid') });
+      return response;
+    }
 
-    return await db.transaction(async (tx) => {
-      if (input.action === 'ISSUE_JOIN_CODE' && input.visitId) {
-        const vRows = await tx.select().from(visits).where(eq(visits.id, input.visitId));
-        const v = vRows[0];
-        if (!v) throw new Error('Kunjungan tidak ditemukan.');
-        const tblLabel = ((v.tableLabelsJson as string[]) || ['M'])[0];
-        const code = `${tblLabel}-${Math.floor(1000 + Math.random() * 8999)}`;
-        await tx.insert(joinCodes).values({
-          id: makeId('jcode'),
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          visitId: v.id,
-          code,
-          issuedBy: input.actorName,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        });
-        return { code, visitId: v.id };
+    if (['ISSUE_JOIN_CODE', 'MOVE_TABLE', 'DEPART_VISIT', 'DEPART_VISIT_EXCEPTION'].includes(input.action)) {
+      if (!input.visitId) throw operationError('VISIT_REQUIRED', 'Pilih kunjungan yang akan diproses.');
+      const [visit] = await tx.select().from(visits).where(and(eq(visits.id, input.visitId), eq(visits.outletId, DEFAULT_OUTLET_ID))).for('update');
+      if (!visit) throw operationError('VISIT_NOT_FOUND', 'Kunjungan tidak ditemukan.');
+      const isDeparture = input.action === 'DEPART_VISIT' || input.action === 'DEPART_VISIT_EXCEPTION';
+      if (visit.status !== 'OPEN') {
+        if (isDeparture && visit.status === 'CLOSED') return { visitId: visit.id, status: 'CLOSED', duplicateIgnored: true };
+        throw operationError('VISIT_CLOSED', 'Kunjungan sudah berakhir.');
+      }
+      if (input.action === 'ISSUE_JOIN_CODE') {
+        const tableLabel = ((visit.tableLabelsJson as string[]) || ['M'])[0];
+        const code = `${tableLabel}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+        await tx.insert(joinCodes).values({ id: makeId('jcode'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, visitId: visit.id, code, issuedBy: input.actorName, expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
+        return { code, visitId: visit.id };
+      }
+      if (input.action === 'MOVE_TABLE') {
+        if (visit.mode !== 'DINE_IN' || !visit.primaryTableId || !input.toTableId) throw operationError('INVALID_TABLE_MOVE', 'Pindah meja hanya untuk kunjungan makan di tempat.');
+        if (input.fromTableId && input.fromTableId !== visit.primaryTableId) throw operationError('STALE_TABLE', 'Meja asal sudah berubah. Muat ulang kunjungan.');
+        const destination = await assertTableAvailable(tx, input.toTableId, visit.partySize);
+        const [oldTable] = await tx.select().from(cafeTables).where(eq(cafeTables.id, visit.primaryTableId));
+        const now = new Date();
+        await tx.update(cafeTables).set({ physicalState: 'NEEDS_CLEANING', version: (oldTable?.version || 0) + 1 }).where(eq(cafeTables.id, visit.primaryTableId));
+        await tx.update(tableAssignments).set({ endedAt: now }).where(and(eq(tableAssignments.visitId, visit.id), isNull(tableAssignments.endedAt)));
+        await tx.update(cafeTables).set({ physicalState: 'OCCUPIED', version: destination.version + 1 }).where(eq(cafeTables.id, destination.id));
+        await tx.insert(tableAssignments).values({ id: makeId('tassign'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, visitId: visit.id, tableId: destination.id });
+        await tx.update(visits).set({ primaryTableId: destination.id, tableLabelsJson: [destination.label], version: visit.version + 1 }).where(eq(visits.id, visit.id));
+        await tx.update(orderItemUnits).set({ tableLabelSnapshot: destination.label }).where(eq(orderItemUnits.visitId, visit.id));
+        await tx.update(orders).set({ tableLabelSnapshot: destination.label }).where(eq(orders.visitId, visit.id));
+        await tx.update(orderRequests).set({ tableId: destination.id, tableLabel: destination.label, tableVersion: destination.version + 1 }).where(and(eq(orderRequests.visitId, visit.id), eq(orderRequests.state, 'REQUESTED')));
+        await tx.update(serviceRequests).set({ tableLabel: destination.label }).where(and(eq(serviceRequests.visitId, visit.id), inArray(serviceRequests.state, ['OPEN', 'ACKNOWLEDGED'])));
+        await tx.update(bills).set({ tableLabel: destination.label }).where(eq(bills.visitId, visit.id));
+        return { visitId: visit.id, newTableLabel: destination.label };
       }
 
-      if (input.action === 'MOVE_TABLE' && input.visitId && input.toTableId) {
-        const vRows = await tx.select().from(visits).where(eq(visits.id, input.visitId));
-        const v = vRows[0];
-        if (!v || v.status !== 'OPEN') throw new Error('Kunjungan tidak aktif.');
-
-        const destRows = await tx
-          .select()
-          .from(cafeTables)
-          .where(eq(cafeTables.id, input.toTableId));
-        const dest = destRows[0];
-        if (!dest || dest.physicalState !== 'AVAILABLE') {
-          throw new Error(`Meja tujuan ${dest?.label || ''} tidak tersedia.`);
-        }
-
-        // Check active waitlist hold on destination table (Spec 7.4, A35)
-        const heldEntries = await tx
-          .select()
-          .from(waitlistEntries)
-          .where(
-            and(
-              eq(waitlistEntries.heldTableId, dest.id),
-              eq(waitlistEntries.status, 'CALLED')
-            )
-          );
-        if (heldEntries.length > 0) {
-          throw new Error(
-            `Meja ${dest.label} sedang ditahan untuk antrean ${heldEntries[0].publicSequence}.`
-          );
-        }
-
-        const oldTableId = input.fromTableId || v.primaryTableId;
-        if (oldTableId) {
-          await tx
-            .update(cafeTables)
-            .set({ physicalState: 'NEEDS_CLEANING', version: dest.version + 1 })
-            .where(eq(cafeTables.id, oldTableId));
-          await tx
-            .update(tableAssignments)
-            .set({ endedAt: new Date() })
-            .where(and(eq(tableAssignments.visitId, v.id), eq(tableAssignments.tableId, oldTableId)));
-        }
-
-        await tx
-          .update(cafeTables)
-          .set({ physicalState: 'OCCUPIED', version: dest.version + 1 })
-          .where(eq(cafeTables.id, dest.id));
-
-        await tx.insert(tableAssignments).values({
-          id: makeId('tassign'),
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          visitId: v.id,
-          tableId: dest.id,
-        });
-
-        await tx
-          .update(visits)
-          .set({
-            primaryTableId: dest.id,
-            tableLabelsJson: [dest.label],
-            version: v.version + 1,
-          })
-          .where(eq(visits.id, v.id));
-
-        await tx
-          .update(orderItemUnits)
-          .set({ tableLabelSnapshot: dest.label })
-          .where(eq(orderItemUnits.visitId, v.id));
-
-        await tx
-          .update(bills)
-          .set({ tableLabel: dest.label })
-          .where(eq(bills.visitId, v.id));
-
-        return { visitId: v.id, newTableLabel: dest.label };
+      const visitBills = await tx.select().from(bills).where(eq(bills.visitId, visit.id));
+      const billIds = visitBills.map(bill => bill.id);
+      const units = await tx.select().from(orderItemUnits).where(eq(orderItemUnits.visitId, visit.id));
+      const requests = await tx.select().from(orderRequests).where(eq(orderRequests.visitId, visit.id));
+      const attempts = billIds.length ? await tx.select().from(paymentAttempts).where(inArray(paymentAttempts.billId, billIds)) : [];
+      const visitRefunds = billIds.length ? await tx.select().from(refunds).where(inArray(refunds.billId, billIds)) : [];
+      const assistance = await tx.select().from(serviceRequests).where(eq(serviceRequests.visitId, visit.id));
+      const summary = summarizeVisitLifecycle({ visitId: visit.id, bills: visitBills, orderUnits: units, orderRequests: requests, paymentAttempts: attempts, refunds: visitRefunds, serviceRequests: assistance });
+      const exception = input.action === 'DEPART_VISIT_EXCEPTION';
+      const reason = (input.reason || '').trim();
+      if (exception) {
+        if (!['OWNER', 'MANAGER'].includes(input.actorRole || '')) throw operationError('MANAGER_REQUIRED', 'Pulang dengan masalah terbuka harus disahkan manajer atau pemilik.');
+        if (reason.length < 10) throw operationError('EXCEPTION_REASON_REQUIRED', 'Tulis alasan kejadian minimal 10 karakter.');
+      } else if (!summary.canDepart) {
+        throw Object.assign(operationError('VISIT_NOT_READY_TO_CLOSE', summary.blockers.map(blocker => blocker.message).join(' ')), { lifecycleSummary: summary });
       }
-
-      if (input.action === 'DEPART_VISIT' && input.visitId) {
-        const vRows = await tx.select().from(visits).where(eq(visits.id, input.visitId));
-        const v = vRows[0];
-        if (!v) throw new Error('Kunjungan tidak ditemukan.');
-
-        await tx
-          .update(visits)
-          .set({
-            status: 'CLOSED',
-            departedAt: new Date(),
-            closedAt: new Date(),
-            financialIssueNote: input.reason || null,
-            version: v.version + 1,
-          })
-          .where(eq(visits.id, v.id));
-
-        if (v.primaryTableId) {
-          await tx
-            .update(cafeTables)
-            .set({ physicalState: 'NEEDS_CLEANING' })
-            .where(eq(cafeTables.id, v.primaryTableId));
-          await tx
-            .update(tableAssignments)
-            .set({ endedAt: new Date() })
-            .where(eq(tableAssignments.visitId, v.id));
-        }
-
-        return { visitId: v.id, status: 'CLOSED' };
+      const now = new Date();
+      await tx.update(visits).set({ status: 'CLOSED', departedAt: now, closedAt: now, financialIssueNote: exception ? reason : null, version: visit.version + 1 }).where(eq(visits.id, visit.id));
+      const assignments = await tx.select().from(tableAssignments).where(and(eq(tableAssignments.visitId, visit.id), isNull(tableAssignments.endedAt)));
+      for (const tableId of new Set([...assignments.map(assignment => assignment.tableId), ...(visit.primaryTableId ? [visit.primaryTableId] : [])])) {
+        const [table] = await tx.select().from(cafeTables).where(eq(cafeTables.id, tableId));
+        const otherAssignments = await tx.select().from(tableAssignments).where(and(eq(tableAssignments.tableId, tableId), isNull(tableAssignments.endedAt)));
+        if (otherAssignments.some(assignment => assignment.visitId !== visit.id)) throw operationError('TABLE_VISIT_CONFLICT', 'Meja terhubung ke lebih dari satu kunjungan. Periksa penempatan tamu.');
+        await tx.update(cafeTables).set({ physicalState: isModuleEnabled('tables') ? 'NEEDS_CLEANING' : 'AVAILABLE', version: (table?.version || 0) + 1 }).where(eq(cafeTables.id, tableId));
       }
+      await tx.update(tableAssignments).set({ endedAt: now }).where(and(eq(tableAssignments.visitId, visit.id), isNull(tableAssignments.endedAt)));
+      await tx.update(visitParticipants).set({ status: 'DEPARTED', expiresAt: now }).where(eq(visitParticipants.visitId, visit.id));
+      await tx.update(joinCodes).set({ expiresAt: now }).where(eq(joinCodes.visitId, visit.id));
+      // Never leave an approvable request behind after physical departure.
+      await tx.update(orderRequests).set({ state: exception ? 'REJECTED' : 'EXPIRED', reason: exception ? `Kunjungan berakhir dengan pengecualian: ${reason}` : 'Kunjungan telah berakhir.', updatedAt: now }).where(and(eq(orderRequests.visitId, visit.id), eq(orderRequests.state, 'REQUESTED')));
+      await tx.insert(auditEvents).values({ id: makeId('aud'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, actor: input.actorName, actorRole: input.actorRole || 'STAFF', action: exception ? 'VISIT_DEPARTED_WITH_EXCEPTION' : 'VISIT_DEPARTED', entityType: 'visit', entityId: visit.id, reason: exception ? reason : 'Seluruh tagihan dan layanan sudah selesai; tamu pulang.', diffSummaryJson: summary, requestId: makeId('reqid') });
+      return { visitId: visit.id, status: 'CLOSED', exception, lifecycleSummary: summary };
+    }
 
-      if (input.tableId) {
-        const tblRows = await tx
-          .select()
-          .from(cafeTables)
-          .where(eq(cafeTables.id, input.tableId));
-        const tbl = tblRows[0];
-        if (!tbl) throw new Error('Meja tidak ditemukan.');
-
-        if (input.action === 'MARK_CLEAN') {
-          await tx
-            .update(cafeTables)
-            .set({ physicalState: 'AVAILABLE', disabledReason: null, version: tbl.version + 1 })
-            .where(eq(cafeTables.id, tbl.id));
-          return { tableId: tbl.id, physicalState: 'AVAILABLE' };
-        }
-        if (input.action === 'DISABLE_TABLE') {
-          if (tbl.physicalState === 'OCCUPIED') {
-            throw new Error('Meja yang sedang terisi kunjungan aktif tidak dapat dinonaktifkan.');
-          }
-          await tx
-            .update(cafeTables)
-            .set({
-              physicalState: 'OUT_OF_SERVICE',
-              disabledReason: input.reason || 'Dinonaktifkan sementara',
-              version: tbl.version + 1,
-            })
-            .where(eq(cafeTables.id, tbl.id));
-          return { tableId: tbl.id, physicalState: 'OUT_OF_SERVICE' };
-        }
-        if (input.action === 'ENABLE_TABLE') {
-          await tx
-            .update(cafeTables)
-            .set({ physicalState: 'AVAILABLE', disabledReason: null, version: tbl.version + 1 })
-            .where(eq(cafeTables.id, tbl.id));
-          return { tableId: tbl.id, physicalState: 'AVAILABLE' };
-        }
-      }
-
-      throw new Error('Aksi meja/kunjungan tidak valid.');
-    });
-  } catch (error: any) {
-    console.error('Table/visit operation error:', error);
-    if (error instanceof Error) throw error;
-    throw new Error(error.message || 'Gagal memperbarui status meja atau kunjungan.', {
-      cause: error,
-    });
-  }
+    if (!input.tableId) throw operationError('TABLE_REQUIRED', 'Pilih meja yang akan diproses.');
+    const [table] = await tx.select().from(cafeTables).where(and(eq(cafeTables.id, input.tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID))).for('update');
+    if (!table) throw operationError('TABLE_NOT_FOUND', 'Meja tidak ditemukan.');
+    const assignments = await tx.select().from(tableAssignments).where(and(eq(tableAssignments.tableId, table.id), isNull(tableAssignments.endedAt)));
+    const openVisits = await tx.select().from(visits).where(and(eq(visits.primaryTableId, table.id), eq(visits.status, 'OPEN')));
+    if (assignments.length || openVisits.length || table.physicalState === 'OCCUPIED') throw operationError('TABLE_OCCUPIED', 'Meja masih memiliki kunjungan aktif. Selesaikan kunjungan terlebih dahulu.');
+    if (input.action === 'MARK_CLEAN') {
+      if (!table.active || !['NEEDS_CLEANING', 'AVAILABLE'].includes(table.physicalState)) throw operationError('TABLE_NOT_CLEANABLE', 'Hanya meja yang menunggu dibersihkan dapat ditandai siap.');
+      if (table.physicalState === 'AVAILABLE') return { tableId: table.id, physicalState: 'AVAILABLE', duplicateIgnored: true };
+      await tx.update(cafeTables).set({ physicalState: 'AVAILABLE', disabledReason: null, version: table.version + 1 }).where(eq(cafeTables.id, table.id));
+      return { tableId: table.id, physicalState: 'AVAILABLE' };
+    }
+    if (input.action === 'DISABLE_TABLE') {
+      const holds = await tx.select().from(waitlistEntries).where(and(eq(waitlistEntries.heldTableId, table.id), eq(waitlistEntries.status, 'CALLED')));
+      if (holds.some(hold => hold.holdExpiresAt && hold.holdExpiresAt.getTime() > Date.now())) throw operationError('TABLE_HELD', 'Lepaskan penahanan antrean sebelum menonaktifkan meja.');
+      await tx.update(cafeTables).set({ physicalState: 'OUT_OF_SERVICE', disabledReason: input.reason || 'Dinonaktifkan sementara', version: table.version + 1 }).where(eq(cafeTables.id, table.id));
+      return { tableId: table.id, physicalState: 'OUT_OF_SERVICE' };
+    }
+    if (input.action === 'ENABLE_TABLE') {
+      if (table.physicalState !== 'OUT_OF_SERVICE') throw operationError('TABLE_NOT_DISABLED', 'Meja ini tidak sedang dinonaktifkan.');
+      // Enabling does not bypass the physical cleaning/inspection step.
+      await tx.update(cafeTables).set({ physicalState: 'NEEDS_CLEANING', active: true, disabledReason: null, version: table.version + 1 }).where(eq(cafeTables.id, table.id));
+      return { tableId: table.id, physicalState: 'NEEDS_CLEANING' };
+    }
+    throw operationError('INVALID_TABLE_ACTION', 'Aksi meja/kunjungan tidak valid.');
+  });
 }
 
 export async function manageWaitlistEntry(input: {
-  action: 'CREATE' | 'CALL' | 'SEAT' | 'SKIP' | 'CANCEL' | 'EXPIRE_HOLD';
+  action: 'GET_STATUS' | 'CREATE' | 'CALL' | 'SEAT' | 'SKIP' | 'CANCEL' | 'EXPIRE_HOLD';
   waitlistId?: string;
+  privateToken?: string;
   customerName?: string;
   partySize?: number;
   preferredArea?: string;
@@ -2570,176 +2328,73 @@ export async function manageWaitlistEntry(input: {
   reason?: string;
   actorName: string;
 }) {
-  try {
-    await ensureSeeded();
-
-    return await db.transaction(async (tx) => {
-      if (input.action === 'CREATE') {
-        const name = (input.customerName || '').trim();
-        if (name.length < 2) throw new Error('Nama tamu antrean wajib diisi.');
-        const existing = await tx
-          .select()
-          .from(waitlistEntries)
-          .where(eq(waitlistEntries.outletId, DEFAULT_OUTLET_ID));
-        const seqNum = existing.length + 1;
-        const publicSequence = `A-${String(seqNum).padStart(3, '0')}`;
-        const privateToken = `wltok_${crypto.randomBytes(6).toString('hex')}`;
-        const id = makeId('wl');
-
-        await tx.insert(waitlistEntries).values({
-          id,
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          businessDate: getBusinessDate(),
-          publicSequence,
-          privateToken,
-          customerName: name,
-          partySize: Math.max(1, input.partySize ?? 2),
-          preferredArea: input.preferredArea || 'Ruang Utama (Indoor)',
-          contactPhone: input.contactPhone || '',
-          notes: input.notes || '',
-          estimatedMinutes: 10,
-          status: 'WAITING',
-        });
-
-        return { id, publicSequence, privateToken, status: 'WAITING' };
-      }
-
-      if (!input.waitlistId) throw new Error('ID antrean wajib disertakan.');
-      const wlRows = await tx
-        .select()
-        .from(waitlistEntries)
-        .where(eq(waitlistEntries.id, input.waitlistId));
-      const wl = wlRows[0];
-      if (!wl) throw new Error('Data antrean tidak ditemukan.');
-
-      if (input.action === 'CALL') {
-        let heldTableLabel: string | null = null;
-        if (input.tableId) {
-          const tblRows = await tx
-            .select()
-            .from(cafeTables)
-            .where(eq(cafeTables.id, input.tableId));
-          const tbl = tblRows[0];
-          if (!tbl || tbl.physicalState !== 'AVAILABLE') {
-            throw new Error('Meja yang dipilih tidak berstatus AVAILABLE.');
-          }
-          heldTableLabel = tbl.label;
-        }
-
-        const holdExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
-        await tx
-          .update(waitlistEntries)
-          .set({
-            status: 'CALLED',
-            heldTableId: input.tableId ?? null,
-            heldTableLabel,
-            holdExpiresAt,
-            version: wl.version + 1,
-            updatedAt: new Date(),
-          })
-          .where(eq(waitlistEntries.id, wl.id));
-
-        return { id: wl.id, status: 'CALLED', heldTableLabel };
-      }
-
-      if (input.action === 'EXPIRE_HOLD') {
-        // Spec 7.4, A36: When hold expires, CALLED returns to WAITING with call_expired_at
-        await tx
-          .update(waitlistEntries)
-          .set({
-            status: 'WAITING',
-            heldTableId: null,
-            heldTableLabel: null,
-            holdExpiresAt: null,
-            callExpiredAt: new Date(),
-            version: wl.version + 1,
-            updatedAt: new Date(),
-          })
-          .where(eq(waitlistEntries.id, wl.id));
-        return { id: wl.id, status: 'WAITING' };
-      }
-
-      if (input.action === 'SEAT') {
-        const targetTableId = input.tableId || wl.heldTableId;
-        if (!targetTableId) throw new Error('Pilih meja yang tersedia untuk mendudukkan tamu.');
-
-        const tblRows = await tx
-          .select()
-          .from(cafeTables)
-          .where(eq(cafeTables.id, targetTableId));
-        const tbl = tblRows[0];
-        if (!tbl || tbl.physicalState !== 'AVAILABLE') {
-          throw new Error(`Meja ${tbl?.label || ''} tidak tersedia.`);
-        }
-
-        const visitId = makeId('visit');
-        await tx.insert(visits).values({
-          id: visitId,
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          businessDate: getBusinessDate(),
-          mode: 'DINE_IN',
-          status: 'OPEN',
-          primaryTableId: tbl.id,
-          tableLabelsJson: [tbl.label],
-          customerName: wl.customerName,
-          partySize: wl.partySize,
-          version: 1,
-        });
-
-        await tx
-          .update(cafeTables)
-          .set({ physicalState: 'OCCUPIED', version: tbl.version + 1 })
-          .where(eq(cafeTables.id, tbl.id));
-
-        await tx.insert(tableAssignments).values({
-          id: makeId('tassign'),
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          visitId,
-          tableId: tbl.id,
-        });
-
-        await tx
-          .update(waitlistEntries)
-          .set({
-            status: 'SEATED',
-            seatedVisitId: visitId,
-            heldTableId: null,
-            holdExpiresAt: null,
-            version: wl.version + 1,
-            updatedAt: new Date(),
-          })
-          .where(eq(waitlistEntries.id, wl.id));
-
-        return { id: wl.id, status: 'SEATED', visitId, tableLabel: tbl.label };
-      }
-
-      if (input.action === 'SKIP' || input.action === 'CANCEL') {
-        const nextStatus = input.action === 'SKIP' ? 'NO_SHOW' : 'CANCELLED';
-        await tx
-          .update(waitlistEntries)
-          .set({
-            status: nextStatus,
-            heldTableId: null,
-            heldTableLabel: null,
-            holdExpiresAt: null,
-            statusReason: input.reason || 'Tidak hadir saat dipanggil',
-            version: wl.version + 1,
-            updatedAt: new Date(),
-          })
-          .where(eq(waitlistEntries.id, wl.id));
-        return { id: wl.id, status: nextStatus };
-      }
-
-      throw new Error('Aksi antrean tidak dikenali.');
-    });
-  } catch (error: any) {
-    console.error('Waitlist operation error:', error);
-    if (error instanceof Error) throw error;
-    throw new Error(error.message || 'Gagal memproses antrean meja.', { cause: error });
+  await ensureSeeded();
+  if (input.action === 'GET_STATUS') {
+    if (!input.privateToken || input.privateToken.length > 160) throw operationError('WAITLIST_NOT_FOUND', 'Token antrean tidak ditemukan.');
+    const [entry] = await db.select().from(waitlistEntries).where(and(eq(waitlistEntries.privateToken, input.privateToken), eq(waitlistEntries.outletId, DEFAULT_OUTLET_ID)));
+    if (!entry) throw operationError('WAITLIST_NOT_FOUND', 'Token antrean tidak ditemukan.');
+    const [visit] = entry.seatedVisitId ? await db.select().from(visits).where(eq(visits.id, entry.seatedVisitId)) : [];
+    const holdExpired = entry.status === 'CALLED' && (!entry.holdExpiresAt || entry.holdExpiresAt.getTime() <= Date.now());
+    const seated = entry.status === 'SEATED' && visit?.status === 'OPEN';
+    return { id: entry.id, publicSequence: entry.publicSequence, customerName: entry.customerName, partySize: entry.partySize, status: holdExpired ? 'WAITING' : entry.status === 'SEATED' && !seated ? 'COMPLETED' : entry.status, heldTableLabel: holdExpired ? null : entry.heldTableLabel, holdExpiresAt: holdExpired ? null : entry.holdExpiresAt, seatedVisitId: seated ? entry.seatedVisitId : null, tableId: seated ? visit.primaryTableId : null, holdExpired };
   }
+  return withOutletTransaction(async tx => {
+    if (input.action === 'CREATE') {
+      const name = (input.customerName || '').trim();
+      if (name.length < 2 || name.length > 60) throw operationError('INVALID_CUSTOMER_NAME', 'Nama antrean wajib diisi (2–60 karakter).');
+      const partySize = validPartySize(input.partySize ?? 2);
+      const existing = await tx.select().from(waitlistEntries).where(eq(waitlistEntries.outletId, DEFAULT_OUTLET_ID));
+      const id = makeId('wl');
+      const publicSequence = `A-${String(existing.length + 1).padStart(3, '0')}`;
+      const privateToken = `wltok_${crypto.randomBytes(12).toString('hex')}`;
+      await tx.insert(waitlistEntries).values({ id, tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, businessDate: getBusinessDate(), publicSequence, privateToken, customerName: name, partySize, preferredArea: input.preferredArea || 'Ruang Utama (Indoor)', contactPhone: input.contactPhone || '', notes: input.notes || '', estimatedMinutes: 10, status: 'WAITING' });
+      return { id, publicSequence, privateToken, status: 'WAITING' };
+    }
+    if (!input.waitlistId) throw operationError('WAITLIST_REQUIRED', 'Pilih tamu antrean.');
+    const [entry] = await tx.select().from(waitlistEntries).where(and(eq(waitlistEntries.id, input.waitlistId), eq(waitlistEntries.outletId, DEFAULT_OUTLET_ID))).for('update');
+    if (!entry) throw operationError('WAITLIST_NOT_FOUND', 'Data antrean tidak ditemukan.');
+    if (input.action === 'SEAT' && entry.status === 'SEATED') return { id: entry.id, status: entry.status, visitId: entry.seatedVisitId, duplicateIgnored: true };
+    if (['SEATED', 'NO_SHOW', 'CANCELLED'].includes(entry.status)) {
+      if ((input.action === 'CANCEL' && entry.status === 'CANCELLED') || (input.action === 'SKIP' && entry.status === 'NO_SHOW')) return { id: entry.id, status: entry.status, duplicateIgnored: true };
+      throw operationError('WAITLIST_TERMINAL', 'Antrean ini sudah selesai dan tidak dapat dipanggil atau didudukkan ulang.');
+    }
+    const now = new Date();
+    const holdActive = entry.status === 'CALLED' && !!entry.holdExpiresAt && entry.holdExpiresAt.getTime() > now.getTime();
+    if (input.action === 'CALL') {
+      if (entry.status === 'CALLED' && holdActive) {
+        if ((entry.heldTableId || null) === (input.tableId || null)) return { id: entry.id, status: 'CALLED', heldTableLabel: entry.heldTableLabel, holdExpiresAt: entry.holdExpiresAt, duplicateIgnored: true };
+        throw operationError('WAITLIST_ALREADY_CALLED', 'Tamu ini sudah dipanggil. Selesaikan atau lepaskan penahanan sebelum mengganti meja.');
+      }
+      let table: typeof cafeTables.$inferSelect | undefined;
+      if (input.tableId) table = await assertTableAvailable(tx, input.tableId, entry.partySize, entry.id);
+      const holdExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      await tx.update(waitlistEntries).set({ status: 'CALLED', heldTableId: table?.id || null, heldTableLabel: table?.label || null, holdExpiresAt, version: entry.version + 1, updatedAt: now }).where(eq(waitlistEntries.id, entry.id));
+      return { id: entry.id, status: 'CALLED', heldTableLabel: table?.label || null, holdExpiresAt };
+    }
+    if (input.action === 'EXPIRE_HOLD') {
+      if (entry.status === 'WAITING' && entry.callExpiredAt) return { id: entry.id, status: 'WAITING', duplicateIgnored: true };
+      if (entry.status !== 'CALLED' || holdActive) throw operationError('HOLD_NOT_EXPIRED', 'Penahanan meja belum kedaluwarsa.');
+      await tx.update(waitlistEntries).set({ status: 'WAITING', heldTableId: null, heldTableLabel: null, holdExpiresAt: null, callExpiredAt: now, version: entry.version + 1, updatedAt: now }).where(eq(waitlistEntries.id, entry.id));
+      return { id: entry.id, status: 'WAITING' };
+    }
+    if (input.action === 'SEAT') {
+      if (entry.status === 'CALLED' && !holdActive) throw operationError('HOLD_EXPIRED', 'Panggilan sudah kedaluwarsa. Kembalikan ke antrean atau panggil ulang.');
+      const tableId = input.tableId || entry.heldTableId;
+      if (!tableId) throw operationError('TABLE_REQUIRED', 'Pilih meja yang tersedia untuk tamu.');
+      if (entry.heldTableId && entry.heldTableId !== tableId) throw operationError('HELD_TABLE_MISMATCH', 'Gunakan meja yang ditahan untuk tamu ini.');
+      const table = await assertTableAvailable(tx, tableId, entry.partySize, entry.id);
+      const seated = await createSeatedVisit(tx, table, entry.customerName, entry.partySize);
+      await tx.update(waitlistEntries).set({ status: 'SEATED', seatedVisitId: seated.visitId, heldTableId: null, heldTableLabel: null, holdExpiresAt: null, version: entry.version + 1, updatedAt: now }).where(eq(waitlistEntries.id, entry.id));
+      return { id: entry.id, status: 'SEATED', visitId: seated.visitId, tableLabel: table.label };
+    }
+    if (input.action === 'SKIP' || input.action === 'CANCEL') {
+      if (input.action === 'SKIP' && entry.status !== 'CALLED') throw operationError('WAITLIST_NOT_CALLED', 'Hanya tamu yang sudah dipanggil dapat ditandai tidak hadir.');
+      const nextStatus = input.action === 'SKIP' ? 'NO_SHOW' : 'CANCELLED';
+      await tx.update(waitlistEntries).set({ status: nextStatus, heldTableId: null, heldTableLabel: null, holdExpiresAt: null, statusReason: input.reason || (input.action === 'SKIP' ? 'Tidak hadir saat dipanggil' : 'Dibatalkan oleh tamu atau staf'), version: entry.version + 1, updatedAt: now }).where(eq(waitlistEntries.id, entry.id));
+      return { id: entry.id, status: nextStatus };
+    }
+    throw operationError('INVALID_WAITLIST_ACTION', 'Aksi antrean tidak dikenali.');
+  });
 }
 
 export async function createOrUpdateServiceRequest(input: {
@@ -2757,17 +2412,18 @@ export async function createOrUpdateServiceRequest(input: {
 }) {
   try {
     await ensureSeeded();
+    return await withOutletTransaction(async tx => {
 
     if (input.action === 'CREATE') {
       const reqType = input.type || 'CALL_WAITER';
       const isPrivateIssue = reqType === 'ORDER_ISSUE';
       const tableLabel = input.tableLabel?.trim();
       if (!tableLabel) throw new Error('Meja wajib dipilih sebelum meminta bantuan.');
-      const [table] = await db.select().from(cafeTables).where(and(
+      const [table] = await tx.select().from(cafeTables).where(and(
         eq(cafeTables.outletId, DEFAULT_OUTLET_ID), eq(cafeTables.label, tableLabel), eq(cafeTables.active, true)
       ));
-      if (!table) throw new Error('Meja untuk permintaan bantuan tidak ditemukan.');
-      const openVisits = await db.select().from(visits).where(and(
+      if (!table || !['AVAILABLE', 'OCCUPIED'].includes(table.physicalState)) throw new Error('Meja untuk permintaan bantuan belum siap digunakan.');
+      const openVisits = await tx.select().from(visits).where(and(
         eq(visits.outletId, DEFAULT_OUTLET_ID), eq(visits.primaryTableId, table.id), eq(visits.status, 'OPEN')
       ));
       if (input.visitId && !openVisits.some((visit) => visit.id === input.visitId)) {
@@ -2776,7 +2432,7 @@ export async function createOrUpdateServiceRequest(input: {
       // Guests can ask for assistance before their first order creates a visit.
       const visitId = input.visitId || openVisits[0]?.id || null;
       if (input.participantId) {
-        const [participant] = await db.select().from(visitParticipants).where(and(
+        const [participant] = await tx.select().from(visitParticipants).where(and(
           eq(visitParticipants.id, input.participantId), eq(visitParticipants.status, 'ACTIVE')
         ));
         if (!participant || participant.visitId !== visitId) throw new Error('Peserta tidak sesuai dengan kunjungan meja.');
@@ -2784,7 +2440,7 @@ export async function createOrUpdateServiceRequest(input: {
 
       // Spec 8.5, A41: Deduplicate active general requests per (visit, type)
       if (!isPrivateIssue) {
-        const existingActive = await db
+        const existingActive = await tx
           .select()
           .from(serviceRequests)
           .where(
@@ -2822,7 +2478,7 @@ export async function createOrUpdateServiceRequest(input: {
         notes: (input.notes || '').slice(0, 300),
         state: 'OPEN',
       };
-      await db.insert(serviceRequests).values(newRecord);
+      await tx.insert(serviceRequests).values(newRecord);
       return {
         serviceRequest: newRecord,
         deduplicated: false,
@@ -2831,8 +2487,12 @@ export async function createOrUpdateServiceRequest(input: {
     }
 
     if (!input.requestId) throw new Error('ID permintaan bantuan wajib diisi.');
+    const [request] = await tx.select().from(serviceRequests).where(eq(serviceRequests.id, input.requestId));
+    if (!request) throw operationError('SERVICE_REQUEST_NOT_FOUND', 'Permintaan bantuan tidak ditemukan.');
+    if (request.state === 'RESOLVED') return { requestId: request.id, state: request.state, duplicateIgnored: true };
+    if (input.action !== 'ACKNOWLEDGE' && input.action !== 'RESOLVE') throw new Error('Tindakan bantuan tidak valid.');
     if (input.action === 'ACKNOWLEDGE') {
-      await db
+      await tx
         .update(serviceRequests)
         .set({
           state: 'ACKNOWLEDGED',
@@ -2843,7 +2503,7 @@ export async function createOrUpdateServiceRequest(input: {
       return { requestId: input.requestId, state: 'ACKNOWLEDGED' };
     }
 
-    await db
+    await tx
       .update(serviceRequests)
       .set({
         state: 'RESOLVED',
@@ -2853,6 +2513,7 @@ export async function createOrUpdateServiceRequest(input: {
       })
       .where(eq(serviceRequests.id, input.requestId));
     return { requestId: input.requestId, state: 'RESOLVED' };
+    });
   } catch (error: any) {
     console.error('Service request error:', error);
     if (error instanceof Error) throw error;
@@ -2900,49 +2561,32 @@ export async function updateFloorPlanLayout(input: {
       );
     }
 
-    return await db.transaction(async (tx) => {
-      await tx
-        .update(rooms)
-        .set({ shapePreset: input.shapePreset, polygonJson: input.polygon })
-        .where(eq(rooms.id, input.roomId));
-
-      if (input.action === 'PUBLISH_DRAFT') {
-        for (const t of input.tables) {
-          await tx
-            .update(cafeTables)
-            .set({
-              label: t.label,
-              capacity: t.capacity,
-              shape: t.shape,
-              xMm: t.xMm,
-              yMm: t.yMm,
-              widthMm: t.widthMm,
-              heightMm: t.heightMm,
-              rotationDeg: t.rotationDeg,
-              chairsCount: t.capacity,
-            })
-            .where(eq(cafeTables.id, t.id));
-        }
-
-        const existingLayouts = await tx
-          .select()
-          .from(layoutVersions)
-          .where(eq(layoutVersions.outletId, DEFAULT_OUTLET_ID));
-        const nextRev = existingLayouts.length + 1;
-
-        await tx.insert(layoutVersions).values({
-          id: makeId('layout'),
-          tenantId: DEFAULT_TENANT_ID,
-          outletId: DEFAULT_OUTLET_ID,
-          revision: nextRev,
-          status: 'PUBLISHED',
-          roomsSnapshotJson: [{ id: input.roomId, shapePreset: input.shapePreset, polygon: input.polygon }],
-          placementsSnapshotJson: input.tables,
-          warningsAcknowledged: Boolean(input.warningsAcknowledged),
-          createdBy: input.actorName,
-          publishedAt: new Date(),
-        });
+    return await withOutletTransaction(async (tx) => {
+      if (!['SAVE_DRAFT', 'PUBLISH_DRAFT'].includes(input.action)) throw operationError('INVALID_LAYOUT_ACTION', 'Tindakan denah tidak valid.');
+      const [room] = await tx.select().from(rooms).where(and(eq(rooms.id, input.roomId), eq(rooms.outletId, DEFAULT_OUTLET_ID)));
+      if (!room) throw operationError('ROOM_NOT_FOUND', 'Ruang denah tidak ditemukan.');
+      const currentTables = await tx.select().from(cafeTables).where(eq(cafeTables.outletId, DEFAULT_OUTLET_ID));
+      if (new Set(input.tables.map(table => table.id)).size !== input.tables.length) throw operationError('DUPLICATE_TABLE', 'Meja yang sama muncul lebih dari sekali.');
+      for (const proposed of input.tables) {
+        const current = currentTables.find(table => table.id === proposed.id);
+        if (!current || current.roomId !== room.id) throw operationError('TABLE_ROOM_MISMATCH', 'Salah satu meja tidak berada di ruang yang dipilih.');
+        validPartySize(proposed.capacity);
+        if (!proposed.label.trim() || currentTables.some(table => table.id !== current.id && table.label === proposed.label.trim() && !input.tables.some(row => row.id === table.id))) throw operationError('DUPLICATE_TABLE_LABEL', 'Label meja kosong atau sudah digunakan meja lain.');
       }
+      if (new Set(input.tables.map(table => table.label.trim())).size !== input.tables.length) throw operationError('DUPLICATE_TABLE_LABEL', 'Label meja harus unik.');
+      if (input.action === 'PUBLISH_DRAFT') {
+        const roomIds = currentTables.filter(table => table.roomId === room.id).map(table => table.id);
+        const assignments = roomIds.length ? await tx.select().from(tableAssignments).where(and(inArray(tableAssignments.tableId, roomIds), isNull(tableAssignments.endedAt))) : [];
+        const activeVisits = roomIds.length ? await tx.select().from(visits).where(and(inArray(visits.primaryTableId, roomIds), eq(visits.status, 'OPEN'))) : [];
+        if (assignments.length || activeVisits.length || currentTables.some(table => table.roomId === room.id && table.physicalState === 'OCCUPIED')) throw operationError('ROOM_OCCUPIED', 'Simpan sebagai draf. Publikasi denah dilakukan setelah seluruh kunjungan di ruang ini selesai.');
+        await tx.update(rooms).set({ shapePreset: input.shapePreset, polygonJson: input.polygon }).where(eq(rooms.id, input.roomId));
+        for (const table of input.tables) {
+          const current = currentTables.find(row => row.id === table.id)!;
+          await tx.update(cafeTables).set({ label: table.label.trim(), capacity: table.capacity, shape: table.shape, xMm: table.xMm, yMm: table.yMm, widthMm: table.widthMm, heightMm: table.heightMm, rotationDeg: table.rotationDeg, chairsCount: table.capacity, version: current.version + 1 }).where(eq(cafeTables.id, table.id));
+        }
+      }
+      const existingLayouts = await tx.select().from(layoutVersions).where(eq(layoutVersions.outletId, DEFAULT_OUTLET_ID));
+      await tx.insert(layoutVersions).values({ id: makeId('layout'), tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, revision: existingLayouts.length + 1, status: input.action === 'PUBLISH_DRAFT' ? 'PUBLISHED' : 'DRAFT', roomsSnapshotJson: [{ id: input.roomId, shapePreset: input.shapePreset, polygon: input.polygon }], placementsSnapshotJson: input.tables, warningsAcknowledged: Boolean(input.warningsAcknowledged), createdBy: input.actorName, publishedAt: input.action === 'PUBLISH_DRAFT' ? new Date() : null });
 
       return {
         status: input.action === 'PUBLISH_DRAFT' ? 'PUBLISHED' : 'DRAFT_SAVED',
@@ -3003,7 +2647,7 @@ export async function manageMenuAndStock(input: {
   try {
     await ensureSeeded();
 
-    return await db.transaction(async (tx) => {
+    return await withOutletTransaction(async (tx) => {
       if (input.action === 'ADJUST_STOCK' && input.poolId && typeof input.newOnHand === 'number') {
         if (!Number.isSafeInteger(input.newOnHand) || input.newOnHand < 0) throw new Error('Stok harus berupa bilangan bulat dan tidak negatif.');
         const poolRows = await tx.select().from(stockPools).where(eq(stockPools.id, input.poolId));
@@ -3347,7 +2991,7 @@ export async function manageCashShift(input: {
 }) {
   try {
     await ensureSeeded();
-    return await db.transaction(async (tx) => {
+    return await withOutletTransaction(async (tx) => {
       if (input.action === 'OPEN_SHIFT') {
         const openExisting = await tx
           .select()
@@ -3387,8 +3031,9 @@ export async function manageCashShift(input: {
       }
 
       if (input.action === 'CASH_IN' || input.action === 'CASH_OUT') {
-        const amt = Math.max(0, input.amountIdr ?? 0);
-        if (amt <= 0) throw new Error('Nominal kas masuk/keluar harus lebih dari Rp0.');
+        const amt = input.amountIdr ?? 0;
+        if (!Number.isSafeInteger(amt) || amt <= 0) throw new Error('Nominal kas masuk/keluar harus Rupiah bulat lebih dari Rp0.');
+        if (input.action === 'CASH_OUT' && amt > shift.expectedCashIdr) throw operationError('INSUFFICIENT_CASH', 'Kas keluar melebihi uang tersedia dalam shift.');
         const cleanReason = (input.reason || '').trim();
         if (!cleanReason) throw new Error('Alasan kas masuk/keluar wajib diisi.');
 
@@ -3521,7 +3166,12 @@ export async function updateOutletSettingsOrPromoOrFeedback(input: {
     await ensureSeeded();
 
     if (input.action === 'UPDATE_OUTLET_POLICY') {
-      const outletRows = await db.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
+      for (const policy of [input.paymentPolicy, input.takeawayPaymentPolicy]) if (policy !== undefined && !['PREPAY', 'PAY_LATER'].includes(policy)) throw operationError('INVALID_PAYMENT_POLICY', 'Kebijakan pembayaran harus PREPAY atau PAY_LATER.');
+      for (const rate of [input.serviceChargeBps, input.taxBps]) if (rate !== undefined && (!Number.isInteger(rate) || rate < 0 || rate > 3000)) throw operationError('INVALID_RATE', 'Pajak dan layanan harus berupa basis poin bulat antara 0 dan 3000.');
+      for (const flag of [input.autoAcceptParticipant, input.serviceInTaxBase, input.taxInclusiveDisplay]) if (flag !== undefined && typeof flag !== 'boolean') throw operationError('INVALID_POLICY_FLAG', 'Pilihan kebijakan harus bernilai benar atau salah.');
+      if (input.geofenceRadiusMeters !== undefined && (!Number.isInteger(input.geofenceRadiusMeters) || input.geofenceRadiusMeters < 1 || input.geofenceRadiusMeters > 5000)) throw operationError('INVALID_RADIUS', 'Radius lokasi harus antara 1 dan 5000 meter.');
+      return await withOutletTransaction(async tx => {
+      const outletRows = await tx.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
       const cur = outletRows[0];
       const nextServiceBps =
         typeof input.serviceChargeBps === 'number'
@@ -3532,7 +3182,7 @@ export async function updateOutletSettingsOrPromoOrFeedback(input: {
           ? Math.max(0, Math.min(3000, Math.round(input.taxBps)))
           : cur.taxBps;
 
-      await db
+      await tx
         .update(outlets)
         .set({
           paymentPolicy: input.paymentPolicy ?? cur.paymentPolicy,
@@ -3553,6 +3203,7 @@ export async function updateOutletSettingsOrPromoOrFeedback(input: {
         taxBps: nextTaxBps,
         taxInclusiveDisplay: input.taxInclusiveDisplay ?? cur.taxInclusiveDisplay,
       };
+      });
     }
 
     if (input.action === 'CREATE_PROMO' && input.promoData) {

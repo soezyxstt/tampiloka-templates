@@ -3,6 +3,37 @@ export interface UnitAllocationInput {
   weightIdr: number;
 }
 
+/** A visit is complete only when both service and its financial obligations are resolved. */
+export function summarizeVisitLifecycle(input: {
+  visitId: string;
+  bills: Array<{ id: string; visitId: string; lifecycle: string; balanceIdr: number }>;
+  orderUnits: Array<{ visitId: string; fulfillmentStatus: string }>;
+  orderRequests: Array<{ visitId: string | null; state: string; expiresAt: Date | string }>;
+  paymentAttempts?: Array<{ billId: string; status: string }>;
+  refunds?: Array<{ billId: string; state: string }>;
+  serviceRequests?: Array<{ visitId: string | null; state: string }>;
+  now?: number;
+}) {
+  const now = input.now ?? Date.now();
+  const activeBills = input.bills.filter(bill => bill.visitId === input.visitId && bill.lifecycle !== 'VOID');
+  const billIds = new Set(activeBills.map(bill => bill.id));
+  const outstandingBalanceIdr = activeBills.reduce((sum, bill) => sum + Math.max(0, bill.balanceIdr), 0);
+  const refundDueIdr = activeBills.reduce((sum, bill) => sum + Math.max(0, -bill.balanceIdr), 0);
+  const pendingPaymentCount = (input.paymentAttempts || []).filter(attempt => billIds.has(attempt.billId) && ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status)).length;
+  const pendingRefundCount = (input.refunds || []).filter(refund => billIds.has(refund.billId) && !['SUCCEEDED', 'CANCELLED', 'FAILED'].includes(refund.state)).length;
+  const pendingRequestCount = input.orderRequests.filter(request => request.visitId === input.visitId && request.state === 'REQUESTED' && new Date(request.expiresAt).getTime() > now).length;
+  const unfinishedUnitCount = input.orderUnits.filter(unit => unit.visitId === input.visitId && !['DELIVERED', 'PICKED_UP', 'CANCELLED'].includes(unit.fulfillmentStatus)).length;
+  const unresolvedServiceCount = (input.serviceRequests || []).filter(request => request.visitId === input.visitId && ['OPEN', 'ACKNOWLEDGED'].includes(request.state)).length;
+  const blockers: Array<{ code: string; message: string; count: number }> = [];
+  if (outstandingBalanceIdr) blockers.push({ code: 'UNPAID_BILLS', message: 'Masih ada tagihan yang belum lunas.', count: activeBills.filter(bill => bill.balanceIdr > 0).length });
+  if (refundDueIdr || pendingRefundCount) blockers.push({ code: 'REFUND_DUE', message: 'Selesaikan pengembalian dana pelanggan.', count: activeBills.filter(bill => bill.balanceIdr < 0).length + pendingRefundCount });
+  if (pendingPaymentCount) blockers.push({ code: 'PENDING_PAYMENT', message: 'Selesaikan atau batalkan instruksi pembayaran aktif.', count: pendingPaymentCount });
+  if (pendingRequestCount) blockers.push({ code: 'PENDING_REQUESTS', message: 'Terima atau tolak permintaan pesanan yang masih menunggu.', count: pendingRequestCount });
+  if (unfinishedUnitCount) blockers.push({ code: 'UNFINISHED_ITEMS', message: 'Antar, serahkan, atau batalkan seluruh item pesanan.', count: unfinishedUnitCount });
+  if (unresolvedServiceCount) blockers.push({ code: 'OPEN_SERVICE_REQUESTS', message: 'Selesaikan permintaan bantuan pelanggan.', count: unresolvedServiceCount });
+  return { canDepart: blockers.length === 0, blockers, outstandingBalanceIdr, refundDueIdr, pendingPaymentCount, pendingRefundCount, pendingRequestCount, unfinishedUnitCount, unresolvedServiceCount };
+}
+
 export interface UnitPriceBreakdown {
   unitId: string;
   menuItemId: string;

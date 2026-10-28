@@ -12,6 +12,8 @@ There are three runtime paths:
 
 ## Show the demos to clients
 
+The full demo includes explicit guest seating, a guarded departure checklist, separate table cleaning, and 14 reproducible mock scenarios. Open the staff workspace and expand **Data untuk mencoba alur operasional** to choose a starting point. See the [visit lifecycle and test-data guide](docs/lifecycle.md) for the complete customer/cashier/kitchen flow.
+
 Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packages and component themes. Every preset has a dedicated address, and each applicable demo offers customer and staff views. The customer layout starts on phones; the staff workspace starts on tablets and desktops.
 
 | Preset | Client demo |

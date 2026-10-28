@@ -118,7 +118,20 @@ export function FloorPlanEditor({
     setEditorMessage('');
   };
 
-  const selectedTable = draftTables.find((t) => t.id === selectedTableId) || draftTables[0];
+  // Layout drafts own geometry only. Occupancy and cleaning must always use the
+  // latest shared snapshot, including a departure made in another staff tab.
+  const displayTables = editMode ? draftTables.map(table => {
+    const live = tables.find(current => current.id === table.id);
+    return live ? { ...table, physicalState: live.physicalState, active: live.active } : table;
+  }) : roomTablesInit;
+  const selectedTable = displayTables.find((t) => t.id === selectedTableId) || displayTables[0];
+  const applyTableAction = async (payload: any) => {
+    setEditorError(''); setEditorMessage('');
+    try {
+      await onTableAction(payload);
+      setEditorMessage(payload.action === 'MARK_CLEAN' ? 'Meja sudah bersih dan siap untuk tamu berikutnya.' : payload.action === 'ENABLE_TABLE' ? 'Meja diaktifkan. Periksa dan bersihkan sebelum digunakan.' : 'Meja dinonaktifkan sementara.');
+    } catch (caught) { setEditorError(caught instanceof Error ? caught.message : 'Status meja belum diperbarui.'); }
+  };
 
   const updateSelectedTable = (patch: Partial<any>) => {
     if (!selectedTable) return;
@@ -340,10 +353,10 @@ export function FloorPlanEditor({
                 </g>
               ))}
 
-              {draftTables.map((t) => {
+              {displayTables.map((t) => {
                 const isSelected = t.id === selectedTable?.id;
                 const heldWl = waitlistEntries.find(
-                  (w) => w.heldTableId === t.id && w.status === 'CALLED'
+                  (w) => w.heldTableId === t.id && w.status === 'CALLED' && Date.parse(w.holdExpiresAt) > Date.now()
                 );
 
                 let fill = '#EDF2EC';
@@ -374,6 +387,11 @@ export function FloorPlanEditor({
                 return (
                   <g
                     key={t.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Denah meja ${t.label} · ${stateShort}`}
+                    aria-pressed={isSelected}
+                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTableId(t.id); } }}
                     transform={`rotate(${t.rotationDeg || 0} ${cx} ${cy})`}
                     onClick={() => setSelectedTableId(t.id)}
                     className="cursor-pointer"
@@ -466,7 +484,7 @@ export function FloorPlanEditor({
                     size="sm"
                     disabled={busy}
                     onClick={() =>
-                      onTableAction({
+                      applyTableAction({
                         action: 'MARK_CLEAN',
                         tableId: selectedTable.id,
                         actorName,
@@ -482,7 +500,7 @@ export function FloorPlanEditor({
                     size="sm"
                     disabled={busy}
                     onClick={() =>
-                      onTableAction({
+                      applyTableAction({
                         action: 'DISABLE_TABLE',
                         tableId: selectedTable.id,
                         reason: 'Perawatan meja oleh staf',
@@ -499,7 +517,7 @@ export function FloorPlanEditor({
                     size="sm"
                     disabled={busy}
                     onClick={() =>
-                      onTableAction({
+                      applyTableAction({
                         action: 'ENABLE_TABLE',
                         tableId: selectedTable.id,
                         actorName,
@@ -611,16 +629,18 @@ export function FloorPlanEditor({
           {/* Clean Hairline List of Tables in Room */}
           <div className="space-y-2">
             <h4 className="font-heading text-[16px] font-semibold text-[var(--foreground)]">
-              Meja ({draftTables.length})
+              Meja ({displayTables.length})
             </h4>
             <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              {draftTables.map((t) => {
+              {displayTables.map((t) => {
                 const st = formatTableStateLabel(t.physicalState);
                 const active = t.id === selectedTable?.id;
                 return (
                   <button
                     key={t.id}
                     type="button"
+                    aria-label={`Meja ${t.label} · ${t.capacity} kursi · ${st.label}`}
+                    aria-pressed={active}
                     onClick={() => setSelectedTableId(t.id)}
                     className={`w-full py-2.5 px-2 flex items-center justify-between gap-2 text-left text-[14px] transition-colors cursor-pointer ${
                       active

@@ -53,7 +53,11 @@ export async function executeBrowserCommand(input: BrowserCommand) {
   }
   const { command, payload } = input;
   const surface = input.surface === 'staff' ? 'staff' : 'customer';
-  assertCommandAllowed(command, payload, { modules: cafeConfig.modules, surface, demo: true });
+  if (command === 'LOAD_DEMO_SCENARIO') {
+    if (surface !== 'staff') throw new CapabilityError('STAFF_SURFACE_REQUIRED', 'Pilih skenario dari ruang staf demo.');
+  } else {
+    assertCommandAllowed(command, payload, { modules: cafeConfig.modules, surface, demo: true });
+  }
   if (payload.staffLoginMethod === 'CUSTOMER_OTP_ONLY') {
     throw new CapabilityError('STAFF_ASSURANCE_INSUFFICIENT', 'Gunakan peran staf demo untuk membuka ruang operasional.', 403);
   }
@@ -83,7 +87,12 @@ export async function executeBrowserCommand(input: BrowserCommand) {
     case 'SETTINGS_PROMO_FEEDBACK_ACTION': result = await invoke(service.updateOutletSettingsOrPromoOrFeedback, payload); break;
     case 'RESET_DEMO_DATA': {
       const { resetDemoData } = await import('../db/seed.ts');
-      result = await resetDemoData();
+      result = await resetDemoData({ empty: payload.empty === true ? true : undefined });
+      break;
+    }
+    case 'LOAD_DEMO_SCENARIO': {
+      const { loadDemoScenario } = await import('./scenarios.ts');
+      result = await loadDemoScenario(typeof payload.scenarioId === 'string' ? payload.scenarioId : '');
       break;
     }
     default: throw new CapabilityError('UNKNOWN_COMMAND', 'Tindakan tidak dikenal.', 400);

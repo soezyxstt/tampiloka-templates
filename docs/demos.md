@@ -24,13 +24,17 @@ Themes are intentionally varied across packages: editorial for the catalog, roun
 
 1. Open the [full-service demo](https://cafe-full.tampiloka.site) on your presentation computer. Use a narrow browser window or device preview for the customer screen.
 2. Open its **Staf** link in another tab in the same browser. Choose an available demo role. The sample role buttons and PINs are presentation controls; they do not represent production authentication.
-3. In the customer tab, choose an item, select its options, add it to the cart, enter a customer name and submit the reviewed order. Demo entry already supplies a sample table, so a presentation does not need location permission.
-4. In the staff tab, accept the incoming order. Show the resulting order and bill. Advance the preparation queue when demonstrating the kitchen package.
-5. Return to the customer bill and start the simulated online payment. The QR is explicitly nonpayable. Use the staff demo payment controls to settle that attempt and show the updated bill.
-6. Demonstrate the cashier composer with multiple items and a manual discount. Review the final amount, take a sample cash payment and show the change calculation.
-7. Use **Ulangi** in the demo toolbar to restore the preset's sample state before another presentation.
+3. In the staff toolbar, expand **Data untuk mencoba alur operasional**, choose **Mulai dari kafe kosong**, and load the scenario. Open **Meja & Antrean → Tempatkan tamu** to start a visit before ordering.
+4. Open the customer's table QR link in the other tab. Choose an item, select its options, add it to the cart, enter a customer name and submit the reviewed order. A valid table QR does not require location permission again.
+5. In the staff tab, accept the incoming order. Show the resulting order and bill. Under the default PREPAY policy, preparation remains held until payment settles.
+6. Return to the customer bill and start the simulated online payment. The QR is explicitly nonpayable. Use the staff demo payment controls to settle that attempt and show the updated bill. Under PAY_LATER, preparation may begin before settlement.
+7. Advance the kitchen/bar items through preparing, ready and delivered. Add another customer order to demonstrate its own unpaid bill within the same visit. The cashier can also enter multiple items, apply a discount, take a partial cash payment and calculate change.
+8. Use **Tinjau kepulangan** to show the remaining obligations. Confirm departure once all food, payments and service requests are resolved. Mark the table clean before seating the next party.
+9. Use **Ulangi** to restore the sample state, or load one of the 14 scenarios to jump to a particular operational condition.
 
 For a smaller package, demonstrate only the included steps. `order-at-cashier` has an inbox without full POS; `menu-cashier` lets guests browse without placing their own orders. Reports show sales, receipts, refunds and outstanding amounts. They do not estimate operating costs or profit.
+
+The ordering-only inbox can confirm payment handled by an external cashier using a receipt reference, finish food delivery and close its visit. Table cleaning controls appear only when the table-service module is enabled. See the [complete lifecycle, mock-data matrix and regression commands](lifecycle.md).
 
 ## How public sessions work
 
@@ -39,6 +43,8 @@ Transactional demos run the existing database schema, seed data and domain servi
 Customer and staff tabs at the same preset address share one session within the same browser profile. Reloading preserves the data. Separate visitors, browser profiles, devices and preset subdomains have separate databases. Sharing a bill URL with a different device does not transfer its local bill. For a demonstration across two physical devices, use the original Next.js demo server with both devices connected to that server; see [local demo setup](../README.md#start-the-supplied-demo).
 
 The worker serializes complete domain operations and shares database ownership across tabs. The generated SQL in `src/demo-runtime/schema.generated.ts` is checked against the Drizzle schema. The source application continues to use its server database adapter; the Pages build replaces only the environment adapters.
+
+Version 0.3.1 starts a new local demo storage generation so a tab left open on the earlier version cannot execute old lifecycle rules for the updated interface. Previous demonstration records are not migrated into this generation. New customer/staff tabs share the updated dataset, and committed commands notify peer tabs immediately with polling as a fallback.
 
 Use a current browser with Web Workers, Web Locks, BroadcastChannel and IndexedDB, over HTTPS or localhost. Browser storage must be available. Private browsing, storage limits or clearing site data can remove demo changes. The first transactional visit downloads the database engine and sample state; subsequent operations use the local copy. The hub and catalog do not wait for that engine.
 
@@ -118,17 +124,18 @@ npm run build
 npm run demos:build
 ```
 
-The browser suite needs Playwright Chromium and a running Pages server on port 4174:
+Run both browser suites against an automatically started local preview of the built artifact:
 
 ```sh
 npx playwright install chromium
-npm run test:demo-browser
+npm run test:demo-all
 ```
 
 Run the same package checks against the deployed domains:
 
 ```sh
 CAFE_DEMO_BASE_DOMAIN=tampiloka.site npm run test:demo-browser
+CAFE_DEMO_BASE_DOMAIN=tampiloka.site npm run test:demo-lifecycle
 ```
 
-The suite uses isolated browser contexts and first checks that transactional snapshots are marked `localOnly` before creating fictional orders. It writes evidence to ignored `test-results/demos/`. Read the [verification record](verification.md) for recorded results; a build passing alone is not evidence that the interactive flows work.
+The suites use isolated browser contexts and first check that transactional snapshots are marked `localOnly` before creating fictional orders. They write evidence to ignored `test-results/demos/` and `test-results/lifecycle/`. Individual suites also support an already running preview through `CAFE_DEMO_BASE_URL`; the default is `http://127.0.0.1:4174`. CI runs both browser gates and retains their JSON and screenshots as an artifact. Read the [verification record](verification.md) for recorded results; a build passing alone is not evidence that the interactive flows work.
