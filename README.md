@@ -1,5 +1,7 @@
 # Cafe Template
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](docs/compact-ui.md).
+
 A reusable cafe website and operations template with independent choices for **brand identity**, **component style**, and **service scope**. Customer screens start with phone layouts; staff workspaces prioritize tablets and desktop screens. The application currently uses Indonesian copy, integer Indonesian Rupiah prices, and a configurable outlet timezone.
 
 There are three runtime paths:
@@ -150,7 +152,7 @@ The configuration and content JSON files are public. Keep private credentials ou
 Create an exact `catalog` project:
 
 ```sh
-npm run cafe -- init ../menu-client --name "Kopi Senja" --preset catalog --theme editorial --yes
+npm run cafe -- init ../menu-client --name "Kopi Senja" --modules catalog --theme editorial --yes
 cd ../menu-client
 npm ci
 npm run dev

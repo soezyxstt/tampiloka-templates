@@ -43,3 +43,11 @@ const child = spawn(process.execPath, ['--experimental-strip-types', 'tests/demo
 });
 const [code, signal] = await once(child, 'exit');
 assert.equal(code, 0, `Deployed staff layout checks failed (${signal || code}).`);
+
+for(const [script,extra] of [
+ ['tests/demos-compact-ui.mjs',{CAFE_COMPACT_OUTPUT:'test-results/compact-ui-live'}],
+ ['tests/demos-lifecycle.mjs',{CAFE_LIFECYCLE_OUTPUT:'test-results/catalog-live',CAFE_LIFECYCLE_CASES:'catalog-waiter'}],
+]) {
+ const task=spawn(process.execPath,['--experimental-strip-types',script],{env:{...process.env,CAFE_DEMO_BASE_DOMAIN:'tampiloka.site',...extra},stdio:'inherit'});
+ const [status,signal]=await once(task,'exit');assert.equal(status,0,script+' failed: '+signal);
+}

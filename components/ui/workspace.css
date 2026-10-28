@@ -59,7 +59,7 @@ button.stat-item:hover{background:var(--accent-surface)}
  #staff-content{scroll-margin-top:80px}
 }
 @media(max-width:639px){
- .stat-strip{grid-template-columns:repeat(min(var(--stat-count),2),minmax(0,1fr))}
+ .stat-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
  .stat-item{min-height:64px;padding:8px 12px}
  .stat-item:nth-child(2n){border-right:0}
  .stat-item:nth-child(n+3){border-top:1px solid var(--border)}
@@ -68,3 +68,6 @@ button.stat-item:hover{background:var(--accent-surface)}
  .cafe-staff .ui-button{min-height:44px}
 }
 @media print{.staff-sidebar,.staff-header{display:none!important}.cafe-staff:has(>aside){display:block}.staff-main{padding:0}}
+
+.stat-strip:has(>.stat-item:only-child){grid-template-columns:1fr}
+.cafe-staff .visit-row h3,.cafe-staff .visit-row p{overflow-wrap:anywhere}

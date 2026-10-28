@@ -1,5 +1,7 @@
 # Runtime and operational scope
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
+
 ## Public catalog without a database
 
 The `catalog` preset (`modules: ["catalog"]`) can serve a real, read-only menu without a database, demo flag, staff login or payment provider. Configure the client, edit `content/menu.json` and `content/tables.json`, and run `npm run dev` or `npm run build` followed by `npm start`. Leave `CAFE_DEMO_DB` unset or `0`. Root and table QR routes use the same public JSON content. Search, category filtering, item details, images, variant prices and local favorites work; ordering, staff access and payment actions remain unavailable.

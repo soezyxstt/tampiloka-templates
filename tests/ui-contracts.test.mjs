@@ -27,6 +27,6 @@ test('messages use the wrapping notice primitive, not non-shrinking badges',asyn
  assert.doesNotMatch(css,/(?:html|body)\s*\{[^}]*overflow-x\s*:\s*(?:hidden|clip)/);
 });
 test('native select markup has one source across application and showcase',async()=>{
- async function walk(dir){let files=[];for(const entry of await readdir(new URL('../'+dir,import.meta.url),{withFileTypes:true})){const path=join(dir,entry.name);if(entry.isDirectory())files.push(...await walk(path));else if(path.endsWith('.tsx'))files.push(path);}return files;}
+ async function walk(dir){let files=[];for(const entry of await readdir(new URL('../'+dir,import.meta.url),{withFileTypes:true}).catch(error=>{if(error.code==='ENOENT')return [];throw error;})){const path=join(dir,entry.name);if(entry.isDirectory())files.push(...await walk(path));else if(path.endsWith('.tsx'))files.push(path);}return files;}
  for(const file of [...await walk('components'),...await walk('demos')]) if(file!=='components/ui/select.tsx') assert.doesNotMatch(await read(file),/<select(?:\s|>)/,file);
 });

@@ -37,7 +37,7 @@ async function resize(page, width) {
     const select = document.querySelector('.cafe-staff > header select[aria-label="Petugas aktif"]');
     const aside = document.querySelector('.cafe-staff > aside');
     if (!select || !aside || innerWidth !== width || innerHeight !== height) return false;
-    const expectedSelectorWidth = width >= 768 ? 360 : width >= 640 ? 210 : 156;
+    const expectedSelectorWidth = width >= 768 ? 280 : width - 32;
     const expectedSidebarDisplay = width >= 1280 ? 'flex' : 'none';
     return Math.abs(select.parentElement.getBoundingClientRect().width - expectedSelectorWidth) < 1
       && getComputedStyle(aside).display === expectedSidebarDisplay
@@ -102,7 +102,7 @@ async function assertLayout(page, name, { atTop = true } = {}) {
     assert.equal(g.sidebar.display, 'none', `${name}: desktop sidebar visible below breakpoint`);
     assert.ok(Math.abs(g.main.x) < 1.5, `${name}: leftover desktop gutter`);
   }
-  if (g.width >= 768) assert.ok(g.labelSpace >= g.longestLabel, `${name}: staff name/role clipped (${g.labelSpace}/${g.longestLabel})`);
+  assert.ok(g.labelSpace >= g.longestLabel, `${name}: staff name/role clipped (${g.labelSpace}/${g.longestLabel})`);
   pass(name, g);
 }
 
@@ -212,4 +212,4 @@ assert.deepEqual(failures, [], 'Staff layout regression checks failed.');
 assert.deepEqual(pageErrors, [], 'Unexpected browser exceptions.');
 assert.deepEqual(consoleErrors, [], 'Unexpected console errors.');
 assert.deepEqual(networkWrites, [], 'No public-server mutations are permitted.');
-console.log(`Staff layout: ${checks.length} checks passed across all eight staff presets.`);
+console.log(`Staff layout: ${checks.length} checks passed across all nine staff presets.`);

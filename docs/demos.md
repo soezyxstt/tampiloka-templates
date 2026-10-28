@@ -1,5 +1,7 @@
 # Public preset demos
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
+
 The [demo hub](https://cafe.tampiloka.site) is a client presentation portfolio for the reusable template. It compares nine service packages, shows five independent component themes, and links to working customer and staff experiences.
 
 ## Addresses and scope

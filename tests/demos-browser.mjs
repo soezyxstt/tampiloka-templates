@@ -335,7 +335,7 @@ try {
       if (!hasCustomer) await first.setViewportSize({ width: 1024, height: 768 });
       await open(first, demoUrl(demo));
       let baseline;
-      if (demo.id !== 'catalog') {
+      if (demo.modules.some(module => module !== 'catalog')) {
         baseline = await localSnapshot(first, `${demo.id} local runtime guard`);
         result.runtime = baseline.runtime;
         assert.ok(baseline.catalog.length > 0, `${demo.id}: sample menu is seeded.`);

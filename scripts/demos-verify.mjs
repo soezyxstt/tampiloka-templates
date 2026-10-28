@@ -31,7 +31,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   if (!ready) throw new Error('The static demo preview did not become available.');
-  for (const script of ['tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs']) {
+  for (const script of ['tests/demos-compact-ui.mjs', 'tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs']) {
     if (interrupted) throw new Error('Browser verification interrupted.');
     currentTest = spawn(process.execPath, ['--experimental-strip-types', script], { cwd: root, env, stdio: 'inherit' });
     const [code, signal] = await once(currentTest, 'exit');

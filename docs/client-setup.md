@@ -1,5 +1,7 @@
 # Create a client demo
 
+> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](compact-ui.md).
+
 The template has one public configuration file, `config/cafe.json`. Service modules decide what a client gets. The theme decides how components look. Brand identity stays separate from both. A menu-only client can serve static content without a database. Ordering and staff transactions currently use the demo runtime.
 
 Use Node.js 22.12 or newer. Use a separate project directory, database, and deployment for each client.
@@ -59,7 +61,7 @@ The CLI refuses to overwrite an existing directory. A failed validation creates 
 
 ```bash
 npm run cafe -- init ../kopi-senja \
-  --name "Kopi Senja" --preset catalog --theme airy --dry-run --json
+  --name "Kopi Senja" --modules catalog --theme airy --dry-run --json
 ```
 
 `--dry-run` validates the whole selection without writing anything. `--json` returns data for scripts and disables prompts.
@@ -67,7 +69,7 @@ npm run cafe -- init ../kopi-senja \
 ## Publish a menu-only catalog
 
 ```bash
-npm run cafe -- init ../menu-client --name "Kopi Senja" --preset catalog --theme editorial --yes
+npm run cafe -- init ../menu-client --name "Kopi Senja" --modules catalog --theme editorial --yes
 cd ../menu-client
 npm ci
 npm run dev

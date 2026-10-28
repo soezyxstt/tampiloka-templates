@@ -67,7 +67,7 @@ export function VisitService({ snapshot, busy, canTables, actorRole, onCommand, 
 
   return <section className="space-y-4" aria-label="Layanan kunjungan">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="font-heading text-lg font-semibold">Kunjungan aktif ({activeVisits.length})</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{canTables ? 'Tempatkan tamu saat datang. Setelah semua urusan selesai, catat kepulangan lalu bersihkan meja.' : 'Selesaikan kunjungan setelah pesanan diterima pelanggan dan seluruh tagihan terbayar.'}</p></div>
+      <div><h2 className="font-heading text-lg font-semibold">Kunjungan aktif ({activeVisits.length})</h2></div>
       {canTables && <Button disabled={locked} onClick={() => {
         setSeatingOpen(true); setSeatingKey(`seat_${crypto.randomUUID()}`); setName(''); setPartySize('2');
         setTableId(availableTables.find((table: any) => table.capacity >= 2)?.id || ''); setError('');
@@ -75,11 +75,11 @@ export function VisitService({ snapshot, busy, canTables, actorRole, onCommand, 
     </div>
     {!seatingOpen && !reviewVisitId && <InlineError message={error} />}
     {!activeVisits.length && <EmptyState title="Belum ada kunjungan aktif" description={canTables ? 'Gunakan Tempatkan tamu untuk menyiapkan meja sebelum mereka memesan.' : 'Kunjungan muncul setelah pesanan diterima staf.'} />}
-    <div className="space-y-3">{activeVisits.map((visit: any) => {
+    <div className="visit-list">{activeVisits.map((visit: any) => {
       const summary: Summary = visit.lifecycleSummary || unavailableSummary;
       const moveTo = moveTargets[visit.id] || '';
       const validMove = availableTables.some((table: any) => table.id === moveTo && table.capacity >= visit.partySize);
-      return <article key={visit.id} data-visit-id={visit.id} aria-label={`Kunjungan ${visit.customerName}`} className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 space-y-4">
+      return <article key={visit.id} data-visit-id={visit.id} aria-label={`Kunjungan ${visit.customerName}`} className="visit-row space-y-3">
         <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-semibold">{visit.mode === 'DINE_IN' ? `Meja ${(visit.tableLabelsJson || []).join(', ')}` : `Bawa pulang ${visit.pickupNumber || ''}`} · {visit.customerName}</h3><p className="mt-1 text-sm text-[var(--muted-foreground)]">{visit.mode === 'DINE_IN' ? `${visit.partySize} orang · Tamu masih di kafe` : 'Menunggu penyelesaian pengambilan'}</p></div><StatusLabel label={summary.canDepart ? 'Siap diselesaikan' : 'Masih berlangsung'} tone={summary.canDepart ? 'success' : 'info'} /></div>
         <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm"><div><dt className="text-xs text-[var(--muted-foreground)]">Sisa seluruh tagihan</dt><dd className="mt-1 font-semibold"><Money amount={summary.outstandingBalanceIdr} /></dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Belum disajikan / diambil</dt><dd className="mt-1 font-semibold">{summary.unfinishedUnitCount} item</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Konfirmasi pesanan</dt><dd className="mt-1 font-semibold">{summary.pendingRequestCount} permintaan</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Pembayaran dalam proses</dt><dd className="mt-1 font-semibold">{summary.pendingPaymentCount}</dd></div></dl>
         {summary.refundDueIdr > 0 && <p className="text-sm text-[var(--status-danger-fg)]">Pengembalian masih diperlukan: <Money amount={summary.refundDueIdr} /></p>}

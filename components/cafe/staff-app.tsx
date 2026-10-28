@@ -8,6 +8,7 @@ import {
   PageHeader,
   InlineNotice,
   StatStrip,
+  ChoiceStrip,
   Surface,
   Input,
   Textarea,
@@ -811,7 +812,6 @@ export function StaffApp({
 
             <DemoPaymentControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />
             {!canKitchen && <OrderInbox snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
-            {!canTables && <VisitService snapshot={snapshot} busy={busy} canTables={false} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />}
             {/* The cashier workspace is separate from the ordering inbox. */}
             {canCashier && <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
@@ -1231,6 +1231,7 @@ export function StaffApp({
                 )}
               </div>
             </div>}
+            {!canTables && <VisitService snapshot={snapshot} busy={busy} canTables={false} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />}
           </motion.div>
         )}
 
@@ -1275,9 +1276,7 @@ export function StaffApp({
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-2" aria-label="Status pesanan dapur">
-              {[['ACTIVE', 'Semua aktif'], ['QUEUED', 'Antrean baru'], ['PREPARING', 'Sedang dibuat'], ['READY', 'Siap diantar'], ['ALL', 'Termasuk selesai']].map(([value, label]) => <button key={value} type="button" aria-pressed={kitchenStatusFilter === value} onClick={() => setKitchenStatusFilter(value)} className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${kitchenStatusFilter === value ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted-foreground)]'}`}>{label}</button>)}
-            </div>
+            <ChoiceStrip ariaLabel="Status pesanan dapur" items={[['ACTIVE','Semua aktif'],['QUEUED','Antrean baru'],['PREPARING','Sedang dibuat'],['READY','Siap diantar'],['ALL','Termasuk selesai']].map(([id,label])=>({id,label}))} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
             {kitchenUnits.length === 0 ? (
               <EmptyState title="Tidak ada pesanan" />
             ) : (
@@ -1294,9 +1293,9 @@ export function StaffApp({
                     <div
                       key={u.id}
                       data-unit-id={u.id}
-                      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col items-stretch justify-between gap-5 border-t-[3px] ${u.fulfillmentStatus === 'READY' ? 'border-t-emerald-500' : u.fulfillmentStatus === 'PREPARING' ? 'border-t-amber-500' : 'border-t-[var(--primary)]'}`}
+                      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-col items-stretch justify-between gap-3 border-t-[3px] ${u.fulfillmentStatus === 'READY' ? 'border-t-emerald-500' : u.fulfillmentStatus === 'PREPARING' ? 'border-t-amber-500' : 'border-t-[var(--primary)]'}`}
                     >
-                      <div className="space-y-1 min-w-[240px] flex-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-heading text-[17px] font-bold text-[var(--foreground)]">
                             Meja {tableLabel}
