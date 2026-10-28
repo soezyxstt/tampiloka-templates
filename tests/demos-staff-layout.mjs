@@ -26,6 +26,27 @@ const settle = page => page.evaluate(() => new Promise(resolve => requestAnimati
 const top = async page => { await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' })); await settle(page); };
 function pass(name, details = {}) { checks.push({ name, ...details }); console.log(`PASS ${name}`); }
 
+async function resize(page, width) {
+  const height = width < 768 ? 844 : 1000;
+  await page.setViewportSize({ width, height });
+  // Chromium can expose the new innerWidth before applying media-query styles.
+  // Wait for the responsive contract, never for overflow itself to disappear.
+  // A broken breakpoint still fails within 5 seconds; the independent geometry
+  // assertions below continue to reject overflow and covered controls.
+  await page.waitForFunction(({ width, height }) => {
+    const select = document.querySelector('.cafe-staff > header select[aria-label="Petugas aktif"]');
+    const aside = document.querySelector('.cafe-staff > aside');
+    if (!select || !aside || innerWidth !== width || innerHeight !== height) return false;
+    const expectedSelectorWidth = width >= 768 ? 360 : width >= 640 ? 210 : 156;
+    const expectedSidebarDisplay = width >= 1280 ? 'flex' : 'none';
+    return Math.abs(select.parentElement.getBoundingClientRect().width - expectedSelectorWidth) < 1
+      && getComputedStyle(aside).display === expectedSidebarDisplay
+      && matchMedia('(min-width: 768px)').matches === (width >= 768)
+      && matchMedia('(min-width: 1280px)').matches === (width >= 1280);
+  }, { width, height }, { timeout: 5000 });
+  await page.evaluate(() => document.fonts.ready);
+}
+
 async function geometry(page) {
   return page.evaluate(() => {
     const rect = selector => {
@@ -111,8 +132,8 @@ try {
       await page.evaluate(() => document.fonts.ready);
       await top(page);
 
-      // A negative control proves this gate detects the original fixed-sidebar
-      // bug. The override exists only in this isolated test page, then is removed.
+      // Negative controls live only in this isolated page and are removed before
+      // continuing. The test must catch both the original bug and real overflow.
       if (demo.id === 'cashier') {
         const originalPosition = await page.addStyleTag({ content: '.cafe-staff > aside {position:fixed!important;inset:0 auto 0 0!important;width:232px!important;}' });
         const negative = await geometry(page);
@@ -121,10 +142,29 @@ try {
         await originalPosition.evaluate(element => element.remove());
         await settle(page);
         pass('Negative control catches the original fixed-sidebar overlap');
+        await resize(page, 390);
+        await top(page);
+        const overflow = await page.addStyleTag({ content: '#staff-content { min-width: 500px !important; }' });
+        try {
+          await assert.rejects(() => assertLayout(page, 'Injected persistent overflow'), /horizontal overflow/);
+        } finally {
+          await overflow.evaluate(element => element.remove());
+          await settle(page);
+        }
+        pass('Negative control still rejects persistent overflow after viewport synchronization');
+      }
+      if (demo.id === 'operations') {
+        for (let cycle = 1; cycle <= 3; cycle++) {
+          for (const width of [1920, 390]) {
+            await resize(page, width);
+            await top(page);
+            await assertLayout(page, `${demo.id} resize cycle ${cycle} ${width}px`);
+          }
+        }
       }
 
       for (const width of widths) {
-        await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
+        await resize(page, width);
         await top(page);
         await assertLayout(page, `${demo.id} ${width}px top`);
         if ([390, 1024, 1280, 1920].includes(width)) await page.screenshot({ path: join(out, `${demo.id}-${width}-top.png`), animations: 'disabled' });
@@ -145,7 +185,7 @@ try {
         await assertLayout(page, `${demo.id} ${width}px scrolled`, { atTop: false });
         if (width === 1920) await page.screenshot({ path: join(out, `${demo.id}-${width}-scroll.png`), animations: 'disabled' });
       }
-      await page.setViewportSize({ width: 1920, height: 1000 });
+      await resize(page, 1920);
       await top(page);
       const newOrder = page.getByRole('button', { name: 'Pesanan baru', exact: true });
       if (await newOrder.count()) {
