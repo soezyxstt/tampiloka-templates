@@ -1,0 +1,252 @@
+{
+  "role": "customer-extra",
+  "screenshots": [
+    {
+      "id": "customer-extra-01",
+      "file": "customer-extra/01-seluruh-menu-mobile.png",
+      "title": "Seluruh menu mobile",
+      "state": "Full-page dari aplikasi aktual.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:24:43.145226+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-02",
+      "file": "customer-extra/02-varian-tambahan-promo-dan-hapus-kendala.png",
+      "title": "Menu sebelum klik otomatis diulang",
+      "state": "Percobaan klik otomatis belum mencapai detail produk; skenario diulang.",
+      "steps": [],
+      "status": "test_harness",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:24:56.032317+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-03",
+      "file": "customer-extra/03-ulasan-setelah-kunjungan-aktif.png",
+      "title": "Ulasan setelah kunjungan aktif",
+      "state": "Nama Dina dan kunjungan aktif sudah ada, tetapi pengiriman ulasan gagal dengan SQL error mentah pada UI.",
+      "steps": [],
+      "status": "blocked",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:25:02.582969+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-04",
+      "file": "customer-extra/04-salin-sandi-wi-fi.png",
+      "title": "Salin sandi Wi-Fi",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:25:05.362027+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-05",
+      "file": "customer-extra/05-kode-meja-dan-salin-tautan.png",
+      "title": "Kode meja dan salin tautan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:25:06.850652+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-06",
+      "file": "customer-extra/06-tautan-meja-tersalin.png",
+      "title": "Tautan meja tersalin",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:25:08.251790+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-07",
+      "file": "customer-extra/07-antrean-tanpa-nama-pemesan.png",
+      "title": "Antrean tanpa nama pemesan",
+      "state": "Nama antrean dan nama pemesan kosong; respons validasi aktual.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:25:12.660818+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-08",
+      "file": "customer-extra/08-kode-meja-tidak-valid.png",
+      "title": "Kode meja tidak valid",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:17.675958+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-09",
+      "file": "customer-extra/09-lokasi-di-luar-radius.png",
+      "title": "Lokasi di luar radius",
+      "state": "Fixture browser geolokasi0,0; pemeriksaan server asli.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:20.242193+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-10",
+      "file": "customer-extra/10-lokasi-dalam-radius.png",
+      "title": "Lokasi dalam radius",
+      "state": "Fixture browser di lokasi outlet; pemeriksaan server asli.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:22.674870+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "customer-extra-11",
+      "file": "customer-extra/11-pemilihan-meja-dan-jenis-layanan.png",
+      "title": "Pemilihan meja dan jenis layanan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:24.374340+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-12",
+      "file": "customer-extra/12-pilihan-bawa-pulang.png",
+      "title": "Pilihan bawa pulang",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:25.842205+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "customer-extra-13",
+      "file": "customer-extra/13-checkout-bawa-pulang.png",
+      "title": "Checkout bawa pulang",
+      "state": "Bawa pulang masih menampilkan verifikasi meja/lokasi.",
+      "steps": [],
+      "status": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:25:27.387043+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    }
+  ],
+  "errors": [],
+  "findings": [
+    {
+      "title": "Varian tambahan promo dan hapus",
+      "description": "Layar menu berhasil dibuka. Klik otomatis tombol Tambah pada viewport mobile terhalang saat scroll; skenario varian/tambahan diulang pada sesi customer-configurations. Bukan bukti menu habis.",
+      "status": "test_harness"
+    },
+    {
+      "title": "Ulasan kunjungan aktif",
+      "description": "Pengiriman ulasan tidak menampilkan Ulasan terkirim; lihat pesan pada screenshot.",
+      "status": "blocked"
+    },
+    {
+      "title": "Verifikasi bawa pulang",
+      "description": "UI bawa pulang masih memakai bagian Verifikasi meja dan syarat lokasi/kode staf.",
+      "status": "partial"
+    },
+    {
+      "title": "Pengiriman ulasan kunjungan aktif gagal",
+      "description": "Kirim ulasan menghasilkan Failed query insert feedback_entries dan params mentah di UI. Respons tampak dibungkus status sukses hijau.",
+      "status": "blocked"
+    }
+  ],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}

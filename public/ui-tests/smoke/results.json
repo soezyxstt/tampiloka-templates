@@ -1,0 +1,26 @@
+{
+  "role": "smoke",
+  "screenshots": [
+    {
+      "id": "smoke-01",
+      "file": "smoke/01-steel-connection-verified.png",
+      "title": "Steel connection verified",
+      "state": "Actual app rendered in Steel from local server responses.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/",
+      "capturedAt": "2026-10-24T02:16:04.693934+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    }
+  ],
+  "errors": [],
+  "findings": [],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}

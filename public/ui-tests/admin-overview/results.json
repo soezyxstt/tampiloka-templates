@@ -1,0 +1,30 @@
+{
+  "role": "admin-overview",
+  "screenshots": [
+    {
+      "id": "admin-overview-01",
+      "file": "admin-overview/01-katalog-dan-stok-lengkap.png",
+      "title": "Katalog dan stok lengkap",
+      "state": "Seluruh katalog dan stok, termasuk menu uji yang dibuat melalui UI.",
+      "steps": [
+        "Masuk pemilik",
+        "Buka Katalog & Stok"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:30:50.933384+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    }
+  ],
+  "errors": [],
+  "findings": [],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}

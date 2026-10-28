@@ -1,0 +1,36 @@
+{
+  "role": "cashier",
+  "browser": "Steel Chromium",
+  "screenshots": 44,
+  "verified": [
+    "Login dan PIN salah",
+    "Dashboard desktop/mobile",
+    "Cari ditemukan/kosong",
+    "Filter belum lunas/lunas/semua",
+    "Rincian tagihan dan biaya",
+    "Penerimaan/penolakan request",
+    "Pisah item dan gabung tagihan sendiri",
+    "Pembatalan belum bayar dengan restock",
+    "Tunai kurang diblokir",
+    "Uang pas dan kembalian",
+    "Konfigurasi QRIS, Virtual Account, transfer manual",
+    "Jumlah di atas sisa diblokir",
+    "Transfer sebagian lalu pelunasan tunai",
+    "Guard tender ganda ketika external QR pending",
+    "Logout kembali ke form masuk"
+  ],
+  "blocked": [
+    "Walk-in Pesanan baru: unsupported CREATE_CHECKOUT_QUOTE",
+    "Refund seluruh item sesudah pelunasan melalui dua receipt ditolak karena tidak ada satu receipt cukup"
+  ],
+  "partial": [
+    "Validasi alasan batal tampil di halaman belakang modal, tidak dekat input",
+    "External payment pending tidak ditampilkan sebagai attempt aktif di kontrol pembayaran; tender konflik baru ditolak setelah klik",
+    "PIN shortcut demo masih terisi setelah logout"
+  ],
+  "not_available": [
+    "Takeaway dari dialog walk-in kasir",
+    "Tombol cetak struk tersendiri pada kasir"
+  ],
+  "fixturePolicy": "Request/bill khusus Rani dibuat melalui API demo lokal untuk memungkinkan pengujian UI setelah walk-inUI terblokir. Seluruh perubahan uang/stock hanya pada fixture sendiri, tidak menyentuh billseed M01/M04."
+}

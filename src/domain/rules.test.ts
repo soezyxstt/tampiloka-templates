@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allocateProportionalIdr,
+  createDemoPaymentInstructions,
+  isValidOrderQuantity,
   computePricingBreakdown,
   computeAvailableStock,
   validateStockPoolInvariant,
@@ -300,3 +302,23 @@ test('Configurable tax & service charges: 0% tax included, 11% tax only, and 5% 
   assert.equal(srv5Tax11.totalIdr, 116550);
 });
 
+
+
+test('Order quantities reject fractional, non-finite and out-of-range portions', () => {
+  for (const quantity of [0, -1, 21, 1.5, NaN, Infinity]) {
+    assert.equal(isValidOrderQuantity(quantity), false);
+  }
+  for (const quantity of [1, 10, 20]) assert.equal(isValidOrderQuantity(quantity), true);
+});
+
+test('Demo payment instructions cannot be mistaken for payable QRIS or bank account data', () => {
+  const qr = createDemoPaymentInstructions({ providerOrderId: 'TEST/123', amountIdr: 30000, method: 'QRIS', merchantName: 'Cafe' });
+  assert.equal(qr.isDemo, true);
+  assert.equal(qr.mode, 'DEMO');
+  assert.equal(qr.qrPayload, 'cafe-demo://payment/TEST%2F123?amount=30000');
+  assert.equal(qr.vaNumber, undefined);
+  const va = createDemoPaymentInstructions({ providerOrderId: 'TEST123', amountIdr: 30000, method: 'VIRTUAL_ACCOUNT', merchantName: 'Cafe' });
+  assert.equal(va.qrPayload, undefined);
+  assert.equal(va.vaNumber, 'DEMO-TEST123');
+  assert.match(va.notice, /tidak dapat dibayar/);
+});

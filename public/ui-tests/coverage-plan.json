@@ -1,0 +1,344 @@
+{
+  "scope": "Pengujian aplikasi saat ini; screenshot UI nyata melalui browser Steel. Tidak ada screenshot rekaan.",
+  "browserGate": "Pengujian pengelola telah selesai melalui Steel; semua sesi dilepas.",
+  "roles": [
+    "customer",
+    "cashier",
+    "operations",
+    "admin"
+  ],
+  "managerOwner": [
+    {
+      "id": "admin-access",
+      "useCase": "Akses pengelola",
+      "states": [
+        "Form masuk",
+        "PIN salah",
+        "Masuk pemilik/manajer",
+        "Menu sesuai peran",
+        "Keluar"
+      ],
+      "mutatesDemoData": false,
+      "status": "verified",
+      "evidencePrefixes": [
+        "admin/01",
+        "admin/02",
+        "admin-final/13",
+        "admin-final/14"
+      ],
+      "notes": [
+        "Validasi PIN salah dicakup peran kasir pada form masuk bersama."
+      ]
+    },
+    {
+      "id": "catalog",
+      "useCase": "Katalog",
+      "states": [
+        "Daftar desktop/mobile",
+        "Cari berhasil",
+        "Cari kosong",
+        "Filter kategori",
+        "Produk tersedia/habis"
+      ],
+      "mutatesDemoData": false,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin/03",
+        "admin/04",
+        "admin/05",
+        "admin/06",
+        "admin/28",
+        "admin-overview/01"
+      ],
+      "notes": [
+        "Pencarian kosong berfungsi tetapi tidak menampilkan empty-state."
+      ]
+    },
+    {
+      "id": "category-menu",
+      "useCase": "Tambah kategori dan menu",
+      "states": [
+        "Dialog kosong",
+        "Tambah kategori uji",
+        "Isi kode/nama/kategori/stasiun/harga/deskripsi",
+        "Foto lokal",
+        "Simpan menu uji",
+        "Menu muncul di katalog"
+      ],
+      "mutatesDemoData": true,
+      "status": "verified",
+      "evidencePrefixes": [
+        "admin/07",
+        "admin/08",
+        "admin/09",
+        "admin/10",
+        "admin/11"
+      ],
+      "notes": []
+    },
+    {
+      "id": "availability-stock",
+      "useCase": "Ketersediaan dan stok",
+      "states": [
+        "Tandai produk uji habis",
+        "Aktifkan kembali",
+        "Lihat stok terbatas",
+        "Penyesuaian stok valid",
+        "Input di bawah reservasi atau negatif"
+      ],
+      "mutatesDemoData": true,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin/12",
+        "admin/13",
+        "admin/20",
+        "admin/21",
+        "admin/22"
+      ],
+      "notes": [
+        "Penolakan stok di bawah reservasi/negatif belum dicoba. Nilai stok berhasil dipulihkan ke awal."
+      ]
+    },
+    {
+      "id": "photos",
+      "useCase": "Galeri foto",
+      "states": [
+        "Buka galeri",
+        "Slide/thumbnail",
+        "Tambah URL lokal",
+        "Unggah gambar lokal",
+        "Jadikan utama",
+        "Hapus satu foto",
+        "Simpan",
+        "Batal perubahan"
+      ],
+      "mutatesDemoData": true,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin/14",
+        "admin/15",
+        "admin/16",
+        "admin/17",
+        "admin/18",
+        "admin/19"
+      ],
+      "notes": [
+        "Batal setelah mengubah draft tidak dicoba terpisah. Tambah URL, upload, urutkan utama, hapus dan simpan dicoba."
+      ]
+    },
+    {
+      "id": "csv-import",
+      "useCase": "Impor CSV",
+      "states": [
+        "Dialog awal",
+        "Periksa CSV invalid",
+        "Periksa CSV valid",
+        "Simpan batch valid",
+        "Katalog menampilkan menu impor"
+      ],
+      "mutatesDemoData": true,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin/24",
+        "admin/25",
+        "admin/26",
+        "admin/27"
+      ],
+      "notes": [
+        "CSV invalid tidak menampilkan hasil/error baris. Valid preview+commit berhasil. CSV quoted/comma dalam nama belum diuji."
+      ]
+    },
+    {
+      "id": "table-qr",
+      "useCase": "QR meja",
+      "states": [
+        "Buka dialog QR meja",
+        "Periksa kode QR/tautan/cetak nyata yang tersedia",
+        "Catat fitur placeholder bila tidak ada QR atau aksi cetak"
+      ],
+      "mutatesDemoData": false,
+      "status": "blocked",
+      "evidencePrefixes": [
+        "admin/23"
+      ],
+      "notes": [
+        "Dialog hanya label meja dan teks ?table, belum gambar QR atau aksi cetak."
+      ]
+    },
+    {
+      "id": "reports",
+      "useCase": "Laporan",
+      "states": [
+        "Ringkasan keuangan desktop/mobile",
+        "Unduh CSV",
+        "Periksa berkas hasil unduh dan header"
+      ],
+      "mutatesDemoData": false,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin/29",
+        "admin/30"
+      ],
+      "notes": [
+        "Event unduhan ada, tetapi file dari cloud Steel diterima0byte. Isi CSV dan tampilan mobile laporan belum diverifikasi."
+      ]
+    },
+    {
+      "id": "cash-shift",
+      "useCase": "Shift kasir",
+      "states": [
+        "Shift aktif",
+        "Kas masuk valid",
+        "Kas keluar valid",
+        "Validasi nominal/keterangan",
+        "Rekonsiliasi nominal sesuai",
+        "Selisih tanpa/dengan alasan",
+        "Tutup shift",
+        "Buka shift baru"
+      ],
+      "mutatesDemoData": true,
+      "status": "verified",
+      "evidencePrefixes": [
+        "admin-extra/01",
+        "admin-extra/02",
+        "admin-extra/03",
+        "admin-extra/04",
+        "admin-extra/05",
+        "admin-extra/06",
+        "admin-extra/07",
+        "admin-extra/08"
+      ],
+      "notes": [
+        "Kas masuk/keluar Rp10.000 menyeimbangkan. Penutupan dengan selisih tanpa alasan ditolak; penutupan tepat dan shift baru berhasil. Tidak menutup dengan selisih diterima."
+      ]
+    },
+    {
+      "id": "charge-settings",
+      "useCase": "Pajak dan layanan",
+      "states": [
+        "Tarif aktif",
+        "Preset tanpa pajak",
+        "Preset PB1",
+        "Preset PPN",
+        "Preset layanan+PB1",
+        "Preset layanan+PPN",
+        "Tarif kustom",
+        "Input di luar batas",
+        "Pulihkan tarif awal"
+      ],
+      "mutatesDemoData": true,
+      "status": "blocked",
+      "evidencePrefixes": [
+        "admin-extra/09",
+        "admin-extra/10",
+        "admin-extra/11"
+      ],
+      "notes": [
+        "Preset dan Simpan kustom mengirim aksi unsupported. Preset lain tidak diulang karena berbagi handler yang sama. Tarif tersimpan tetap5%layanan10%pajak."
+      ]
+    },
+    {
+      "id": "promotions",
+      "useCase": "Promo",
+      "states": [
+        "Daftar promo",
+        "Dialog kosong",
+        "Isi kode/nama/minimum/potongan",
+        "Terbitkan promo uji",
+        "Promo tampil",
+        "Kode duplikat/validasi input"
+      ],
+      "mutatesDemoData": true,
+      "status": "partial",
+      "evidencePrefixes": [
+        "admin-extra/12",
+        "admin-extra/13",
+        "admin-final/01",
+        "admin-final/02",
+        "admin-final/03"
+      ],
+      "notes": [
+        "Penerbitan valid berhasil. Kode/nama kosong dan kode duplikat juga diterima, sehingga validasi gagal."
+      ]
+    },
+    {
+      "id": "feedback",
+      "useCase": "Ulasan",
+      "states": [
+        "Daftar ulasan dan rating",
+        "Keadaan kosong bila tersedia"
+      ],
+      "mutatesDemoData": false,
+      "status": "verified",
+      "evidencePrefixes": [
+        "admin-final/04"
+      ],
+      "notes": [
+        "Keadaan kosong tidak tersedia pada data uji yang berisi ulasan; tidak menghapus data untuk membuatnya."
+      ]
+    },
+    {
+      "id": "floor-admin",
+      "useCase": "Editor denah",
+      "states": [
+        "Buka edit",
+        "Pilih ruangan",
+        "Preset bentuk",
+        "Pilih meja",
+        "Geser/putar/ubah ukuran",
+        "Validasi tabrakan/batas ruangan",
+        "Peringatan jarak",
+        "Simpan draft",
+        "Terapkan denah",
+        "Batalkan/keluar"
+      ],
+      "mutatesDemoData": true,
+      "status": "verified",
+      "evidencePrefixes": [
+        "admin-final/06",
+        "admin-final/07",
+        "admin-final/08",
+        "admin-final/09",
+        "admin-final/10",
+        "admin-final/11",
+        "admin-final/12"
+      ],
+      "notes": [
+        "Preset, geser, putar dan validasi batas dicoba. Draft/publish memakai geometri awal sehingga tidak mengubah posisi meja tersimpan. UI tidak menyediakan field lebar/tinggi untuk resize langsung."
+      ]
+    }
+  ],
+  "coordination": [
+    "Gunakan data uji terpisah pada server3100. Jangan ubah server aplikasi3000.",
+    "Perubahan tarif memengaruhi quote pelanggan; lakukan setelah alur pelanggan selesai, lalu pulihkan tarif awal.",
+    "Tutup shift hanya setelah uji tender kasir selesai.",
+    "Gunakan menu/kategori/promo uji sendiri; jangan mengubah unit dapur seed M01/M04 atau kunjungan pelanggan M06.",
+    "Editor denah hanya simpan/publish pada ruangan uji sendiri atau dokumentasikan dialog/validasi tanpa mengganggu denah bersama.",
+    "Catat semua setup API sebagai fixture; keberhasilan fitur UI harus dibuktikan oleh aksi UI."
+  ],
+  "requiredMetadata": [
+    "role",
+    "file",
+    "title",
+    "state",
+    "steps",
+    "status",
+    "viewport",
+    "capturedAt",
+    "browser"
+  ],
+  "statuses": [
+    "verified",
+    "partial",
+    "blocked",
+    "failed",
+    "not_tested",
+    "not_available"
+  ],
+  "completedRoles": [
+    "admin",
+    "admin-extra",
+    "admin-final",
+    "admin-overview"
+  ]
+}

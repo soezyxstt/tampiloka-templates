@@ -1,0 +1,849 @@
+{
+  "role": "customer",
+  "screenshots": [
+    {
+      "id": "customer-01",
+      "file": "customer/01-menu-desktop.png",
+      "title": "Menu desktop",
+      "state": "Meja M06, menu, kategori, harga, dan navigasi pelanggan.",
+      "steps": [
+        "Buka QR meja M06"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:29.052817+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-02",
+      "file": "customer/02-menu-mobile.png",
+      "title": "Menu mobile",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:30.087487+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-03",
+      "file": "customer/03-keranjang-kosong.png",
+      "title": "Keranjang kosong",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:32.078496+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-04",
+      "file": "customer/04-pesanan-kosong.png",
+      "title": "Pesanan kosong",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:33.926486+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-05",
+      "file": "customer/05-tagihan-belum-tersedia.png",
+      "title": "Tagihan belum tersedia",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:36.587614+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-06",
+      "file": "customer/06-pencarian-ditemukan.png",
+      "title": "Pencarian ditemukan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:38.797046+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-07",
+      "file": "customer/07-pencarian-tanpa-hasil.png",
+      "title": "Pencarian tanpa hasil",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:40.166692+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-08",
+      "file": "customer/08-reset-pencarian.png",
+      "title": "Reset pencarian",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:41.945173+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-09",
+      "file": "customer/09-kategori-kopi-espresso-susu.png",
+      "title": "Kategori Kopi Espresso & Susu",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:43.728777+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-10",
+      "file": "customer/10-kategori-manual-brew-single-origin.png",
+      "title": "Kategori Manual Brew & Single Origin",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:45.460199+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-11",
+      "file": "customer/11-kategori-non-kopi-matcha.png",
+      "title": "Kategori Non-Kopi & Matcha",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:47.167646+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-12",
+      "file": "customer/12-kategori-teh-seduhan-daun-asli.png",
+      "title": "Kategori Teh & Seduhan Daun Asli",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:48.925034+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-13",
+      "file": "customer/13-kategori-makanan-utama-nusantara.png",
+      "title": "Kategori Makanan Utama Nusantara",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:50.811424+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-14",
+      "file": "customer/14-kategori-pastry-viennoiserie.png",
+      "title": "Kategori Pastry & Viennoiserie",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:52.643647+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-15",
+      "file": "customer/15-kategori-kudapan-gorengan-hangat.png",
+      "title": "Kategori Kudapan & Gorengan Hangat",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:54.450940+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-16",
+      "file": "customer/16-filter-menu-tersedia.png",
+      "title": "Filter menu tersedia",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:19:57.397300+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-17",
+      "file": "customer/17-favorit-kosong.png",
+      "title": "Favorit kosong",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:00.122444+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-18",
+      "file": "customer/18-favorit-tersimpan.png",
+      "title": "Favorit tersimpan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:03.839783+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-19",
+      "file": "customer/19-menu-habis-tidak-dapat-ditambah.png",
+      "title": "Menu habis tidak dapat ditambah",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:07.700130+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-20",
+      "file": "customer/20-detail-produk-dan-varian.png",
+      "title": "Detail produk dan varian",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:13.447514+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-21",
+      "file": "customer/21-validasi-pilihan-wajib.png",
+      "title": "Validasi pilihan wajib",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:15.265945+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-22",
+      "file": "customer/22-pilihan-produk-catatan-dan-jumlah.png",
+      "title": "Pilihan produk catatan dan jumlah",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:23.077949+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-23",
+      "file": "customer/23-galeri-foto-produk-berikutnya.png",
+      "title": "Galeri foto produk berikutnya",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:25.145573+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-24",
+      "file": "customer/24-produk-ditambahkan-ke-keranjang.png",
+      "title": "Produk ditambahkan ke keranjang",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:27.033088+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-25",
+      "file": "customer/25-keranjang-berisi-produk.png",
+      "title": "Keranjang berisi produk",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:29.080577+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-26",
+      "file": "customer/26-ubah-produk-dari-keranjang.png",
+      "title": "Ubah produk dari keranjang",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:30.957115+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-27",
+      "file": "customer/27-perubahan-keranjang-tersimpan.png",
+      "title": "Perubahan keranjang tersimpan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:33.273989+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-28",
+      "file": "customer/28-keranjang-beberapa-produk.png",
+      "title": "Keranjang beberapa produk",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:37.902290+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-29",
+      "file": "customer/29-konfirmasi-pesanan.png",
+      "title": "Konfirmasi pesanan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:39.788534+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-30",
+      "file": "customer/30-validasi-nama-pemesan-kosong.png",
+      "title": "Validasi nama pemesan kosong",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:41.629437+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-31",
+      "file": "customer/31-login-member-belum-tersedia.png",
+      "title": "Login member belum tersedia",
+      "state": "",
+      "steps": [],
+      "status": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:44.359227+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-32",
+      "file": "customer/32-kode-promo-tidak-tersedia.png",
+      "title": "Kode promo tidak dikenal",
+      "state": "Kode TIDAKADA diisi dan diterapkan. UI tidak menampilkan penolakan kode secara jelas; perlu uji pembanding promo valid.",
+      "steps": [],
+      "status": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:47.945873+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-33",
+      "file": "customer/33-checkout-nama-dan-rincian-biaya.png",
+      "title": "Checkout nama dan rincian biaya",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:49.411401+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-34",
+      "file": "customer/34-qr-tautan-meja.png",
+      "title": "QR tautan meja",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:54.354397+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-35",
+      "file": "customer/35-menu-profil-dan-layanan.png",
+      "title": "Menu profil dan layanan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:56.334620+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-36",
+      "file": "customer/36-wi-fi-dan-informasi-outlet.png",
+      "title": "Wi-Fi dan informasi outlet",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:20:58.097563+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-37",
+      "file": "customer/37-member-dan-ulasan.png",
+      "title": "Member dan ulasan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:00.906560+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-38",
+      "file": "customer/38-kirim-ulasan.png",
+      "title": "Ulasan sebelum ada kunjungan",
+      "state": "Belum ada kunjungan aktif: UI menampilkan Isi nama pemesan terlebih dahulu meskipun nama Dina sudah diisi, dengan label warna sukses.",
+      "steps": [],
+      "status": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:03.508211+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-39",
+      "file": "customer/39-form-antrean-meja.png",
+      "title": "Form antrean meja",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:06.310095+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-40",
+      "file": "customer/40-validasi-nama-antrean.png",
+      "title": "Antrean memakai nama pemesan",
+      "state": "Nama antrean kosong menggunakan fallback nama pemesan Dina; entri antrean A-003 berhasil dibuat.",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:08.995355+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-41",
+      "file": "customer/41-antrean-berhasil-diambil.png",
+      "title": "Antrean berhasil diambil",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:12.384301+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-42",
+      "file": "customer/42-pilihan-layanan-pelayan.png",
+      "title": "Pilihan layanan pelayan",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:14.307773+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-43",
+      "file": "customer/43-permintaan-bantuan-terkirim.png",
+      "title": "Permintaan bantuan terkirim",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:18.259085+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-44",
+      "file": "customer/44-pesanan-menunggu-konfirmasi-kasir.png",
+      "title": "Pesanan menunggu konfirmasi kasir",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:27.291642+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-45",
+      "file": "customer/45-pesanan-diterima-dan-menunggu-pembayaran.png",
+      "title": "Pesanan diterima dan menunggu pembayaran",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:34.814053+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-46",
+      "file": "customer/46-ringkasan-tagihan-dan-metode-pembayaran.png",
+      "title": "Ringkasan tagihan dan metode pembayaran",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:36.798183+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-47",
+      "file": "customer/47-pilihan-transfer-bank-demo.png",
+      "title": "Pilihan transfer bank demo",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:38.725428+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-48",
+      "file": "customer/48-qris-demo-menunggu-pembayaran.png",
+      "title": "QRIS demo menunggu pembayaran",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:42.211768+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-49",
+      "file": "customer/49-cek-status-pembayaran-pending.png",
+      "title": "Cek status pembayaran pending",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:44.237226+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-50",
+      "file": "customer/50-unduh-qr-demo.png",
+      "title": "Unduh QR demo",
+      "state": "Tombol Unduh memicu event download, tetapi transfer berkas Steel menghasilkan0byte; artefak unduhan belum dapat diverifikasi pada sesi remote.",
+      "steps": [],
+      "status": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:46.094358+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "customer-51",
+      "file": "customer/51-pembayaran-desktop.png",
+      "title": "Pembayaran desktop",
+      "state": "",
+      "steps": [],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/t/kedai-meranti-group/kedai-meranti/m/qr_meranti_m06",
+      "capturedAt": "2026-10-24T02:21:47.153489+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    }
+  ],
+  "errors": [],
+  "findings": [
+    {
+      "title": "Login member",
+      "description": "UI menampilkan fallback tamu; autentikasi member belum tersedia.",
+      "status": "not_available"
+    },
+    {
+      "title": "Ulasan sebelum kunjungan",
+      "description": "Ulasan tidak dikirim sebelum ada kunjungan aktif; pesan meminta nama meski nama sudah diisi dan memakai warna sukses.",
+      "status": "partial"
+    },
+    {
+      "title": "Kode promo tidak dikenal",
+      "description": "Terapkan kode TIDAKADA tidak menampilkan penolakan yang jelas pada UI.",
+      "status": "partial"
+    },
+    {
+      "title": "Transfer unduhan dari Steel",
+      "description": "Event unduhan QR teramati, tetapi save_as pada browser remote menghasilkan berkas0byte. Ini keterbatasan verifikasi transfer, bukan bukti bahwa QR tidak dirender atau UI pasti gagal.",
+      "status": "tool_limitation"
+    }
+  ],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}

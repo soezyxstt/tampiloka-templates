@@ -1,0 +1,313 @@
+{
+  "role": "admin-extra",
+  "screenshots": [
+    {
+      "id": "admin-extra-01",
+      "file": "admin-extra/01-shift-kasir-aktif.png",
+      "title": "Shift kasir aktif",
+      "state": "Ringkasan kas shift sebelum pengujian mutasi.",
+      "steps": [
+        "Buka Laporan & Shift"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:44.039840+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "admin-extra-02",
+      "file": "admin-extra/02-kas-masuk-menolak-nominal-negatif.png",
+      "title": "Kas masuk menolak nominal negatif",
+      "state": "Backend menolak nominal kurang dari atau sama dengan nol.",
+      "steps": [
+        "Isi nominal -1",
+        "Klik Catat Kas Masuk"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:46.006392+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-03",
+      "file": "admin-extra/03-kas-masuk-memerlukan-keterangan.png",
+      "title": "Kas masuk memerlukan keterangan",
+      "state": "Backend menolak alasan kosong.",
+      "steps": [
+        "Isi nominal10000",
+        "Kosongkan keterangan",
+        "Klik Catat Kas Masuk"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:48.012179+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-04",
+      "file": "admin-extra/04-kas-masuk-tercatat.png",
+      "title": "Kas masuk tercatat",
+      "state": "Kas masuk demo Rp10.000 tercatat melalui UI.",
+      "steps": [
+        "Isi keterangan",
+        "Catat Kas Masuk"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:49.787033+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-05",
+      "file": "admin-extra/05-kas-keluar-tercatat.png",
+      "title": "Kas keluar tercatat",
+      "state": "Kas keluar demo Rp10.000 menyeimbangkan percobaan kas masuk.",
+      "steps": [
+        "Catat Kas Keluar10000"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:51.744418+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-06",
+      "file": "admin-extra/06-selisih-kas-memerlukan-alasan.png",
+      "title": "Selisih kas memerlukan alasan",
+      "state": "Shift tidak ditutup ketika terdapat selisih tanpa catatan.",
+      "steps": [
+        "Isi hitungan berbeda1000",
+        "Kosongkan catatan",
+        "Tutup Shift"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:53.818952+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-07",
+      "file": "admin-extra/07-shift-kasir-ditutup.png",
+      "title": "Shift kasir ditutup",
+      "state": "Hitungan fisik sama dengan expectedCash, shift menjadi CLOSED.",
+      "steps": [
+        "Isi hitungan sesuai",
+        "Tutup Shift"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:55.832865+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-08",
+      "file": "admin-extra/08-shift-kasir-baru-dibuka.png",
+      "title": "Shift kasir baru dibuka",
+      "state": "Shift demo baru dimulai dengan modal Rp500.000.",
+      "steps": [
+        "Klik Buka Shift Kasir Baru"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:57.137435+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-09",
+      "file": "admin-extra/09-pengaturan-pajak-promo-dan-ulasan.png",
+      "title": "Pengaturan pajak promo dan ulasan",
+      "state": "Tarif aktif, preset, tarif kustom, daftar promo dan ulasan.",
+      "steps": [
+        "Buka Pengaturan"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:27:58.940758+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "full-page"
+    },
+    {
+      "id": "admin-extra-10",
+      "file": "admin-extra/10-preset-pajak-gagal-diterapkan.png",
+      "title": "Preset pajak gagal diterapkan",
+      "state": "UI mencoba UPDATE_OUTLET_SETTINGS; backend tidak mengenali aksi. Nilai tersimpan tetap5%layanan10%pajak.",
+      "steps": [
+        "Klik Tanpa pajak & layanan"
+      ],
+      "status": "blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:28:00.343839+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-11",
+      "file": "admin-extra/11-tarif-kustom-gagal-disimpan.png",
+      "title": "Tarif kustom gagal disimpan",
+      "state": "Simpan tarif kustom juga ditolak; tarif asli tetap tersimpan.",
+      "steps": [
+        "Isi5dan10",
+        "Klik Simpan"
+      ],
+      "status": "blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:28:02.347194+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-12",
+      "file": "admin-extra/12-dialog-promo-baru.png",
+      "title": "Dialog promo baru",
+      "state": "Kode, nama, minimum belanja dan potongan.",
+      "steps": [
+        "Klik Tambah Promo"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:28:03.851237+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "admin-extra-13",
+      "file": "admin-extra/13-validasi-promo-kosong.png",
+      "title": "Promo kosong diterima",
+      "state": "Kode dan nama kosong serta potongan0 tetap diterbitkan; toast berhasil dan baris promo kosong terlihat.",
+      "steps": [
+        "Kosongkan kode/nama",
+        "Terbitkan"
+      ],
+      "status": "failed",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:28:07.104097+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    }
+  ],
+  "errors": [
+    {
+      "type": "pageerror",
+      "message": "Nominal kas masuk/keluar harus lebih dari Rp0.",
+      "classification": "expected-validation-rejection"
+    },
+    {
+      "type": "pageerror",
+      "message": "Alasan kas masuk/keluar wajib diisi.",
+      "classification": "expected-validation-rejection"
+    },
+    {
+      "type": "pageerror",
+      "message": "Selisih kas wajib disertai alasan penutupan shift.",
+      "classification": "expected-validation-rejection"
+    },
+    {
+      "type": "pageerror",
+      "message": "Aksi pengaturan/promo/feedback tidak valid.",
+      "classification": "application-command-error"
+    },
+    {
+      "type": "pageerror",
+      "message": "Aksi pengaturan/promo/feedback tidak valid.",
+      "classification": "application-command-error"
+    }
+  ],
+  "findings": [
+    {
+      "title": "Pengaturan tarif tidak tersimpan",
+      "description": "Tombol preset dan Simpan mengirim action UPDATE_OUTLET_SETTINGS dengan outletPatch; service hanya menangani UPDATE_OUTLET_POLICY. UI memilih preset lokal tetapi API gagal dan tarif tersimpan tidak berubah. Semua preset berbagi jalur yang sama.",
+      "status": "blocked"
+    },
+    {
+      "title": "Promo kosong dapat diterbitkan",
+      "description": "Kode dan nama kosong diterima melalui UI dan backend. Data snapshot mengonfirmasi code/name kosong dan screenshot menunjukkan toast berhasil.",
+      "status": "blocked"
+    }
+  ],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium",
+  "testHarnessNotes": [
+    {
+      "type": "scenario",
+      "message": "Locator.click: Timeout 12000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"dialog\").get_by_role(\"button\", name=\"Tutup\", exact=True)\n"
+    },
+    {
+      "type": "test-harness-note",
+      "message": "Timeout terakhir berasal dari usaha menutup dialog yang sudah berhasil tertutup; bukan kegagalan aplikasi. Metadata screenshot13 sudah direkonsiliasi dengan bukti visual dan snapshot."
+    }
+  ]
+}

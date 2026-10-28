@@ -1,0 +1,292 @@
+{
+  "screenshots": [
+    {
+      "id": "AUX-01",
+      "file": "aux-01-home.png",
+      "title": "Beranda desktop",
+      "useCase": "Beranda desktop",
+      "state": "Beranda lengkap setelah aplikasi selesai dimuat.",
+      "observedResult": "Beranda lengkap setelah aplikasi selesai dimuat.",
+      "steps": [
+        "Buka tautan sumber",
+        "Tunggu aplikasi selesai memuat"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:40:50.219095+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-02",
+      "file": "aux-02-orders.png",
+      "title": "Keranjang kosong",
+      "useCase": "Keranjang kosong",
+      "state": "Toast Your cart is empty. Nama file historis tidak mencerminkan state aktual.",
+      "observedResult": "Toast Your cart is empty. Nama file historis tidak mencerminkan state aktual.",
+      "steps": [
+        "Buka tautan sumber",
+        "Klik My Cart saat keranjang kosong"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1911,
+        "height": 988
+      },
+      "capturedAt": "2026-10-23T19:42:02.576011+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-03",
+      "file": "aux-03-orders-empty.png",
+      "title": "Riwayat pesanan kosong",
+      "useCase": "Riwayat pesanan kosong",
+      "state": "Transaction: You haven't placed any orders yet.",
+      "observedResult": "Transaction: You haven't placed any orders yet.",
+      "steps": [
+        "Buka tautan sumber",
+        "Klik Orders"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:42:37.379498+07:00",
+      "url": "https://order.millehub.com/orders",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-04",
+      "file": "aux-04-order-code.png",
+      "title": "Order Code sebelum dialog",
+      "useCase": "Order Code sebelum dialog",
+      "state": "State transisi pada beranda setelah klik Order Code, sebelum dialog tampil.",
+      "observedResult": "State transisi pada beranda setelah klik Order Code, sebelum dialog tampil.",
+      "steps": [
+        "Kembali ke beranda",
+        "Klik Order Code"
+      ],
+      "status": "intermediate",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:43:08.048345+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-05",
+      "file": "aux-05-order-code-dialog.png",
+      "title": "Bagikan sesi pesanan",
+      "useCase": "Bagikan sesi pesanan",
+      "state": "Dialog My Order menampilkan QR dan tautan untuk bergabung dalam sesi. QR ini bukan QRIS pembayaran.",
+      "observedResult": "Dialog My Order menampilkan QR dan tautan untuk bergabung dalam sesi. QR ini bukan QRIS pembayaran.",
+      "steps": [
+        "Buka tautan sumber",
+        "Klik Order Code",
+        "Tunggu dialog tampil"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:43:33.724582+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-06",
+      "file": "aux-06-call-waiter-dialog.png",
+      "title": "Konfirmasi bantuan pelayan",
+      "useCase": "Konfirmasi bantuan pelayan",
+      "state": "Dialog Request Assistance? berisi No dan Yes. Dipilih No; tidak memanggil pelayan.",
+      "observedResult": "Dialog Request Assistance? berisi No dan Yes. Dipilih No; tidak memanggil pelayan.",
+      "steps": [
+        "Buka tautan sumber",
+        "Klik Call Waiter",
+        "Ambil screenshot dialog",
+        "Klik No"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:43:54.097685+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-07",
+      "file": "aux-07-table-info.png",
+      "title": "Informasi meja",
+      "useCase": "Informasi meja",
+      "state": "Klik 09 indoor tidak membuka tampilan lain; informasi meja tetap 09 indoor.",
+      "observedResult": "Klik 09 indoor tidak membuka tampilan lain; informasi meja tetap 09 indoor.",
+      "steps": [
+        "Buka beranda",
+        "Klik 09 indoor"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:44:18.294486+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-08",
+      "file": "aux-08-customer-form.png",
+      "title": "Form pelanggan",
+      "useCase": "Form pelanggan",
+      "state": "Form Name Order: New Customer, Loyal Customer, Name, Phone optional, Email optional, Apply Customer.",
+      "observedResult": "Form Name Order: New Customer, Loyal Customer, Name, Phone optional, Email optional, Apply Customer.",
+      "steps": [
+        "Buka beranda",
+        "Klik New Customer"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:44:48.304784+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-09",
+      "file": "aux-09-mille-header.png",
+      "title": "Menu Mille",
+      "useCase": "Menu Mille",
+      "state": "Drawer versi 2.2.4: About Mille, Get Help, English.",
+      "observedResult": "Drawer versi 2.2.4: About Mille, Get Help, English.",
+      "steps": [
+        "Buka tautan sumber",
+        "Klik logo Mille pada kanan atas"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:45:07.773838+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-10",
+      "file": "aux-10-language-options.png",
+      "title": "Pilihan bahasa",
+      "useCase": "Pilihan bahasa",
+      "state": "Dialog bahasa: English, Bahasa Indonesia, 中文, 日本語, 한국어.",
+      "observedResult": "Dialog bahasa: English, Bahasa Indonesia, 中文, 日本語, 한국어.",
+      "steps": [
+        "Buka menu Mille",
+        "Klik English"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:45:29.267390+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-11",
+      "file": "aux-11-language-indonesia.png",
+      "title": "Bahasa Indonesia diterapkan",
+      "useCase": "Bahasa Indonesia diterapkan",
+      "state": "Label drawer berubah menjadi Tutup, Tentang Mille, Bantuan, Bahasa Indonesia.",
+      "observedResult": "Label drawer berubah menjadi Tutup, Tentang Mille, Bantuan, Bahasa Indonesia.",
+      "steps": [
+        "Buka pilihan bahasa",
+        "Pilih Bahasa Indonesia"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:45:49.916971+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-12",
+      "file": "aux-12-home-indonesia.png",
+      "title": "Beranda Bahasa Indonesia",
+      "useCase": "Beranda Bahasa Indonesia",
+      "state": "Beranda setelah penerapan Bahasa Indonesia.",
+      "observedResult": "Beranda setelah penerapan Bahasa Indonesia.",
+      "steps": [
+        "Pilih Bahasa Indonesia",
+        "Tutup drawer"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:46:20.704499+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    },
+    {
+      "id": "AUX-13",
+      "file": "aux-13-about-mille-action.png",
+      "title": "Tentang Mille tanpa perubahan tampilan",
+      "useCase": "Tentang Mille tanpa perubahan tampilan",
+      "state": "Klik Tentang Mille tidak mengubah tampilan atau membuka tab dalam sesi yang diamati.",
+      "observedResult": "Klik Tentang Mille tidak mengubah tampilan atau membuka tab dalam sesi yang diamati.",
+      "steps": [
+        "Buka drawer berbahasa Indonesia",
+        "Klik Tentang Mille"
+      ],
+      "status": "blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "capturedAt": "2026-10-23T19:46:24.376821+07:00",
+      "url": "https://order.millehub.com/home",
+      "orderSubmitted": false,
+      "paymentMade": false
+    }
+  ],
+  "notes": [
+    {
+      "feature": "Get Help",
+      "status": "blocked",
+      "result": "Percobaan klik Bantuan tidak selesai merespons dalam waktu tunggu. Tidak ada pesan bantuan yang dikirim."
+    },
+    {
+      "feature": "Bahasa lain",
+      "status": "not_tested",
+      "result": "Daftar pilihan teramati; hanya Bahasa Indonesia yang diuji penerapannya."
+    }
+  ]
+}

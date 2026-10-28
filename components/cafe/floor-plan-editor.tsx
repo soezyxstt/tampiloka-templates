@@ -610,8 +610,8 @@ export function FloorPlanEditor({
 
           {/* Clean Hairline List of Tables in Room */}
           <div className="space-y-2">
-            <h4 className="text-[13px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
-              Daftar Meja ({draftTables.length})
+            <h4 className="font-heading text-[16px] font-semibold text-[var(--foreground)]">
+              Meja ({draftTables.length})
             </h4>
             <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
               {draftTables.map((t) => {

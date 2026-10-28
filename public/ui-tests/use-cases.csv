@@ -1,0 +1,220 @@
+﻿ID;Peran;Use case;Status;Screenshot;Hasil;Langkah
+customer-01;Pelanggan;Menu desktop;verified;customer/01-menu-desktop.png;Meja M06, menu, kategori, harga, dan navigasi pelanggan.;Buka QR meja M06
+customer-02;Pelanggan;Menu mobile;verified;customer/02-menu-mobile.png;Menu mobile;Ubah viewport ke390×844
+customer-03;Pelanggan;Keranjang kosong;verified;customer/03-keranjang-kosong.png;Keranjang kosong;Buka Keranjang saat kosong
+customer-04;Pelanggan;Pesanan kosong;verified;customer/04-pesanan-kosong.png;Pesanan kosong;Buka Pesanan sebelum memesan
+customer-05;Pelanggan;Tagihan belum tersedia;verified;customer/05-tagihan-belum-tersedia.png;Tagihan belum tersedia;Buka Lainnya → Pilih Pembayaran sebelum ada tagihan
+customer-06;Pelanggan;Pencarian ditemukan;verified;customer/06-pencarian-ditemukan.png;Pencarian ditemukan;Cari menu matcha
+customer-07;Pelanggan;Pencarian tanpa hasil;verified;customer/07-pencarian-tanpa-hasil.png;Pencarian tanpa hasil;Cari zzz-tidak-ada
+customer-08;Pelanggan;Reset pencarian;verified;customer/08-reset-pencarian.png;Reset pencarian;Klik Reset pencarian
+customer-09;Pelanggan;Kategori Kopi Espresso & Susu;verified;customer/09-kategori-kopi-espresso-susu.png;Kategori Kopi Espresso & Susu;Klik kategori Kopi Espresso & Susu
+customer-10;Pelanggan;Kategori Manual Brew & Single Origin;verified;customer/10-kategori-manual-brew-single-origin.png;Kategori Manual Brew & Single Origin;Klik kategori Manual Brew & Single Origin
+customer-11;Pelanggan;Kategori Non-Kopi & Matcha;verified;customer/11-kategori-non-kopi-matcha.png;Kategori Non-Kopi & Matcha;Klik kategori Non-Kopi & Matcha
+customer-12;Pelanggan;Kategori Teh & Seduhan Daun Asli;verified;customer/12-kategori-teh-seduhan-daun-asli.png;Kategori Teh & Seduhan Daun Asli;Klik kategori Teh & Seduhan Daun Asli
+customer-13;Pelanggan;Kategori Makanan Utama Nusantara;verified;customer/13-kategori-makanan-utama-nusantara.png;Kategori Makanan Utama Nusantara;Klik kategori Makanan Utama Nusantara
+customer-14;Pelanggan;Kategori Pastry & Viennoiserie;verified;customer/14-kategori-pastry-viennoiserie.png;Kategori Pastry & Viennoiserie;Klik kategori Pastry & Viennoiserie
+customer-15;Pelanggan;Kategori Kudapan & Gorengan Hangat;verified;customer/15-kategori-kudapan-gorengan-hangat.png;Kategori Kudapan & Gorengan Hangat;Klik kategori Kudapan & Gorengan Hangat
+customer-16;Pelanggan;Filter menu tersedia;verified;customer/16-filter-menu-tersedia.png;Filter menu tersedia;Aktifkan Tersedia saja
+customer-17;Pelanggan;Favorit kosong;verified;customer/17-favorit-kosong.png;Favorit kosong;Aktifkan filter favorit saat belum menyimpan menu
+customer-18;Pelanggan;Favorit tersimpan;verified;customer/18-favorit-tersimpan.png;Favorit tersimpan;Simpan kopi ke favorit → Aktifkan filter favorit
+customer-19;Pelanggan;Menu habis tidak dapat ditambah;verified;customer/19-menu-habis-tidak-dapat-ditambah.png;Menu habis tidak dapat ditambah;Buka detail pisang goreng yang habis → Coba Tambah ke keranjang
+customer-20;Pelanggan;Detail produk dan varian;verified;customer/20-detail-produk-dan-varian.png;Detail produk dan varian;Buka detail Es Kopi Susu Gula Aren
+customer-21;Pelanggan;Validasi pilihan wajib;verified;customer/21-validasi-pilihan-wajib.png;Validasi pilihan wajib;Klik Tambah ke keranjang tanpa pilihan wajib
+customer-22;Pelanggan;Pilihan produk catatan dan jumlah;verified;customer/22-pilihan-produk-catatan-dan-jumlah.png;Pilihan produk catatan dan jumlah;Pilih varian, takaran gula dan es → Isi catatan → Naikkan jumlah menjadi2
+customer-23;Pelanggan;Galeri foto produk berikutnya;verified;customer/23-galeri-foto-produk-berikutnya.png;Galeri foto produk berikutnya;Klik foto berikutnya
+customer-24;Pelanggan;Produk ditambahkan ke keranjang;verified;customer/24-produk-ditambahkan-ke-keranjang.png;Produk ditambahkan ke keranjang;Klik Tambah ke keranjang
+customer-25;Pelanggan;Keranjang berisi produk;verified;customer/25-keranjang-berisi-produk.png;Keranjang berisi produk;Buka Keranjang
+customer-26;Pelanggan;Ubah produk dari keranjang;verified;customer/26-ubah-produk-dari-keranjang.png;Ubah produk dari keranjang;Klik Ubah pada produk di keranjang
+customer-27;Pelanggan;Perubahan keranjang tersimpan;verified;customer/27-perubahan-keranjang-tersimpan.png;Perubahan keranjang tersimpan;Ubah catatan menjadi Tanpa sedotan → Simpan perubahan
+customer-28;Pelanggan;Keranjang beberapa produk;verified;customer/28-keranjang-beberapa-produk.png;Keranjang beberapa produk;Tambahkan teh melati → Buka Keranjang
+customer-29;Pelanggan;Konfirmasi pesanan;verified;customer/29-konfirmasi-pesanan.png;Konfirmasi pesanan;Klik Checkout
+customer-30;Pelanggan;Validasi nama pemesan kosong;verified;customer/30-validasi-nama-pemesan-kosong.png;Validasi nama pemesan kosong;Kirim pesanan tanpa nama pemesan
+customer-31;Pelanggan;Login member belum tersedia;partial;customer/31-login-member-belum-tersedia.png;Login member belum tersedia;Pilih Member pada identitas pemesan
+customer-32;Pelanggan;Kode promo tidak dikenal;partial;customer/32-kode-promo-tidak-tersedia.png;"Kode TIDAKADA diisi dan diterapkan. UI tidak menampilkan penolakan kode secara jelas; perlu uji pembanding promo valid.";Isi kode TIDAKADA → Klik Terapkan
+customer-33;Pelanggan;Checkout nama dan rincian biaya;verified;customer/33-checkout-nama-dan-rincian-biaya.png;Checkout nama dan rincian biaya;Isi nama Dina → Lihat ringkasan
+customer-34;Pelanggan;QR tautan meja;verified;customer/34-qr-tautan-meja.png;QR tautan meja;Buka Kode pesanan
+customer-35;Pelanggan;Menu profil dan layanan;verified;customer/35-menu-profil-dan-layanan.png;Menu profil dan layanan;Buka menu profil dan layanan
+customer-36;Pelanggan;Wi-Fi dan informasi outlet;verified;customer/36-wi-fi-dan-informasi-outlet.png;Wi-Fi dan informasi outlet;Pilih Wi-Fi
+customer-37;Pelanggan;Member dan ulasan;verified;customer/37-member-dan-ulasan.png;Member dan ulasan;Pilih Member
+customer-38;Pelanggan;Ulasan sebelum ada kunjungan;partial;customer/38-kirim-ulasan.png;Belum ada kunjungan aktif: UI menampilkan Isi nama pemesan terlebih dahulu meskipun nama Dina sudah diisi, dengan label warna sukses.;Isi ulasan sebelum ada kunjungan aktif → Klik Kirim ulasan
+customer-39;Pelanggan;Form antrean meja;verified;customer/39-form-antrean-meja.png;Form antrean meja;Buka Antrean meja
+customer-40;Pelanggan;Antrean memakai nama pemesan;verified;customer/40-validasi-nama-antrean.png;"Nama antrean kosong menggunakan fallback nama pemesan Dina; entri antrean A-003 berhasil dibuat.";Biarkan nama antrean kosong dengan nama pemesan Dina → Klik Ambil antrean
+customer-41;Pelanggan;Antrean berhasil diambil;verified;customer/41-antrean-berhasil-diambil.png;Antrean berhasil diambil;Isi nama antrean Dina Antrean → Klik Ambil antrean
+customer-42;Pelanggan;Pilihan layanan pelayan;verified;customer/42-pilihan-layanan-pelayan.png;Pilihan layanan pelayan;Buka Panggil pelayan
+customer-43;Pelanggan;Permintaan bantuan terkirim;verified;customer/43-permintaan-bantuan-terkirim.png;Permintaan bantuan terkirim;Pilih Alat makan → Isi catatan dua sendok → Kirim permintaan
+customer-44;Pelanggan;Pesanan menunggu konfirmasi kasir;verified;customer/44-pesanan-menunggu-konfirmasi-kasir.png;Pesanan menunggu konfirmasi kasir;Checkout sebagai Dina → Konfirmasi Kirim pesanan
+customer-45;Pelanggan;Pesanan diterima dan menunggu pembayaran;verified;customer/45-pesanan-diterima-dan-menunggu-pembayaran.png;Pesanan diterima dan menunggu pembayaran;Kasir menerima pesanan Dina lewat UI → Pelanggan klik Refresh
+customer-46;Pelanggan;Ringkasan tagihan dan metode pembayaran;verified;customer/46-ringkasan-tagihan-dan-metode-pembayaran.png;Ringkasan tagihan dan metode pembayaran;Buka Bayar / Lihat Struk
+customer-47;Pelanggan;Pilihan transfer bank demo;verified;customer/47-pilihan-transfer-bank-demo.png;Pilihan transfer bank demo;Pilih Transfer bank
+customer-48;Pelanggan;QRIS demo menunggu pembayaran;verified;customer/48-qris-demo-menunggu-pembayaran.png;QRIS demo menunggu pembayaran;Pilih QRIS → Klik Buat QRIS
+customer-49;Pelanggan;Cek status pembayaran pending;verified;customer/49-cek-status-pembayaran-pending.png;Cek status pembayaran pending;Klik Cek status
+customer-50;Pelanggan;Unduh QR demo;partial;customer/50-unduh-qr-demo.png;"Tombol Unduh memicu event download, tetapi transfer berkas Steel menghasilkan0byte; artefak unduhan belum dapat diverifikasi pada sesi remote.";Klik Unduh → Periksa event download dan hasil transfer
+customer-51;Pelanggan;Pembayaran desktop;verified;customer/51-pembayaran-desktop.png;Pembayaran desktop;Ubah viewport ke1440×1000
+customer-extra-01;Pelanggan;Seluruh menu mobile;verified;customer-extra/01-seluruh-menu-mobile.png;Full-page dari aplikasi aktual.;
+customer-extra-02;Pelanggan;Menu sebelum klik otomatis diulang;test_harness;customer-extra/02-varian-tambahan-promo-dan-hapus-kendala.png;"Percobaan klik otomatis belum mencapai detail produk; skenario diulang.";
+customer-extra-03;Pelanggan;Ulasan setelah kunjungan aktif;blocked;customer-extra/03-ulasan-setelah-kunjungan-aktif.png;Nama Dina dan kunjungan aktif sudah ada, tetapi pengiriman ulasan gagal dengan SQL error mentah pada UI.;
+customer-extra-04;Pelanggan;Salin sandi Wi-Fi;verified;customer-extra/04-salin-sandi-wi-fi.png;Salin sandi Wi-Fi;
+customer-extra-05;Pelanggan;Kode meja dan salin tautan;verified;customer-extra/05-kode-meja-dan-salin-tautan.png;Kode meja dan salin tautan;
+customer-extra-06;Pelanggan;Tautan meja tersalin;verified;customer-extra/06-tautan-meja-tersalin.png;Tautan meja tersalin;
+customer-extra-07;Pelanggan;Antrean tanpa nama pemesan;verified;customer-extra/07-antrean-tanpa-nama-pemesan.png;"Nama antrean dan nama pemesan kosong; respons validasi aktual.";
+customer-extra-08;Pelanggan;Kode meja tidak valid;verified;customer-extra/08-kode-meja-tidak-valid.png;Kode meja tidak valid;
+customer-extra-09;Pelanggan;Lokasi di luar radius;verified;customer-extra/09-lokasi-di-luar-radius.png;"Fixture browser geolokasi0,0; pemeriksaan server asli.";
+customer-extra-10;Pelanggan;Lokasi dalam radius;verified;customer-extra/10-lokasi-dalam-radius.png;"Fixture browser di lokasi outlet; pemeriksaan server asli.";
+customer-extra-11;Pelanggan;Pemilihan meja dan jenis layanan;verified;customer-extra/11-pemilihan-meja-dan-jenis-layanan.png;Pemilihan meja dan jenis layanan;
+customer-extra-12;Pelanggan;Pilihan bawa pulang;verified;customer-extra/12-pilihan-bawa-pulang.png;Pilihan bawa pulang;
+customer-extra-13;Pelanggan;Checkout bawa pulang;partial;customer-extra/13-checkout-bawa-pulang.png;Bawa pulang masih menampilkan verifikasi meja/lokasi.;
+customer-configurations-01;Pelanggan;Seluruh menu mobile;verified;customer-configurations/01-seluruh-menu-mobile.png;Full-page dari aplikasi aktual.;
+customer-configurations-02;Pelanggan;Varian large dan dua tambahan;verified;customer-configurations/02-varian-large-dan-dua-tambahan.png;"Large, kurang manis, es sedikit, oat, extra shot, jumlah2; batas catatan aktual 200 karakter.";
+customer-configurations-03;Pelanggan;Promo tidak dikenal tanpa penjelasan;partial;customer-configurations/03-promo-tidak-dikenal-tanpa-penjelasan.png;Kode TIDAKADA tetap memberi ringkasan normal tanpa pesan penolakan.;
+customer-configurations-04;Pelanggan;Promo HEMAT10 pada keranjang;verified;customer-configurations/04-promo-hemat10-pada-keranjang.png;Promo valid diuji lewat tombol Terapkan.;
+customer-configurations-05;Pelanggan;Jumlah keranjang dikurangi;verified;customer-configurations/05-jumlah-keranjang-dikurangi.png;Jumlah keranjang dikurangi;
+customer-configurations-06;Pelanggan;Item terakhir dihapus keranjang kosong;verified;customer-configurations/06-item-terakhir-dihapus-keranjang-kosong.png;Item terakhir dihapus keranjang kosong;
+customer-receipts-01;Pelanggan;Status pesanan selesai dan aktif;verified;customer-receipts/01-status-pesanan-selesai-dan-aktif.png;"Pesanan mejaM01 setelah proses dapur; snapshot nyata.";
+customer-receipts-02;Pelanggan;Tagihan lunas dan struk digital pelanggan;verified;customer-receipts/02-tagihan-lunas-dan-struk-digital-pelanggan.png;"Seed demo mejaM01 memiliki receipt; screenshot seluruh halaman.";
+customer-receipts-03;Pelanggan;Tautan tagihan tersalin;verified;customer-receipts/03-tautan-tagihan-tersalin.png;Tautan tagihan tersalin;
+customer-receipts-04;Pelanggan;Tautan bersama membuka tagihan yang sama;verified;customer-receipts/04-tautan-bersama-membuka-tagihan-yang-sama.png;Tautan dari clipboard dibuka pada halaman baru.;
+customer-receipts-05;Pelanggan;QR meja tidak valid;verified;customer-receipts/05-qr-meja-tidak-valid.png;Token meja tidak dikenal menampilkan halaman404.;
+cashier-01;Kasir;Login staf;verified;cashier/01-login-staf.png;Form login dan pilihan akses demo.;Buka portal staf
+cashier-02;Kasir;Validasi PIN salah;verified;cashier/02-validasi-pin-salah.png;PIN tidak sesuai menampilkan pesan kesalahan.;Isi PIN 9999 → Klik Masuk
+cashier-03;Kasir;Dashboard kasir desktop;verified;cashier/03-dashboard-kasir-desktop.png;Ringkasan operasional dan daftar tagihan.;Masuk memakai akses demo kasir
+cashier-04;Kasir;Cari tagihan ditemukan;verified;cashier/04-cari-tagihan-ditemukan.png;Daftar difilter berdasarkan nama pelanggan Bagas.;Isi pencarian Bagas
+cashier-05;Kasir;Cari tagihan kosong;verified;cashier/05-cari-tagihan-kosong.png;Tidak ada tagihan untuk kata pencarian.;Isi kata tanpa hasil
+cashier-06;Kasir;Filter tagihan lunas;verified;cashier/06-filter-tagihan-lunas.png;Daftar tagihan lunas dan detail status lunas.;Pilih Lunas
+cashier-07;Kasir;Filter semua tagihan;verified;cashier/07-filter-semua-tagihan.png;Tagihan lunas dan belum lunas tersedia.;Pilih Semua
+cashier-08;Kasir;Pesanan baru dari kasir;verified;cashier/08-pesanan-baru-dari-kasir.png;"Dialog hanya menyediakan nama, meja, menu dan jumlah; tidak ada TAKEAWAY.";Klik Pesanan baru
+cashier-09;Kasir;Pesanan kasir gagal;blocked;cashier/09-pesanan-kasir-gagal.png;"Klik Kirim pesanan tidak membuat pesanan; modal tetap terbuka. Error command dilaporkan melalui pageerror.";Kosongkan nama → Pilih Teh Melati → Kirim pesanan
+cashier-10;Kasir;Tagihan fixture kasir;verified;cashier/10-tagihan-fixture-kasir.png;"Fixture API tiga teh dipilih; subtotal, pajak, layanan dan sisa tagihan.";Setup fixture via API lokal → Refresh → Cari Rani → Pilih tagihan
+cashier-11;Kasir;Panel pisah gabung tanpa item;verified;cashier/11-panel-pisah-gabung-tanpa-item.png;Tombol Pisahkan nonaktif tanpa item dicentang.;Buka Pisah / Gabung Tagihan
+cashier-12;Kasir;Pilih item untuk pisah;verified;cashier/12-pilih-item-untuk-pisah.png;Satu porsi teh dipilih untuk tagihan baru.;Centang satu item → Isi nama tagihan baru
+cashier-13;Kasir;Tagihan berhasil dipisah;verified;cashier/13-tagihan-berhasil-dipisah.png;"Satu item dipisahkan; sumber tersisa dua item.";Klik Pisahkan
+cashier-14;Kasir;Gabung ke tagihan sendiri;verified;cashier/14-gabung-ke-tagihan-sendiri.png;Tujuan gabung dipilih ke tagihan Rani asli.;Pilih tagihan hasil pisah → Pilih Rani asli sebagai tujuan
+cashier-15;Kasir;Tagihan berhasil digabung;verified;cashier/15-tagihan-berhasil-digabung.png;Seluruh item kembali di tagihan Rani asli.;Klik Gabung
+cashier-16;Kasir;Dialog pembatalan item;verified;cashier/16-dialog-pembatalan-item.png;Pilihan alasan dan kembalikan stok tersedia.;Klik Batalkan pada item sendiri
+cashier-17;Kasir;Pembatalan tanpa alasan;blocked;cashier/17-pembatalan-tanpa-alasan.png;"Alasan kosong ditolak backend, tetapi modal tidak menampilkan pesan inline; pageerror tercatat.";Kosongkan alasan → Klik Batalkan item
+cashier-18;Kasir;Item dibatalkan dan stok kembali;verified;cashier/18-item-dibatalkan-dan-stok-kembali.png;Satu item fixture dibatalkan dengan alasan.;Isi alasan → Kembalikan ke stok → Batalkan item
+cashier-19;Kasir;Tunai kurang;verified;cashier/19-tunai-kurang.png;Tombol Terima Pembayaran Tunai nonaktif saat uang kurang.;Isi tunai diterima 100
+cashier-20;Kasir;Pratinjau kembalian tunai;verified;cashier/20-pratinjau-kembalian-tunai.png;Uang Rp100.000 menampilkan kembalian.;Klik preset Rp100.000
+cashier-21;Kasir;Tunai uang pas;verified;cashier/21-tunai-uang-pas.png;Uang pas mengisi jumlah sesuai sisa tagihan.;Klik Uang Pas
+cashier-22;Kasir;Pembayaran tunai berhasil;verified;cashier/22-pembayaran-tunai-berhasil.png;Pembayaran demo tercatat, tagihan menjadi lunas.;Terima pembayaran tunai fixture lokal
+cashier-23;Kasir;Tagihan lunas setelah tunai;verified;cashier/23-tagihan-lunas-setelah-tunai.png;Tagihan Rani muncul pada filter lunas.;Pilih Lunas → Cari Rani
+cashier-24;Kasir;Kasir mobile;verified;cashier/24-kasir-mobile.png;Dashboard kasir dan filter tagihan pada layar ponsel.;Ubah viewport 390x844
+cashier-extra-01;Kasir;Pesanan masuk menunggu kasir;verified;cashier-extra/01-pesanan-masuk-menunggu-kasir.png;Dua request Rani disiapkan melalui API untuk menguji penerimaan dan penolakan UI.;Setup dua request API lokal → Buka kasir
+cashier-extra-02;Kasir;Permintaan ditolak kasir;verified;cashier-extra/02-permintaan-ditolak-kasir.png;Request Rani Ditolak hilang dari antrean setelah Tolak.;Klik Tolak pada request sendiri
+cashier-extra-03;Kasir;Permintaan diterima menjadi tagihan;verified;cashier-extra/03-permintaan-diterima-menjadi-tagihan.png;Kasir menerima request dan membuka tagihan baru.;Klik Terima → Cari nama → Pilih tagihan
+cashier-extra-04;Kasir;Metode QRIS pada kasir;verified;cashier-extra/04-metode-qris-pada-kasir.png;Pilihan metode dan referensi pembayaran kasir. Ini konfigurasi demo, bukan koneksi pembayaran nyata.;Pilih QRIS
+cashier-extra-05;Kasir;Metode Virtual Account pada kasir;verified;cashier-extra/05-metode-virtual-account-pada-kasir.png;Pilihan metode dan referensi pembayaran kasir. Ini konfigurasi demo, bukan koneksi pembayaran nyata.;Pilih Virtual Account
+cashier-extra-06;Kasir;Metode transfer manual pada kasir;verified;cashier-extra/06-metode-transfer-manual-pada-kasir.png;Pilihan metode dan referensi pembayaran kasir. Ini konfigurasi demo, bukan koneksi pembayaran nyata.;Pilih Transfer
+cashier-extra-07;Kasir;Jumlah bayar melebihi sisa;verified;cashier-extra/07-jumlah-bayar-melebihi-sisa.png;Tombol pembayaran nonaktif saat nilai lebih dari sisa tagihan.;Isi jumlah bayar 999999
+cashier-extra-08;Kasir;Transfer pembayaran sebagian;verified;cashier-extra/08-transfer-pembayaran-sebagian.png;Kasir menyiapkan transfer manual Rp10.000.;Isi jumlah10000 → Isi referensi demo
+cashier-extra-09;Kasir;Tagihan dibayar sebagian;verified;cashier-extra/09-tagihan-dibayar-sebagian.png;"Transfer demo Rp10.000 tercatat; masih ada sisa tagihan.";Terima transfer demo
+cashier-extra-10;Kasir;Sisa tagihan dilunasi tunai;verified;cashier-extra/10-sisa-tagihan-dilunasi-tunai.png;Transfer sebagian ditambah uang tunai menghasilkan tagihan lunas.;Isi sisa dengan Uang Pas → Terima tunai → Pilih tagihan lunas
+cashier-extra-11;Kasir;Dialog refund item lunas;verified;cashier-extra/11-dialog-refund-item-lunas.png;Pembatalan item yang telah dibayar pada fixture sendiri.;Batalkan item lunas → Isi alasan
+cashier-extra-12;Kasir;Refund setelah split tender gagal;blocked;cashier-extra/12-pembatalan-dan-refund-setelah-lunas.png;Backend menolak refund itemRp20.790 karena tidak ada satu receipt yang cukup, padahal dua receipt totalRp20.790. Modal tetap terbuka tanpa error inline.;Konfirmasi Batalkan item pada demo
+cashier-pending-01;Kasir;Kasir dengan QR pending;verified;cashier-pending/01-kasir-dengan-qr-pending.png;Fixture API punya external QRIS PENDING, tetapi detail hanya menunjukkan Belum Dibayar.;Setup fixture API dari sesi sebelumnya → Cari Rani QR Pending → Pilih tagihan
+cashier-pending-02;Kasir;Pilihan pembayaran saat QR pending;verified;cashier-pending/02-pilihan-pembayaran-saat-qr-pending.png;Kasir masih diberi pilihan dan tombol untuk pembayaran lain.;Lihat area pembayaran
+cashier-pending-03;Kasir;Tunai aktif walau QR pending;partial;cashier-pending/03-tunai-aktif-walau-qr-pending.png;Tombol Terima Tunai tetap aktif setelah Uang Pas meski ada external payment pending.;Klik Uang Pas
+cashier-pending-04;Kasir;Tender tambahan ditolak backend;verified;cashier-pending/04-tender-tambahan-ditolak-backend.png;"Backend menolak tender tambahan karena QRIS aktif. Pesan kesalahan ditampilkan di bagian atas halaman; screenshot ini berada di area pembayaran.";Klik Terima Tunai saat QR pending
+cashier-pending-05;Kasir;Pesan penolakan tender pada mobile;verified;cashier-pending/05-pembayaran-kasir-mobile.png;Alert merah di bagian atas menjelaskan bahwa instruksi QRIS aktif harus diselesaikan/dibatalkan dahulu.;Viewport390x844
+cashier-print-01;Kasir;Detail tagihan lunas kasir;verified;cashier-print/01-detail-tagihan-lunas-kasir.png;"Tagihan fixture milik sendiri lunas setelah tunai; daftar item dan status terlihat.";Masuk kasir → Filter Lunas → Cari Rani Uji Kasir → Pilih tagihan
+cashier-print-02;Kasir;Ringkasan pembayaran lunas;verified;cashier-print/02-ringkasan-pembayaran-lunas.png;Subtotal, koreksi, pembayaran terverifikasi dan sisa tagihan terlihat. Tidak ada tombol struk atau cetak pada detail kasir.;Gulir ringkasan tagihan lunas
+cashier-print-03;Kasir;Logout portal staf;verified;cashier-print/03-logout-portal-staf.png;Klik Keluar mengembalikan form masuk staf.;Klik Keluar dari portal staf
+operations-01;Dapur & Pelayan;Dapur - antrean aktif;verified;operations/01-dapur-antrean-aktif.png;POV koki, semua tiket aktif.;Masuk sebagai Koki Dapur Utama
+operations-02;Dapur & Pelayan;Dapur - termasuk selesai;verified;operations/02-dapur-termasuk-selesai.png;Tiket yang sudah disajikan ikut ditampilkan.;Pilih Termasuk selesai
+operations-03;Dapur & Pelayan;Dapur - filter Antrean baru;verified;operations/03-dapur-filter-antrean-baru.png;Filter status tiket aktif.;Pilih Antrean baru
+operations-04;Dapur & Pelayan;Dapur - filter Sedang dibuat;verified;operations/04-dapur-filter-sedang-dibuat.png;Filter status tiket aktif.;Pilih Sedang dibuat
+operations-05;Dapur & Pelayan;Dapur - filter Siap diantar;verified;operations/05-dapur-filter-siap-diantar.png;Filter status tiket aktif.;Pilih Siap diantar
+operations-06;Dapur & Pelayan;Dapur - stasiun Bar & Kopi;verified;operations/06-dapur-stasiun-bar-kopi.png;Filter stasiun kerja.;Pilih Bar & Kopi
+operations-07;Dapur & Pelayan;Dapur - stasiun Dapur Utama;verified;operations/07-dapur-stasiun-dapur-utama.png;Filter stasiun kerja.;Pilih Dapur Utama
+operations-08;Dapur & Pelayan;Dapur - stasiun Pastry & Roti;verified;operations/08-dapur-stasiun-pastry-roti.png;Filter stasiun kerja.;Pilih Pastry & Roti
+operations-09;Dapur & Pelayan;Dapur - suara mati;verified;operations/09-dapur-suara-mati.png;Tombol berganti menjadi Suara Mati.;Klik Suara aktif
+operations-10;Dapur & Pelayan;Dapur - refresh dan suara aktif;verified;operations/10-dapur-refresh-dan-suara-aktif.png;Data dimuat ulang dan suara diaktifkan kembali.;Aktifkan suara → Perbarui data operasional
+operations-11;Dapur & Pelayan;Dapur - mulai tiket antrean;verified;operations/11-dapur-mulai-tiket-antrean.png;Hasil tindakan Mulai Buat pada tiket M04.;Klik Mulai Buat pada tiket M04
+operations-12;Dapur & Pelayan;Dapur - pastry siap diantar;verified;operations/12-dapur-pastry-siap-diantar.png;Tiket pastry M01 berpindah ke READY.;Klik Siap diantar pada croissant M01
+operations-13;Dapur & Pelayan;Dapur - pastry disajikan;verified;operations/13-dapur-pastry-disajikan.png;Tiket pastry M01 selesai disajikan dan terlihat pada Termasuk selesai.;Klik Disajikan → Tampilkan Termasuk selesai
+operations-14;Dapur & Pelayan;Dapur - mobile;verified;operations/14-dapur-mobile.png;Tampilan dapur pada viewport 390×844.;Ubah viewport ke mobile
+operations-15;Dapur & Pelayan;Barista - tiket minuman;verified;operations/15-barista-tiket-minuman.png;POV barista dengan filter Bar & Kopi.;Masuk Barista & Minuman → Pilih Bar & Kopi
+operations-16;Dapur & Pelayan;Pelayan - denah indoor;verified;operations/16-pelayan-denah-indoor.png;POV pelayan dengan denah dan kunjungan.;Masuk Pelayan Lantai
+operations-17;Dapur & Pelayan;Pelayan - meja perlu dibersihkan;verified;operations/17-pelayan-meja-perlu-dibersihkan.png;Inspektor meja M05 dan tindakan tandai bersih.;Pilih meja M05
+operations-18;Dapur & Pelayan;Pelayan - tandai meja bersih;verified;operations/18-pelayan-tandai-meja-bersih.png;"Hasil tindakan membersihkan M05; data server disimpan.";Klik Tandai Bersih & Siap Pakai
+operations-19;Dapur & Pelayan;Pelayan - area outdoor;verified;operations/19-pelayan-area-outdoor.png;Denah Teras Kebun dan daftar meja outdoor.;Pilih area Teras Kebun
+operations-20;Dapur & Pelayan;Pelayan - meja T03 nonaktif awal;verified;operations/20-pelayan-meja-tersedia.png;"Meja T03 pada seed awal sudah OUT_OF_SERVICE; tombol Aktifkan Meja Kembali tampil. Nama file historis menyebut tersedia, metadata ini menjelaskan keadaan aktual.";Pilih T03
+operations-extra-01;Dapur & Pelayan;Meja T03 - nonaktif awal;verified;operations-extra/01-meja-t03-nonaktif-awal.png;Seed T03 nonaktif dengan tombol aktifkan.;Pilih area outdoor → Pilih T03
+operations-extra-02;Dapur & Pelayan;Meja T03 - diaktifkan;verified;operations-extra/02-meja-t03-diaktifkan.png;T03 AVAILABLE setelah diaktifkan dan pemilihan ulang area.;Aktifkan Meja Kembali → Pilih ulang area
+operations-extra-03;Dapur & Pelayan;Meja T03 - dinonaktifkan;verified;operations-extra/03-meja-t03-dinonaktifkan.png;"T03 OUT_OF_SERVICE; status awal dikembalikan.";Nonaktifkan Sementara → Pilih ulang area
+operations-extra-04;Dapur & Pelayan;Editor denah - kontrol posisi;verified;operations-extra/04-editor-denah-kontrol-posisi.png;Kontrol room shape, meja, draft dan terapkan.;Buka Atur Posisi & Denah
+operations-extra-05;Dapur & Pelayan;Editor denah - geser meja;verified;operations-extra/05-editor-denah-geser-meja.png;T03 bergeser200mm ke kiri dalam draft lokal.;Klik Kiri
+operations-extra-06;Dapur & Pelayan;Editor denah - validasi bentuk;verified;operations-extra/06-editor-denah-validasi-bentuk.png;Validasi penempatan setelah room preset U.;Pilih Bentuk Ruangan U
+operations-extra-07;Dapur & Pelayan;Editor denah - draft disimpan;verified;operations-extra/07-editor-denah-draft-disimpan.png;Draft disimpan dengan posisi asli dan bentuk outdoor persegi panjang.;Kembalikan bentuk awal → Simpan Draft
+operations-extra-08;Dapur & Pelayan;Editor denah - diterapkan;verified;operations-extra/08-editor-denah-diterapkan.png;Denah dengan posisi semula diterapkan pada data uji.;Terapkan Denah
+operations-extra-09;Dapur & Pelayan;Pelayan - panggilan dan antrean;verified;operations-extra/09-pelayan-panggilan-dan-antrean.png;Permintaan bantuan dan waitlist pada data seed.;Buka Panggilan & Antrean
+operations-extra-10;Dapur & Pelayan;Pelayan - bantuan ditangani;verified;operations-extra/10-pelayan-bantuan-ditangani.png;Permintaan M01 berpindah OPEN ke ACKNOWLEDGED.;Tangani permintaan M01
+operations-extra-11;Dapur & Pelayan;Pelayan - bantuan selesai;verified;operations-extra/11-pelayan-bantuan-selesai.png;Permintaan M01 terselesaikan dan tidak ada di daftar aktif.;Selesai permintaan M01
+operations-extra-12;Dapur & Pelayan;Pelayan - riwayat bantuan;verified;operations-extra/12-pelayan-riwayat-bantuan.png;Permintaan RESOLVED ikut terlihat.;Tampilkan permintaan selesai
+operations-extra-13;Dapur & Pelayan;Waitlist - panggil tamu;verified;operations-extra/13-waitlist-panggil-tamu.png;Dewi dipanggil dengan penahanan meja M02.;Panggil Tamu untuk Dewi
+operations-extra-14;Dapur & Pelayan;Waitlist - dudukkan tamu;verified;operations-extra/14-waitlist-dudukkan-tamu.png;Aksi mendudukkan Dewi dan membuat kunjungan meja.;Dudukkan ke Meja
+operations-extra-15;Dapur & Pelayan;Pelayan mobile - bantuan dan waitlist;verified;operations-extra/15-pelayan-mobile-bantuan-dan-waitlist.png;Tampilan bantuan serta antrean pada390×844.;Viewport mobile
+operations-extra-16;Dapur & Pelayan;Pelayan mobile - denah;verified;operations-extra/16-pelayan-mobile-denah.png;Denah dan daftar meja pada390×844.;Buka Denah & Kunjungan Meja
+operations-extra-17;Dapur & Pelayan;Kunjungan - kode gabung meja;verified;operations-extra/17-kunjungan-kode-gabung-meja.png;Kode meja diterbitkan untuk kunjungan Dewi yang dibuat dalam uji ini.;Terbitkan Kode Gabung Meja pada Dewi
+operations-extra-18;Dapur & Pelayan;Kunjungan - pindah meja;verified;operations-extra/18-kunjungan-pindah-meja.png;"Kunjungan Dewi dipindah keM03; hanya kunjungan yang dibuat dalam uji ini diubah.";Pilih M03 → Pindah Meja
+operations-extra-19;Dapur & Pelayan;Kunjungan - selesai dan meja dibersihkan;verified;operations-extra/19-kunjungan-selesai-dan-meja-dibersihkan.png;"Dewi pulang; kunjungan selesai dan meja memerlukan pembersihan.";Selesai / Pulang
+operations-extra-20;Dapur & Pelayan;Dapur - seluruh status akhir;verified;operations-extra/20-dapur-seluruh-status-akhir.png;Seluruh tiket termasuk selesai dan held untuk dokumentasi akhir.;Buka Dapur → Termasuk selesai
+operations-held-01;Dapur & Pelayan;Dapur - aktif tanpa tiket tertahan;verified;operations-held/01-dapur-aktif-tanpa-tiket-tertahan.png;"Filter Semua aktif hanya menampilkan QUEUED/PREPARING/READY; tiket menunggu pembayaran tidak tampil.";Masuk koki → Semua aktif
+operations-held-02;Dapur & Pelayan;Dapur - tiket tertahan pembayaran;verified;operations-held/02-dapur-tiket-tertahan-pembayaran.png;"Tiket Dina M06 terlihat dengan label Menunggu dan tanpa tombol mulai; server menyatakan HELD_FOR_PAYMENT.";Termasuk selesai → Gulir ke tiket Dina M06
+admin-01;Pengelola;Masuk pengelola;verified;admin/01-masuk-pengelola.png;Form akun dan PIN, dengan akses demo yang terlihat.;Buka portal staf
+admin-02;Pengelola;Dashboard pemilik;verified;admin/02-dashboard-pemilik.png;Pemilik melihat navigasi lengkap dan ringkasan operasional.;Masuk sebagai pemilik demo
+admin-03;Pengelola;Katalog menu desktop;verified;admin/03-katalog-menu-desktop.png;Daftar menu, ketersediaan, foto, kategori dan stok.;Buka Katalog & Stok
+admin-04;Pengelola;Cari katalog berhasil;verified;admin/04-cari-katalog-berhasil.png;Katalog difilter ke Matcha.;Cari Matcha
+admin-05;Pengelola;Cari katalog kosong;verified;admin/05-cari-katalog-kosong.png;"Tidak ada baris produk; halaman belum memberi pesan kosong khusus.";Cari nama yang tidak ada
+admin-06;Pengelola;Filter kategori katalog;verified;admin/06-filter-kategori-katalog.png;Kategori Pastry dipilih.;Pilih kategori Pastry
+admin-07;Pengelola;Dialog tambah menu;verified;admin/07-dialog-tambah-menu.png;Form kategori baru, menu, stasiun, harga dan foto.;Klik Tambah menu
+admin-08;Pengelola;Nama menu wajib;verified;admin/08-nama-menu-wajib.png;Simpan Menu Baru nonaktif saat nama kosong.;Biarkan nama menu kosong
+admin-09;Pengelola;Kategori baru tersimpan;verified;admin/09-kategori-baru-tersimpan.png;Kategori Uji Pengelola dibuat melalui form.;Isi kategori Uji Pengelola → Klik + Kategori
+admin-10;Pengelola;Menu baru terisi;verified;admin/10-menu-baru-terisi.png;Menu sendiri ADM-UI-01, kategori Uji Pengelola dan harga Rp31.000.;Isi kode/nama/kategori/stasiun/harga/deskripsi
+admin-11;Pengelola;Menu baru tersimpan;verified;admin/11-menu-baru-tersimpan.png;Menu uji muncul di katalog setelah penyimpanan.;Simpan menu → Cari menu uji
+admin-12;Pengelola;Menu ditandai habis;verified;admin/12-menu-ditandai-habis.png;Ketersediaan menu uji berubah menjadi Habis.;Klik Tandai Habis pada menu sendiri
+admin-13;Pengelola;Menu diaktifkan kembali;verified;admin/13-menu-diaktifkan-kembali.png;Ketersediaan menu uji kembali Tersedia.;Klik Aktifkan Kembali
+admin-14;Pengelola;Galeri foto menu;verified;admin/14-galeri-foto-menu.png;Galeri dan daftar foto menu uji.;Buka Foto menu uji
+admin-15;Pengelola;Tambah URL foto lokal;verified;admin/15-tambah-url-foto-lokal.png;Foto lokal kedua ditambahkan ke draft galeri.;Isi URL foto lokal → Klik + Tambah
+admin-16;Pengelola;Ubah foto utama;verified;admin/16-ubah-foto-utama.png;Foto kedua dipindahkan ke urutan utama dalam draft.;Klik Jadikan Utama
+admin-17;Pengelola;Unggah foto melalui form;verified;admin/17-unggah-foto-melalui-form.png;File PNG fixture dimuat oleh FileReader aplikasi, bukan pengganti screenshot.;Pilih file PNG uji pada Unggah foto
+admin-18;Pengelola;Hapus foto dari draft;verified;admin/18-hapus-foto-dari-draft.png;Foto unggahan ketiga dihapus dari draft galeri.;Klik Hapus foto 3
+admin-19;Pengelola;Galeri foto disimpan;verified;admin/19-galeri-foto-disimpan.png;Dua foto lokal tersimpan pada menu uji.;Klik Simpan Galeri
+admin-20;Pengelola;Stok harian terbatas;verified;admin/20-stok-harian-terbatas.png;Stok fisik, reservasi dan tersedia dijual terlihat.;Gulir ke stok terbatas
+admin-21;Pengelola;Penyesuaian stok valid;verified;admin/21-penyesuaian-stok-valid.png;Stok dipertambah satu melalui UI, lalu akan dipulihkan.;Tambah satu stok → Klik Update Stok
+admin-22;Pengelola;Stok dipulihkan;verified;admin/22-stok-dipulihkan.png;Stok fisik kembali ke nilai awal.;Isi nilai awal → Klik Update Stok
+admin-23;Pengelola;Dialog QR meja;partial;admin/23-dialog-qr-meja.png;"Dialog hanya menampilkan label meja dan teks ?table; belum berisi kode QR atau tombol cetak.";Klik Cetak QR Meja
+admin-24;Pengelola;Dialog impor CSV;verified;admin/24-dialog-impor-csv.png;Format dan textarea CSV tersedia.;Klik Impor CSV
+admin-25;Pengelola;CSV invalid diperiksa;partial;admin/25-csv-invalid-diperiksa.png;Baris harga abc tidak memunculkan detail hasil/error per baris dalam modal.;Isi CSV invalid → Klik Periksa CSV
+admin-26;Pengelola;CSV valid siap disimpan;verified;admin/26-csv-valid-siap-disimpan.png;Tombol Simpan satu menu muncul setelah preview valid.;Isi CSV valid sendiri → Klik Periksa CSV
+admin-27;Pengelola;CSV berhasil diimpor;verified;admin/27-csv-berhasil-diimpor.png;Menu CSV uji terlihat di katalog.;Simpan batch CSV → Cari menu impor
+admin-28;Pengelola;Katalog mobile;verified;admin/28-katalog-mobile.png;Katalog ditampilkan pada viewport mobile.;Ubah viewport390x844
+admin-29;Pengelola;Laporan pengelola;verified;admin/29-laporan-pengelola.png;Ringkasan keuangan dan shift kasir.;Buka Laporan & Shift
+admin-30;Pengelola;Ekspor laporan CSV;partial;admin/30-ekspor-laporan-csv.png;"Event download dipicu; file diterima 0 byte.";Klik Unduh CSV
+admin-extra-01;Pengelola;Shift kasir aktif;verified;admin-extra/01-shift-kasir-aktif.png;Ringkasan kas shift sebelum pengujian mutasi.;Buka Laporan & Shift
+admin-extra-02;Pengelola;Kas masuk menolak nominal negatif;verified;admin-extra/02-kas-masuk-menolak-nominal-negatif.png;Backend menolak nominal kurang dari atau sama dengan nol.;Isi nominal -1 → Klik Catat Kas Masuk
+admin-extra-03;Pengelola;Kas masuk memerlukan keterangan;verified;admin-extra/03-kas-masuk-memerlukan-keterangan.png;Backend menolak alasan kosong.;Isi nominal10000 → Kosongkan keterangan → Klik Catat Kas Masuk
+admin-extra-04;Pengelola;Kas masuk tercatat;verified;admin-extra/04-kas-masuk-tercatat.png;Kas masuk demo Rp10.000 tercatat melalui UI.;Isi keterangan → Catat Kas Masuk
+admin-extra-05;Pengelola;Kas keluar tercatat;verified;admin-extra/05-kas-keluar-tercatat.png;Kas keluar demo Rp10.000 menyeimbangkan percobaan kas masuk.;Catat Kas Keluar10000
+admin-extra-06;Pengelola;Selisih kas memerlukan alasan;verified;admin-extra/06-selisih-kas-memerlukan-alasan.png;Shift tidak ditutup ketika terdapat selisih tanpa catatan.;Isi hitungan berbeda1000 → Kosongkan catatan → Tutup Shift
+admin-extra-07;Pengelola;Shift kasir ditutup;verified;admin-extra/07-shift-kasir-ditutup.png;Hitungan fisik sama dengan expectedCash, shift menjadi CLOSED.;Isi hitungan sesuai → Tutup Shift
+admin-extra-08;Pengelola;Shift kasir baru dibuka;verified;admin-extra/08-shift-kasir-baru-dibuka.png;Shift demo baru dimulai dengan modal Rp500.000.;Klik Buka Shift Kasir Baru
+admin-extra-09;Pengelola;Pengaturan pajak promo dan ulasan;verified;admin-extra/09-pengaturan-pajak-promo-dan-ulasan.png;Tarif aktif, preset, tarif kustom, daftar promo dan ulasan.;Buka Pengaturan
+admin-extra-10;Pengelola;Preset pajak gagal diterapkan;blocked;admin-extra/10-preset-pajak-gagal-diterapkan.png;"UI mencoba UPDATE_OUTLET_SETTINGS; backend tidak mengenali aksi. Nilai tersimpan tetap5%layanan10%pajak.";Klik Tanpa pajak & layanan
+admin-extra-11;Pengelola;Tarif kustom gagal disimpan;blocked;admin-extra/11-tarif-kustom-gagal-disimpan.png;"Simpan tarif kustom juga ditolak; tarif asli tetap tersimpan.";Isi5dan10 → Klik Simpan
+admin-extra-12;Pengelola;Dialog promo baru;verified;admin-extra/12-dialog-promo-baru.png;Kode, nama, minimum belanja dan potongan.;Klik Tambah Promo
+admin-extra-13;Pengelola;Promo kosong diterima;failed;admin-extra/13-validasi-promo-kosong.png;"Kode dan nama kosong serta potongan0 tetap diterbitkan; toast berhasil dan baris promo kosong terlihat.";Kosongkan kode/nama → Terbitkan
+admin-final-01;Pengelola;Promo baru terisi;verified;admin-final/01-promo-baru-terisi.png;Kode UJIADMIN, minimum Rp20.000 dan potongan Rp5.000.;Isi promo uji sendiri
+admin-final-02;Pengelola;Promo baru diterbitkan;verified;admin-final/02-promo-baru-diterbitkan.png;Promo UJIADMIN tampil dalam daftar.;Terbitkan promo sendiri
+admin-final-03;Pengelola;Kode promo duplikat;partial;admin-final/03-kode-promo-duplikat.png;Percobaan kedua menggunakan kode UJIADMIN yang sama.;Buka promo lagi → Terbitkan kode yang sama
+admin-final-04;Pengelola;Ulasan pelanggan pada pengelola;verified;admin-final/04-ulasan-pelanggan-pada-pengelola.png;Daftar ulasan dan rating yang tersimpan.;Gulir ke ulasan pelanggan
+admin-final-05;Pengelola;Pengaturan pengelola mobile;verified;admin-final/05-pengaturan-pengelola-mobile.png;Tampilan pengaturan pada layar kecil.;Ubah viewport390x844
+admin-final-06;Pengelola;Denah teras pengelola;verified;admin-final/06-denah-teras-pengelola.png;Teras dipilih untuk uji editor tanpa mengubah kunjungan pelanggan M06.;Buka Meja → Pilih Teras
+admin-final-07;Pengelola;Mode edit denah;verified;admin-final/07-mode-edit-denah.png;Kontrol bentuk ruangan, simpan draft, terapkan, meja dan arah.;Aktifkan mode edit
+admin-final-08;Pengelola;Validasi bentuk ruangan;verified;admin-final/08-validasi-bentuk-ruangan.png;Preset U menunjukkan apakah meja di luar polygon dan tombol simpan dibatasi.;Pilih bentuk U
+admin-final-09;Pengelola;Geser dan putar meja draft;verified;admin-final/09-geser-dan-putar-meja-draft.png;Perubahan posisi/rotasi terlihat di draft, belum dipublikasikan.;Putar15derajat → Geser kanan
+admin-final-10;Pengelola;Validasi meja di luar batas;verified;admin-final/10-validasi-meja-di-luar-batas.png;"Geser kiri membuat meja melewati batas; simpan/publish dicegah.";Geser kiri sampai melampaui batas
+admin-final-11;Pengelola;Draft denah disimpan;verified;admin-final/11-draft-denah-disimpan.png;Draft dengan geometri asli teras disimpan.;Reset draft ke geometri tersimpan → Simpan Draft
+admin-final-12;Pengelola;Denah diterapkan;verified;admin-final/12-denah-diterapkan.png;Geometri asli teras dipublikasikan kembali tanpa perubahan posisi.;Terapkan geometri asli
+admin-final-13;Pengelola;Dashboard manajer;verified;admin-final/13-dashboard-manajer.png;Role Manajer Operasional dan navigasi yang tersedia.;Masuk sebagai manajer demo
+admin-final-14;Pengelola;Keluar dari portal pengelola;verified;admin-final/14-keluar-dari-portal-pengelola.png;Setelah keluar, form masuk kembali ditampilkan.;Klik Keluar
+admin-overview-01;Pengelola;Katalog dan stok lengkap;verified;admin-overview/01-katalog-dan-stok-lengkap.png;Seluruh katalog dan stok, termasuk menu uji yang dibuat melalui UI.;Masuk pemilik → Buka Katalog & Stok

@@ -2,14 +2,17 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #FAFAF8;
+  --background: #F7F5F1;
   --surface: #FFFFFF;
-  --foreground: #181B18;
-  --muted-foreground: #626A63;
-  --border: #E1E5DF;
-  --primary: #244C3D;
+  --foreground: #2C2521;
+  --muted-foreground: #776F68;
+  --border: #E7E1DA;
+  --primary: #A84A30;
   --primary-foreground: #FFFFFF;
-  --accent-surface: #EDF2EC;
+  --primary-hover: #873B27;
+  --surface-muted: #F0ECE6;
+  --border-strong: #CCC0B5;
+  --accent-surface: #F3E7DE;
 
   --status-success-fg: #1A5C38;
   --status-success-bg: #EBF5EE;
@@ -20,8 +23,8 @@
   --status-info-fg: #1F4E79;
   --status-info-bg: #EBF2FA;
 
-  --radius-control: 8px;
-  --radius-panel: 12px;
+  --radius-control: 12px;
+  --radius-panel: 20px;
 }
 
 body {
@@ -39,4 +42,14 @@ h1, h2, h3, h4, .font-heading {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+html { scroll-behavior: smooth; }
+body { margin: 0; }
+::selection { background: #E9CDBD; color: #2C2521; }
+button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
 import {
   Search,
@@ -504,7 +505,7 @@ export function PaymentBreakdown({
       )}
       {refundedIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--muted-foreground)]">
-          <span>Total pengembalian dana (Refund)</span>
+          <span>Pengembalian dana</span>
           <Money amount={refundedIdr} />
         </div>
       )}
@@ -512,10 +513,10 @@ export function PaymentBreakdown({
         <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px]">
           <span>
             {balanceIdr < 0
-              ? 'Kewajiban refund kafe ke pelanggan'
+              ? 'Pengembalian dana'
               : balanceIdr === 0
-              ? 'Sisa kewajiban'
-              : 'Sisa yang harus dibayar'}
+              ? 'Sisa tagihan'
+              : 'Sisa tagihan'}
           </span>
           <Money
             amount={balanceIdr}
@@ -669,60 +670,38 @@ export function DialogModal({
   maxWidth?: string;
 }) {
   const shouldReduceMotion = useReducedMotion();
+  const descriptionId = React.useId();
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
-          onClick={onClose}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-[2px]"
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
+    <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#2C2521]/45 backdrop-blur-sm" />
+        <DialogPrimitive.Content
+          aria-describedby={srDescription ? descriptionId : undefined}
+          className={cn(
+            'fixed bottom-0 left-1/2 z-50 flex max-h-[92dvh] w-full -translate-x-1/2 flex-col overflow-hidden rounded-t-[24px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[24px]',
+            maxWidth
+          )}
         >
-          <motion.div
-            onClick={(e) => e.stopPropagation()}
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 28, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
-            transition={
-              shouldReduceMotion
-                ? { duration: 0 }
-                : { type: 'spring', stiffness: 380, damping: 32, mass: 0.85 }
-            }
-            className={cn(
-              'w-full bg-[var(--surface)] border-t sm:border border-[var(--border)] rounded-t-[18px] sm:rounded-[14px] max-h-[90vh] flex flex-col overflow-hidden shadow-xl',
-              maxWidth
-            )}
-          >
-            {/* Mobile Sheet Grab Handle */}
-            <div className="sm:hidden pt-2.5 pb-0.5 flex justify-center">
-              <div className="w-10 h-1 rounded-full bg-[var(--border)]" />
-            </div>
-
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--border)]">
-              <h2 className="font-heading text-[18px] leading-[24px] font-semibold text-[var(--foreground)]">
-                {title}
-              </h2>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.92 }}
-                onClick={onClose}
-                aria-label="Tutup dialog"
-                className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-[8px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent-surface)] cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </motion.button>
-            </div>
-            {srDescription && <p className="sr-only">{srDescription}</p>}
-            <div className="p-4 overflow-y-auto space-y-4">{children}</div>
+          <div className="flex justify-center pt-3 sm:hidden" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
+          </div>
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+            <DialogPrimitive.Title className="font-heading text-lg font-semibold tracking-tight">
+              {title}
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Close asChild>
+              <button type="button" aria-label="Tutup" className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--surface-muted)]">
+                <X className="h-5 w-5" />
+              </button>
+            </DialogPrimitive.Close>
+          </div>
+          {srDescription && <DialogPrimitive.Description id={descriptionId} className="sr-only">{srDescription}</DialogPrimitive.Description>}
+          <motion.div initial={{ opacity: shouldReduceMotion ? 1 : 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="space-y-4 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            {children}
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

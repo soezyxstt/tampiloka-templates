@@ -6,9 +6,9 @@ import { StaffApp } from './staff-app';
 
 export type WorkspaceView = 'pelanggan' | 'staf';
 
-export function KafeWorkspace({ initialSnapshot }: { initialSnapshot: any }) {
+export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string }) {
   const [snapshot, setSnapshot] = useState<any>(initialSnapshot);
-  const [activeView, setActiveView] = useState<WorkspaceView>('pelanggan');
+  const [activeView, setActiveView] = useState<WorkspaceView>(initialView);
   const [busy, setBusy] = useState<boolean>(false);
 
   const refreshSnapshot = async () => {
@@ -16,6 +16,9 @@ export function KafeWorkspace({ initialSnapshot }: { initialSnapshot: any }) {
     try {
       const res = await fetch('/api/v1/snapshot', { cache: 'no-store' });
       const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.error?.message || 'Gagal memuat pesanan.');
+      }
       if (json?.data) {
         setSnapshot(json.data);
       }
@@ -50,8 +53,10 @@ export function KafeWorkspace({ initialSnapshot }: { initialSnapshot: any }) {
       {activeView === 'pelanggan' ? (
         <CustomerApp
           snapshot={snapshot}
+          initialTableId={initialTableId}
           onCommand={executeCommand}
           busy={busy}
+          onRefresh={refreshSnapshot}
           onOpenStaffPortal={() => setActiveView('staf')}
         />
       ) : (

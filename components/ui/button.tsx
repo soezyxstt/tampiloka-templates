@@ -7,20 +7,20 @@ import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-[8px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/35 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer whitespace-nowrap shrink-0 select-none',
+  'inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/35 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer whitespace-nowrap shrink-0 select-none',
   {
     variants: {
       variant: {
         default:
-          'bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#1C3D30] shadow-2xs',
+          'bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] shadow-2xs',
         primary:
-          'bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#1C3D30] shadow-2xs',
+          'bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] shadow-2xs',
         secondary:
-          'bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent-surface)] hover:border-[#C5D1C3]',
+          'bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent-surface)] hover:border-[var(--border-strong)]',
         outline:
           'bg-transparent text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent-surface)]',
         subtle:
-          'bg-[var(--accent-surface)] text-[var(--primary)] hover:bg-[#DFE8DD]',
+          'bg-[var(--accent-surface)] text-[var(--primary)] hover:bg-[var(--surface-muted)]',
         destructive:
           'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-[#F3C5C5] hover:bg-[#F9DADA]',
         danger:

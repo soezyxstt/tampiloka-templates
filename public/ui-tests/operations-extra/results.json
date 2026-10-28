@@ -1,0 +1,407 @@
+{
+  "role": "operations-extra",
+  "screenshots": [
+    {
+      "id": "operations-extra-01",
+      "file": "operations-extra/01-meja-t03-nonaktif-awal.png",
+      "title": "Meja T03 - nonaktif awal",
+      "state": "Seed T03 nonaktif dengan tombol aktifkan.",
+      "steps": [
+        "Pilih area outdoor",
+        "Pilih T03"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:26.216353+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-02",
+      "file": "operations-extra/02-meja-t03-diaktifkan.png",
+      "title": "Meja T03 - diaktifkan",
+      "state": "T03 AVAILABLE setelah diaktifkan dan pemilihan ulang area.",
+      "steps": [
+        "Aktifkan Meja Kembali",
+        "Pilih ulang area"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:28.890574+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-03",
+      "file": "operations-extra/03-meja-t03-dinonaktifkan.png",
+      "title": "Meja T03 - dinonaktifkan",
+      "state": "T03 OUT_OF_SERVICE; status awal dikembalikan.",
+      "steps": [
+        "Nonaktifkan Sementara",
+        "Pilih ulang area"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:32.092281+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-04",
+      "file": "operations-extra/04-editor-denah-kontrol-posisi.png",
+      "title": "Editor denah - kontrol posisi",
+      "state": "Kontrol room shape, meja, draft dan terapkan.",
+      "steps": [
+        "Buka Atur Posisi & Denah"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:33.591108+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-05",
+      "file": "operations-extra/05-editor-denah-geser-meja.png",
+      "title": "Editor denah - geser meja",
+      "state": "T03 bergeser200mm ke kiri dalam draft lokal.",
+      "steps": [
+        "Klik Kiri"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:35.178799+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-06",
+      "file": "operations-extra/06-editor-denah-validasi-bentuk.png",
+      "title": "Editor denah - validasi bentuk",
+      "state": "Validasi penempatan setelah room preset U.",
+      "steps": [
+        "Pilih Bentuk Ruangan U"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:36.966632+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-07",
+      "file": "operations-extra/07-editor-denah-draft-disimpan.png",
+      "title": "Editor denah - draft disimpan",
+      "state": "Draft disimpan dengan posisi asli dan bentuk outdoor persegi panjang.",
+      "steps": [
+        "Kembalikan bentuk awal",
+        "Simpan Draft"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:38.542867+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-08",
+      "file": "operations-extra/08-editor-denah-diterapkan.png",
+      "title": "Editor denah - diterapkan",
+      "state": "Denah dengan posisi semula diterapkan pada data uji.",
+      "steps": [
+        "Terapkan Denah"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:39.874803+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-09",
+      "file": "operations-extra/09-pelayan-panggilan-dan-antrean.png",
+      "title": "Pelayan - panggilan dan antrean",
+      "state": "Permintaan bantuan dan waitlist pada data seed.",
+      "steps": [
+        "Buka Panggilan & Antrean"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:41.243831+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-10",
+      "file": "operations-extra/10-pelayan-bantuan-ditangani.png",
+      "title": "Pelayan - bantuan ditangani",
+      "state": "Permintaan M01 berpindah OPEN ke ACKNOWLEDGED.",
+      "steps": [
+        "Tangani permintaan M01"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:42.591058+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-11",
+      "file": "operations-extra/11-pelayan-bantuan-selesai.png",
+      "title": "Pelayan - bantuan selesai",
+      "state": "Permintaan M01 terselesaikan dan tidak ada di daftar aktif.",
+      "steps": [
+        "Selesai permintaan M01"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:43.950303+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-12",
+      "file": "operations-extra/12-pelayan-riwayat-bantuan.png",
+      "title": "Pelayan - riwayat bantuan",
+      "state": "Permintaan RESOLVED ikut terlihat.",
+      "steps": [
+        "Tampilkan permintaan selesai"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:45.402827+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-13",
+      "file": "operations-extra/13-waitlist-panggil-tamu.png",
+      "title": "Waitlist - panggil tamu",
+      "state": "Dewi dipanggil dengan penahanan meja M02.",
+      "steps": [
+        "Panggil Tamu untuk Dewi"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:46.993516+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-14",
+      "file": "operations-extra/14-waitlist-dudukkan-tamu.png",
+      "title": "Waitlist - dudukkan tamu",
+      "state": "Aksi mendudukkan Dewi dan membuat kunjungan meja.",
+      "steps": [
+        "Dudukkan ke Meja"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:48.781450+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-15",
+      "file": "operations-extra/15-pelayan-mobile-bantuan-dan-waitlist.png",
+      "title": "Pelayan mobile - bantuan dan waitlist",
+      "state": "Tampilan bantuan serta antrean pada390×844.",
+      "steps": [
+        "Viewport mobile"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:49.612158+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-16",
+      "file": "operations-extra/16-pelayan-mobile-denah.png",
+      "title": "Pelayan mobile - denah",
+      "state": "Denah dan daftar meja pada390×844.",
+      "steps": [
+        "Buka Denah & Kunjungan Meja"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:51.036163+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-17",
+      "file": "operations-extra/17-kunjungan-kode-gabung-meja.png",
+      "title": "Kunjungan - kode gabung meja",
+      "state": "Kode meja diterbitkan untuk kunjungan Dewi yang dibuat dalam uji ini.",
+      "steps": [
+        "Terbitkan Kode Gabung Meja pada Dewi"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:52.780185+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-18",
+      "file": "operations-extra/18-kunjungan-pindah-meja.png",
+      "title": "Kunjungan - pindah meja",
+      "state": "Kunjungan Dewi dipindah keM03; hanya kunjungan yang dibuat dalam uji ini diubah.",
+      "steps": [
+        "Pilih M03",
+        "Pindah Meja"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:54.504800+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-19",
+      "file": "operations-extra/19-kunjungan-selesai-dan-meja-dibersihkan.png",
+      "title": "Kunjungan - selesai dan meja dibersihkan",
+      "state": "Dewi pulang; kunjungan selesai dan meja memerlukan pembersihan.",
+      "steps": [
+        "Selesai / Pulang"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:55.896347+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    },
+    {
+      "id": "operations-extra-20",
+      "file": "operations-extra/20-dapur-seluruh-status-akhir.png",
+      "title": "Dapur - seluruh status akhir",
+      "state": "Seluruh tiket termasuk selesai dan held untuk dokumentasi akhir.",
+      "steps": [
+        "Buka Dapur",
+        "Termasuk selesai"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:22:59.862197+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "captureType": "viewport"
+    }
+  ],
+  "errors": [],
+  "findings": [
+    {
+      "title": "Waitlist tanpa tombol create atau no-show",
+      "description": "Layar staf hanya menampilkan Panggil Tamu dan Dudukkan ke Meja; create/no-show tidak tersedia di UI ini.",
+      "status": "not_available"
+    },
+    {
+      "title": "Peran dan navigasi demo",
+      "description": "POV koki, barista dan pelayan tetap dapat melihat semua navigasi operasional. Ini akses demo, bukan pembatasan role produksi.",
+      "status": "partial"
+    }
+  ],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}

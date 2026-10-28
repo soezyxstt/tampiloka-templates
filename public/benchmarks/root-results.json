@@ -1,0 +1,270 @@
+{
+  "source": "https://order.millehub.com/?d3abc96a14764874b67ef5aeb43b84f0",
+  "capturedDate": "2026-10-23",
+  "scope": "Alur utama root; hanya berkas dengan awalan angka. Hasil menu dan fitur tambahan dicatat terpisah.",
+  "summary": "23 screenshot alur utama. Setelah persetujuan eksplisit, pesanan uji yang sama dibuat ulang karena sesi browser awal sudah berakhir. QRIS Rp30.000 berhasil diterbitkan, Check Status menunjukkan Pending Payment, dan tombol Download memicu unduhan berkas kosong pada browser cloud. Tidak ada pembayaran.",
+  "order": {
+    "code": "26102308550IA4PUYJ",
+    "customer": "Benchmark QRIS",
+    "totalIdr": 30000,
+    "submitted": true,
+    "paymentMade": false,
+    "qrisGenerated": true,
+    "paymentStatus": "Pending Payment"
+  },
+  "screenshots": [
+    {
+      "file": "01-home-desktop.png",
+      "title": "Beranda saat memuat",
+      "state": "Skeleton awal sebelum konten selesai dimuat.",
+      "status": "loading",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "02-home-loaded-desktop.png",
+      "title": "Beranda selesai dimuat",
+      "state": "Banner promosi, identitas meja, kategori, rekomendasi, dan navigasi bawah tampil.",
+      "status": "observed",
+      "width": 1911,
+      "height": 988
+    },
+    {
+      "file": "03-customer-dialog.png",
+      "title": "Identitas pelanggan baru",
+      "state": "Tab New Customer dengan nama serta telepon dan email opsional.",
+      "status": "observed",
+      "width": 1911,
+      "height": 988
+    },
+    {
+      "file": "04-customer-validation.png",
+      "title": "Validasi nama kosong",
+      "state": "Apply Customer tanpa nama menampilkan error panjang input 1–100.",
+      "status": "observed",
+      "width": 1911,
+      "height": 988
+    },
+    {
+      "file": "05-loyal-customer.png",
+      "title": "Pelanggan loyal",
+      "state": "Tab Loyal Customer menampilkan kolom pencarian telepon; akun nyata dan OTP tidak diuji.",
+      "status": "partial",
+      "width": 1911,
+      "height": 988
+    },
+    {
+      "file": "06-table-info.png",
+      "title": "Informasi meja",
+      "state": "Klik identitas meja tidak membuka halaman baru; beranda tetap menampilkan 09 indoor.",
+      "status": "no-change",
+      "width": 1911,
+      "height": 988
+    },
+    {
+      "file": "07-product-affogatto.png",
+      "title": "Detail Affogatto",
+      "state": "Foto, kolom catatan, kontrol jumlah, dan tombol Add to Cart.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "08-product-note-quantity.png",
+      "title": "Catatan dan perubahan jumlah",
+      "state": "Catatan benchmark diisi dan jumlah dinaikkan menjadi 2 pada detail; pesanan akhirnya memakai 1 item.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "09-added-to-cart.png",
+      "title": "Produk masuk keranjang",
+      "state": "Affogatto ditandai 1x dan tombol Checkout 1 Items tampil.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "10-cart-checkout.png",
+      "title": "Ringkasan pesanan",
+      "state": "Satu Affogatto, nama Benchmark QRIS, meja 09 indoor; subtotal Rp25.974 dan total Rp30.000.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "11-surcharge-breakdown.png",
+      "title": "Rincian biaya layanan",
+      "state": "Rincian Surcharge dibuka: Service Rp1.299.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "12-tax-breakdown.png",
+      "title": "Rincian pajak",
+      "state": "Rincian Tax dibuka: PB1 Rp2.727.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "13-discount-dialog.png",
+      "title": "Diskon tidak tersedia",
+      "state": "Halaman 0 Discounts menyatakan tidak ada diskon saat ini; penerapan diskon tidak dapat diuji.",
+      "status": "unavailable",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "14-online-payment.png",
+      "title": "Konfirmasi kirim pesanan",
+      "state": "Online Payment membuka dialog Submit Order dengan Cancel dan Submit.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "15-submitted-payment.png",
+      "title": "Transisi menuju pembayaran",
+      "state": "Dialog Submitting Order dengan Continue to Payment; tangkapan masih menunjukkan indikator proses.",
+      "status": "pending-state",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "16-payment-page-0.png",
+      "title": "Pilihan pembayaran daring",
+      "state": "Total Rp30.000, voucher, QRIS (BANK), serta judul Bank Transfer tanpa pilihan terlihat.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "17-qris-selected.png",
+      "title": "QRIS dipilih",
+      "state": "QRIS (BANK) terpilih sebelum Checkout.",
+      "status": "observed",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "18-qris-checkout-0.png",
+      "title": "Konfirmasi pembuatan tagihan QRIS",
+      "state": "Dialog Confirm Payment untuk Rp30.000 dengan logo QRIS. Belum ada kode QR pembayaran; tombol Confirm belum dijalankan.",
+      "status": "blocked",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "19-resumed-order-summary.png",
+      "title": "Ringkasan pesanan uji lanjutan",
+      "state": "Pesanan uji dibuat ulang karena sesi browser lama berakhir; satu Affogatto, total Rp30.000.",
+      "observedResult": "Pesanan uji dibuat ulang karena sesi browser lama berakhir; satu Affogatto, total Rp30.000.",
+      "steps": [
+        "Buka tautan sumber pada sesi baru",
+        "Riwayat kosong",
+        "Buat ulang pesanan uji yang sama"
+      ],
+      "status": "verified",
+      "width": 1440,
+      "height": 1000,
+      "orderSubmitted": true,
+      "paymentMade": false,
+      "url": "https://order.millehub.com/order"
+    },
+    {
+      "file": "20-qris-generated.png",
+      "title": "QRIS berhasil diterbitkan",
+      "state": "Kode pembayaran QRIS nyata untuk Bean and Butter, pesanan 26102308550IA4PUYJ, Rp30.000.",
+      "observedResult": "Kode pembayaran QRIS nyata untuk Bean and Butter, pesanan 26102308550IA4PUYJ, Rp30.000.",
+      "steps": [
+        "Online Payment",
+        "Submit",
+        "QRIS (BANK)",
+        "Checkout",
+        "Confirm sesuai persetujuan pengguna"
+      ],
+      "status": "verified",
+      "width": 1440,
+      "height": 1000,
+      "orderSubmitted": true,
+      "paymentMade": false,
+      "url": "https://order.millehub.com/order"
+    },
+    {
+      "file": "21-qris-status-unpaid.png",
+      "title": "QRIS belum dibayar",
+      "state": "Check Status menampilkan Pending Payment.",
+      "observedResult": "Check Status menampilkan Pending Payment.",
+      "steps": [
+        "Buka QRIS",
+        "Klik Check Status"
+      ],
+      "status": "verified",
+      "width": 1440,
+      "height": 1000,
+      "orderSubmitted": true,
+      "paymentMade": false,
+      "url": "https://order.millehub.com/order"
+    },
+    {
+      "file": "22-qris-mobile.png",
+      "title": "QRIS tampilan mobile",
+      "state": "Kode QRIS, nominal Rp30.000, instruksi pembayaran terpisah melalui e-wallet/mobile banking, dan Pending Payment terlihat pada viewport 390×844.",
+      "observedResult": "Kode QRIS, nominal Rp30.000, instruksi pembayaran terpisah melalui e-wallet/mobile banking, dan Pending Payment terlihat pada viewport 390×844.",
+      "steps": [
+        "Ubah viewport ke 390×844 pada halaman QRIS"
+      ],
+      "status": "verified",
+      "width": 390,
+      "height": 844,
+      "orderSubmitted": true,
+      "paymentMade": false,
+      "url": "https://order.millehub.com/order"
+    },
+    {
+      "file": "23-qris-after-download.png",
+      "title": "Setelah percobaan unduh QRIS",
+      "state": "Tombol Download memicu event unduhan, tetapi file yang diterima kosong (0 byte). Halaman tetap menampilkan QRIS tanpa pembayaran.",
+      "observedResult": "Tombol Download memicu event unduhan, tetapi file yang diterima kosong (0 byte). Halaman tetap menampilkan QRIS tanpa pembayaran.",
+      "steps": [
+        "Klik Download",
+        "Simpan berkas asli hasil unduhan"
+      ],
+      "status": "partial",
+      "width": 1440,
+      "height": 1000,
+      "orderSubmitted": true,
+      "paymentMade": false,
+      "url": "https://order.millehub.com/order"
+    }
+  ],
+  "limitations": [
+    "Alur pelanggan loyal hanya diperiksa sampai form; autentikasi akun nyata/OTP tidak diuji.",
+    "Diskon tidak tersedia. Pembayaran kasir dan pembayaran berhasil tidak dijalankan.",
+    "Ukuran viewport berbeda antartangkapan; width dan height dicatat pada setiap entri.",
+    "Jumlah sempat diubah menjadi 2 pada detail, tetapi keranjang dan pesanan akhir berisi 1 Affogatto."
+  ],
+  "previousAttempt": {
+    "code": "2610230838AGHNV56U",
+    "customer": "Benchmark QRIS",
+    "totalIdr": 30000,
+    "submitted": true,
+    "paymentMade": false,
+    "qrisGenerated": false
+  },
+  "approvalHistory": "Blokir otomatis awal diselesaikan setelah pengguna menyetujui tombol Confirm untuk penerbitan tagihan QRIS Rp30.000 tanpa membayar.",
+  "downloads": [
+    {
+      "file": "downloads/Benchmark QRIS-QRIS.png",
+      "title": "Percobaan ekspor QRIS (berkas kosong)",
+      "type": "download_attempt",
+      "status": "blocked",
+      "bytes": 0,
+      "observedResult": "Event download berhasil dipicu, tetapi file yang diterima dari browser cloud berukuran 0 byte dan tidak dapat dipakai.",
+      "paymentMade": false
+    }
+  ]
+}

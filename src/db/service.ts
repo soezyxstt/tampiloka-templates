@@ -61,6 +61,8 @@ import {
 } from './seed.ts';
 import {
   computePricingBreakdown,
+  createDemoPaymentInstructions,
+  isValidOrderQuantity,
   computeAvailableStock,
   validateStockPoolInvariant,
   computeBillFinancialState,
@@ -74,7 +76,7 @@ import {
   hasFormulaInjectionPrefix,
   type Point2D,
 } from '../domain/rules.ts';
-import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, isNull } from 'drizzle-orm';
 
 export function makeId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`;
@@ -253,7 +255,7 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
 
     return {
       outlet,
-      paymentAccount: paymentAccRows[0] ?? null,
+      paymentAccount: paymentAccRows[0] ? { ...paymentAccRows[0], isDemo: true, mode: 'DEMO' } : null,
       categories: categoryRows,
       catalog,
       stockPools: poolRows.map((p) => ({
@@ -521,8 +523,8 @@ export async function createQuoteForCart(input: {
     }> = [];
 
     for (const line of input.items) {
-      if (line.quantity < 1 || line.quantity > 20) {
-        throw new Error('Jumlah per baris harus antara 1 sampai 20 porsi.');
+      if (!isValidOrderQuantity(line.quantity)) {
+        throw new Error('Jumlah per baris harus bilangan bulat antara 1 sampai 20 porsi.');
       }
       const menuItem = itemRows.find((m) => m.id === line.menuItemId && m.active);
       if (!menuItem || menuItem.manualSoldOut) {
@@ -549,9 +551,13 @@ export async function createQuoteForCart(input: {
       }
 
       const itemGroups = modGroupRows.filter((g) => g.menuItemId === menuItem.id && g.active);
+      const optionIds = [...new Set(line.modifierOptionIds || [])];
       const selectedOptions = modOptionRows.filter(
-        (o) => line.modifierOptionIds.includes(o.id) && o.active
+        (o) => optionIds.includes(o.id) && o.active && itemGroups.some((group) => group.id === o.groupId)
       );
+      if (selectedOptions.length !== optionIds.length) {
+        throw new Error(`Pilihan tambahan untuk ${menuItem.name} tidak valid atau sudah tidak tersedia.`);
+      }
 
       for (const grp of itemGroups) {
         const countInGroup = selectedOptions.filter((o) => o.groupId === grp.id).length;
@@ -702,6 +708,7 @@ export async function submitCustomerOrderRequest(input: {
   mode: 'DINE_IN' | 'TAKEAWAY';
   tableId?: string;
   presenceVerified: boolean;
+  tableQrToken?: string;
   idempotencyKey: string;
 }) {
   try {
@@ -710,8 +717,19 @@ export async function submitCustomerOrderRequest(input: {
     if (cleanName.length < 2 || cleanName.length > 60) {
       throw new Error('Nama pemesan wajib diisi (2–60 karakter).');
     }
-    if (!input.presenceVerified) {
-      throw new Error('Kehadiran lokasi belum terverifikasi. Gunakan cek GPS atau kode staf.');
+    let tableQrValidated = false;
+    if (input.tableQrToken) {
+      if (input.mode !== 'DINE_IN' || !input.tableId) throw new Error('Kode QR hanya berlaku untuk meja yang dipindai.');
+      const [qrTable] = await db.select().from(cafeTables).where(and(
+        eq(cafeTables.id, input.tableId), eq(cafeTables.outletId, DEFAULT_OUTLET_ID), eq(cafeTables.active, true)
+      ));
+      if (!qrTable || qrTable.physicalState === 'OUT_OF_SERVICE' || qrTable.qrToken !== input.tableQrToken) {
+        throw new Error('Kode QR meja tidak valid. Pindai ulang kode pada meja Anda.');
+      }
+      tableQrValidated = true;
+    }
+    if (!input.presenceVerified && !tableQrValidated) {
+      throw new Error('Kehadiran lokasi belum terverifikasi. Pindai QR meja, gunakan cek GPS, atau kode staf.');
     }
 
     // Check Idempotency first (Spec 14.1, A09)
@@ -799,7 +817,7 @@ export async function submitCustomerOrderRequest(input: {
       tableLabel,
       tableVersion,
       visitId: existingOpenVisitId,
-      presenceVerified: true,
+      presenceVerified: Boolean(input.presenceVerified),
       state: 'REQUESTED',
       idempotencyKey: input.idempotencyKey,
       expiresAt,
@@ -814,6 +832,7 @@ export async function submitCustomerOrderRequest(input: {
         .where(
           and(
             eq(visitParticipants.visitId, existingOpenVisitId),
+            eq(visitParticipants.principalId, input.principalId),
             eq(visitParticipants.status, 'ACTIVE')
           )
         );
@@ -1032,7 +1051,7 @@ export async function acceptOrderRequestByStaff(input: {
         displayName: req.customerName,
         admittedBy: input.actorName,
         admissionSource: 'STAFF_ACCEPTED',
-        geoCheckResult: 'GEO_ELIGIBLE',
+        geoCheckResult: req.presenceVerified ? 'GEO_ELIGIBLE' : 'TABLE_QR_VALIDATED',
         status: 'ACTIVE',
         expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
       });
@@ -1592,24 +1611,32 @@ export async function recordBillPayment(input: {
   referenceCode?: string;
   actorName: string;
   createExternalAttemptOnly?: boolean;
-}) {
+}, settlingAttemptId?: string) {
   try {
     await ensureSeeded();
 
     return await db.transaction(async (tx) => {
-      const billRows = await tx.select().from(bills).where(eq(bills.id, input.billId));
+      const billRows = await tx.select().from(bills).where(eq(bills.id, input.billId)).for('update');
       const bill = billRows[0];
       if (!bill) throw new Error('Tagihan tidak ditemukan.');
       if (bill.lifecycle === 'VOID') throw new Error('Tagihan VOID tidak dapat dibayar.');
-      if (bill.balanceIdr <= 0) throw new Error('Tagihan sudah lunas.');
 
       const attempts = await tx
         .select()
         .from(paymentAttempts)
         .where(eq(paymentAttempts.billId, bill.id));
 
+      const settlingAttempt = settlingAttemptId ? attempts.find((a) => a.id === settlingAttemptId) : null;
+      if (settlingAttemptId && !settlingAttempt) throw new Error('Instruksi pembayaran tidak cocok dengan tagihan.');
+      if (settlingAttempt?.status === 'SUCCEEDED') {
+        return { attemptId: settlingAttempt.id, status: 'SUCCEEDED', duplicateIgnored: true };
+      }
+      if (settlingAttempt && !['CREATING', 'PENDING', 'UNKNOWN'].includes(settlingAttempt.status)) {
+        throw new Error('Instruksi pembayaran sudah dibatalkan atau kedaluwarsa.');
+      }
+      if (bill.balanceIdr <= 0) throw new Error('Tagihan sudah lunas.');
       const activeExternal = attempts.find(
-        (a) => a.isExternal && ['CREATING', 'PENDING', 'UNKNOWN'].includes(a.status)
+        (a) => a.id !== settlingAttemptId && a.isExternal && ['CREATING', 'PENDING', 'UNKNOWN'].includes(a.status)
       );
 
       // Spec 9.3, A20: Block any new tender (including cash) while an external attempt is active
@@ -1619,6 +1646,9 @@ export async function recordBillPayment(input: {
         );
       }
 
+      if (settlingAttempt && settlingAttempt.expectedAmountIdr > bill.balanceIdr) {
+        throw new Error('Nominal instruksi melebihi sisa tagihan. Perlu rekonsiliasi pembayaran.');
+      }
       const amountToPay = Math.min(input.amountIdr || bill.balanceIdr, bill.balanceIdr);
       if (amountToPay <= 0) {
         throw new Error('Nominal pembayaran harus lebih dari Rp0.');
@@ -1643,18 +1673,18 @@ export async function recordBillPayment(input: {
           isExternal: true,
           expectedAmountIdr: amountToPay,
           status: 'PENDING',
-          instructionsJson: {
-            merchantName: 'PT Kedai Meranti Nusantara',
-            nmid: 'ID1026048291042',
-            vaBank: input.method === 'VIRTUAL_ACCOUNT' ? 'BCA Virtual Account' : undefined,
-            vaNumber: input.method === 'VIRTUAL_ACCOUNT' ? `70012${Math.floor(10000000 + Math.random() * 89999999)}` : undefined,
-            qrPayload: `00020101021226590014ID.CO.GOPAY.WWW0118936009143123456789520458125303360540${amountToPay}5802ID5913KEDAI MERANTI6007BANDUNG6304A1B2`,
-          },
+          instructionsJson: createDemoPaymentInstructions({
+            providerOrderId,
+            amountIdr: amountToPay,
+            method: input.method,
+            merchantName: 'Kedai Meranti',
+          }),
           expiresAt,
         });
 
         return {
           mode: 'ATTEMPT_CREATED',
+          isDemo: true,
           attemptId,
           providerOrderId,
           expectedAmountIdr: amountToPay,
@@ -1853,6 +1883,13 @@ export async function recordBillPayment(input: {
         requestId: makeId('reqid'),
       });
 
+      // Receipt and attempt commit together: a failure must leave the attempt retryable.
+      if (settlingAttempt) {
+        await tx.update(paymentAttempts)
+          .set({ status: 'SUCCEEDED', updatedAt: new Date() })
+          .where(eq(paymentAttempts.id, settlingAttempt.id));
+      }
+
       return {
         mode: 'RECEIPT_RECORDED',
         receiptId,
@@ -1885,31 +1922,28 @@ export async function settleOrCancelExternalPaymentAttempt(input: {
 
     if (input.action === 'CANCEL' || input.action === 'EXPIRE') {
       const nextStatus = input.action === 'CANCEL' ? 'CANCELLED' : 'EXPIRED';
-      await db
-        .update(paymentAttempts)
-        .set({ status: nextStatus, updatedAt: new Date() })
-        .where(eq(paymentAttempts.id, att.id));
-      return { attemptId: att.id, status: nextStatus };
+      return await db.transaction(async (tx) => {
+        // Use the same bill lock as settlement so cancellation cannot undo a receipt.
+        await tx.select().from(bills).where(eq(bills.id, att.billId)).for('update');
+        const [current] = await tx.select().from(paymentAttempts).where(eq(paymentAttempts.id, att.id));
+        if (current.status === nextStatus) return { attemptId: att.id, status: nextStatus, duplicateIgnored: true };
+        if (!['CREATING', 'PENDING', 'UNKNOWN'].includes(current.status)) {
+          throw new Error('Instruksi pembayaran telah selesai dan tidak dapat diubah.');
+        }
+        await tx.update(paymentAttempts)
+          .set({ status: nextStatus, updatedAt: new Date() })
+          .where(eq(paymentAttempts.id, att.id));
+        return { attemptId: att.id, status: nextStatus };
+      });
     }
-
-    // Mark attempt SUCCEEDED first so recordBillPayment won't see it as active pending
-    if (att.status === 'SUCCEEDED') {
-      // Idempotent duplicate webhook settlement (A16)
-      return { attemptId: att.id, status: 'SUCCEEDED', duplicateIgnored: true };
-    }
-
-    await db
-      .update(paymentAttempts)
-      .set({ status: 'SUCCEEDED', updatedAt: new Date() })
-      .where(eq(paymentAttempts.id, att.id));
 
     return await recordBillPayment({
       billId: att.billId,
       method: att.method as any,
       amountIdr: att.expectedAmountIdr,
       referenceCode: att.providerOrderId,
-      actorName: input.actorName || 'WEBHOOK_MIDTRANS',
-    });
+      actorName: input.actorName || 'PAYMENT_DEMO',
+    }, att.id);
   } catch (error: any) {
     console.error('Settle/cancel payment attempt error:', error);
     throw new Error(error.message || 'Gagal memperbarui status pembayaran eksternal.', {
@@ -2613,7 +2647,26 @@ export async function createOrUpdateServiceRequest(input: {
     if (input.action === 'CREATE') {
       const reqType = input.type || 'CALL_WAITER';
       const isPrivateIssue = reqType === 'ORDER_ISSUE';
-      const visitId = input.visitId || 'visit_demo_m01';
+      const tableLabel = input.tableLabel?.trim();
+      if (!tableLabel) throw new Error('Meja wajib dipilih sebelum meminta bantuan.');
+      const [table] = await db.select().from(cafeTables).where(and(
+        eq(cafeTables.outletId, DEFAULT_OUTLET_ID), eq(cafeTables.label, tableLabel), eq(cafeTables.active, true)
+      ));
+      if (!table) throw new Error('Meja untuk permintaan bantuan tidak ditemukan.');
+      const openVisits = await db.select().from(visits).where(and(
+        eq(visits.outletId, DEFAULT_OUTLET_ID), eq(visits.primaryTableId, table.id), eq(visits.status, 'OPEN')
+      ));
+      if (input.visitId && !openVisits.some((visit) => visit.id === input.visitId)) {
+        throw new Error('Kunjungan tidak sesuai dengan meja yang dipilih.');
+      }
+      // Guests can ask for assistance before their first order creates a visit.
+      const visitId = input.visitId || openVisits[0]?.id || null;
+      if (input.participantId) {
+        const [participant] = await db.select().from(visitParticipants).where(and(
+          eq(visitParticipants.id, input.participantId), eq(visitParticipants.status, 'ACTIVE')
+        ));
+        if (!participant || participant.visitId !== visitId) throw new Error('Peserta tidak sesuai dengan kunjungan meja.');
+      }
 
       // Spec 8.5, A41: Deduplicate active general requests per (visit, type)
       if (!isPrivateIssue) {
@@ -2622,7 +2675,9 @@ export async function createOrUpdateServiceRequest(input: {
           .from(serviceRequests)
           .where(
             and(
-              eq(serviceRequests.visitId, visitId),
+              visitId ? eq(serviceRequests.visitId, visitId) : isNull(serviceRequests.visitId),
+              eq(serviceRequests.outletId, DEFAULT_OUTLET_ID),
+              eq(serviceRequests.tableLabel, tableLabel),
               eq(serviceRequests.type, reqType)
             )
           );
@@ -2644,9 +2699,9 @@ export async function createOrUpdateServiceRequest(input: {
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
         visitId,
-        participantId: input.participantId || 'part_guest',
+        participantId: input.participantId || null,
         orderId: input.orderId ?? null,
-        tableLabel: input.tableLabel || 'M01',
+        tableLabel,
         customerName: input.customerName || 'Pelanggan Meja',
         type: reqType,
         isPrivateIssue,

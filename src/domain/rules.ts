@@ -661,3 +661,28 @@ export function sanitizeSpreadsheetExportCell(value: string | number): string | 
   }
   return value;
 }
+
+
+/** Preview payment instructions are intentionally not a payable QRIS/VA credential. */
+export function createDemoPaymentInstructions(input: {
+  providerOrderId: string;
+  amountIdr: number;
+  method: 'QRIS' | 'VIRTUAL_ACCOUNT';
+  merchantName: string;
+}) {
+  return {
+    isDemo: true as const,
+    mode: 'DEMO' as const,
+    merchantName: input.merchantName,
+    notice: 'Pembayaran demo. Kode ini tidak dapat dibayar.',
+    qrPayload: input.method === 'QRIS'
+      ? `cafe-demo://payment/${encodeURIComponent(input.providerOrderId)}?amount=${input.amountIdr}`
+      : undefined,
+    vaBank: input.method === 'VIRTUAL_ACCOUNT' ? 'Virtual Account Demo' : undefined,
+    vaNumber: input.method === 'VIRTUAL_ACCOUNT' ? `DEMO-${input.providerOrderId}` : undefined,
+  };
+}
+
+export function isValidOrderQuantity(quantity: number): boolean {
+  return Number.isInteger(quantity) && quantity >= 1 && quantity <= 20;
+}

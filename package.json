@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "demo:prepare": "node --experimental-strip-types scripts/prepare-demo-db.ts",
+    "demo": "npm run demo:prepare && CAFE_DEMO_DB=1 next dev --hostname 0.0.0.0"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -41,7 +43,8 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@electric-sql/pglite": "0.3.16"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.11",

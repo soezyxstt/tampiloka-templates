@@ -1,0 +1,501 @@
+{
+  "role": "cashier",
+  "screenshots": [
+    {
+      "id": "cashier-01",
+      "file": "cashier/01-login-staf.png",
+      "title": "Login staf",
+      "state": "Form login dan pilihan akses demo.",
+      "steps": [
+        "Buka portal staf"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:41.948625+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-02",
+      "file": "cashier/02-validasi-pin-salah.png",
+      "title": "Validasi PIN salah",
+      "state": "PIN tidak sesuai menampilkan pesan kesalahan.",
+      "steps": [
+        "Isi PIN 9999",
+        "Klik Masuk"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:43.792530+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-03",
+      "file": "cashier/03-dashboard-kasir-desktop.png",
+      "title": "Dashboard kasir desktop",
+      "state": "Ringkasan operasional dan daftar tagihan.",
+      "steps": [
+        "Masuk memakai akses demo kasir"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:45.265118+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-04",
+      "file": "cashier/04-cari-tagihan-ditemukan.png",
+      "title": "Cari tagihan ditemukan",
+      "state": "Daftar difilter berdasarkan nama pelanggan Bagas.",
+      "steps": [
+        "Isi pencarian Bagas"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:46.490933+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-05",
+      "file": "cashier/05-cari-tagihan-kosong.png",
+      "title": "Cari tagihan kosong",
+      "state": "Tidak ada tagihan untuk kata pencarian.",
+      "steps": [
+        "Isi kata tanpa hasil"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:47.516277+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-06",
+      "file": "cashier/06-filter-tagihan-lunas.png",
+      "title": "Filter tagihan lunas",
+      "state": "Daftar tagihan lunas dan detail status lunas.",
+      "steps": [
+        "Pilih Lunas"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:49.162416+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-07",
+      "file": "cashier/07-filter-semua-tagihan.png",
+      "title": "Filter semua tagihan",
+      "state": "Tagihan lunas dan belum lunas tersedia.",
+      "steps": [
+        "Pilih Semua"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:50.540489+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-08",
+      "file": "cashier/08-pesanan-baru-dari-kasir.png",
+      "title": "Pesanan baru dari kasir",
+      "state": "Dialog hanya menyediakan nama, meja, menu dan jumlah; tidak ada TAKEAWAY.",
+      "steps": [
+        "Klik Pesanan baru"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:52.807506+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-09",
+      "file": "cashier/09-pesanan-kasir-gagal.png",
+      "title": "Pesanan kasir gagal",
+      "state": "Klik Kirim pesanan tidak membuat pesanan; modal tetap terbuka. Error command dilaporkan melalui pageerror.",
+      "steps": [
+        "Kosongkan nama",
+        "Pilih Teh Melati",
+        "Kirim pesanan"
+      ],
+      "status": "blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:56.051131+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo"
+    },
+    {
+      "id": "cashier-10",
+      "file": "cashier/10-tagihan-fixture-kasir.png",
+      "title": "Tagihan fixture kasir",
+      "state": "Fixture API tiga teh dipilih; subtotal, pajak, layanan dan sisa tagihan.",
+      "steps": [
+        "Setup fixture via API lokal",
+        "Refresh",
+        "Cari Rani",
+        "Pilih tagihan"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:18:59.988337+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-11",
+      "file": "cashier/11-panel-pisah-gabung-tanpa-item.png",
+      "title": "Panel pisah gabung tanpa item",
+      "state": "Tombol Pisahkan nonaktif tanpa item dicentang.",
+      "steps": [
+        "Buka Pisah / Gabung Tagihan"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:01.910956+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-12",
+      "file": "cashier/12-pilih-item-untuk-pisah.png",
+      "title": "Pilih item untuk pisah",
+      "state": "Satu porsi teh dipilih untuk tagihan baru.",
+      "steps": [
+        "Centang satu item",
+        "Isi nama tagihan baru"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:03.802865+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-13",
+      "file": "cashier/13-tagihan-berhasil-dipisah.png",
+      "title": "Tagihan berhasil dipisah",
+      "state": "Satu item dipisahkan; sumber tersisa dua item.",
+      "steps": [
+        "Klik Pisahkan"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:06.074356+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-14",
+      "file": "cashier/14-gabung-ke-tagihan-sendiri.png",
+      "title": "Gabung ke tagihan sendiri",
+      "state": "Tujuan gabung dipilih ke tagihan Rani asli.",
+      "steps": [
+        "Pilih tagihan hasil pisah",
+        "Pilih Rani asli sebagai tujuan"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:09.657699+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-15",
+      "file": "cashier/15-tagihan-berhasil-digabung.png",
+      "title": "Tagihan berhasil digabung",
+      "state": "Seluruh item kembali di tagihan Rani asli.",
+      "steps": [
+        "Klik Gabung"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:11.956462+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-16",
+      "file": "cashier/16-dialog-pembatalan-item.png",
+      "title": "Dialog pembatalan item",
+      "state": "Pilihan alasan dan kembalikan stok tersedia.",
+      "steps": [
+        "Klik Batalkan pada item sendiri"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:14.092118+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-17",
+      "file": "cashier/17-pembatalan-tanpa-alasan.png",
+      "title": "Pembatalan tanpa alasan",
+      "state": "Alasan kosong ditolak backend, tetapi modal tidak menampilkan pesan inline; pageerror tercatat.",
+      "steps": [
+        "Kosongkan alasan",
+        "Klik Batalkan item"
+      ],
+      "status": "blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:16.817289+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-18",
+      "file": "cashier/18-item-dibatalkan-dan-stok-kembali.png",
+      "title": "Item dibatalkan dan stok kembali",
+      "state": "Satu item fixture dibatalkan dengan alasan.",
+      "steps": [
+        "Isi alasan",
+        "Kembalikan ke stok",
+        "Batalkan item"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:19.320633+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-19",
+      "file": "cashier/19-tunai-kurang.png",
+      "title": "Tunai kurang",
+      "state": "Tombol Terima Pembayaran Tunai nonaktif saat uang kurang.",
+      "steps": [
+        "Isi tunai diterima 100"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:20.933085+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-20",
+      "file": "cashier/20-pratinjau-kembalian-tunai.png",
+      "title": "Pratinjau kembalian tunai",
+      "state": "Uang Rp100.000 menampilkan kembalian.",
+      "steps": [
+        "Klik preset Rp100.000"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:22.484910+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-21",
+      "file": "cashier/21-tunai-uang-pas.png",
+      "title": "Tunai uang pas",
+      "state": "Uang pas mengisi jumlah sesuai sisa tagihan.",
+      "steps": [
+        "Klik Uang Pas"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:23.846224+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-22",
+      "file": "cashier/22-pembayaran-tunai-berhasil.png",
+      "title": "Pembayaran tunai berhasil",
+      "state": "Pembayaran demo tercatat, tagihan menjadi lunas.",
+      "steps": [
+        "Terima pembayaran tunai fixture lokal"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:25.971776+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-23",
+      "file": "cashier/23-tagihan-lunas-setelah-tunai.png",
+      "title": "Tagihan lunas setelah tunai",
+      "state": "Tagihan Rani muncul pada filter lunas.",
+      "steps": [
+        "Pilih Lunas",
+        "Cari Rani"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:27.586339+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    },
+    {
+      "id": "cashier-24",
+      "file": "cashier/24-kasir-mobile.png",
+      "title": "Kasir mobile",
+      "state": "Dashboard kasir dan filter tagihan pada layar ponsel.",
+      "steps": [
+        "Ubah viewport 390x844"
+      ],
+      "status": "verified",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "https://cafe-ui.test/staff/kedai-meranti-group/kedai-meranti",
+      "capturedAt": "2026-10-24T02:19:29.040115+07:00",
+      "browser": "Steel Chromium",
+      "paymentMode": "demo",
+      "fixtureCreatedViaApi": true
+    }
+  ],
+  "errors": [
+    {
+      "type": "pageerror",
+      "message": "Command tidak dikenali: CREATE_CHECKOUT_QUOTE"
+    },
+    {
+      "type": "pageerror",
+      "message": "Alasan pembatalan/koreksi wajib diisi."
+    }
+  ],
+  "findings": [
+    {
+      "title": "Walk-in order UI tidak berfungsi",
+      "description": "Dialog memanggil CREATE_CHECKOUT_QUOTE yang tidak didukung API. Jalur UI tidak menyediakan takeaway dan tidak menampilkan pesan error lokal yang memadai. Pesanan uji berikut disiapkan via API lokal untuk menguji operasi tagihan, bukan bukti UI create order berhasil.",
+      "status": "blocked"
+    },
+    {
+      "title": "Fixture tagihan",
+      "description": "Rani - Uji Kasir, tiga teh, dibuat melalui API lokal karena walk-in UI gagal. Seluruh operasi berikut dilakukan pada fixture ini melalui UI.",
+      "status": "setup",
+      "fixtureCreatedViaApi": true,
+      "billId": "bill_mvlcshnh_767b9ba4"
+    },
+    {
+      "title": "Cetak struk tidak tersedia pada kasir",
+      "description": "Tidak ada tombol print/receipt terpisah pada detail kasir saat diperiksa; status lunas dan rincian tagihan terdokumentasi.",
+      "status": "not_available"
+    },
+    {
+      "title": "Alasan pembatalan kosong tidak tampil sebagai error inline",
+      "description": "Backend menolak dengan Alasan pembatalan/koreksi wajib diisi; modal tetap terbuka tanpa pesan di dekat input, pageerror tercatat.",
+      "status": "blocked"
+    }
+  ],
+  "origin": "https://cafe-ui.test",
+  "target": "local application on port3100; HTTP responses forwarded unchanged",
+  "browser": "Steel Chromium"
+}
