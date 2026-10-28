@@ -1,8 +1,30 @@
 # Verification and delivery record
 
-Verified on 28 October 2026 against the reusable cafe template implementation. Local tools: Node.js 24.22.1, Next.js 15.5.28, Playwright 1.56.1 and Chromium. The repository CI configuration uses Node.js 22. Remote CI and deployment results are linked from [PR #1](https://github.com/soezyxstt/cafe-template/pull/1).
+Verified on 28 October 2026 against the reusable cafe template implementation. Local tools: Node.js 24.22.1, Next.js 15.5.28, Playwright 1.56.1 and Chromium. The repository CI configuration uses Node.js 22. The original showcase release is recorded in [PR #1](https://github.com/soezyxstt/cafe-template/pull/1); the lifecycle corrections described below supersede its narrower operational coverage.
 
-## Public showcase and cleanup verification
+## Version 0.3.1: complete visit lifecycle
+
+The release verifies explicit seating through departure and cleaning, with backend guards and actual customer/staff UI interaction. The [lifecycle guide](lifecycle.md) contains the reproducible data matrix and operating instructions.
+
+| Gate | Verified result | Coverage |
+| --- | --- | --- |
+| Core suite | 91 tests passed | 19 config/CLI, 10 catalog, 30 domain/capability/billing, and 32 database tests including 30 lifecycle scenario subtests |
+| Browser adapter and mock-state suite | 22 tests passed | Existing crypto/schema/durability checks plus all 14 mock states, module restrictions and invalid-loader preservation |
+| Final lifecycle browser run | 11 cases / 24 checks passed | Prepay, pay later, add-on, partial cash/change, cancelled/successful QR, kitchen, takeaway, rejection, immediate/deferred refund, split/merge, manager exception, external counter, private waitlist and all mock states |
+| Final preset browser run | Nine presets / 37 checks passed | Mobile customer, tablet staff, module gates, images and connected UI workflows |
+| Generated client HTTP tests | 10/10 passed | All nine presets and catalog-only without database credentials |
+| Fresh catalog client core suite | 91 tests passed | Inherited backend fixtures run independently from the client's selected modules |
+| Build and static checks | Passed | TypeScript, ESLint, Next.js production build and Vite showcase build |
+
+The final local browser runs used `/assets/index-DsNKL03W.js` and confirmed that all 89 application/configuration source files remained unchanged during verification. The lifecycle run covered customer width 390 px and staff width 1024 px. Both browser suites recorded zero page errors, console errors and attempted network mutations. Reports are generated at `test-results/lifecycle-final/` and `test-results/demos-final/`, not committed as screenshot archives.
+
+Backend cases also cover conflicting seating/acceptance/departure, stale quote reuse across table generations, invalid cleanup/enable actions, waitlist ownership/capacity/expiry, private ticket privacy, invalid payment policies, rejected cash-out, modifier stock, multiple-receipt refunds, no-open-drawer rollback, and funding dependencies after split/merge. A floor-plan draft cannot change live geometry; publication is blocked while the room is occupied.
+
+The CI workflow now installs Chromium and runs both browser suites against its own built artifact. JSON reports and screenshots are retained as the **cafe-browser-verification** artifact. Public-domain checks are repeated after merge/deployment; the release PR records the exact commit, CI runs and Pages deployment.
+
+The [Figma lifecycle review](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=169-4063) adds five component families with 11 states to the existing v2 page, reusing its variables, text styles, buttons and fields.
+
+## Version 0.3.0: public showcase and cleanup verification
 
 The public showcase reuses the application UI and domain service, with a browser-local database adapter for Cloudflare Pages. It does not use a shared public transaction database or collect real payments.
 

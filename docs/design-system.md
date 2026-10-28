@@ -2,6 +2,20 @@
 
 Updated: 28 October 2026. This document records the shared design contract for the reusable cafe template and its editable Figma kit.
 
+### Lifecycle additions in 0.3.1
+
+The existing v2 page now includes a [lifecycle review frame](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=169-4063), with reusable instances and five additional component families covering 11 states. These reuse existing buttons, fields, 15 variables and the kit's text styles.
+
+| Family | States | Figma node | Implementation |
+| --- | --- | --- | --- |
+| Visit seating | Guest form | `169:3891` | `components/cafe/visit-service.tsx` |
+| Departure review | Blocked, ready, exception | `169:3914` | `components/cafe/visit-service.tsx` |
+| Payment timing | Dine-in/takeaway policy | `169:3995` | `components/cafe/staff-app.tsx` |
+| Order payment | Unpaid, partial, settled | `169:4016` | `components/cafe/customer-app.tsx`, `src/domain/order-billing.ts` |
+| Private waitlist | Waiting, called, seated | `169:4044` | `components/cafe/customer-app.tsx` |
+
+The [operational contract](lifecycle.md) keeps payment, food delivery, guest departure and table cleaning separate. Disabled departure actions must explain the unresolved obligations. Customer order payment states use current bill allocations, and private waitlist status belongs only to the ticket holder.
+
 ## Figma entry points
 
 The work lives in **12 Cafe Template v2** in the existing Design Kit. The original 11 pages remain intact.

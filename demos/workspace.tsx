@@ -4,6 +4,7 @@ import { KafeWorkspace, type WorkspaceView } from '../components/cafe/kafe-works
 import { cafeConfig, hasStaffModules, isModuleEnabled } from './config';
 import { demoBasePath, DEMO_HUB, DEMO_DOMAIN } from './manifest';
 import type { DemoPreset } from './components/demo-portal';
+import { ScenarioPanel } from './components/scenario-panel';
 
 type Prepared = { snapshot: any; view: WorkspaceView; tableId?: string; billId?: string };
 
@@ -53,6 +54,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       if (demo.id !== 'catalog') await (await import('../src/demo-runtime/index')).resetBrowserDemo();
       const prefix = `cafe:${cafeConfig.venue.tenantSlug}:${cafeConfig.venue.outletSlug}`;
       for (const key of Object.keys(localStorage)) if (key.startsWith(prefix)) localStorage.removeItem(key);
+      sessionStorage.removeItem(`${prefix}:scenario`);
       location.reload();
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Demo belum berhasil diulang.'); setResetting(false); }
   };
@@ -68,6 +70,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       </div>
     </div>
     <details className="demo-context"><summary>Demo interaktif · tidak ada pembayaran nyata</summary><p>Perubahan tersimpan di browser ini. Tab pelanggan dan staf pada alamat demo yang sama berbagi data. Perangkat atau browser lain memiliki sesi sendiri. Gunakan “Ulangi” untuk memulai kembali.</p></details>
+    {prepared?.view === 'staf' && demo.id !== 'catalog' && <ScenarioPanel snapshot={prepared.snapshot} />}
     {error ? <main className="demo-loading" role="alert"><h1>Demo belum dapat dibuka</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>Coba lagi</button><a href={hub}>Pilih demo lain</a></main>
       : prepared ? <KafeWorkspace initialSnapshot={prepared.snapshot} initialView={prepared.view} initialTableId={prepared.tableId} initialBillId={prepared.billId} />
       : <main className="demo-loading" aria-live="polite"><span className="demo-spinner" /><h1>Menyiapkan demo…</h1><p>Pembukaan pertama membutuhkan beberapa saat. Setelah itu, data demo tersimpan di browser ini.</p></main>}

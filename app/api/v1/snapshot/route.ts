@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
         break;
       case 'RESET_DEMO_DATA': {
         const { resetDemoData } = await import('@/src/db/seed');
-        result = await resetDemoData();
+        result = await resetDemoData({ empty: payload.empty === true ? true : undefined });
         break;
       }
       default:

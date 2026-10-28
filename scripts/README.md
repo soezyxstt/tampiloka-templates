@@ -110,6 +110,9 @@ The CI workflow runs these commands after `npm ci`. It does not need live databa
 | `npm test` | Runs the four suites above; no running application server is needed. |
 | `npm run test:presets` | Creates temporary CLI-generated clients, starts isolated servers, and checks package pages and APIs, payment flows, and a catalog without demo/database credentials. Requires available local ports. |
 | `npm run test:browser` | Exercises an already running full-service demo through Playwright. Requires Chromium and creates test transactions in that demo. |
+| `npm run test:demo-runtime` | Browser adapter durability and schema checks plus all 14 mock-data state assertions. Source repository only. |
+| `npm run test:demo-lifecycle` | Actual customer/staff lifecycle UI against a static preview or public demos, including payments, kitchen, add-ons, refunds, departure, cleaning and waitlist. |
+| `npm run test:demo-all` | Starts an isolated preview of `dist-demos`, runs all-preset and lifecycle browser gates, then stops the preview. Build the demos first. |
 
 ### Temporary client checks
 

@@ -61,9 +61,11 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     }, 8000);
     const online = () => { void loadSnapshot(activeView, true); };
     const offline = () => setConnectionError('Koneksi terputus. Keranjang Anda tetap tersimpan.');
+    const dataChanged = () => { if (!commandPending.current) void loadSnapshot(activeView, true); };
     window.addEventListener('online', online);
     window.addEventListener('offline', offline);
-    return () => { clearInterval(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
+    window.addEventListener('cafe:data-changed', dataChanged);
+    return () => { clearInterval(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); window.removeEventListener('cafe:data-changed', dataChanged); };
   }, [activeView, loadSnapshot, staticCatalog]);
 
   const switchView = async (view: WorkspaceView) => {

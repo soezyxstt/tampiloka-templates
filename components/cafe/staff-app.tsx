@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -27,6 +27,7 @@ import { PosComposer } from './pos-composer';
 import { OrderInbox } from './order-inbox';
 import { DemoPaymentControls } from './demo-payment-controls';
 import { ShiftControls } from './shift-controls';
+import { VisitService } from './visit-service';
 import { sanitizeSpreadsheetExportCell } from '@/src/domain/rules';
 import {
   Check,
@@ -247,6 +248,12 @@ export function StaffApp({
   const [tenderAmountInput, setTenderAmountInput] = useState<string>('');
   const [cashGivenInput, setCashGivenInput] = useState<string>('');
   const [transferRefInput, setTransferRefInput] = useState<string>('');
+  const paymentAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
+  const paymentSubmittingRef = useRef(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [rejectingRequest, setRejectingRequest] = useState<any | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [modalActionError, setModalActionError] = useState('');
 
   // Cancel unit modal state
   const [cancellingUnit, setCancellingUnit] = useState<any | null>(null);
@@ -254,6 +261,7 @@ export function StaffApp({
     'Permintaan pelanggan / ubah pesanan'
   );
   const [restockChoice, setRestockChoice] = useState<'RESTOCK' | 'WASTE'>('RESTOCK');
+  const [refundNow, setRefundNow] = useState(true);
 
   // Walk-in / Staff Order Modal state
   const [newOrderModalOpen, setNewOrderModalOpen] = useState<boolean>(false);
@@ -268,8 +276,6 @@ export function StaffApp({
 
   // Meja & Antrean sub-tab state
   const [floorSubTab, setFloorSubTab] = useState<'DENAH' | 'ANTREAN'>('DENAH');
-  const [moveTargetTableId, setMoveTargetTableId] = useState<string>('tbl_m02');
-  const [issuedJoinCodeText, setIssuedJoinCodeText] = useState<string>('');
   const [waitlistTables, setWaitlistTables] = useState<Record<string, string>>({});
 
   // Katalog & Stok state
@@ -315,6 +321,11 @@ export function StaffApp({
   const [customTaxInclusive, setCustomTaxInclusive] = useState<boolean>(
     Boolean(snapshot?.outlet?.taxInclusiveDisplay ?? false)
   );
+  const [customPaymentPolicy, setCustomPaymentPolicy] = useState<string>(snapshot?.outlet?.paymentPolicy || 'PREPAY');
+  const [customTakeawayPolicy, setCustomTakeawayPolicy] = useState<string>(snapshot?.outlet?.takeawayPaymentPolicy || 'PREPAY');
+  const [customAutoAccept, setCustomAutoAccept] = useState<boolean>(Boolean(snapshot?.outlet?.autoAcceptParticipant));
+  const [policyEditing, setPolicyEditing] = useState(false);
+  const editPolicy = () => { if (!policyEditing) { setCustomPaymentPolicy(snapshot?.outlet?.paymentPolicy || 'PREPAY'); setCustomTakeawayPolicy(snapshot?.outlet?.takeawayPaymentPolicy || 'PREPAY'); setCustomAutoAccept(Boolean(snapshot?.outlet?.autoAcceptParticipant)); setPolicyEditing(true); } };
   const [newPromoModalOpen, setNewPromoModalOpen] = useState<boolean>(false);
   const [newPromoCode, setNewPromoCode] = useState<string>('KOPIPAGI');
   const [newPromoName, setNewPromoName] = useState<string>('Diskon Pagi Rp10.000');
@@ -353,10 +364,10 @@ export function StaffApp({
     [snapshot]
   );
 
-  const activeBills = useMemo(() => snapshot?.bills || [], [snapshot]);
+  const activeBills = useMemo(() => (snapshot?.bills || []).filter((bill: any) => bill.lifecycle !== 'VOID'), [snapshot]);
   const filteredBills = useMemo(() => activeBills.filter((bill: any) => {
-    if (billFilter === 'OPEN' && bill.balanceIdr <= 0) return false;
-    if (billFilter === 'PAID' && bill.balanceIdr > 0) return false;
+    if (billFilter === 'OPEN' && bill.balanceIdr === 0) return false;
+    if (billFilter === 'PAID' && bill.paymentState !== 'SETTLED') return false;
     return `${bill.tableLabel || ''} ${bill.ownerLabel || ''} ${bill.id || ''}`
       .toLocaleLowerCase('id').includes(billSearch.trim().toLocaleLowerCase('id'));
   }), [activeBills, billFilter, billSearch]);
@@ -411,6 +422,13 @@ export function StaffApp({
       return true;
     });
   }, [snapshot, menuCategoryFilter, menuSearchQuery]);
+
+  const openVisitBills = (visitId: string) => {
+    const matching = activeBills.filter((bill: any) => bill.visitId === visitId);
+    const bill = matching.find((entry: any) => entry.balanceIdr !== 0) || matching[0];
+    setActiveSection('kasir'); setBillSearch(''); setBillFilter('ALL');
+    if (bill) setSelectedBillId(bill.id);
+  };
 
   const handleExportReportCsv = () => {
     const headers = ['Tanggal Tagihan', 'ID Tagihan', 'Meja / Pemilik', 'Status Bayar', 'Subtotal', 'Diskon', 'Layanan', 'Pajak', 'Koreksi Debit', 'Koreksi Kredit', 'Nilai Tagihan', 'Diterima', 'Dikembalikan', 'Penerimaan Bersih', 'Sisa'];
@@ -614,9 +632,9 @@ export function StaffApp({
   const navItems = allNavItems.filter(item => sectionEnabled(item.id));
 
   const effectiveTenderAmount =
-    Number(tenderAmountInput) > 0
-      ? Number(tenderAmountInput)
-      : selectedBill?.balanceIdr || 0;
+    tenderAmountInput.trim() === ''
+      ? selectedBill?.balanceIdr || 0
+      : Number(tenderAmountInput);
   const cashChangePreview =
     tenderMethod === 'CASH'
       ? Math.max(0, (Number(cashGivenInput) || 0) - effectiveTenderAmount)
@@ -724,6 +742,7 @@ export function StaffApp({
                     return (
                       <div
                         key={req.id}
+                        data-request-id={req.id}
                         className="py-3.5 flex flex-wrap items-center justify-between gap-4"
                       >
                         <div className="space-y-1 min-w-[240px] flex-1">
@@ -776,13 +795,7 @@ export function StaffApp({
                             variant="danger"
                             size="sm"
                             disabled={busy}
-                            onClick={async () => {
-                              await runStaffCommand('REJECT_ORDER_REQUEST', {
-                                orderRequestId: req.id,
-                                reason: 'Ditolak oleh staf kasir',
-                              });
-                              setActionNotice(`Pesanan Meja ${req.tableLabel} ditolak.`);
-                            }}
+                            onClick={() => { setRejectingRequest(req); setRejectReason(''); setModalActionError(''); }}
                           >
                             <X className="w-4 h-4" />
                             <span>Tolak</span>
@@ -797,6 +810,7 @@ export function StaffApp({
 
             <DemoPaymentControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />
             {!canKitchen && <OrderInbox snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
+            {!canTables && <VisitService snapshot={snapshot} busy={busy} canTables={false} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />}
             {/* The cashier workspace is separate from the ordering inbox. */}
             {canCashier && <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
@@ -827,6 +841,7 @@ export function StaffApp({
                     return (
                       <button
                         key={b.id}
+                        data-bill-id={b.id}
                         type="button"
                         onClick={() => {
                           setSelectedBillId(b.id);
@@ -866,7 +881,7 @@ export function StaffApp({
               </div>
 
               {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout */}
-              <div className="lg:col-span-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 space-y-6">
+              <div data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 space-y-6">
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}
@@ -947,6 +962,7 @@ export function StaffApp({
                               <Label>Gabung ke tagihan meja lain</Label>
                               <div className="flex items-center gap-2">
                                 <SelectField
+                                  aria-label="Tagihan tujuan penggabungan"
                                   value={mergeTargetBillId}
                                   onChange={(e) => setMergeTargetBillId(e.target.value)}
                                 >
@@ -954,7 +970,7 @@ export function StaffApp({
                                   {activeBills
                                     .filter(
                                       (b: any) =>
-                                        b.id !== selectedBill.id && b.lifecycle === 'OPEN'
+                                        b.id !== selectedBill.id && b.lifecycle === 'OPEN' && b.visitId === selectedBill.visitId && b.paymentPolicy === selectedBill.paymentPolicy && !b.hasActiveExternalAttempt && !b.verifiedReceiptsIdr && !(b.adjustments || []).length
                                     )
                                     .map((b: any) => (
                                       <option key={b.id} value={b.id}>
@@ -1001,6 +1017,7 @@ export function StaffApp({
                           return (
                             <div
                               key={u.id}
+                              data-unit-id={u.id}
                               className={`py-3 flex flex-wrap items-center justify-between gap-3 text-[14px] ${
                                 isCancelled ? 'opacity-50' : ''
                               }`}
@@ -1042,13 +1059,13 @@ export function StaffApp({
                                   amount={unitPrice}
                                   className="font-semibold text-[14px] min-w-[85px] text-right"
                                 />
-                                {!isCancelled && (
+                                {(!isCancelled || selectedBill.balanceIdr < 0) && (
                                   <button
                                     type="button"
-                                    onClick={() => setCancellingUnit(u)}
+                                    onClick={() => { setCancellingUnit(u); setRefundNow(true); setModalActionError(''); setCancelReasonInput(isCancelled ? 'Pengembalian pembayaran setelah pembatalan' : 'Permintaan pelanggan / ubah pesanan'); }}
                                     className="text-[12px] font-medium text-[var(--muted-foreground)] hover:text-[var(--status-danger-fg)] transition-colors cursor-pointer px-1.5 py-1"
                                   >
-                                    Batalkan
+                                    {isCancelled ? 'Selesaikan pengembalian' : 'Batalkan'}
                                   </button>
                                 )}
                               </div>
@@ -1102,7 +1119,7 @@ export function StaffApp({
                                 </Label>
                                 <Input
                                   id="cashier-tender-amount"
-                                  type="number"
+                                  type="number" min={1} max={selectedBill.balanceIdr} step={1}
                                   placeholder={String(selectedBill.balanceIdr)}
                                   value={tenderAmountInput}
                                   onChange={(e) => setTenderAmountInput(e.target.value)}
@@ -1117,7 +1134,7 @@ export function StaffApp({
                                   </Label>
                                   <Input
                                     id="cashier-cash-given"
-                                    type="number"
+                                    type="number" min={0} step={1}
                                     value={cashGivenInput}
                                     onChange={(e) => setCashGivenInput(e.target.value)}
                                     className="tabular-nums font-semibold"
@@ -1170,32 +1187,26 @@ export function StaffApp({
                               </div>
                             )}
 
+                            {selectedBill.hasActiveExternalAttempt && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Instruksi pembayaran masih aktif. Konfirmasikan hasilnya atau batalkan melalui Uji pembayaran demo sebelum mencatat pembayaran lain.</p>}
                             <Button
                               variant="primary"
                               size="lg"
                               className="w-full"
-                              disabled={busy || effectiveTenderAmount <= 0 || effectiveTenderAmount > selectedBill.balanceIdr || (tenderMethod === 'CASH' && Number(cashGivenInput) < effectiveTenderAmount)}
+                              disabled={busy || paymentSubmitting || selectedBill.hasActiveExternalAttempt || !Number.isSafeInteger(effectiveTenderAmount) || effectiveTenderAmount <= 0 || effectiveTenderAmount > selectedBill.balanceIdr || (tenderMethod === 'CASH' && (!Number.isSafeInteger(Number(cashGivenInput)) || Number(cashGivenInput) < effectiveTenderAmount))}
                               onClick={async () => {
+                                if (paymentSubmittingRef.current) return;
+                                paymentSubmittingRef.current = true; setPaymentSubmitting(true);
                                 const amt = effectiveTenderAmount;
-                                const res = await runStaffCommand('RECORD_PAYMENT', {
-                                  billId: selectedBill.id,
-                                  method: tenderMethod,
-                                  amountIdr: amt,
-                                  tenderedIdr:
-                                    tenderMethod === 'CASH'
-                                      ? Number(cashGivenInput)
-                                      : amt,
-                                  referenceCode: transferRefInput || `POS-${Date.now()}`,
-                                });
-                                setActionNotice(
-                                  `Pembayaran ${
-                                    tenderMethod === 'CASH' ? 'Tunai' : tenderMethod
-                                  } sebesar ${formatIdr(amt)} berhasil dicatat.${
-                                    (res?.result?.changeIdr ?? 0) > 0
-                                      ? ` Kembalian: ${formatIdr(res.result.changeIdr)}`
-                                      : ''
-                                  }`
-                                );
+                                const paymentPayload = { billId: selectedBill.id, method: tenderMethod, amountIdr: amt, tenderedIdr: tenderMethod === 'CASH' ? Number(cashGivenInput) : amt, referenceCode: transferRefInput || undefined };
+                                const fingerprint = JSON.stringify(paymentPayload);
+                                if (paymentAttemptRef.current?.fingerprint !== fingerprint) paymentAttemptRef.current = { fingerprint, key: `payment_${crypto.randomUUID()}` };
+                                try {
+                                  const res = await runStaffCommand('RECORD_PAYMENT', { ...paymentPayload, idempotencyKey: paymentAttemptRef.current.key });
+                                  const external = tenderMethod === 'QRIS' || tenderMethod === 'VIRTUAL_ACCOUNT';
+                                  setActionNotice(external ? 'Instruksi pembayaran demo dibuat. Pembayaran masih menunggu konfirmasi.' : `Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`);
+                                  setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
+                                } catch { /* runStaffCommand displays the server's error. Keep the retry key. */ }
+                                finally { paymentSubmittingRef.current = false; setPaymentSubmitting(false); }
                               }}
                             >
                               <Receipt className="w-4 h-4" />
@@ -1205,7 +1216,7 @@ export function StaffApp({
                         ) : (
                           <div className="p-4 rounded-[10px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] flex items-center justify-between">
                             <div>
-                              <p className="font-semibold text-[15px]">Lunas</p>
+                              <p className="font-semibold text-[15px]">{selectedBill.balanceIdr < 0 ? `Perlu pengembalian ${formatIdr(-selectedBill.balanceIdr)}` : 'Lunas'}</p>
 
                             </div>
                             <Check className="w-5 h-5 shrink-0" />
@@ -1276,10 +1287,12 @@ export function StaffApp({
                   const variantName = u.variantNameSnapshot || u.variantName;
                   const tableLabel = u.tableLabelSnapshot || u.tableLabel || '-';
                   const customerName = u.customerNameSnapshot || u.customerName || 'Tamu';
+                  const takeaway = (snapshot?.orders || []).find((order: any) => order.id === u.orderId)?.mode === 'TAKEAWAY';
 
                   return (
                     <div
                       key={u.id}
+                      data-unit-id={u.id}
                       className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col items-stretch justify-between gap-5 border-t-[3px] ${u.fulfillmentStatus === 'READY' ? 'border-t-emerald-500' : u.fulfillmentStatus === 'PREPARING' ? 'border-t-amber-500' : 'border-t-[var(--primary)]'}`}
                     >
                       <div className="space-y-1 min-w-[240px] flex-1">
@@ -1354,14 +1367,12 @@ export function StaffApp({
                             onClick={() =>
                               runStaffCommand('TRANSITION_UNITS', {
                                 unitIds: [u.id],
-                                targetStatus: String(tableLabel).startsWith('TW-')
-                                  ? 'PICKED_UP'
-                                  : 'DELIVERED',
+                                targetStatus: takeaway ? 'PICKED_UP' : 'DELIVERED',
                               })
                             }
                           >
                             <Check className="w-4 h-4" />
-                            <span>Disajikan</span>
+                            <span>{takeaway ? 'Sudah diambil' : 'Disajikan'}</span>
                           </Button>
                         )}
                       </div>
@@ -1402,6 +1413,8 @@ export function StaffApp({
 
             {floorSubTab === 'DENAH' ? (
               <div className="space-y-8">
+                <VisitService snapshot={snapshot} busy={busy} canTables={canTables} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />
+
                 <FloorPlanEditor
                   rooms={snapshot?.rooms || []}
                   tables={snapshot?.tables || []}
@@ -1416,113 +1429,7 @@ export function StaffApp({
                   }}
                 />
 
-                {/* Active Table Visits (Hairline List) */}
-                <section className="pt-6 border-t border-[var(--border)] space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="font-heading text-[17px] font-bold">
-                      Kunjungan aktif
-                    </h2>
-                    {issuedJoinCodeText && (
-                      <StatusLabel label={issuedJoinCodeText} tone="active" />
-                    )}
-                  </div>
 
-                  <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-                    {(snapshot?.visits || [])
-                      .filter((v: any) => v.status === 'OPEN')
-                      .map((v: any) => (
-                        <div
-                          key={v.id}
-                          className="py-3.5 flex flex-wrap items-center justify-between gap-4"
-                        >
-                          <div>
-                            <p className="font-heading font-semibold text-[15px]">
-                              {v.mode === 'DINE_IN'
-                                ? `Meja ${((v.tableLabelsJson as string[]) || []).join(', ')}`
-                                : `Bawa Pulang ${v.pickupNumber}`}{' '}
-                              · {v.customerName}
-                            </p>
-                            <p className="text-[13px] text-[var(--muted-foreground)]">
-                              {v.partySize} orang · Sedang berlangsung
-                            </p>
-                          </div>
-
-                          {v.mode === 'DINE_IN' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <SelectField
-                                value={moveTargetTableId}
-                                onChange={(e) => setMoveTargetTableId(e.target.value)}
-                                aria-label="Pilih meja tujuan pindah"
-                                wrapperClassName="w-auto min-w-[165px]"
-                                className="min-h-[36px] py-1 text-[13px]"
-                              >
-                                {(snapshot?.tables || [])
-                                  .filter((t: any) => t.physicalState === 'AVAILABLE')
-                                  .map((t: any) => (
-                                    <option key={t.id} value={t.id}>
-                                      Ke Meja {t.label}
-                                    </option>
-                                  ))}
-                              </SelectField>
-
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={busy}
-                                onClick={async () => {
-                                  const res = await runStaffCommand('TABLE_OR_VISIT_ACTION', {
-                                    action: 'MOVE_TABLE',
-                                    visitId: v.id,
-                                    fromTableId: v.primaryTableId,
-                                    toTableId: moveTargetTableId,
-                                  });
-                                  setActionNotice(
-                                    `Tamu ${v.customerName} dipindahkan ke Meja ${res?.result?.newTableLabel}.`
-                                  );
-                                }}
-                              >
-                                Pindah Meja
-                              </Button>
-
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={busy}
-                                onClick={async () => {
-                                  const res = await runStaffCommand('TABLE_OR_VISIT_ACTION', {
-                                    action: 'ISSUE_JOIN_CODE',
-                                    visitId: v.id,
-                                  });
-                                  setIssuedJoinCodeText(
-                                    `Kode Meja (${v.customerName}): ${res?.result?.code}`
-                                  );
-                                }}
-                              >
-                                Kode Gabung Meja
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={busy}
-                                onClick={async () => {
-                                  await runStaffCommand('TABLE_OR_VISIT_ACTION', {
-                                    action: 'DEPART_VISIT',
-                                    visitId: v.id,
-                                  });
-                                  setActionNotice(
-                                    `Kunjungan ${v.customerName} selesai. Meja siap dibersihkan.`
-                                  );
-                                }}
-                              >
-                                Selesai / Pulang
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </section>
               </div>
             ) : (
               /* Panggilan Bantuan Meja & Antrean Tamu (Waitlist) */
@@ -1542,6 +1449,7 @@ export function StaffApp({
                     {(snapshot?.serviceRequests || []).filter((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED').map((sr: any) => (
                       <div
                         key={sr.id}
+                        data-service-request-id={sr.id}
                         className="py-3.5 flex flex-wrap items-center justify-between gap-3"
                       >
                         <div className="space-y-0.5">
@@ -1566,7 +1474,7 @@ export function StaffApp({
                               }
                             />
                           </div>
-                          <p className="text-sm font-medium text-[var(--primary-ink)]">{({ CALL_STAFF: 'Panggil staf', ASK_BILL: 'Minta tagihan', EXTRA_CUTLERY: 'Tambahan alat makan', CLEAR_TABLE: 'Bersihkan meja', ISSUE_REPORT: 'Laporan kendala' } as Record<string, string>)[sr.requestType || sr.type] || 'Bantuan pelanggan'}</p>
+                          <p className="text-sm font-medium text-[var(--primary-ink)]">{({ CALL_STAFF: 'Panggil staf', CALL_WAITER: 'Panggil pelayan', ASK_BILL: 'Minta tagihan', REQUEST_BILL: 'Minta tagihan', EXTRA_CUTLERY: 'Alat makan', CUTLERY_NAPKIN: 'Alat makan', CLEAR_TABLE: 'Bersihkan meja', PACK_LEFTOVER: 'Bungkus makanan', ISSUE_REPORT: 'Laporan kendala', ORDER_ISSUE: 'Kendala pesanan' } as Record<string, string>)[sr.requestType || sr.type] || 'Bantuan pelanggan'}</p>
                           {sr.notes && (
                             <p className="text-[13px] text-[var(--muted-foreground)]">
                               Permintaan: {sr.notes}
@@ -1625,6 +1533,7 @@ export function StaffApp({
                     {(snapshot?.waitlistEntries || []).map((w: any) => (
                       <div
                         key={w.id}
+                        data-waitlist-id={w.id}
                         className="py-3.5 flex flex-wrap items-center justify-between gap-3"
                       >
                         <div className="space-y-0.5">
@@ -1660,7 +1569,7 @@ export function StaffApp({
                           <div className="flex flex-wrap items-center gap-2">
                             <SelectField aria-label={`Meja untuk ${w.customerName}`} value={waitlistTables[w.id] || w.heldTableId || ''} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
                               <option value="">Pilih meja tersedia</option>
-                              {(snapshot?.tables || []).filter((table: any) => table.active && table.capacity >= w.partySize && (table.physicalState === 'AVAILABLE' || table.id === w.heldTableId)).map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} kursi</option>)}
+                              {(snapshot?.tables || []).filter((table: any) => table.active && table.capacity >= w.partySize && table.physicalState === 'AVAILABLE' && !(snapshot?.waitlistEntries || []).some((other: any) => other.id !== w.id && other.status === 'CALLED' && other.heldTableId === table.id && Date.parse(other.holdExpiresAt) > Date.parse(snapshot.serverTime))).map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} kursi</option>)}
                             </SelectField>
                             {w.status === 'WAITING' && (
                               <Button
@@ -1681,7 +1590,7 @@ export function StaffApp({
                             <Button
                               variant="primary"
                               size="sm"
-                              disabled={busy}
+                              disabled={busy || !(waitlistTables[w.id] || w.heldTableId)}
                               onClick={() =>
                                 runStaffCommand('WAITLIST_ACTION', {
                                   action: 'SEAT',
@@ -1961,6 +1870,18 @@ export function StaffApp({
           >
 
 
+            {(canCashier || isModuleEnabled('ordering')) && <section aria-label="Alur pemesanan" className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4">
+              <div><h2 className="font-heading text-lg font-semibold">Alur pemesanan</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">Berlaku untuk pesanan yang diterima setelah pengaturan disimpan. Pesanan yang sudah diterima tetap memakai aturan semula.</p></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5"><Label htmlFor="dine-payment-policy">Pembayaran makan di tempat</Label><SelectField id="dine-payment-policy" value={policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomPaymentPolicy(event.target.value); }}><option value="PREPAY">Bayar sebelum dibuat</option><option value="PAY_LATER">Bayar setelah makan</option></SelectField></div>
+                <div className="space-y-1.5"><Label htmlFor="takeaway-payment-policy">Pembayaran bawa pulang</Label><SelectField id="takeaway-payment-policy" value={policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomTakeawayPolicy(event.target.value); }}><option value="PREPAY">Bayar sebelum dibuat</option><option value="PAY_LATER">Bayar saat pengambilan</option></SelectField></div>
+              </div>
+              {!canCashier && !isModuleEnabled('payments') && <p className="text-sm text-[var(--muted-foreground)]">Pembayaran ditangani kasir di luar sistem. Staf dapat mengonfirmasi penerimaan pembayaran pada tagihan pesanan.</p>}
+              <label className="flex items-center gap-3 text-sm min-h-11"><input type="checkbox" className="h-4 w-4 accent-[var(--primary-ink)]" checked={policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant)} onChange={event => { editPolicy(); setCustomAutoAccept(event.target.checked); }} />Terima otomatis pesanan tambahan tamu aktif</label>
+              <p className="text-xs text-[var(--muted-foreground)]">Pesanan pertama tetap menunggu konfirmasi staf. Tamu yang sudah diterima dapat menambah pesanan dalam kunjungan yang sama.</p>
+              <Button disabled={busy} onClick={async () => { try { await runStaffCommand('SETTINGS_PROMO_FEEDBACK_ACTION', { action: 'UPDATE_OUTLET_POLICY', paymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy, takeawayPaymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy, autoAcceptParticipant: policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant) }); setPolicyEditing(false); setActionNotice('Alur pemesanan disimpan. Pesanan berikutnya mengikuti pengaturan ini.'); } catch { /* Displayed by runStaffCommand. */ } }}>Simpan alur pemesanan</Button>
+            </section>}
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left 6 cols: Tax & Service Charge Config */}
               <section className="lg:col-span-6 space-y-4">
@@ -2158,11 +2079,15 @@ export function StaffApp({
         )}
       </main>
 
+      <DialogModal open={Boolean(rejectingRequest)} onClose={() => { if (!busy) setRejectingRequest(null); }} title="Tolak pesanan">
+        {rejectingRequest && <div className="space-y-4"><p className="text-sm">Pesanan {rejectingRequest.customerName} belum akan dibuat. Alasan ini juga terlihat oleh pelanggan.</p><div className="space-y-1.5"><Label htmlFor="order-reject-reason">Alasan penolakan</Label><Textarea id="order-reject-reason" value={rejectReason} maxLength={500} onChange={event => setRejectReason(event.target.value)} placeholder="Contoh: varian yang dipilih baru saja habis" /></div><InlineError message={modalActionError} /><div className="flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={() => setRejectingRequest(null)}>Kembali</Button><Button variant="danger" disabled={busy || rejectReason.trim().length < 3} onClick={async () => { setModalActionError(''); try { await runStaffCommand('REJECT_ORDER_REQUEST', { orderRequestId: rejectingRequest.id, reason: rejectReason.trim() }); setActionNotice(`Pesanan ${rejectingRequest.customerName} ditolak dengan alasan yang tercatat.`); setRejectingRequest(null); } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : 'Pesanan belum ditolak.'); } }}>Konfirmasi penolakan</Button></div></div>}
+      </DialogModal>
+
       {/* ===================================================================== */}
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
       <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title="Pesanan baru" maxWidth="max-w-5xl">
-        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) setSelectedBillId(billId); setNewOrderModalOpen(false); setActionNotice(canKitchen ? 'Pesanan dibuat dan dikirim ke dapur.' : 'Pesanan dibuat. Tagihan siap dibayar.'); }} />}
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) setSelectedBillId(billId); setNewOrderModalOpen(false); setActionNotice('Pesanan dibuat. Periksa tagihan dan status pembayarannya.'); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}
@@ -2171,12 +2096,12 @@ export function StaffApp({
       <DialogModal
         open={Boolean(cancellingUnit)}
         onClose={() => setCancellingUnit(null)}
-        title="Batalkan item"
+        title={cancellingUnit?.fulfillmentStatus === 'CANCELLED' ? 'Selesaikan pengembalian' : 'Batalkan item'}
       >
         {cancellingUnit && (
           <div className="space-y-4">
             <p className="text-[14px] text-[var(--muted-foreground)]">
-              Anda akan membatalkan{' '}
+              {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Selesaikan pengembalian untuk ' : 'Anda akan membatalkan '}
               <strong className="text-[var(--foreground)]">
                 1× {cancellingUnit.itemNameSnapshot || cancellingUnit.itemName}
               </strong>{' '}
@@ -2184,7 +2109,7 @@ export function StaffApp({
             </p>
 
             <div className="space-y-1.5">
-              <Label htmlFor="modal-cancel-reason">Alasan Pembatalan</Label>
+              <Label htmlFor="modal-cancel-reason">{cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Alasan pengembalian' : 'Alasan Pembatalan'}</Label>
               <Input
                 id="modal-cancel-reason"
                 value={cancelReasonInput}
@@ -2192,7 +2117,7 @@ export function StaffApp({
               />
             </div>
 
-            <div className="space-y-1.5">
+            {cancellingUnit.fulfillmentStatus !== 'CANCELLED' && <div className="space-y-1.5">
               <Label htmlFor="modal-restock-choice">Stok</Label>
               <SelectField
                 id="modal-restock-choice"
@@ -2202,28 +2127,34 @@ export function StaffApp({
                 <option value="RESTOCK">Kembalikan ke stok (Belum dimasak)</option>
                 <option value="WASTE">Catat sebagai bahan terbuang (Waste)</option>
               </SelectField>
-            </div>
+            </div>}
 
+            {selectedBill?.verifiedReceiptsIdr > 0 && <div className="space-y-2"><p className="text-sm text-[var(--muted-foreground)]">Koreksi mengurangi tagihan. Kelebihan pembayaran dikembalikan melalui metode pembayaran semula dan dicatat pada struk.</p>{cancellingUnit.fulfillmentStatus !== 'CANCELLED' && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={refundNow} onChange={event => setRefundNow(event.target.checked)} className="mt-1 accent-[var(--primary-ink)]" />Kembalikan kelebihan pembayaran sekarang</label>}{!refundNow && <p className="text-sm text-[var(--status-warning-fg)]">Pengembalian tetap tercatat sebagai kewajiban. Selesaikan sebelum menutup kunjungan.</p>}</div>}
+            {selectedBill?.hasActiveExternalAttempt && <p className="text-sm text-[var(--status-warning-fg)]">Selesaikan atau batalkan instruksi pembayaran aktif sebelum membatalkan item.</p>}
+            <InlineError message={modalActionError} />
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button variant="secondary" onClick={() => setCancellingUnit(null)}>
+              <Button variant="secondary" disabled={busy} onClick={() => setCancellingUnit(null)}>
                 Kembali
               </Button>
               <Button
                 variant="danger"
-                disabled={busy}
+                disabled={busy || !cancelReasonInput.trim() || selectedBill?.hasActiveExternalAttempt}
                 onClick={async () => {
-                  await runStaffCommand('CANCEL_UNIT_OR_REFUND', {
-                    unitId: cancellingUnit.id,
-                    reason: cancelReasonInput,
-                    restockChoice,
-                    issueRefundNow: (selectedBill?.verifiedReceiptsIdr || 0) > 0,
-                    approverName: currentStaffObj.userName,
-                  });
-                  setCancellingUnit(null);
-                  setActionNotice('Item berhasil dibatalkan dari tagihan.');
+                  setModalActionError('');
+                  try {
+                    const response = await runStaffCommand('CANCEL_UNIT_OR_REFUND', {
+                      unitId: cancellingUnit.id,
+                      reason: cancelReasonInput.trim(),
+                      restockChoice,
+                      issueRefundNow: refundNow && (selectedBill?.verifiedReceiptsIdr || 0) > 0,
+                      approverName: currentStaffObj.userName,
+                    });
+                    setCancellingUnit(null);
+                    setActionNotice(response?.result?.refundId ? 'Item dibatalkan dan pengembalian pembayaran tercatat.' : 'Item dibatalkan dan tagihan telah dikoreksi.');
+                  } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : 'Item belum dibatalkan.'); }
                 }}
               >
-                Batalkan item
+                {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Catat pengembalian' : 'Batalkan item'}
               </Button>
             </div>
           </div>

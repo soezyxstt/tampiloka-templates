@@ -26,6 +26,21 @@ test('ordering package has an inbox and fulfillment without enabling cashier', (
   assert.throws(() => run('ACCEPT_ORDER_REQUEST', modules));
   assert.throws(() => run('RECORD_PAYMENT', modules, 'staff', { method: 'CASH' }));
   assert.doesNotThrow(() => run('TRANSITION_UNITS', modules, 'staff'));
+  assert.doesNotThrow(() => run('RECORD_PAYMENT', modules, 'staff', { method: 'EXTERNAL_COUNTER' }));
+  assert.throws(() => run('RECORD_PAYMENT', modules, 'customer', { method: 'EXTERNAL_COUNTER' }));
+});
+
+test('visit completion is available to small packages without exposing table management', () => {
+  for (const modules of [['cashier'], ['catalog', 'ordering'], ['catalog', 'ordering', 'payments']]) {
+    assert.doesNotThrow(() => run('TABLE_OR_VISIT_ACTION', modules, 'staff', { action: 'DEPART_VISIT' }));
+    assert.throws(() => run('TABLE_OR_VISIT_ACTION', modules, 'customer', { action: 'DEPART_VISIT' }));
+    for (const action of ['START_VISIT', 'MARK_CLEAN', 'ENABLE_TABLE', 'MOVE_TABLE']) {
+      assert.throws(() => run('TABLE_OR_VISIT_ACTION', modules, 'staff', { action }));
+    }
+  }
+  for (const modules of [['catalog'], ['catalog', 'ordering', 'payments'], ['cashier']]) {
+    assert.throws(() => run('RECORD_PAYMENT', modules, 'staff', { method: 'EXTERNAL_COUNTER' }));
+  }
 });
 
 test('customer cannot set a manual discount or directly mark a payment paid', () => {
@@ -41,6 +56,14 @@ test('disabled loyalty, promotion and floor plan actions reject direct requests'
   assert.throws(() => run('CREATE_QUOTE', modules, 'customer', { memberId: 'mem_any' }));
   assert.throws(() => run('FLOOR_PLAN_ACTION', modules, 'staff'));
   assert.throws(() => run('SETTINGS_PROMO_FEEDBACK_ACTION', modules, 'staff', { action: 'CREATE_PROMO' }));
+});
+
+test('a guest can check their own waitlist token without gaining staff table actions', () => {
+  const modules = ['catalog', 'ordering', 'tables'];
+  assert.doesNotThrow(() => run('WAITLIST_ACTION', modules, 'customer', { action: 'GET_STATUS', privateToken: 'own-token' }));
+  for (const action of ['CALL', 'SEAT', 'SKIP', 'CANCEL', 'EXPIRE_HOLD']) assert.throws(() => run('WAITLIST_ACTION', modules, 'customer', { action }));
+  assert.throws(() => run('SERVICE_REQUEST_ACTION', modules, 'customer', { action: 'GET_STATUS' }));
+  assert.throws(() => run('WAITLIST_ACTION', ['catalog'], 'customer', { action: 'GET_STATUS' }));
 });
 
 test('demo settlement and reset are unavailable outside explicit demo mode', () => {

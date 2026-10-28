@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allocateProportionalIdr,
+  summarizeVisitLifecycle,
   createDemoPaymentInstructions,
   isValidOrderQuantity,
   computePricingBreakdown,
@@ -344,4 +345,41 @@ test('Fulfillment moves forward and standalone packages can finish accepted orde
   assert.equal(canTransitionUnit('HELD_FOR_PAYMENT', 'DELIVERED', true), false);
   assert.equal(canTransitionUnit('CANCELLED', 'READY'), false);
   assert.equal(canTransitionUnit('READY', 'ARBITRARY'), false);
+});
+
+
+test('Visit departure evaluates every active bill independently, without netting debts against refunds', () => {
+  const summary = summarizeVisitLifecycle({ visitId: 'visit', bills: [
+    { id: 'paid', visitId: 'visit', lifecycle: 'FINALIZED', balanceIdr: 0 },
+    { id: 'debt', visitId: 'visit', lifecycle: 'OPEN', balanceIdr: 10000 },
+    { id: 'refund', visitId: 'visit', lifecycle: 'FINALIZED', balanceIdr: -10000 },
+    { id: 'void', visitId: 'visit', lifecycle: 'VOID', balanceIdr: 999999 },
+    { id: 'other', visitId: 'other', lifecycle: 'OPEN', balanceIdr: 999999 },
+  ], orderUnits: [], orderRequests: [] });
+  assert.equal(summary.canDepart, false);
+  assert.equal(summary.outstandingBalanceIdr, 10000);
+  assert.equal(summary.refundDueIdr, 10000);
+  assert.deepEqual(summary.blockers.map(blocker => blocker.code), ['UNPAID_BILLS', 'REFUND_DUE']);
+});
+
+test('Departure sees pending payments, pending refunds, live requests and unresolved service even with zero balance', () => {
+  const summary = summarizeVisitLifecycle({ visitId: 'visit', now: 1000,
+    bills: [{ id: 'bill', visitId: 'visit', lifecycle: 'FINALIZED', balanceIdr: 0 }],
+    paymentAttempts: [{ billId: 'bill', status: 'UNKNOWN' }], refunds: [{ billId: 'bill', state: 'PENDING' }],
+    orderUnits: [{ visitId: 'visit', fulfillmentStatus: 'READY' }],
+    orderRequests: [{ visitId: 'visit', state: 'REQUESTED', expiresAt: new Date(1001) }, { visitId: 'visit', state: 'REQUESTED', expiresAt: new Date(1000) }],
+    serviceRequests: [{ visitId: 'visit', state: 'ACKNOWLEDGED' }],
+  });
+  assert.equal(summary.canDepart, false);
+  assert.equal(summary.pendingRequestCount, 1);
+  assert.deepEqual(summary.blockers.map(blocker => blocker.code), ['REFUND_DUE', 'PENDING_PAYMENT', 'PENDING_REQUESTS', 'UNFINISHED_ITEMS', 'OPEN_SERVICE_REQUESTS']);
+});
+
+test('Served/cancelled units and resolved attempts permit departure, independently of eating time', () => {
+  const summary = summarizeVisitLifecycle({ visitId: 'visit', bills: [{ id: 'bill', visitId: 'visit', lifecycle: 'FINALIZED', balanceIdr: 0 }],
+    orderUnits: ['DELIVERED', 'PICKED_UP', 'CANCELLED'].map(fulfillmentStatus => ({ visitId: 'visit', fulfillmentStatus })),
+    orderRequests: [], paymentAttempts: [{ billId: 'bill', status: 'CANCELLED' }], serviceRequests: [{ visitId: 'visit', state: 'RESOLVED' }],
+  });
+  assert.equal(summary.canDepart, true);
+  assert.deepEqual(summary.blockers, []);
 });
