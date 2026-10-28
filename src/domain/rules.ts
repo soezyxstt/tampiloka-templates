@@ -98,6 +98,27 @@ export function roundHalfUpDiv(numerator: number, denominator: number): number {
   return Math.floor((numerator + Math.floor(denominator / 2)) / denominator);
 }
 
+/** All receipts are exact whole Rupiah. Never turn an invalid tender into a full payment. */
+export function calculatePaymentAmounts(input: {
+  balanceIdr: number;
+  amountIdr: number;
+  tenderedIdr?: number;
+  method: string;
+}): { amountToPay: number; tendered: number; changeIdr: number } {
+  if (!Number.isSafeInteger(input.balanceIdr) || input.balanceIdr <= 0) throw new Error('Tagihan sudah lunas atau nominal tagihan tidak valid.');
+  if (!Number.isSafeInteger(input.amountIdr) || input.amountIdr <= 0 || input.amountIdr > input.balanceIdr) {
+    throw new Error('Nominal pembayaran harus berupa Rupiah bulat, lebih dari Rp0, dan tidak melebihi sisa tagihan.');
+  }
+  const tendered = input.tenderedIdr ?? input.amountIdr;
+  if (!Number.isSafeInteger(tendered) || tendered < 0) throw new Error('Uang diterima harus berupa Rupiah bulat.');
+  if (input.method === 'CASH' && tendered < input.amountIdr) throw new Error('Uang tunai yang diterima belum cukup untuk nominal pembayaran.');
+  return {
+    amountToPay: input.amountIdr,
+    tendered: input.method === 'CASH' ? tendered : input.amountIdr,
+    changeIdr: input.method === 'CASH' ? tendered - input.amountIdr : 0,
+  };
+}
+
 export function computePricingBreakdown(params: {
   units: Array<{
     unitId: string;
@@ -685,4 +706,14 @@ export function createDemoPaymentInstructions(input: {
 
 export function isValidOrderQuantity(quantity: number): boolean {
   return Number.isInteger(quantity) && quantity >= 1 && quantity <= 20;
+}
+
+export function canTransitionUnit(current: string, next: string, withoutKitchen = false): boolean {
+  if (!['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(next)) return false;
+  if (current === next) return true;
+  if (['CANCELLED', 'HELD_FOR_PAYMENT', 'DELIVERED', 'PICKED_UP'].includes(current)) return false;
+  if (withoutKitchen && ['DELIVERED', 'PICKED_UP'].includes(next)) return true;
+  return (current === 'QUEUED' && next === 'PREPARING') ||
+    (current === 'PREPARING' && next === 'READY') ||
+    (current === 'READY' && ['DELIVERED', 'PICKED_UP'].includes(next));
 }

@@ -52,7 +52,7 @@ export function AnimatedUnderlineTabs<T extends string>({
             className={cn(
               'relative min-h-[42px] px-3.5 py-2.5 text-[14px] leading-[20px] transition-colors whitespace-nowrap shrink-0 cursor-pointer inline-flex items-center gap-1.5 select-none',
               active
-                ? 'text-[var(--primary)] font-semibold'
+                ? 'text-[var(--primary-ink)] font-semibold'
                 : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium'
             )}
           >
@@ -62,7 +62,7 @@ export function AnimatedUnderlineTabs<T extends string>({
               <span
                 className={cn(
                   'tabular-nums text-[12px] font-semibold',
-                  active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
+                  active ? 'text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)]'
                 )}
               >
                 ({item.count})

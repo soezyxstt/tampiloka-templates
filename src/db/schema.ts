@@ -8,6 +8,7 @@ import {
   timestamp,
   jsonb,
   serial,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -460,7 +461,10 @@ export const orderRequests = pgTable('order_requests', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex('order_requests_outlet_idempotency_unique').on(table.outletId, table.idempotencyKey),
+  uniqueIndex('order_requests_outlet_quote_unique').on(table.outletId, table.quoteId),
+]);
 
 export const orders = pgTable('orders', {
   id: text('id').primaryKey(),

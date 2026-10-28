@@ -1,0 +1,11 @@
+'use client';
+
+import { useState } from 'react';
+import { Button, InlineError, StatusLabel } from './ui-primitives';
+
+/** A small ordering package can complete an order without a dedicated kitchen display. */
+export function OrderInbox({ snapshot, busy, onCommand }: { snapshot: any; busy: boolean; onCommand: (command: string, payload: any) => Promise<any> }) {
+  const [error, setError] = useState('');
+  const orders = (snapshot?.orders || []).map((order: any) => ({ ...order, units: (snapshot?.orderUnits || []).filter((unit: any) => unit.orderId === order.id && !['CANCELLED', 'DELIVERED', 'PICKED_UP', 'SERVED'].includes(unit.fulfillmentStatus)) })).filter((order: any) => order.units.length);
+  return <section className="border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--surface)] p-5 space-y-4"><h2 className="font-heading text-lg font-semibold">Pesanan diterima ({orders.length})</h2><InlineError message={error} />{!orders.length && <p className="text-sm text-[var(--muted-foreground)]">Belum ada pesanan aktif. Pesanan yang diterima staf akan muncul di sini.</p>}<div className="divide-y divide-[var(--border)]">{orders.map((order: any) => <div key={order.id} className="flex items-start justify-between gap-4 py-3"><div><p className="font-semibold text-sm">{order.customerName} · {order.mode === 'TAKEAWAY' ? 'Bawa pulang' : `Meja ${order.tableLabel || order.tableLabelSnapshot || ''}`}</p><p className="text-sm text-[var(--muted-foreground)] mt-1">{order.units.map((unit: any) => unit.itemNameSnapshot || unit.itemName).join(', ')}</p>{order.units.some((unit: any) => unit.fulfillmentStatus === 'HELD_FOR_PAYMENT') && <StatusLabel label="Menunggu pembayaran" tone="warning" />}</div><Button size="sm" variant="secondary" disabled={busy || order.units.some((unit: any) => unit.fulfillmentStatus === 'HELD_FOR_PAYMENT')} onClick={async () => { setError(''); try { await onCommand('TRANSITION_UNITS', { unitIds: order.units.map((unit: any) => unit.id), targetStatus: order.mode === 'TAKEAWAY' ? 'PICKED_UP' : 'DELIVERED' }); } catch (caught) { setError(caught instanceof Error ? caught.message : 'Gagal memperbarui pesanan.'); } }}>Tandai selesai</Button></div>)}</div></section>;
+}

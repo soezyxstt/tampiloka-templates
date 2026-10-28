@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex min-h-[42px] w-full items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 cursor-pointer',
+      'flex min-h-[42px] w-full items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus:outline-none focus:border-[var(--primary-ink)] focus:ring-2 focus:ring-[var(--primary-ink)]/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 cursor-pointer',
       className
     )}
     {...props}
@@ -108,14 +108,14 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-pointer select-none items-center rounded-[6px] py-2 pl-8 pr-3 text-[14px] outline-none focus:bg-[var(--accent-surface)] focus:text-[var(--primary)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex w-full cursor-pointer select-none items-center rounded-[6px] py-2 pl-8 pr-3 text-[14px] outline-none focus:bg-[var(--accent-surface)] focus:text-[var(--primary-ink)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-[var(--primary)]" />
+        <Check className="h-4 w-4 text-[var(--primary-ink)]" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -149,7 +149,7 @@ const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
         <select
           ref={ref}
           className={cn(
-            'flex min-h-[42px] w-full appearance-none rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-9 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:border-[var(--primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
+            'flex min-h-[42px] w-full appearance-none rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-9 py-2 text-[14px] font-medium text-[var(--foreground)] shadow-2xs transition-all duration-150 hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:border-[var(--primary-ink)] focus-visible:ring-2 focus-visible:ring-[var(--primary-ink)]/20 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
             className
           )}
           {...props}

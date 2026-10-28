@@ -57,12 +57,14 @@ import {
   DEFAULT_TENANT_ID,
   DEFAULT_OUTLET_ID,
   DEFAULT_OUTLET_SLUG,
-  TODAY_BUSINESS_DATE,
+  getBusinessDate,
 } from './seed.ts';
 import {
   computePricingBreakdown,
   createDemoPaymentInstructions,
   isValidOrderQuantity,
+  calculatePaymentAmounts,
+  canTransitionUnit,
   computeAvailableStock,
   validateStockPoolInvariant,
   computeBillFinancialState,
@@ -77,6 +79,9 @@ import {
   type Point2D,
 } from '../domain/rules.ts';
 import { eq, and, desc, asc, inArray, isNull } from 'drizzle-orm';
+import { cafeConfig, isModuleEnabled } from '../config/cafe.ts';
+import { filterSnapshotByModules, type Surface } from '../domain/capabilities.ts';
+import { assertDemoRuntime, assertValidOutlet } from './runtime.ts';
 
 export function makeId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`;
@@ -105,6 +110,8 @@ export async function getOrCreateFirebaseUser(uid: string, email: string, name?:
 }
 
 export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLUG) {
+  assertDemoRuntime();
+  assertValidOutlet(outletSlug, DEFAULT_OUTLET_SLUG);
   try {
     await ensureSeeded();
 
@@ -192,7 +199,10 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
       db.select().from(paymentAccounts).where(eq(paymentAccounts.outletId, DEFAULT_OUTLET_ID)),
     ]);
 
-    const outlet = outletRows[0];
+    const outlet = {
+      ...outletRows[0], name: cafeConfig.venue.name, address: cafeConfig.venue.address,
+      slug: cafeConfig.venue.outletSlug,
+    };
     const poolMap = new Map(poolRows.map((p) => [p.id, p]));
 
     const catalog = itemRows.map((item) => {
@@ -253,8 +263,9 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
       };
     });
 
-    return {
+    const snapshot = {
       outlet,
+      runtime: { demo: true as const },
       paymentAccount: paymentAccRows[0] ? { ...paymentAccRows[0], isDemo: true, mode: 'DEMO' } : null,
       categories: categoryRows,
       catalog,
@@ -270,8 +281,10 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
       visits: visitRows,
       participants: participantRows,
       joinCodes: joinCodeRows,
-      quotes: quoteRows,
-      orderRequests: requestRows,
+      quotes: quoteRows.map((quote) => ({ ...quote, expired: new Date(quote.expiresAt).getTime() <= Date.now() })),
+      orderRequests: requestRows.map((request) => request.state === 'REQUESTED' && new Date(request.expiresAt).getTime() <= Date.now()
+        ? { ...request, state: 'EXPIRED', reason: 'Permintaan sudah kedaluwarsa. Kirim ulang dari keranjang.' }
+        : request),
       orders: orderRows,
       orderUnits: unitRows,
       bills: billRows.map((b) => {
@@ -312,10 +325,59 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
       auditEvents: auditRows,
       serverTime: new Date().toISOString(),
     };
+    return filterSnapshotByModules(snapshot, cafeConfig.modules);
   } catch (error) {
     console.error('Database query failed in getFullApplicationSnapshot:', error);
     throw new Error('Gagal memuat data operasional kafe.', { cause: error });
   }
+}
+
+/** Public demo state is an allowlist. No staff accounts or finance ledger are sent to a guest. */
+export function getSurfaceSnapshot(
+  snapshot: Awaited<ReturnType<typeof getFullApplicationSnapshot>>,
+  surface: Surface,
+  tableId?: string,
+  principalId?: string,
+) {
+  if (surface === 'staff') return snapshot;
+  const table = snapshot.tables.find((row) => row.id === tableId) || snapshot.tables[0];
+  const tableMatches = (row: { tableId?: string | null; tableLabel?: string | null; tableLabelSnapshot?: string | null }) =>
+    Boolean(table && (row.tableId === table.id || row.tableLabel === table.label || row.tableLabelSnapshot === table.label));
+  const requests = snapshot.orderRequests.filter((row) => tableMatches(row) || Boolean(principalId && row.principalId === principalId));
+  const requestIds = new Set(requests.map((row) => row.id));
+  const quoteIds = new Set(requests.map((row) => row.quoteId));
+  const ordersForGuest = snapshot.orders.filter((row) => tableMatches(row) || requestIds.has(row.orderRequestId || ''));
+  const visitIds = new Set(ordersForGuest.map((row) => row.visitId));
+  const orderIds = new Set(ordersForGuest.map((row) => row.id));
+  const visitsForGuest = snapshot.visits.filter((row) => row.primaryTableId === table?.id || visitIds.has(row.id));
+  for (const visit of visitsForGuest) visitIds.add(visit.id);
+  return {
+    runtime: snapshot.runtime,
+    outlet: snapshot.outlet,
+    paymentAccount: snapshot.paymentAccount ? {
+      id: snapshot.paymentAccount.id, provider: snapshot.paymentAccount.provider,
+      isDemo: true, mode: 'DEMO', methodsJson: snapshot.paymentAccount.methodsJson,
+    } : null,
+    categories: snapshot.categories,
+    catalog: snapshot.catalog.filter((item) => item.active),
+    tables: snapshot.tables.filter((row) => row.active).map(({ id, label, areaName, qrToken, active, physicalState, capacity }) => ({ id, label, areaName, qrToken, active, physicalState, capacity })),
+    visits: visitsForGuest,
+    participants: snapshot.participants.filter((row) => visitIds.has(row.visitId)),
+    orderRequests: requests,
+    orders: ordersForGuest,
+    orderUnits: snapshot.orderUnits.filter((row) => orderIds.has(row.orderId)),
+    bills: snapshot.bills.filter((row) => visitIds.has(row.visitId)),
+    quotes: snapshot.quotes.filter((row) => quoteIds.has(row.id) || Boolean(principalId && row.principalId === principalId)),
+    promotionRules: snapshot.promotionRules,
+    // Member login is not an implemented identity adapter; do not publish a customer directory.
+    members: [],
+    rewardEntitlements: [],
+    wifiNetworks: snapshot.wifiNetworks,
+    serviceRequests: snapshot.serviceRequests.filter((row) => row.tableLabel === table?.label),
+    waitlistEntries: [],
+    feedbackEntries: [],
+    serverTime: snapshot.serverTime,
+  };
 }
 
 export async function createPresenceChallenge(principalId: string) {
@@ -454,10 +516,12 @@ export async function verifyCustomerPresence(input: {
 
 export async function createQuoteForCart(input: {
   principalId: string;
+  source?: 'staff' | 'customer';
   memberId?: string;
   mode: 'DINE_IN' | 'TAKEAWAY';
   tableId?: string;
   promoCode?: string;
+  manualDiscountIdr?: number;
   items: Array<{
     menuItemId: string;
     variantId: string;
@@ -468,6 +532,10 @@ export async function createQuoteForCart(input: {
 }) {
   try {
     await ensureSeeded();
+    if (!input.principalId || typeof input.principalId !== 'string' || input.principalId.length > 120) {
+      throw new Error('Identitas sesi pemesan tidak valid. Muat ulang halaman.');
+    }
+    if (input.mode !== 'DINE_IN' && input.mode !== 'TAKEAWAY') throw new Error('Jenis pesanan tidak valid.');
     if (!input.items || input.items.length === 0) {
       throw new Error('Keranjang kosong. Tambahkan menu terlebih dahulu.');
     }
@@ -495,6 +563,7 @@ export async function createQuoteForCart(input: {
     }
 
     const poolMap = new Map(poolRows.map((p) => [p.id, p]));
+    const requestedByPool = new Map<string, number>();
     const expandedUnits: Array<{
       unitId: string;
       menuItemId: string;
@@ -541,7 +610,8 @@ export async function createQuoteForCart(input: {
         const pool = poolMap.get(variant.stockPoolId);
         if (pool) {
           const avail = computeAvailableStock(pool);
-          const needed = line.quantity * variant.consumptionUnits;
+          const needed = (requestedByPool.get(pool.id) || 0) + line.quantity * variant.consumptionUnits;
+          requestedByPool.set(pool.id, needed);
           if (avail < needed) {
             throw new Error(
               `${menuItem.name} (${variant.name}) tersisa ${Math.floor(avail / variant.consumptionUnits)} porsi.`
@@ -647,11 +717,20 @@ export async function createQuoteForCart(input: {
       appliedPromoCode = promo.code;
     }
 
+    const manualDiscountIdr = input.manualDiscountIdr ?? 0;
+    if (!Number.isSafeInteger(manualDiscountIdr) || manualDiscountIdr < 0 || manualDiscountIdr > rawSubtotal) {
+      throw new Error('Potongan kasir harus berupa Rupiah bulat, antara Rp0 dan subtotal menu.');
+    }
+    if (manualDiscountIdr > 0 && appliedPromoRuleId) {
+      throw new Error('Pilih potongan kasir atau kode promo. Keduanya tidak dapat digabung.');
+    }
+    promoDiscountIdr += manualDiscountIdr;
+
     const pricing = computePricingBreakdown({
       units: expandedUnits,
       promoDiscountIdr,
-      serviceChargeBps: outlet.serviceChargeBps,
-      taxBps: outlet.taxBps,
+      serviceChargeBps: outlet.taxInclusiveDisplay ? 0 : outlet.serviceChargeBps,
+      taxBps: outlet.taxInclusiveDisplay ? 0 : outlet.taxBps,
       serviceInTaxBase: outlet.serviceInTaxBase,
     });
 
@@ -671,7 +750,7 @@ export async function createQuoteForCart(input: {
       promoRuleId: appliedPromoRuleId,
       promoCode: appliedPromoCode,
       itemsSnapshotJson: normalizedLines,
-      pricingSnapshotJson: pricing,
+      pricingSnapshotJson: { ...pricing, manualDiscountIdr, source: input.source || 'customer' },
       subtotalIdr: pricing.subtotalIdr,
       discountIdr: pricing.discountIdr,
       serviceIdr: pricing.serviceIdr,
@@ -696,6 +775,7 @@ export async function createQuoteForCart(input: {
     };
   } catch (error: any) {
     console.error('Create quote error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menghitung rincian biaya pesanan.', { cause: error });
   }
 }
@@ -714,6 +794,9 @@ export async function submitCustomerOrderRequest(input: {
   try {
     await ensureSeeded();
     const cleanName = (input.customerName || '').trim();
+    if (!input.idempotencyKey || typeof input.idempotencyKey !== 'string' || input.idempotencyKey.length > 160) {
+      throw new Error('Kunci pengiriman pesanan tidak valid. Muat ulang halaman.');
+    }
     if (cleanName.length < 2 || cleanName.length > 60) {
       throw new Error('Nama pemesan wajib diisi (2–60 karakter).');
     }
@@ -728,14 +811,14 @@ export async function submitCustomerOrderRequest(input: {
       }
       tableQrValidated = true;
     }
-    if (!input.presenceVerified && !tableQrValidated) {
+    if (input.mode === 'DINE_IN' && !input.presenceVerified && !tableQrValidated) {
       throw new Error('Kehadiran lokasi belum terverifikasi. Pindai QR meja, gunakan cek GPS, atau kode staf.');
     }
 
     // Check Idempotency first (Spec 14.1, A09)
     const requestHash = crypto
       .createHash('sha256')
-      .update(JSON.stringify({ quoteId: input.quoteId, customerName: cleanName, mode: input.mode }))
+      .update(JSON.stringify({ quoteId: input.quoteId, principalId: input.principalId, customerName: cleanName, mode: input.mode, tableId: input.tableId || null, memberId: input.memberId || null }))
       .digest('hex');
 
     const existingIdem = await db
@@ -763,6 +846,9 @@ export async function submitCustomerOrderRequest(input: {
     if (!quote) {
       throw new Error('Quote harga tidak ditemukan. Silakan hitung ulang keranjang.');
     }
+    if (quote.outletId !== DEFAULT_OUTLET_ID || quote.principalId !== input.principalId || quote.mode !== input.mode || (quote.tableId || null) !== (input.tableId || null)) {
+      throw new Error('Harga pesanan ini tidak cocok dengan sesi, meja, atau jenis pesanan. Hitung ulang keranjang.');
+    }
     if (new Date(quote.expiresAt).getTime() < Date.now()) {
       throw new Error('Masa berlaku quote harga telah habis. Silakan konfirmasi harga terbaru.');
     }
@@ -770,7 +856,7 @@ export async function submitCustomerOrderRequest(input: {
     const outletRows = await db.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
     const outlet = outletRows[0];
 
-    if (quote.catalogVersion !== outlet.catalogVersion) {
+    if (quote.catalogVersion !== outlet.catalogVersion || quote.policyVersion !== outlet.policyVersion) {
       const err = new Error('Katalog atau harga menu telah berubah. Silakan tinjau quote terbaru.');
       (err as any).code = 'QUOTE_CHANGED';
       throw err;
@@ -804,7 +890,7 @@ export async function submitCustomerOrderRequest(input: {
     const reqId = makeId('req');
     const expiresAt = new Date(Date.now() + outlet.requestExpiryMinutes * 60 * 1000);
 
-    await db.insert(orderRequests).values({
+    const insertedRequests = await db.insert(orderRequests).values({
       id: reqId,
       tenantId: DEFAULT_TENANT_ID,
       outletId: DEFAULT_OUTLET_ID,
@@ -821,7 +907,18 @@ export async function submitCustomerOrderRequest(input: {
       state: 'REQUESTED',
       idempotencyKey: input.idempotencyKey,
       expiresAt,
-    });
+    }).onConflictDoNothing().returning();
+    if (insertedRequests.length === 0) {
+      const [existing] = await db.select().from(orderRequests).where(and(
+        eq(orderRequests.outletId, DEFAULT_OUTLET_ID), eq(orderRequests.idempotencyKey, input.idempotencyKey),
+      ));
+      if (!existing || existing.quoteId !== input.quoteId || existing.principalId !== input.principalId || existing.customerName !== cleanName || existing.mode !== input.mode || (existing.tableId || null) !== (input.tableId || null)) {
+        const conflict = new Error('Harga atau kunci pengiriman ini sudah dipakai. Periksa pesanan sebelum mengirim ulang.');
+        (conflict as any).code = 'IDEMPOTENCY_CONFLICT';
+        throw conflict;
+      }
+      return { orderRequestId: existing.id, state: existing.state, tableLabel: existing.tableLabel, totalIdr: quote.totalIdr, duplicateIgnored: true };
+    }
 
     // Check if participant is already admitted to this active visit and auto_accept_participant is enabled (Spec 8.1, A15)
     let autoAcceptedResult: any = null;
@@ -867,6 +964,7 @@ export async function submitCustomerOrderRequest(input: {
     return responsePayload;
   } catch (error: any) {
     console.error('Submit order request error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal mengirim permintaan pesanan.', { cause: error });
   }
 }
@@ -884,7 +982,7 @@ export async function acceptOrderRequestByStaff(input: {
       const reqRows = await tx
         .select()
         .from(orderRequests)
-        .where(eq(orderRequests.id, input.orderRequestId));
+        .where(eq(orderRequests.id, input.orderRequestId)).for('update');
       const req = reqRows[0];
       if (!req) {
         throw new Error('Permintaan pesanan tidak ditemukan.');
@@ -906,6 +1004,9 @@ export async function acceptOrderRequestByStaff(input: {
         throw new Error(`Permintaan pesanan sudah berstatus ${req.state}.`);
       }
 
+      if (new Date(req.expiresAt).getTime() < Date.now()) {
+        throw new Error('Permintaan pesanan sudah kedaluwarsa. Minta pelanggan mengirim ulang.');
+      }
       const outletRows = await tx.select().from(outlets).where(eq(outlets.id, DEFAULT_OUTLET_ID));
       const outlet = outletRows[0];
 
@@ -927,7 +1028,7 @@ export async function acceptOrderRequestByStaff(input: {
       const poolRows = await tx
         .select()
         .from(stockPools)
-        .where(eq(stockPools.outletId, DEFAULT_OUTLET_ID));
+        .where(eq(stockPools.outletId, DEFAULT_OUTLET_ID)).for('update');
 
       const poolConsumption = new Map<string, number>();
       for (const u of unitBreakdowns) {
@@ -941,7 +1042,7 @@ export async function acceptOrderRequestByStaff(input: {
       }
 
       const effectivePolicy =
-        input.paymentPolicyOverride ||
+        (!isModuleEnabled('cashier') && !isModuleEnabled('payments') ? 'PAY_LATER' : input.paymentPolicyOverride) ||
         (req.mode === 'TAKEAWAY' ? outlet.takeawayPaymentPolicy : outlet.paymentPolicy);
 
       const isImmediateKitchenRelease =
@@ -1014,7 +1115,7 @@ export async function acceptOrderRequestByStaff(input: {
           id: visitId,
           tenantId: DEFAULT_TENANT_ID,
           outletId: DEFAULT_OUTLET_ID,
-          businessDate: TODAY_BUSINESS_DATE,
+          businessDate: getBusinessDate(),
           mode: req.mode,
           status: 'OPEN',
           primaryTableId: req.tableId ?? null,
@@ -1062,12 +1163,12 @@ export async function acceptOrderRequestByStaff(input: {
         id: orderId,
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
-        businessDate: TODAY_BUSINESS_DATE,
+        businessDate: getBusinessDate(),
         visitId,
         participantId,
         orderRequestId: req.id,
-        source: input.actorRole === 'WAITER' || input.actorRole === 'CASHIER' ? 'CUSTOMER_WEB' : 'CUSTOMER_WEB',
-        createdBy: req.customerName,
+        source: pricing.source === 'staff' ? 'STAFF_POS' : 'CUSTOMER_WEB',
+        createdBy: pricing.source === 'staff' ? input.actorName : req.customerName,
         customerName: req.customerName,
         mode: req.mode,
         tableLabelSnapshot: tableLabel,
@@ -1149,7 +1250,7 @@ export async function acceptOrderRequestByStaff(input: {
         id: billId,
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
-        businessDate: TODAY_BUSINESS_DATE,
+        businessDate: getBusinessDate(),
         visitId,
         ownerParticipantId: participantId,
         ownerLabel: `${req.customerName} (${tableLabel})`,
@@ -1221,6 +1322,7 @@ export async function acceptOrderRequestByStaff(input: {
     });
   } catch (error: any) {
     console.error('Accept order request error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menerima permintaan pesanan.', { cause: error });
   }
 }
@@ -1254,6 +1356,7 @@ export async function rejectOrderRequestByStaff(input: {
     return { orderRequestId: input.orderRequestId, state: 'REJECTED', reason: cleanReason };
   } catch (error: any) {
     console.error('Reject order request error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menolak permintaan pesanan.', { cause: error });
   }
 }
@@ -1285,10 +1388,14 @@ export async function transitionOrderUnits(input: {
 
       for (const u of units) {
         if (u.fulfillmentStatus === 'CANCELLED') continue;
+        if (u.fulfillmentStatus === input.targetStatus) continue;
         if (u.fulfillmentStatus === 'HELD_FOR_PAYMENT') {
           throw new Error(
             `Item "${u.itemNameSnapshot}" masih menunggu pelunasan PREPAY dan belum dapat diproses dapur.`
           );
+        }
+        if (!canTransitionUnit(u.fulfillmentStatus, input.targetStatus, !isModuleEnabled('kitchen'))) {
+          throw new Error(`Status ${u.itemNameSnapshot} tidak dapat diubah dari ${u.fulfillmentStatus} ke ${input.targetStatus}.`);
         }
 
         const updateFields: Record<string, any> = {
@@ -1326,6 +1433,7 @@ export async function transitionOrderUnits(input: {
     });
   } catch (error: any) {
     console.error('Transition units error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memperbarui status pengerjaan item.', { cause: error });
   }
 }
@@ -1484,6 +1592,7 @@ export async function splitBillByUnits(input: {
     });
   } catch (error: any) {
     console.error('Split bill error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memisahkan tagihan.', { cause: error });
   }
 }
@@ -1599,6 +1708,7 @@ export async function mergeOpenBills(input: {
     });
   } catch (error: any) {
     console.error('Merge bill error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menggabungkan tagihan.', { cause: error });
   }
 }
@@ -1649,10 +1759,10 @@ export async function recordBillPayment(input: {
       if (settlingAttempt && settlingAttempt.expectedAmountIdr > bill.balanceIdr) {
         throw new Error('Nominal instruksi melebihi sisa tagihan. Perlu rekonsiliasi pembayaran.');
       }
-      const amountToPay = Math.min(input.amountIdr || bill.balanceIdr, bill.balanceIdr);
-      if (amountToPay <= 0) {
-        throw new Error('Nominal pembayaran harus lebih dari Rp0.');
-      }
+      const { amountToPay, tendered, changeIdr } = calculatePaymentAmounts({
+        balanceIdr: bill.balanceIdr, amountIdr: input.amountIdr,
+        tenderedIdr: input.tenderedIdr, method: input.method,
+      });
 
       if (
         input.createExternalAttemptOnly &&
@@ -1677,7 +1787,7 @@ export async function recordBillPayment(input: {
             providerOrderId,
             amountIdr: amountToPay,
             method: input.method,
-            merchantName: 'Kedai Meranti',
+            merchantName: cafeConfig.brand.name,
           }),
           expiresAt,
         });
@@ -1692,8 +1802,6 @@ export async function recordBillPayment(input: {
         };
       }
 
-      const tendered = Math.max(amountToPay, input.tenderedIdr ?? amountToPay);
-      const changeIdr = input.method === 'CASH' ? tendered - amountToPay : 0;
       const receiptId = makeId('rcpt');
       const refCode =
         input.referenceCode?.trim() ||
@@ -1740,7 +1848,7 @@ export async function recordBillPayment(input: {
         id: receiptId,
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
-        businessDate: TODAY_BUSINESS_DATE,
+        businessDate: getBusinessDate(),
         billId: bill.id,
         shiftId,
         method: input.method,
@@ -1902,6 +2010,7 @@ export async function recordBillPayment(input: {
     });
   } catch (error: any) {
     console.error('Record bill payment error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal mencatat pembayaran tagihan.', { cause: error });
   }
 }
@@ -1913,6 +2022,7 @@ export async function settleOrCancelExternalPaymentAttempt(input: {
 }) {
   try {
     await ensureSeeded();
+    if (!['SETTLE', 'CANCEL', 'EXPIRE'].includes(input.action)) throw new Error('Tindakan pembayaran tidak valid.');
     const attRows = await db
       .select()
       .from(paymentAttempts)
@@ -1946,6 +2056,7 @@ export async function settleOrCancelExternalPaymentAttempt(input: {
     }, att.id);
   } catch (error: any) {
     console.error('Settle/cancel payment attempt error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memperbarui status pembayaran eksternal.', {
       cause: error,
     });
@@ -2144,7 +2255,7 @@ export async function cancelUnitAndRefundOrCredit(input: {
           id: createdRefundId,
           tenantId: DEFAULT_TENANT_ID,
           outletId: DEFAULT_OUTLET_ID,
-          businessDate: TODAY_BUSINESS_DATE,
+          businessDate: getBusinessDate(),
           billId: bill.id,
           receiptId: targetReceipt.id,
           adjustmentId: adjId,
@@ -2253,6 +2364,7 @@ export async function cancelUnitAndRefundOrCredit(input: {
     });
   } catch (error: any) {
     console.error('Cancel unit & refund error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal membatalkan item atau memproses pengembalian uang.', {
       cause: error,
     });
@@ -2439,6 +2551,7 @@ export async function moveOrUpdateTableAndVisit(input: {
     });
   } catch (error: any) {
     console.error('Table/visit operation error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memperbarui status meja atau kunjungan.', {
       cause: error,
     });
@@ -2477,7 +2590,7 @@ export async function manageWaitlistEntry(input: {
           id,
           tenantId: DEFAULT_TENANT_ID,
           outletId: DEFAULT_OUTLET_ID,
-          businessDate: TODAY_BUSINESS_DATE,
+          businessDate: getBusinessDate(),
           publicSequence,
           privateToken,
           customerName: name,
@@ -2565,7 +2678,7 @@ export async function manageWaitlistEntry(input: {
           id: visitId,
           tenantId: DEFAULT_TENANT_ID,
           outletId: DEFAULT_OUTLET_ID,
-          businessDate: TODAY_BUSINESS_DATE,
+          businessDate: getBusinessDate(),
           mode: 'DINE_IN',
           status: 'OPEN',
           primaryTableId: tbl.id,
@@ -2624,6 +2737,7 @@ export async function manageWaitlistEntry(input: {
     });
   } catch (error: any) {
     console.error('Waitlist operation error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memproses antrean meja.', { cause: error });
   }
 }
@@ -2741,6 +2855,7 @@ export async function createOrUpdateServiceRequest(input: {
     return { requestId: input.requestId, state: 'RESOLVED' };
   } catch (error: any) {
     console.error('Service request error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memproses permintaan bantuan.', { cause: error });
   }
 }
@@ -2836,6 +2951,7 @@ export async function updateFloorPlanLayout(input: {
     });
   } catch (error: any) {
     console.error('Update floor plan error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menyimpan atau mempublikasikan denah.', {
       cause: error,
     });
@@ -2889,6 +3005,7 @@ export async function manageMenuAndStock(input: {
 
     return await db.transaction(async (tx) => {
       if (input.action === 'ADJUST_STOCK' && input.poolId && typeof input.newOnHand === 'number') {
+        if (!Number.isSafeInteger(input.newOnHand) || input.newOnHand < 0) throw new Error('Stok harus berupa bilangan bulat dan tidak negatif.');
         const poolRows = await tx.select().from(stockPools).where(eq(stockPools.id, input.poolId));
         const pool = poolRows[0];
         if (!pool) throw new Error('Pool stok tidak ditemukan.');
@@ -3003,7 +3120,7 @@ export async function manageMenuAndStock(input: {
           stationCode: m.stationCode || 'BAR',
           name: cleanName,
           slug: cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          description: String(m.description || '').trim() || 'Menu baru Kedai Meranti.',
+          description: String(m.description || '').trim() || `Menu ${cafeConfig.brand.name}.`,
           photoUrl: cleanPhotos[0] || null,
           scheduleJson: {
             allDay: true,
@@ -3214,6 +3331,7 @@ export async function manageMenuAndStock(input: {
     });
   } catch (error: any) {
     console.error('Manage menu/stock error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memperbarui menu atau stok.', { cause: error });
   }
 }
@@ -3238,7 +3356,8 @@ export async function manageCashShift(input: {
         if (openExisting.length > 0) {
           throw new Error('Masih ada shift kasir yang terbuka pada laci kas ini.');
         }
-        const openingFloat = Math.max(0, input.amountIdr ?? 500000);
+        const openingFloat = input.amountIdr ?? 0;
+        if (!Number.isSafeInteger(openingFloat) || openingFloat < 0) throw new Error('Modal kas harus berupa Rupiah bulat dan tidak negatif.');
         const newShiftId = makeId('shift');
         await tx.insert(cashShifts).values({
           id: newShiftId,
@@ -3246,7 +3365,7 @@ export async function manageCashShift(input: {
           outletId: DEFAULT_OUTLET_ID,
           drawerName: 'Laci Kas Utama #1',
           operatorName: input.actorName,
-          businessDate: TODAY_BUSINESS_DATE,
+          businessDate: getBusinessDate(),
           state: 'OPEN',
           openingFloatIdr: openingFloat,
           expectedCashIdr: openingFloat,
@@ -3309,7 +3428,7 @@ export async function manageCashShift(input: {
       }
 
       if (input.action === 'CLOSE_SHIFT') {
-        if (typeof input.countedCashIdr !== 'number' || input.countedCashIdr < 0) {
+        if (typeof input.countedCashIdr !== 'number' || !Number.isSafeInteger(input.countedCashIdr) || input.countedCashIdr < 0) {
           throw new Error('Masukkan nominal uang fisik yang dihitung.');
         }
         const calc = computeExpectedCashShift({
@@ -3351,6 +3470,7 @@ export async function manageCashShift(input: {
     });
   } catch (error: any) {
     console.error('Manage cash shift error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal memproses shift kasir.', { cause: error });
   }
 }
@@ -3460,13 +3580,21 @@ export async function updateOutletSettingsOrPromoOrFeedback(input: {
 
     if (input.action === 'SUBMIT_FEEDBACK' && input.feedbackData) {
       const fb = input.feedbackData;
+      const [participant] = await db.select().from(visitParticipants).where(and(
+        eq(visitParticipants.visitId, fb.visitId),
+        fb.participantId ? eq(visitParticipants.id, fb.participantId) : eq(visitParticipants.displayName, fb.customerName),
+      ));
+      if (!participant) throw new Error('Ulasan hanya dapat dikirim setelah pesanan Anda diterima.');
+      for (const rating of [fb.overallRating, fb.tasteRating, fb.serviceRating, fb.speedRating, fb.cleanlinessRating]) {
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error('Nilai ulasan harus antara 1 dan 5.');
+      }
       const id = makeId('fb');
       await db.insert(feedbackEntries).values({
         id,
         tenantId: DEFAULT_TENANT_ID,
         outletId: DEFAULT_OUTLET_ID,
         visitId: fb.visitId,
-        participantId: fb.participantId,
+        participantId: participant.id,
         memberId: fb.memberId ?? null,
         customerName: fb.customerName,
         overallRating: fb.overallRating,
@@ -3516,6 +3644,7 @@ export async function updateOutletSettingsOrPromoOrFeedback(input: {
     throw new Error('Aksi pengaturan/promo/feedback tidak valid.');
   } catch (error: any) {
     console.error('Settings/Promo/Feedback error:', error);
+    if (error instanceof Error) throw error;
     throw new Error(error.message || 'Gagal menyimpan perubahan.', { cause: error });
   }
 }

@@ -21,6 +21,12 @@ import {
   formatIdr,
 } from './ui-primitives';
 import { FloorPlanEditor } from './floor-plan-editor';
+import { cafeConfig, isModuleEnabled, getDefaultStaffModule } from '@/src/config/cafe';
+import { BrandMark } from './brand';
+import { PosComposer } from './pos-composer';
+import { OrderInbox } from './order-inbox';
+import { DemoPaymentControls } from './demo-payment-controls';
+import { ShiftControls } from './shift-controls';
 import { sanitizeSpreadsheetExportCell } from '@/src/domain/rules';
 import {
   Check,
@@ -60,6 +66,19 @@ export type StaffSection =
   | 'menu'
   | 'laporan'
   | 'pengaturan';
+
+function sectionEnabled(section: StaffSection): boolean {
+  switch (section) {
+    case 'kasir': return isModuleEnabled('cashier') || isModuleEnabled('ordering');
+    case 'dapur': return isModuleEnabled('kitchen');
+    case 'meja': return isModuleEnabled('tables');
+    case 'menu': return isModuleEnabled('catalog') || isModuleEnabled('cashier');
+    case 'laporan': return isModuleEnabled('dashboard');
+    case 'pengaturan': return true;
+  }
+}
+const defaultSection = ({ cashier: 'kasir', ordering: 'kasir', kitchen: 'dapur', dashboard: 'laporan', tables: 'meja', marketing: 'pengaturan' } as Record<string, StaffSection>)[getDefaultStaffModule() || ''] || 'pengaturan';
+const availableSection = (section?: StaffSection) => section && sectionEnabled(section) ? section : defaultSection;
 
 const STAFF_CREDENTIALS: Record<
   string,
@@ -206,7 +225,11 @@ export function StaffApp({
   const [pinInput, setPinInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string>('');
 
-  const [activeSection, setActiveSection] = useState<StaffSection>('kasir');
+  const canCashier = isModuleEnabled('cashier');
+  const canKitchen = isModuleEnabled('kitchen');
+  const canTables = isModuleEnabled('tables');
+  const canMarketing = isModuleEnabled('marketing');
+  const [activeSection, setActiveSection] = useState<StaffSection>(defaultSection);
   const [actionNotice, setActionNotice] = useState<string>('');
   const [actionError, setActionError] = useState<string>('');
   const [billSearch, setBillSearch] = useState('');
@@ -247,6 +270,7 @@ export function StaffApp({
   const [floorSubTab, setFloorSubTab] = useState<'DENAH' | 'ANTREAN'>('DENAH');
   const [moveTargetTableId, setMoveTargetTableId] = useState<string>('tbl_m02');
   const [issuedJoinCodeText, setIssuedJoinCodeText] = useState<string>('');
+  const [waitlistTables, setWaitlistTables] = useState<Record<string, string>>({});
 
   // Katalog & Stok state
   const [menuSearchQuery, setMenuSearchQuery] = useState<string>('');
@@ -277,15 +301,9 @@ export function StaffApp({
   );
   const [previewBatch, setPreviewBatch] = useState<any>(null);
 
-  // Shift & Laporan state
-  const [shiftMoveAmount, setShiftMoveAmount] = useState<string>('50000');
-  const [shiftMoveReason, setShiftMoveReason] = useState<string>(
-    'Pembelian es batu & galon darurat'
-  );
-  const [countedCashInput, setCountedCashInput] = useState<string>('685340');
-  const [closeVarianceReason, setCloseVarianceReason] = useState<string>(
-    'Sesuai hitungan fisik kasir'
-  );
+  // Report dates follow the cafe's timezone, not the browser's timezone.
+  const todayReportDate = new Intl.DateTimeFormat('en-CA', { timeZone: cafeConfig.timezone }).format(new Date(snapshot.serverTime));
+  const [reportDate, setReportDate] = useState(todayReportDate);
 
   // Pengaturan & Promo state
   const [customServicePct, setCustomServicePct] = useState<string>(
@@ -363,7 +381,19 @@ export function StaffApp({
     return all.filter((u: any) => u.stationCode === stationFilter);
   }, [snapshot, stationFilter, kitchenStatusFilter]);
 
-  const activeShift = useMemo(() => (snapshot?.cashShifts || [])[0] || null, [snapshot]);
+  const reportBills = useMemo(() => (snapshot?.bills || []).filter((bill: any) => bill.businessDate === reportDate && bill.lifecycle !== 'VOID'), [snapshot, reportDate]);
+  const reportShifts = useMemo(() => (snapshot?.cashShifts || []).filter((shift: any) => shift.businessDate === reportDate), [snapshot, reportDate]);
+  const reportTotals = useMemo(() => reportBills.reduce((totals: any, bill: any) => ({
+    subtotal: totals.subtotal + Number(bill.subtotalIdr || 0),
+    discount: totals.discount + Number(bill.discountIdr || 0),
+    service: totals.service + Number(bill.serviceIdr || 0),
+    tax: totals.tax + Number(bill.taxIdr || 0),
+    corrections: totals.corrections + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0),
+    billed: totals.billed + Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0)),
+    received: totals.received + Number(bill.verifiedReceiptsIdr || 0),
+    refunded: totals.refunded + Number(bill.refundedIdr || 0),
+    outstanding: totals.outstanding + Math.max(0, Number(bill.balanceIdr || 0)),
+  }), { subtotal: 0, discount: 0, service: 0, tax: 0, corrections: 0, billed: 0, received: 0, refunded: 0, outstanding: 0 }), [reportBills]);
 
   const filteredCatalog = useMemo(() => {
     const list = snapshot?.catalog || [];
@@ -383,30 +413,25 @@ export function StaffApp({
   }, [snapshot, menuCategoryFilter, menuSearchQuery]);
 
   const handleExportReportCsv = () => {
-    const headers = ['ID Tagihan', 'Meja / Pemilik', 'Status Bayar', 'Total', 'Diterima', 'Sisa'];
-    const rows = (snapshot?.bills || []).map((b: any) => [
-      b.id,
-      `${b.tableLabel} - ${b.ownerLabel}`,
-      b.paymentState,
-      b.originalTotalIdr ?? b.totalIdr ?? 0,
-      b.verifiedReceiptsIdr,
-      b.balanceIdr,
+    const headers = ['Tanggal Tagihan', 'ID Tagihan', 'Meja / Pemilik', 'Status Bayar', 'Subtotal', 'Diskon', 'Layanan', 'Pajak', 'Koreksi Debit', 'Koreksi Kredit', 'Nilai Tagihan', 'Diterima', 'Dikembalikan', 'Penerimaan Bersih', 'Sisa'];
+    const rows = reportBills.map((bill: any) => [
+      bill.businessDate, bill.id, `${bill.tableLabel} / ${bill.ownerLabel}`, bill.paymentState,
+      bill.subtotalIdr, bill.discountIdr, bill.serviceIdr, bill.taxIdr,
+      bill.debitAdjustmentsIdr, bill.creditAdjustmentsIdr,
+      Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0)),
+      bill.verifiedReceiptsIdr, bill.refundedIdr,
+      Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0), bill.balanceIdr,
     ]);
-    const csvLines = [
-      headers.join(','),
-      ...rows.map((r: (string | number)[]) =>
-        r.map((cell) => String(sanitizeSpreadsheetExportCell(cell))).join(',')
-      ),
-    ];
-    const csvContent = csvLines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvCell = (cell: string | number) => `"${String(sanitizeSpreadsheetExportCell(cell ?? '')).replaceAll('"', '""')}"`;
+    const csvContent = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `laporan-harian-meranti.csv`;
-    a.click();
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `laporan-${cafeConfig.venue.outletSlug}-${reportDate}.csv`;
+    anchor.click();
     URL.revokeObjectURL(url);
-    setActionNotice('Laporan CSV berhasil diunduh.');
+    setActionNotice(`Laporan tagihan ${reportDate} berhasil diunduh.`);
   };
 
   const handlePhotoFileSelect = (
@@ -436,9 +461,9 @@ export function StaffApp({
     e.preventDefault();
     setLoginError('');
     const cred = STAFF_CREDENTIALS[loginStaffId];
-    if (!cred || pinInput.trim() === cred.pin) {
+    if (cred && pinInput.trim() === cred.pin) {
       handleSwitchStaff(loginStaffId);
-      setActiveSection(cred?.defaultSection || 'kasir');
+      setActiveSection(availableSection(cred?.defaultSection));
       setIsAuthenticated(true);
       setPinInput('');
     } else {
@@ -451,7 +476,7 @@ export function StaffApp({
   // =========================================================================
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col justify-center items-center px-4 py-10">
+      <div className="cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col justify-center items-center px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 12, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -460,13 +485,13 @@ export function StaffApp({
         >
           <div className="flex items-center justify-between gap-2 pb-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-2.5">
-              <Lock className="w-5 h-5 text-[var(--primary)]" />
+              <Lock className="w-5 h-5 text-[var(--primary-ink)]" />
               <div>
                 <h1 className="font-heading text-[18px] leading-[24px] font-bold">
                   Ruang operasional
                 </h1>
                 <p className="text-[12px] text-[var(--muted-foreground)]">
-                  {snapshot?.outlet?.name || 'Kedai Meranti'}
+                  {cafeConfig.brand.name}
                 </p>
               </div>
             </div>
@@ -491,7 +516,7 @@ export function StaffApp({
               >
                 {staffList.map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    {s.userName} — {STAFF_CREDENTIALS[s.id]?.roleLabel || s.role}
+                    {s.userName} · {STAFF_CREDENTIALS[s.id]?.roleLabel || s.role}
                   </option>
                 ))}
               </SelectField>
@@ -527,7 +552,7 @@ export function StaffApp({
                         setLoginStaffId(s.id);
                         setPinInput(cred?.pin || '1111');
                         handleSwitchStaff(s.id);
-                        setActiveSection(cred?.defaultSection || 'kasir');
+                        setActiveSection(availableSection(cred?.defaultSection));
                         setIsAuthenticated(true);
                       }}
                       className="px-2.5 py-2 rounded-[8px] border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent-surface)] text-left text-[12px] transition-colors cursor-pointer"
@@ -562,10 +587,10 @@ export function StaffApp({
     (s: any) => s.state !== 'RESOLVED'
   ).length;
 
-  const navItems: { id: StaffSection; label: string; count?: number }[] = [
+  const allNavItems: { id: StaffSection; label: string; count?: number }[] = [
     {
       id: 'kasir',
-      label: 'Kasir & Pesanan',
+      label: canCashier ? 'Kasir & Pesanan' : 'Pesanan masuk',
       count:
         pendingOrderRequests.length +
         activeBills.filter((b: any) => b.balanceIdr > 0).length,
@@ -586,6 +611,7 @@ export function StaffApp({
     { id: 'laporan', label: 'Laporan & Shift' },
     { id: 'pengaturan', label: 'Pengaturan' },
   ];
+  const navItems = allNavItems.filter(item => sectionEnabled(item.id));
 
   const effectiveTenderAmount =
     Number(tenderAmountInput) > 0
@@ -597,31 +623,31 @@ export function StaffApp({
       : 0;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-[232px] flex-col border-r border-[var(--border)] bg-[var(--surface)] p-5">
+    <div className="cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <aside className="hidden xl:flex fixed inset-y-0 left-0 z-40 w-[232px] flex-col border-r border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--primary)] text-white"><Coffee className="h-6 w-6" /></div>
-          <div className="min-w-0"><p className="font-heading font-bold text-lg truncate">{snapshot?.outlet?.name || 'Kedai Meranti'}</p></div>
+          <BrandMark />
+          <div className="min-w-0"><p className="font-heading font-bold text-base leading-snug break-words">{cafeConfig.brand.name}</p></div>
         </div>
         <div className="mt-8" />
         <nav aria-label="Navigasi operasional desktop" className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
-            return <button key={item.id} type="button" aria-current={activeSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionNotice(''); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${activeSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
+            return <button key={item.id} type="button" aria-current={activeSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionNotice(''); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${activeSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
               <Icon className="h-[18px] w-[18px] shrink-0" /><span className="flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] tabular-nums">{item.count}</span>}
             </button>;
           })}
         </nav>
         <div className="mt-auto space-y-4 pt-6">
 
-          {onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary)]">Lihat menu pelanggan<ArrowUpRight className="h-4 w-4" /></button>}
+          {onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary-ink)]">Lihat menu pelanggan<ArrowUpRight className="h-4 w-4" /></button>}
         </div>
       </aside>
-      <header className="sticky top-0 z-30 lg:ml-[232px] border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 xl:ml-[232px] border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-7 py-4">
           <div className="flex items-center gap-3">
-            {onBackToCustomer && <button type="button" onClick={onBackToCustomer} aria-label="Kembali ke menu pelanggan" className="lg:hidden p-2 rounded-full border border-[var(--border)]"><ArrowLeft className="w-4 h-4" /></button>}
-            <div><p className="text-sm font-medium">{snapshot?.outlet?.name || 'Kedai Meranti'}</p>{lastUpdated && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{lastUpdated}</p>}</div>
+            {onBackToCustomer && <button type="button" onClick={onBackToCustomer} aria-label="Kembali ke menu pelanggan" className="xl:hidden p-2 rounded-full border border-[var(--border)]"><ArrowLeft className="w-4 h-4" /></button>}
+            <div><p className="text-sm font-medium">{cafeConfig.brand.name}</p>{lastUpdated && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{lastUpdated}</p>}</div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <Button variant="ghost" size="sm" disabled={busy || !onRefresh} onClick={onRefresh} aria-label="Perbarui data operasional"><RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /></Button>
@@ -631,12 +657,13 @@ export function StaffApp({
             <button type="button" onClick={() => setIsAuthenticated(false)} aria-label="Keluar dari portal staf" className="p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--background)]"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
-        <div className="lg:hidden px-4"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel="Navigasi operasional kafe" layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
+        <div className="xl:hidden px-4"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel="Navigasi operasional kafe" layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
       </header>
-      <main className="lg:ml-[232px] px-4 sm:px-7 xl:px-10 py-7 space-y-6">
+      <a href="#staff-content" className="skip-link">Ke ruang kerja</a>
+      <main id="staff-content" className="xl:ml-[232px] px-4 sm:px-7 xl:px-10 py-7 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="font-heading text-3xl sm:text-[34px] font-semibold tracking-tight">{navItems.find(item => item.id === activeSection)?.label}</h1>
-          {activeSection === 'kasir' && <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />Pesanan baru</Button>}
+          {canCashier && activeSection === 'kasir' && <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />Pesanan baru</Button>}
         </div>
         <AnimatePresence>
           {(actionNotice || actionError) && (
@@ -655,19 +682,21 @@ export function StaffApp({
         {/* =================================================================== */}
         {/* TAB 1: KASIR & PESANAN (UNIFIED POS WORKSPACE)                      */}
         {/* =================================================================== */}
-        {activeSection === 'kasir' && (
+        {sectionEnabled('kasir') && activeSection === 'kasir' && (
           <motion.div
             key="pos-kasir"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-              <button type="button" onClick={() => document.getElementById('incoming-orders')?.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Pesanan baru</span><Receipt className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{pendingOrderRequests.length}</p><p className="mt-2 text-[11px] text-[var(--primary)]">Perlu konfirmasi</p></button>
-              <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('DENAH'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Meja terisi</span><LayoutGrid className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.tables || []).filter((t: any) => t.physicalState === 'OCCUPIED').length}<span className="text-base font-normal text-[var(--muted-foreground)]"> / {(snapshot?.tables || []).length}</span></p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Lihat denah meja</p></button>
-              <button type="button" onClick={() => { setActiveSection('dapur'); setKitchenStatusFilter('ACTIVE'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Dalam proses</span><ChefHat className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.orderUnits || []).filter((u: any) => ['QUEUED', 'PREPARING'].includes(u.fulfillmentStatus)).length}</p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Porsi di dapur & bar</p></button>
-              <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('ANTREAN'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Panggilan tamu</span><Bell className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{openHelpCount}</p><p className="mt-2 text-[11px] text-[var(--primary)]">{openHelpCount ? 'Menunggu layanan tim' : 'Semua tamu terlayani'}</p></button>
+            <div className="staff-metrics grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              <button type="button" onClick={() => document.getElementById('incoming-orders')?.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Pesanan baru</span><Receipt className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{pendingOrderRequests.length}</p><p className="mt-2 text-[11px] text-[var(--primary-ink)]">Perlu konfirmasi</p></button>
+              {canTables && <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('DENAH'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Meja terisi</span><LayoutGrid className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.tables || []).filter((t: any) => t.physicalState === 'OCCUPIED').length}<span className="text-base font-normal text-[var(--muted-foreground)]"> / {(snapshot?.tables || []).length}</span></p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Lihat denah meja</p></button>}
+              {canKitchen && <button type="button" onClick={() => { setActiveSection('dapur'); setKitchenStatusFilter('ACTIVE'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Dalam proses</span><ChefHat className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{(snapshot?.orderUnits || []).filter((u: any) => ['QUEUED', 'PREPARING'].includes(u.fulfillmentStatus)).length}</p><p className="mt-2 text-[11px] text-[var(--muted-foreground)]">Porsi di dapur & bar</p></button>}
+              {canTables && <button type="button" onClick={() => { setActiveSection('meja'); setFloorSubTab('ANTREAN'); }} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:border-[var(--primary)] transition-colors"><div className="flex justify-between gap-2 text-[var(--muted-foreground)]"><span className="text-xs">Panggilan tamu</span><Bell className="h-4 w-4" /></div><p className="mt-3 text-3xl font-heading font-semibold tabular-nums">{openHelpCount}</p><p className="mt-2 text-[11px] text-[var(--primary-ink)]">{openHelpCount ? 'Menunggu layanan tim' : 'Semua tamu terlayani'}</p></button>}
             </div>
+
+            {canCashier && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
 
             {/* Incoming Customer QR Order Requests (If any) */}
             {pendingOrderRequests.length > 0 && (
@@ -712,7 +741,7 @@ export function StaffApp({
                                 </strong>{' '}
                                 {ln.itemName} ({ln.variantName})
                                 {ln.modifiers?.length ? ` · ${ln.modifiers.join(', ')}` : ''}
-                                {ln.note ? ` — Catatan: "${ln.note}"` : ''}
+                                {ln.note ? ` · Catatan: "${ln.note}"` : ''}
                               </p>
                             ))}
                           </div>
@@ -766,8 +795,10 @@ export function StaffApp({
               </section>
             )}
 
-            {/* Main 2-Column Cashier Workspace (Separated by Hairline, No Heavy Card Boxes) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <DemoPaymentControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />
+            {!canKitchen && <OrderInbox snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
+            {/* The cashier workspace is separate from the ordering inbox. */}
+            {canCashier && <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
               <div className="lg:col-span-4 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="flex items-center justify-between gap-2">
@@ -804,21 +835,20 @@ export function StaffApp({
                           setCashGivenInput('');
                           setTransferRefInput('');
                         }}
-                        className={`w-full py-3.5 px-3 text-left transition-colors flex items-center justify-between gap-3 cursor-pointer ${
+                        className={`w-full py-3.5 px-3 text-left transition-colors flex flex-col gap-3 cursor-pointer ${
                           isSel
-                            ? 'rounded-xl bg-[var(--accent-surface)] ring-1 ring-[var(--primary)]'
+                            ? 'rounded-xl bg-[var(--accent-surface)] ring-1 ring-[var(--primary-ink)]'
                             : 'rounded-xl hover:bg-[var(--background)]'
                         }`}
                       >
-                        <div className="space-y-0.5 min-w-0">
-                          <p className="font-heading font-semibold text-[15px] text-[var(--foreground)] truncate">
-                            Meja {b.tableLabel} · {b.ownerLabel}
-                          </p>
+                        <div className="space-y-1 min-w-0 w-full">
+                          <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{b.tableLabel ? `Meja ${b.tableLabel}` : 'Bawa pulang'}</p>
+                          <p className="text-sm break-words">{b.ownerLabel}</p>
                           <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
                             {(b.allocatedUnits || []).length} porsi menu
                           </p>
                         </div>
-                        <div className="text-right space-y-1 shrink-0">
+                        <div className="w-full flex flex-wrap items-center justify-between gap-2">
                           <Money
                             amount={
                               b.balanceIdr > 0
@@ -993,7 +1023,7 @@ export function StaffApp({
                                         ]);
                                       }
                                     }}
-                                    className="w-4 h-4 accent-[var(--primary)]"
+                                    className="w-4 h-4 accent-[var(--primary-ink)]"
                                   />
                                 )}
                                 <div>
@@ -1056,8 +1086,7 @@ export function StaffApp({
                                 ariaLabel="Metode pembayaran kasir"
                                 options={[
                                   { value: 'CASH', label: 'Tunai' },
-                                  { value: 'QRIS', label: 'QRIS' },
-                                  { value: 'VIRTUAL_ACCOUNT', label: 'Virtual Account' },
+                                  ...(isModuleEnabled('payments') ? [{ value: 'QRIS', label: 'QRIS demo' }, { value: 'VIRTUAL_ACCOUNT', label: 'VA demo' }] : []),
                                   { value: 'MANUAL_TRANSFER', label: 'Transfer' },
                                 ]}
                                 value={tenderMethod}
@@ -1135,7 +1164,7 @@ export function StaffApp({
                                   <span className="text-[var(--muted-foreground)]">Kembalian: </span>
                                   <Money
                                     amount={cashChangePreview}
-                                    className="font-bold text-[var(--primary)]"
+                                    className="font-bold text-[var(--primary-ink)]"
                                   />
                                 </div>
                               </div>
@@ -1170,11 +1199,7 @@ export function StaffApp({
                               }}
                             >
                               <Receipt className="w-4 h-4" />
-                              <span>
-                                Terima Pembayaran{' '}
-                                {tenderMethod === 'CASH' ? 'Tunai' : tenderMethod} ·{' '}
-                                {formatIdr(effectiveTenderAmount)}
-                              </span>
+                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? 'Terima tunai' : tenderMethod === 'MANUAL_TRANSFER' ? 'Catat transfer' : 'Buat instruksi demo'}</span><Money amount={effectiveTenderAmount} className="block" /></span>
                             </Button>
                           </>
                         ) : (
@@ -1193,14 +1218,14 @@ export function StaffApp({
                   <EmptyState title="Pilih tagihan" />
                 )}
               </div>
-            </div>
+            </div>}
           </motion.div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 2: DAPUR & BAR (CLEAN KDS WORKSPACE)                            */}
         {/* =================================================================== */}
-        {activeSection === 'dapur' && (
+        {sectionEnabled('dapur') && activeSection === 'dapur' && (
           <motion.div
             key="pos-dapur"
             initial={{ opacity: 0, y: 6 }}
@@ -1239,7 +1264,7 @@ export function StaffApp({
             </div>
 
             <div className="flex flex-wrap gap-2" aria-label="Status pesanan dapur">
-              {[['ACTIVE', 'Semua aktif'], ['QUEUED', 'Antrean baru'], ['PREPARING', 'Sedang dibuat'], ['READY', 'Siap diantar'], ['ALL', 'Termasuk selesai']].map(([value, label]) => <button key={value} type="button" aria-pressed={kitchenStatusFilter === value} onClick={() => setKitchenStatusFilter(value)} className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${kitchenStatusFilter === value ? 'border-[var(--primary)] bg-[var(--primary)] text-white' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted-foreground)]'}`}>{label}</button>)}
+              {[['ACTIVE', 'Semua aktif'], ['QUEUED', 'Antrean baru'], ['PREPARING', 'Sedang dibuat'], ['READY', 'Siap diantar'], ['ALL', 'Termasuk selesai']].map(([value, label]) => <button key={value} type="button" aria-pressed={kitchenStatusFilter === value} onClick={() => setKitchenStatusFilter(value)} className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${kitchenStatusFilter === value ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted-foreground)]'}`}>{label}</button>)}
             </div>
             {kitchenUnits.length === 0 ? (
               <EmptyState title="Tidak ada pesanan" />
@@ -1265,7 +1290,7 @@ export function StaffApp({
                           <span className="text-[13px] text-[var(--muted-foreground)]">
                             · {customerName}
                           </span>
-                          <span className="text-[12px] font-medium px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary)]">
+                          <span className="text-[12px] font-medium px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)]">
                             {formatStationName(u.stationCode)}
                           </span>
                           <StatusLabel label={st.label} tone={st.tone} />
@@ -1351,7 +1376,7 @@ export function StaffApp({
         {/* =================================================================== */}
         {/* TAB 3: MEJA, KUNJUNGAN & ANTREAN TAMU                               */}
         {/* =================================================================== */}
-        {activeSection === 'meja' && (
+        {sectionEnabled('meja') && activeSection === 'meja' && (
           <motion.div
             key="pos-meja"
             initial={{ opacity: 0, y: 6 }}
@@ -1505,13 +1530,13 @@ export function StaffApp({
                 {/* Left 6 cols: Bantuan meja */}
                 <section className="lg:col-span-6 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-[var(--primary)]" />
+                    <Bell className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
                       Bantuan meja
                     </h2>
                   </div>
 
-                  <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"><input type="checkbox" checked={showResolvedRequests} onChange={(e) => setShowResolvedRequests(e.target.checked)} className="accent-[var(--primary)]" />Tampilkan permintaan selesai</label>
+                  <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"><input type="checkbox" checked={showResolvedRequests} onChange={(e) => setShowResolvedRequests(e.target.checked)} className="accent-[var(--primary-ink)]" />Tampilkan permintaan selesai</label>
                   {!(snapshot?.serviceRequests || []).some((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED') && <EmptyState title="Semua tamu terlayani" />}
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {(snapshot?.serviceRequests || []).filter((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED').map((sr: any) => (
@@ -1541,7 +1566,7 @@ export function StaffApp({
                               }
                             />
                           </div>
-                          <p className="text-sm font-medium text-[var(--primary)]">{({ CALL_STAFF: 'Panggil staf', ASK_BILL: 'Minta tagihan', EXTRA_CUTLERY: 'Tambahan alat makan', CLEAR_TABLE: 'Bersihkan meja', ISSUE_REPORT: 'Laporan kendala' } as Record<string, string>)[sr.requestType || sr.type] || 'Bantuan pelanggan'}</p>
+                          <p className="text-sm font-medium text-[var(--primary-ink)]">{({ CALL_STAFF: 'Panggil staf', ASK_BILL: 'Minta tagihan', EXTRA_CUTLERY: 'Tambahan alat makan', CLEAR_TABLE: 'Bersihkan meja', ISSUE_REPORT: 'Laporan kendala' } as Record<string, string>)[sr.requestType || sr.type] || 'Bantuan pelanggan'}</p>
                           {sr.notes && (
                             <p className="text-[13px] text-[var(--muted-foreground)]">
                               Permintaan: {sr.notes}
@@ -1590,7 +1615,7 @@ export function StaffApp({
                 {/* Right 6 cols: Antrean Tamu (Waitlist) */}
                 <section className="lg:col-span-6 lg:border-l lg:border-[var(--border)] lg:pl-8 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[var(--primary)]" />
+                    <Clock className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
                       Daftar Antrean Meja (Waitlist)
                     </h2>
@@ -1604,7 +1629,7 @@ export function StaffApp({
                       >
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-heading font-bold text-[16px] tabular-nums text-[var(--primary)]">
+                            <span className="font-heading font-bold text-[16px] tabular-nums text-[var(--primary-ink)]">
                               {w.publicSequence}
                             </span>
                             <span className="font-semibold text-[15px]">{w.customerName}</span>
@@ -1632,17 +1657,21 @@ export function StaffApp({
                         </div>
 
                         {['WAITING', 'CALLED'].includes(w.status) && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <SelectField aria-label={`Meja untuk ${w.customerName}`} value={waitlistTables[w.id] || w.heldTableId || ''} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
+                              <option value="">Pilih meja tersedia</option>
+                              {(snapshot?.tables || []).filter((table: any) => table.active && table.capacity >= w.partySize && (table.physicalState === 'AVAILABLE' || table.id === w.heldTableId)).map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} kursi</option>)}
+                            </SelectField>
                             {w.status === 'WAITING' && (
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                disabled={busy}
+                                disabled={busy || !(waitlistTables[w.id] || w.heldTableId)}
                                 onClick={() =>
                                   runStaffCommand('WAITLIST_ACTION', {
                                     action: 'CALL',
                                     waitlistId: w.id,
-                                    tableId: 'tbl_m02',
+                                    tableId: waitlistTables[w.id] || w.heldTableId,
                                   })
                                 }
                               >
@@ -1657,7 +1686,7 @@ export function StaffApp({
                                 runStaffCommand('WAITLIST_ACTION', {
                                   action: 'SEAT',
                                   waitlistId: w.id,
-                                  tableId: w.heldTableId || 'tbl_m02',
+                                  tableId: waitlistTables[w.id] || w.heldTableId,
                                 })
                               }
                             >
@@ -1677,7 +1706,7 @@ export function StaffApp({
         {/* =================================================================== */}
         {/* TAB 4: KATALOG MENU, MULTI-FOTO & STOK PORSI                        */}
         {/* =================================================================== */}
-        {activeSection === 'menu' && (
+        {sectionEnabled('menu') && activeSection === 'menu' && (
           <motion.div
             key="pos-menu"
             initial={{ opacity: 0, y: 6 }}
@@ -1897,236 +1926,33 @@ export function StaffApp({
         {/* =================================================================== */}
         {/* TAB 5: LAPORAN HARIAN & SHIFT KASIR                                 */}
         {/* =================================================================== */}
-        {activeSection === 'laporan' && (
-          <motion.div
-            key="pos-laporan"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-end gap-3">
-              <Button variant="secondary" size="sm" onClick={handleExportReportCsv}>
-                <Download className="w-4 h-4" />
-                <span>Unduh CSV</span>
-              </Button>
+        {sectionEnabled('laporan') && activeSection === 'laporan' && (
+          <motion.div key="pos-laporan" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+              <div className="flex flex-wrap items-end gap-2"><div className="space-y-1"><Label htmlFor="report-date">Tanggal tagihan</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div><Button variant="secondary" size="sm" onClick={() => setReportDate(todayReportDate)}>Hari ini</Button></div>
+              <Button variant="secondary" size="sm" disabled={!reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />Unduh CSV</Button>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left 6 cols: Daily Financial Summary Table */}
-              <section className="lg:col-span-6 space-y-4">
-                <h2 className="font-heading text-[17px] font-bold">
-                  Ringkasan Keuangan Hari Ini
-                </h2>
-                <div className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-[14px] tabular-nums">
-                  <div className="py-3 flex justify-between">
-                    <span className="text-[var(--muted-foreground)]">Penjualan Kotor</span>
-                    <Money
-                      amount={(snapshot?.bills || []).reduce(
-                        (s: number, b: any) => s + (b.subtotalIdr || 0),
-                        0
-                      )}
-                      className="font-medium"
-                    />
-                  </div>
-                  <div className="py-3 flex justify-between">
-                    <span className="text-[var(--muted-foreground)]">Total Potongan Promo</span>
-                    <Money
-                      amount={-(snapshot?.bills || []).reduce(
-                        (s: number, b: any) => s + (b.discountIdr || 0),
-                        0
-                      )}
-                      className="text-[var(--status-success-fg)]"
-                    />
-                  </div>
-                  <div className="py-3 flex justify-between">
-                    <span className="text-[var(--muted-foreground)]">
-                      Biaya Layanan &amp; Pajak Restoran
-                    </span>
-                    <Money
-                      amount={(snapshot?.bills || []).reduce(
-                        (s: number, b: any) => s + (b.serviceIdr || 0) + (b.taxIdr || 0),
-                        0
-                      )}
-                    />
-                  </div>
-                  <div className="py-3 flex justify-between">
-                    <span className="text-[var(--muted-foreground)]">
-                      Koreksi / Pembatalan Item
-                    </span>
-                    <Money
-                      amount={-(snapshot?.bills || []).reduce(
-                        (s: number, b: any) => s + (b.creditAdjustmentsIdr || 0),
-                        0
-                      )}
-                      className="text-[var(--status-danger-fg)]"
-                    />
-                  </div>
-                  <div className="py-3.5 flex justify-between font-bold text-[16px]">
-                    <span>Total Penerimaan Bersih</span>
-                    <Money
-                      amount={(snapshot?.bills || []).reduce(
-                        (s: number, b: any) => s + (b.verifiedReceiptsIdr || 0),
-                        0
-                      )}
-                      className="text-[var(--primary)]"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Right 6 cols: Cash Drawer & Shift */}
-              <section className="lg:col-span-6 lg:border-l lg:border-[var(--border)] lg:pl-8 space-y-5">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-heading text-[17px] font-bold">
-                    Laci Kasir ({activeShift?.drawerName || 'Kasir Utama'})
-                  </h2>
-                  <StatusLabel
-                    label={activeShift?.state === 'OPEN' ? 'Shift Aktif' : 'Shift Ditutup'}
-                    tone={activeShift?.state === 'OPEN' ? 'success' : 'neutral'}
-                  />
-                </div>
-
-                {activeShift && (
-                  <div className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-[14px] tabular-nums">
-                    <div className="py-2.5 flex justify-between">
-                      <span className="text-[var(--muted-foreground)]">Modal Awal Laci</span>
-                      <Money amount={activeShift.openingFloatIdr} />
-                    </div>
-                    <div className="py-2.5 flex justify-between">
-                      <span className="text-[var(--muted-foreground)]">Penjualan Tunai</span>
-                      <Money amount={activeShift.cashReceiptsIdr} signed />
-                    </div>
-                    <div className="py-2.5 flex justify-between">
-                      <span className="text-[var(--muted-foreground)]">Kas Masuk / Keluar</span>
-                      <Money amount={activeShift.cashInIdr - activeShift.cashOutIdr} signed />
-                    </div>
-                    <div className="py-3 flex justify-between font-bold text-[15px]">
-                      <span>Uang Tunai Seharusnya di Laci</span>
-                      <Money amount={activeShift.expectedCashIdr} />
-                    </div>
-                  </div>
-                )}
-
-                {activeShift?.state === 'OPEN' ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label htmlFor="shift-move-amt">Nominal Kas Masuk/Keluar (Rp)</Label>
-                        <Input
-                          id="shift-move-amt"
-                          type="number"
-                          value={shiftMoveAmount}
-                          onChange={(e) => setShiftMoveAmount(e.target.value)}
-                          className="tabular-nums"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="shift-move-reason">Keterangan</Label>
-                        <Input
-                          id="shift-move-reason"
-                          value={shiftMoveReason}
-                          onChange={(e) => setShiftMoveReason(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          runStaffCommand('CASH_SHIFT_ACTION', {
-                            action: 'CASH_IN',
-                            shiftId: activeShift.id,
-                            amountIdr: Number(shiftMoveAmount),
-                            reason: shiftMoveReason,
-                          })
-                        }
-                      >
-                        + Catat Kas Masuk
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          runStaffCommand('CASH_SHIFT_ACTION', {
-                            action: 'CASH_OUT',
-                            shiftId: activeShift.id,
-                            amountIdr: Number(shiftMoveAmount),
-                            reason: shiftMoveReason,
-                          })
-                        }
-                      >
-                        - Catat Kas Keluar
-                      </Button>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--border)] space-y-3">
-                      <p className="font-semibold text-[14px]">Rekonsiliasi &amp; Tutup Shift</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="shift-counted-input">Uang Fisik Dihitung (Rp)</Label>
-                          <Input
-                            id="shift-counted-input"
-                            type="number"
-                            value={countedCashInput}
-                            onChange={(e) => setCountedCashInput(e.target.value)}
-                            className="tabular-nums"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="shift-var-reason">Catatan Penutupan</Label>
-                          <Input
-                            id="shift-var-reason"
-                            value={closeVarianceReason}
-                            onChange={(e) => setCloseVarianceReason(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={busy}
-                        onClick={async () => {
-                          await runStaffCommand('CASH_SHIFT_ACTION', {
-                            action: 'CLOSE_SHIFT',
-                            shiftId: activeShift.id,
-                            countedCashIdr: Number(countedCashInput),
-                            reason: closeVarianceReason,
-                          });
-                          setActionNotice('Shift kasir berhasil ditutup.');
-                        }}
-                      >
-                        Tutup Shift Kasir
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() =>
-                      runStaffCommand('CASH_SHIFT_ACTION', {
-                        action: 'OPEN_SHIFT',
-                        amountIdr: 500000,
-                      })
-                    }
-                  >
-                    Buka Shift Kasir Baru (Modal Rp500.000)
-                  </Button>
-                )}
-              </section>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Tagihan</p><p className="font-heading text-3xl font-semibold mt-2 tabular-nums">{reportBills.length}</p></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Nilai tagihan</p><Money amount={reportTotals.billed} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Diterima bersih</p><Money amount={reportTotals.received - reportTotals.refunded} className="block font-heading text-xl lg:text-2xl font-semibold mt-2 text-[var(--primary-ink)]" /></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Belum dibayar</p><Money amount={reportTotals.outstanding} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
             </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Rincian tagihan</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
+                {[['Harga menu', reportTotals.subtotal], ['Potongan', -reportTotals.discount], ['Biaya layanan', reportTotals.service], ['Pajak', reportTotals.tax], ['Koreksi tagihan', reportTotals.corrections], ['Nilai tagihan setelah koreksi', reportTotals.billed]].map(([label, amount]) => <div key={label} className="py-3 flex justify-between gap-3"><dt>{label}</dt><dd><Money amount={Number(amount)} /></dd></div>)}
+              </dl></section>
+              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Pembayaran</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>Pembayaran diterima</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>Uang dikembalikan</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>Penerimaan bersih</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">Cakupan: tagihan pada tanggal yang dipilih. Penerimaan menghitung pembayaran dan pengembalian untuk tagihan tersebut. Tagihan batal tidak dihitung. Biaya bahan, gaji, dan laba belum tercakup.</p></section>
+            </div>
+            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Daftar tagihan</h2>{!reportBills.length ? <EmptyState title="Belum ada tagihan" description="Pilih tanggal lain atau buat pesanan untuk melihat laporan." /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label="Daftar tagihan tanggal terpilih" tabIndex={0}><table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{['Pemesan / meja', 'Status', 'Nilai tagihan', 'Diterima bersih', 'Sisa'].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}><th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState).label}</td><td className="px-4 py-3"><Money amount={Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0))} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody></table></div>}</section>
+            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Catatan shift kasir</h2>{!reportShifts.length ? <p className="text-sm text-[var(--muted-foreground)]">Tidak ada shift pada tanggal ini.</p> : <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">{reportShifts.map((shift: any) => <div key={shift.id} className="py-4 flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold">{shift.drawerName}</p><p className="text-xs text-[var(--muted-foreground)] mt-1">{shift.operatorName} · {shift.state === 'OPEN' ? 'Terbuka' : 'Ditutup'}</p></div><dl className="flex flex-wrap gap-5 text-sm"><div><dt className="text-xs text-[var(--muted-foreground)]">Perkiraan laci</dt><dd className="mt-1"><Money amount={shift.expectedCashIdr} /></dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Uang terhitung</dt><dd className="mt-1">{shift.countedCashIdr == null ? 'Belum ditutup' : <Money amount={shift.countedCashIdr} />}</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Selisih</dt><dd className="mt-1">{shift.varianceIdr == null ? 'Belum ditutup' : <Money amount={shift.varianceIdr} signed />}</dd></div></dl></div>)}</div>}</section>
           </motion.div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 6: PENGATURAN PAJAK, PROMO & OUTLET                             */}
         {/* =================================================================== */}
-        {activeSection === 'pengaturan' && (
+        {sectionEnabled('pengaturan') && activeSection === 'pengaturan' && (
           <motion.div
             key="pos-pengaturan"
             initial={{ opacity: 0, y: 6 }}
@@ -2197,23 +2023,21 @@ export function StaffApp({
                           setCustomTaxPct(String(preset.tax));
                           setCustomTaxInclusive(preset.inc);
                           await runStaffCommand('SETTINGS_PROMO_FEEDBACK_ACTION', {
-                            action: 'UPDATE_OUTLET_SETTINGS',
-                            outletPatch: {
-                              serviceChargeBps: preset.srv * 100,
-                              taxBps: preset.tax * 100,
-                              taxInclusiveDisplay: preset.inc,
-                            },
+                            action: 'UPDATE_OUTLET_POLICY',
+                            serviceChargeBps: preset.srv * 100,
+                            taxBps: preset.tax * 100,
+                            taxInclusiveDisplay: preset.inc,
                           });
                           setActionNotice(`Skema biaya diperbarui: ${preset.label}`);
                         }}
                         className={`w-full py-3 px-2 flex items-center justify-between text-left text-[14px] transition-colors cursor-pointer ${
                           isCurrent
-                            ? 'bg-[var(--accent-surface)] font-semibold text-[var(--primary)]'
+                            ? 'bg-[var(--accent-surface)] font-semibold text-[var(--primary-ink)]'
                             : 'rounded-xl hover:bg-[var(--background)]'
                         }`}
                       >
                         <span>{preset.label}</span>
-                        {isCurrent && <Check className="w-4 h-4 text-[var(--primary)]" />}
+                        {isCurrent && <Check className="w-4 h-4 text-[var(--primary-ink)]" />}
                       </button>
                     );
                   })}
@@ -2261,12 +2085,10 @@ export function StaffApp({
                       const srvBps = Math.round((Number(customServicePct) || 0) * 100);
                       const txBps = Math.round((Number(customTaxPct) || 0) * 100);
                       await runStaffCommand('SETTINGS_PROMO_FEEDBACK_ACTION', {
-                        action: 'UPDATE_OUTLET_SETTINGS',
-                        outletPatch: {
-                          serviceChargeBps: srvBps,
-                          taxBps: txBps,
-                          taxInclusiveDisplay: customTaxInclusive,
-                        },
+                        action: 'UPDATE_OUTLET_POLICY',
+                        serviceChargeBps: srvBps,
+                        taxBps: txBps,
+                        taxInclusiveDisplay: customTaxInclusive,
                       });
                       setActionNotice('Pajak & layanan disimpan.');
                     }}
@@ -2277,7 +2099,7 @@ export function StaffApp({
               </section>
 
               {/* Right 6 cols: Promo Rules & Customer Reviews */}
-              <section className="lg:col-span-6 lg:border-l lg:border-[var(--border)] lg:pl-8 space-y-6">
+              {canMarketing && <section className="lg:col-span-6 lg:border-l lg:border-[var(--border)] lg:pl-8 space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-heading text-[17px] font-bold">
@@ -2301,7 +2123,7 @@ export function StaffApp({
                       >
                         <div>
                           <p className="font-semibold">
-                            {pr.code} — {pr.name}
+                            {pr.code} · {pr.name}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
                             Terpakai {pr.quotaUsed} dari {pr.quotaTotal} kuota
@@ -2322,7 +2144,7 @@ export function StaffApp({
                     {(snapshot?.feedbackEntries || []).map((fb: any) => (
                       <div key={fb.id} className="py-3 space-y-1 text-[14px]">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold">{fb.customerName}</span>
+                          <span className="font-semibold">{fb.displayName}</span>
                           <StatusLabel label={`Rating ${fb.overallRating}/5`} tone="success" />
                         </div>
                         <p className="text-[var(--muted-foreground)]">{fb.comment}</p>
@@ -2330,7 +2152,7 @@ export function StaffApp({
                     ))}
                   </div>
                 </div>
-              </section>
+              </section>}
             </div>
           </motion.div>
         )}
@@ -2339,116 +2161,8 @@ export function StaffApp({
       {/* ===================================================================== */}
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
-      <DialogModal
-        open={newOrderModalOpen}
-        onClose={() => setNewOrderModalOpen(false)}
-        title="Pesanan baru"
-      >
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="pos-cust-name">Nama Tamu</Label>
-            <Input
-              id="pos-cust-name"
-              value={posCustomerName}
-              onChange={(e) => setPosCustomerName(e.target.value)}
-              placeholder="Nama pelanggan..."
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="pos-table-select">Pilih Meja</Label>
-            <SelectField
-              id="pos-table-select"
-              value={posTableId}
-              onChange={(e) => setPosTableId(e.target.value)}
-            >
-              {(snapshot?.tables || []).map((t: any) => (
-                <option key={t.id} value={t.id}>
-                  Meja {t.label} ({t.areaName})
-                </option>
-              ))}
-            </SelectField>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="pos-menu-select">Pilih Menu</Label>
-              <SelectField
-                id="pos-menu-select"
-                value={posMenuItemId}
-                onChange={(e) => setPosMenuItemId(e.target.value)}
-              >
-                {(snapshot?.catalog || []).map((m: any) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({formatIdr(m.minPriceIdr)})
-                  </option>
-                ))}
-              </SelectField>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="pos-qty-input">Jumlah</Label>
-              <Input
-                id="pos-qty-input"
-                type="number"
-                min={1}
-                max={20}
-                value={posQuantity}
-                onChange={(e) => setPosQuantity(Number(e.target.value))}
-                className="tabular-nums"
-              />
-            </div>
-          </div>
-
-          <Button
-            variant="primary"
-            className="w-full"
-            disabled={busy}
-            onClick={async () => {
-              const item = (snapshot?.catalog || []).find((m: any) => m.id === posMenuItemId);
-              const variant = item?.variants?.[0];
-              if (!item || !variant) return;
-
-              const qRes = await onCommand('CREATE_CHECKOUT_QUOTE', {
-                visitId: 'visit_m01_open',
-                mode: 'DINE_IN',
-                tableId: posTableId,
-                customerName: posCustomerName,
-                lines: [
-                  {
-                    menuItemId: item.id,
-                    variantId: variant.id,
-                    quantity: posQuantity,
-                    modifierOptionIds: [],
-                    note: 'Input kasir',
-                  },
-                ],
-              });
-              const quoteObj = qRes?.result || qRes;
-              const subRes = await onCommand('SUBMIT_ORDER_REQUEST', {
-                quoteId: quoteObj.quoteId,
-                customerName: posCustomerName,
-                tableId: posTableId,
-                mode: 'DINE_IN',
-                gpsVerified: true,
-                gpsDistanceMeters: 5,
-                idempotencyKey: `staff_pos_${Date.now()}`,
-              });
-              const reqId = (subRes?.result || subRes)?.orderRequestId;
-              if (reqId) {
-                await runStaffCommand('ACCEPT_ORDER_REQUEST', {
-                  orderRequestId: reqId,
-                });
-              }
-              setNewOrderModalOpen(false);
-              setActionNotice(
-                `Pesanan ${posCustomerName} berhasil dibuat dan dikirim ke dapur/bar.`
-              );
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Kirim pesanan</span>
-          </Button>
-        </div>
+      <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title="Pesanan baru" maxWidth="max-w-5xl">
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) setSelectedBillId(billId); setNewOrderModalOpen(false); setActionNotice(canKitchen ? 'Pesanan dibuat dan dikirim ke dapur.' : 'Pesanan dibuat. Tagihan siap dibayar.'); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}
@@ -2623,7 +2337,7 @@ export function StaffApp({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Foto Menu ({newMenuPhotos.length} foto)</Label>
-                <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary)] font-semibold text-[12px] cursor-pointer">
+                <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)] font-semibold text-[12px] cursor-pointer">
                   <Upload className="w-3.5 h-3.5" />
                   <span>Pilih foto</span>
                   <input
@@ -2766,12 +2480,12 @@ export function StaffApp({
                             next.unshift(picked);
                             setPhotoDraftList(next);
                           }}
-                          className="text-[11px] font-medium text-[var(--primary)] hover:underline cursor-pointer"
+                          className="text-[11px] font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
                         >
                           Jadikan Utama
                         </button>
                       ) : (
-                        <span className="text-[11px] font-semibold text-[var(--primary)]">
+                        <span className="text-[11px] font-semibold text-[var(--primary-ink)]">
                           Foto Utama
                         </span>
                       )}
@@ -2831,7 +2545,7 @@ export function StaffApp({
             >
               <p className="font-heading font-bold text-[15px]">Meja {t.label}</p>
               <p className="text-[12px] text-[var(--muted-foreground)]">{t.areaName}</p>
-              <p className="text-[11px] text-[var(--primary)] font-mono truncate">
+              <p className="text-[11px] text-[var(--primary-ink)] font-mono truncate">
                 ?table={t.label}
               </p>
             </div>

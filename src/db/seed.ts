@@ -20,6 +20,9 @@ import {
   stockMovements,
   visits,
   tableAssignments,
+  seatingGroups,
+  guestSessions,
+  presenceChecks,
   visitParticipants,
   joinCodes,
   waitlistEntries,
@@ -32,24 +35,39 @@ import {
   billUnitAllocations,
   paymentAttempts,
   paymentReceipts,
+  financialAdjustments,
+  refunds,
+  reconciliationCases,
   promotionRules,
   rewardEntitlements,
+  loyaltyQualifications,
   serviceRequests,
   feedbackEntries,
   cashShifts,
   cashMovements,
   auditEvents,
+  idempotencyRecords,
+  outboxEvents,
+  importBatches,
 } from './schema.ts';
 import { eq } from 'drizzle-orm';
+import { cafeConfig, isModuleEnabled } from '../config/cafe.ts';
+import { assertDemoRuntime } from './runtime.ts';
 
 export const DEFAULT_TENANT_ID = 'tenant_meranti';
 export const DEFAULT_OUTLET_ID = 'outlet_meranti_bdg';
-export const DEFAULT_OUTLET_SLUG = 'kedai-meranti';
-export const TODAY_BUSINESS_DATE = '2026-10-17';
+export const DEFAULT_OUTLET_SLUG = cafeConfig.venue.outletSlug;
+export function getBusinessDate(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: cafeConfig.timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+}
+export const TODAY_BUSINESS_DATE = getBusinessDate();
 
 let seedingPromise: Promise<void> | null = null;
 
 export async function ensureSeeded(): Promise<void> {
+  assertDemoRuntime();
   if (seedingPromise) {
     return seedingPromise;
   }
@@ -80,8 +98,8 @@ async function runSeedInternal(force = false): Promise<void> {
 
     await db.insert(tenants).values({
       id: DEFAULT_TENANT_ID,
-      slug: 'kedai-meranti-group',
-      name: 'PT Kedai Meranti Nusantara',
+      slug: cafeConfig.venue.tenantSlug,
+      name: cafeConfig.brand.name,
       status: 'ACTIVE',
     }).onConflictDoNothing();
 
@@ -89,14 +107,14 @@ async function runSeedInternal(force = false): Promise<void> {
       id: DEFAULT_OUTLET_ID,
       tenantId: DEFAULT_TENANT_ID,
       slug: DEFAULT_OUTLET_SLUG,
-      name: 'Kedai Meranti',
-      address: 'Jl. Braga No. 42, Sumur Bandung, Kota Bandung',
+      name: cafeConfig.venue.name,
+      address: cafeConfig.venue.address,
       openHoursText: '07:00 – 22:00 WIB',
       facilitiesText: 'Ruang Indoor AC, Teras Kebun, Mushola, Stopkontak tiap meja, Toilet bersih',
-      timezone: 'Asia/Jakarta',
+      timezone: cafeConfig.timezone,
       businessCutoff: '00:00',
-      paymentPolicy: 'PREPAY',
-      takeawayPaymentPolicy: 'PREPAY',
+      paymentPolicy: isModuleEnabled('payments') ? 'PREPAY' : 'PAY_LATER',
+      takeawayPaymentPolicy: isModuleEnabled('payments') ? 'PREPAY' : 'PAY_LATER',
       autoAcceptParticipant: true,
       serviceChargeBps: 500,
       taxBps: 1000,
@@ -121,8 +139,8 @@ async function runSeedInternal(force = false): Promise<void> {
       tenantId: DEFAULT_TENANT_ID,
       outletId: DEFAULT_OUTLET_ID,
       provider: 'MIDTRANS',
-      merchantRef: 'G819203941-MERANTI',
-      bankManualInfo: 'BCA 0081928371 a.n. PT Kedai Meranti Nusantara',
+      merchantRef: `DEMO-${cafeConfig.venue.outletSlug.toUpperCase()}`,
+      bankManualInfo: `Rekening contoh ${cafeConfig.brand.name}. Jangan kirim uang.`,
       methodsJson: ['QRIS', 'VIRTUAL_ACCOUNT', 'CASH', 'MANUAL_TRANSFER'],
       status: 'ACTIVE',
     }).onConflictDoNothing();
@@ -254,7 +272,7 @@ async function runSeedInternal(force = false): Promise<void> {
         outletId: DEFAULT_OUTLET_ID,
         area: 'Ruang Utama (Indoor)',
         label: 'Wi-Fi Utama Pelanggan Indoor',
-        ssid: 'KedaiMeranti_Indoor_5G',
+        ssid: `${cafeConfig.brand.shortName}_Indoor_5G`,
         encryptedPassword: 'meranti-kopi-braga-42',
         visibility: 'ACTIVE_PARTICIPANT',
         notes: 'Khusus tamu dengan pesanan/kunjungan aktif di area Indoor.',
@@ -267,7 +285,7 @@ async function runSeedInternal(force = false): Promise<void> {
         outletId: DEFAULT_OUTLET_ID,
         area: 'Teras Kebun (Outdoor)',
         label: 'Wi-Fi Teras Kebun',
-        ssid: 'KedaiMeranti_Kebun',
+        ssid: `${cafeConfig.brand.shortName}_Kebun`,
         encryptedPassword: 'kebun-sejuk-2026',
         visibility: 'ACTIVE_PARTICIPANT',
         notes: 'Jangkauan area teras depan dan saung.',
@@ -280,7 +298,7 @@ async function runSeedInternal(force = false): Promise<void> {
         outletId: DEFAULT_OUTLET_ID,
         area: 'Area Kasir & Antrean',
         label: 'Wi-Fi Tamu Singkat (Untuk Membuka Menu)',
-        ssid: 'KedaiMeranti_Tamu',
+        ssid: `${cafeConfig.brand.shortName}_Tamu`,
         encryptedPassword: 'buka-menu-meranti',
         visibility: 'PUBLIC',
         notes: 'Tersedia untuk tamu yang baru tiba dan belum memiliki sinyal seluler.',
@@ -570,7 +588,7 @@ async function runSeedInternal(force = false): Promise<void> {
     ]).onConflictDoNothing();
 
     await db.insert(stockPools).values([
-      { id: 'pool_espresso', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-ESP', name: 'House Blend Espresso Meranti', mode: 'FINITE', onHand: 42, reserved: 2, version: 1 },
+      { id: 'pool_espresso', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-ESP', name: `House Blend Espresso ${cafeConfig.brand.shortName}`, mode: 'FINITE', onHand: 42, reserved: 2, version: 1 },
       { id: 'pool_arabika_garut', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-V60-GRT', name: 'Biji Kopi Filter Arabika Garut Kamojang', mode: 'FINITE', onHand: 1, reserved: 0, version: 1 },
       { id: 'pool_teh_melati', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-TEH', name: 'Seduhan Teh Melati', mode: 'UNLIMITED', onHand: 999, reserved: 0, version: 1 },
       { id: 'pool_matcha_uji', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-MATCHA', name: 'Matcha Uji Kyoto', mode: 'FINITE', onHand: 18, reserved: 0, version: 1 },
@@ -884,6 +902,23 @@ async function runSeedInternal(force = false): Promise<void> {
       expiresAt: inThirtyDays,
     }).onConflictDoNothing();
 
+    // A clean client demo keeps the sample menu and floor plan, without sample sales.
+    // This flag only affects the first seed of a new database or an explicit reset.
+    if (process.env.CAFE_DEMO_EMPTY === '1') {
+      await db.update(cafeTables).set({ physicalState: 'AVAILABLE' }).where(eq(cafeTables.outletId, DEFAULT_OUTLET_ID));
+      await db.update(stockPools).set({ reserved: 0 }).where(eq(stockPools.outletId, DEFAULT_OUTLET_ID));
+      await db.update(promotionRules).set({ quotaUsed: 0, quotaReserved: 0 }).where(eq(promotionRules.outletId, DEFAULT_OUTLET_ID));
+      if (isModuleEnabled('cashier')) {
+        await db.insert(cashShifts).values({
+          id: 'shift_clean_demo', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID,
+          drawerName: 'Kas demo', operatorName: 'Kasir demo', businessDate: TODAY_BUSINESS_DATE,
+          state: 'OPEN', openingFloatIdr: 0, cashReceiptsIdr: 0, cashInIdr: 0,
+          cashRefundsIdr: 0, cashOutIdr: 0, expectedCashIdr: 0,
+        }).onConflictDoNothing();
+      }
+      return;
+    }
+
     // Seed Active Cash Shift (S15)
     await db.insert(cashShifts).values({
       id: 'shift_pagi_01',
@@ -894,11 +929,11 @@ async function runSeedInternal(force = false): Promise<void> {
       businessDate: TODAY_BUSINESS_DATE,
       state: 'OPEN',
       openingFloatIdr: 500000,
-      cashReceiptsIdr: 92475,
+      cashReceiptsIdr: 92400,
       cashInIdr: 0,
       cashRefundsIdr: 0,
       cashOutIdr: 0,
-      expectedCashIdr: 592475,
+      expectedCashIdr: 592400,
     }).onConflictDoNothing();
 
     await db.insert(cashMovements).values([
@@ -919,7 +954,7 @@ async function runSeedInternal(force = false): Promise<void> {
         outletId: DEFAULT_OUTLET_ID,
         shiftId: 'shift_pagi_01',
         type: 'CASH_RECEIPT',
-        amountIdr: 92475,
+        amountIdr: 92400,
         actor: 'Sinta Maharani',
         reason: 'Pembayaran tunai lunas Bill Meja M01',
         referenceId: 'rcpt_demo_m01',
@@ -1402,7 +1437,7 @@ async function runSeedInternal(force = false): Promise<void> {
       billId: 'bill_demo_m01',
       shiftId: 'shift_pagi_01',
       method: 'CASH',
-      referenceCode: 'CSH-20261017-001',
+      referenceCode: `DEMO-${TODAY_BUSINESS_DATE}-001`,
       amountIdr: 92400,
       tenderedIdr: 100000,
       changeIdr: 7600,
@@ -1635,29 +1670,25 @@ async function runSeedInternal(force = false): Promise<void> {
 }
 
 export async function resetDemoData(): Promise<{ ok: boolean }> {
-  await db.delete(billUnitAllocations);
-  await db.delete(paymentReceipts);
-  await db.delete(paymentAttempts);
-  await db.delete(bills);
-  await db.delete(orderItemUnits);
-  await db.delete(orderLines);
-  await db.delete(orders);
-  await db.delete(orderRequests);
-  await db.delete(quotes);
-  await db.delete(serviceRequests);
-  await db.delete(waitlistEntries);
-  await db.delete(feedbackEntries);
-  await db.delete(cashMovements);
-  await db.delete(cashShifts);
-  await db.delete(stockMovements);
-  await db.delete(auditEvents);
-  await db.delete(tableAssignments);
-  await db.delete(visitParticipants);
-  await db.delete(joinCodes);
-  await db.delete(visits);
-  await db.delete(cafeTables);
-  await db.delete(outlets);
+  assertDemoRuntime();
+  // A dedicated demo database contains one configured client. Clear the entire
+  // fixture consistently; leaving receipts, idempotency keys or stock reservations
+  // behind would corrupt a fresh demo.
+  await db.transaction(async (tx) => {
+    const tablesToReset = [
+      billUnitAllocations, paymentReceipts, paymentAttempts, financialAdjustments,
+      refunds, reconciliationCases, bills, orderItemUnits, orderLines, orders,
+      orderRequests, quotes, serviceRequests, waitlistEntries, feedbackEntries,
+      cashMovements, cashShifts, stockMovements, auditEvents, tableAssignments,
+      visitParticipants, seatingGroups, guestSessions, presenceChecks, joinCodes,
+      visits, rewardEntitlements, loyaltyQualifications, promotionRules,
+      idempotencyRecords, outboxEvents, importBatches, modifierOptions,
+      modifierGroups, menuVariants, menuItems, stockPools, menuCategories,
+      cafeTables, layoutVersions, rooms, stations, wifiNetworks, paymentAccounts,
+      staffSessionAssurances, staffOutletRoles, customerMemberships, outlets, tenants,
+    ];
+    for (const table of tablesToReset) await tx.delete(table);
+  });
   await runSeedInternal(true);
   return { ok: true };
 }
-

@@ -1,6 +1,0 @@
-{
-  "name": "Kafe Order & POS",
-  "description": "Aplikasi pemesanan meja mandiri, kasir operasional, layar dapur/bar, denah ruang, membership promo, dan laporan untuk kafe dan restoran.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

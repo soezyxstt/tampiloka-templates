@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "tables": [
+    {
+      "id": "tbl_m01",
+      "label": "M01",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m01",
+      "capacity": 4,
+      "active": true
+    },
+    {
+      "id": "tbl_m02",
+      "label": "M02",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m02",
+      "capacity": 4,
+      "active": true
+    },
+    {
+      "id": "tbl_m03",
+      "label": "M03",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m03",
+      "capacity": 2,
+      "active": true
+    },
+    {
+      "id": "tbl_m04",
+      "label": "M04",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m04",
+      "capacity": 6,
+      "active": true
+    },
+    {
+      "id": "tbl_m05",
+      "label": "M05",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m05",
+      "capacity": 2,
+      "active": true
+    },
+    {
+      "id": "tbl_m06",
+      "label": "M06",
+      "areaName": "Ruang Utama (Indoor)",
+      "qrToken": "qr_meranti_m06",
+      "capacity": 4,
+      "active": true
+    },
+    {
+      "id": "tbl_t01",
+      "label": "T01",
+      "areaName": "Teras Kebun (Outdoor)",
+      "qrToken": "qr_meranti_t01",
+      "capacity": 4,
+      "active": true
+    },
+    {
+      "id": "tbl_t02",
+      "label": "T02",
+      "areaName": "Teras Kebun (Outdoor)",
+      "qrToken": "qr_meranti_t02",
+      "capacity": 4,
+      "active": true
+    },
+    {
+      "id": "tbl_t03",
+      "label": "T03",
+      "areaName": "Teras Kebun (Outdoor)",
+      "qrToken": "qr_meranti_t03",
+      "capacity": 4,
+      "active": true
+    }
+  ]
+}

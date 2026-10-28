@@ -10,3 +10,9 @@ coverage/
 .local/
 
 *.tsbuildinfo
+
+# Generated demo and verification output
+dist-demos/
+test-results/
+.wrangler/
+.dev.vars*

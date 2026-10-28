@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "name": "Dapur Pagi",
+    "shortName": "DP",
+    "description": "Kopi, sajian hangat, dan waktu yang menyenangkan.",
+    "logo": "",
+    "primaryColor": "#A84A30"
+  },
+  "theme": "rounded",
+  "modules": ["catalog", "ordering", "payments", "cashier", "kitchen", "dashboard", "tables", "loyalty", "marketing"],
+  "venue": {
+    "tenantSlug": "dapur-pagi",
+    "outletSlug": "dapur-pagi",
+    "name": "Dapur Pagi",
+    "address": "Bandung, Jawa Barat",
+    "phone": ""
+  },
+  "locale": "id-ID",
+  "currency": "IDR",
+  "timezone": "Asia/Jakarta",
+  "payment": { "mode": "both" }
+}

@@ -1,45 +1,23 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import type { CSSProperties } from 'react';
 import { Manrope, Source_Sans_3 } from 'next/font/google';
+import { cafeConfig, getBrandCssVariables } from '@/src/config/cafe';
 import './globals.css';
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['600', '700'],
-  display: 'swap',
-  variable: '--font-heading',
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  display: 'swap',
-  variable: '--font-sans',
-});
+const manrope = Manrope({ subsets: ['latin'], weight: ['600', '700', '800'], display: 'swap', variable: '--font-brand-heading' });
+const sourceSans = Source_Sans_3({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Kafe Order & POS — Kedai Meranti',
-  description:
-    'Aplikasi pemesanan meja mandiri, kasir operasional, layar dapur/bar, denah ruang, membership promo, dan laporan untuk kafe dan restoran.',
-  openGraph: {
-    title: 'Kafe Order & POS — Kedai Meranti',
-    description:
-      'Aplikasi pemesanan meja mandiri, kasir operasional, layar dapur/bar, denah ruang, membership promo, dan laporan untuk kafe dan restoran.',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Kafe Order & POS — Kedai Meranti',
-    description:
-      'Aplikasi pemesanan meja mandiri, kasir operasional, layar dapur/bar, denah ruang, membership promo, dan laporan untuk kafe dan restoran.',
-  },
+  title: { default: cafeConfig.brand.name, template: `%s | ${cafeConfig.brand.name}` },
+  description: cafeConfig.brand.description,
+  robots: process.env.CAFE_DEMO_DB === '1' ? { index: false, follow: false } : undefined,
 };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: cafeConfig.brand.primaryColor };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${manrope.variable} ${sourceSans.variable}`}>
-      <body suppressHydrationWarning className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
-        {children}
-      </body>
+    <html lang="id" data-theme={cafeConfig.theme} className={`${manrope.variable} ${sourceSans.variable}`} style={getBrandCssVariables() as CSSProperties}>
+      <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
 }

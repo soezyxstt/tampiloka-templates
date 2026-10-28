@@ -201,7 +201,7 @@ export function StatusLabel({
       Icon: Info,
     },
     active: {
-      fg: 'text-[var(--primary)]',
+      fg: 'text-[var(--primary-ink)]',
       bg: 'bg-[var(--accent-surface)]',
       Icon: CheckCircle2,
     },
@@ -641,7 +641,7 @@ export function ConnectionStatus({
         <button
           type="button"
           onClick={onRefresh}
-          className="text-[var(--primary)] font-medium hover:underline cursor-pointer"
+          className="text-[var(--primary-ink)] font-medium hover:underline cursor-pointer"
         >
           Muat ulang
         </button>
@@ -679,7 +679,7 @@ export function DialogModal({
         <DialogPrimitive.Content
           aria-describedby={srDescription ? descriptionId : undefined}
           className={cn(
-            'fixed bottom-0 left-1/2 z-50 flex max-h-[92dvh] w-full -translate-x-1/2 flex-col overflow-hidden rounded-t-[24px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[24px]',
+            'fixed bottom-0 left-1/2 z-50 flex max-h-[92dvh] w-full -translate-x-1/2 flex-col overflow-hidden rounded-t-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[var(--radius-panel)]',
             maxWidth
           )}
         >

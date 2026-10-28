@@ -1,11 +1,7 @@
 import { defineConfig } from "eslint/config";
 import next from "eslint-config-next";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-export default defineConfig([{
-    extends: [...next],
-}]);
+// The Next preset parses .ts/.tsx as TypeScript; include Node's module extensions.
+export default defineConfig({ ignores: ['dist-demos/**', 'test-results/**', '.wrangler/**'] }, next.map((config) => config.name === 'next/typescript'
+  ? { ...config, files: ['**/*.{ts,tsx,mts,cts}'] }
+  : config));
