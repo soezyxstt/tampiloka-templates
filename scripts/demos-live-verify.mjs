@@ -31,6 +31,7 @@ await writeFile(join(output,'deployment.json'),JSON.stringify({commit:process.en
 assert.ok(results.every(r=>r.ready),'Not every public host serves the exact tested CSS and JS.');
 console.log('PASS all '+hosts.length+' public hosts serve exact tested CSS and JS.');
 for(const [script,extra] of [
+ ['tests/demos-motion.mjs',{CAFE_MOTION_OUTPUT:'test-results/motion-live'}],
  ['tests/demos-staff-layout.mjs',{CAFE_LAYOUT_OUTPUT:output}],
  ['tests/demos-compact-ui.mjs',{CAFE_COMPACT_OUTPUT:'test-results/compact-ui-live'}],
  ['tests/demos-lifecycle.mjs',{CAFE_LIFECYCLE_OUTPUT:'test-results/catalog-live',CAFE_LIFECYCLE_CASES:'catalog-waiter'}],

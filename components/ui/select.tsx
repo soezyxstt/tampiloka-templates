@@ -15,6 +15,7 @@ const SelectTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
+    data-ui="select-trigger"
     ref={ref}
     className={cn(
       fieldStyles, 'flex items-center justify-between gap-2 [&>span]:truncate',
@@ -64,9 +65,10 @@ const SelectContent = React.forwardRef<
 >(({ className, children, position = 'popper', ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
+      data-ui="select-content"
       ref={ref}
       className={cn(
-        'relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        'relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-lg',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className

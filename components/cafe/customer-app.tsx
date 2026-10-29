@@ -7,6 +7,7 @@ import styles from './customer-app.module.css';
 import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
 import { BrandMark } from './brand';
 import { summarizeOrderBilling } from '@/src/domain/order-billing';
+import { MotionPanel, MotionItem } from '@/components/ui/motion';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Button,
@@ -769,12 +770,8 @@ export function CustomerApp({
           {/* SCREEN 1: MENU PELANGGAN (C01, C02, C14)                          */}
           {/* ================================================================= */}
           {activeScreen === 'menu' && (
-            <motion.div
+            <MotionPanel
               key="screen-menu"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-3"
             >
               <PageHeader title="Menu" className="border-b-0 pb-0" />
@@ -796,13 +793,13 @@ export function CustomerApp({
               {filteredCatalog.length === 0 ? (
                 <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci atau kategori lain." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
               ) : (
-                <div className={styles.menuGrid} role="list" aria-label="Menu">
-                  {filteredCatalog.map((item: any) => {
+                <div className={styles.menuGrid} role="list" aria-label="Menu"><AnimatePresence initial={false} mode="popLayout">
+                  {filteredCatalog.map((item: any, itemIndex: number) => {
                     const variant = item.variants?.find((entry: any) => entry.isDefault) || item.variants?.[0];
                     const photos = item.photos?.length ? item.photos : item.photoUrl ? [item.photoUrl] : [];
                     const quantity = cart.filter((line) => line.menuItemId === item.id).reduce((total, line) => total + line.quantity, 0);
                     const favorite = favoriteIds.has(item.id);
-                    return <article key={item.id} role="listitem" className={`${styles.menuCard} ${!item.isAvailable ? styles.soldOut : ''}`}>
+                    return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
                         <button type="button" onClick={() => openItemModal(item)} aria-label={`Lihat ${item.name}`} className="w-full h-full">
                           {photos[0] ? <Image src={photos[0]} alt={item.name} width={640} height={480} unoptimized loading="lazy" /> : <Coffee className="w-12 h-12 text-[var(--primary-ink)] mx-auto" />}
@@ -819,24 +816,20 @@ export function CustomerApp({
                           {canOrder && <Button variant="subtle" size="sm" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></Button>}
                         </div>
                       </div>
-                    </article>;
+                    </MotionItem>;
                   })}
-                </div>
+                </AnimatePresence></div>
               )}
               <p className="text-xs text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet)}</p>
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 2: KERANJANG, IDENTITAS, LOKASI & QUOTE PROMO (C03–C06)    */}
           {/* ================================================================= */}
           {screenEnabled('keranjang') && activeScreen === 'keranjang' && (
-            <motion.div
+            <MotionPanel
               key="screen-keranjang"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
@@ -1076,19 +1069,15 @@ export function CustomerApp({
                   </section>
                 </div>
               )}
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 3: STATUS PESANAN 3 SUMBU (C07 · Less Cards, Clean Dividers)*/}
           {/* ================================================================= */}
           {screenEnabled('pesanan') && activeScreen === 'pesanan' && (
-            <motion.div
+            <MotionPanel
               key="screen-pesanan"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
@@ -1240,19 +1229,15 @@ export function CustomerApp({
                   })}
                 </div>
               </section>}
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 4: PEMBAYARAN TAGIHAN & STRUK DIGITAL (C08, C09)           */}
           {/* ================================================================= */}
           {screenEnabled('pembayaran') && activeScreen === 'pembayaran' && (
-            <motion.div
+            <MotionPanel
               key="screen-pembayaran"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
@@ -1463,19 +1448,15 @@ export function CustomerApp({
                   )}
                 </div>
               )}
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 5: BANTUAN MEJA / PANGGIL STAF (C10 · Less Cards)          */}
           {/* ================================================================= */}
           {screenEnabled('bantuan') && activeScreen === 'bantuan' && (
-            <motion.div
+            <MotionPanel
               key="screen-bantuan"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-5"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
@@ -1550,19 +1531,15 @@ export function CustomerApp({
                   <span>Kirim permintaan</span>
                 </Button>
               </section>
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 6: WI-FI GRATIS & INFO OUTLET (C12 · Less Cards)           */}
           {/* ================================================================= */}
           {activeScreen === 'wifi' && (
-            <motion.div
+            <MotionPanel
               key="screen-wifi"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
@@ -1639,19 +1616,15 @@ export function CustomerApp({
                   </div>
                 </div>
               </section>
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 7: MEMBER, STEMPEL LOYALITAS & ULASAN (C11 · Less Cards)   */}
           {/* ================================================================= */}
           {screenEnabled('member') && activeScreen === 'member' && (
-            <motion.div
+            <MotionPanel
               key="screen-member"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
@@ -1726,19 +1699,15 @@ export function CustomerApp({
                   <span>Kirim ulasan</span>
                 </Button>
               </section>
-            </motion.div>
+            </MotionPanel>
           )}
 
           {/* ================================================================= */}
           {/* SCREEN 8: ANTREAN MEJA / WAITLIST (C13 · Less Cards)              */}
           {/* ================================================================= */}
           {screenEnabled('antrean') && activeScreen === 'antrean' && (
-            <motion.div
+            <MotionPanel
               key="screen-antrean"
-              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
@@ -1809,7 +1778,7 @@ export function CustomerApp({
                   {waitlistError && <Button variant="ghost" size="sm" onClick={() => { rememberWaitlist(null); setWaitlistError(''); }}>Hapus antrean tersimpan</Button>}
                 </article> : <p className="text-sm text-[var(--muted-foreground)]">Nomor antrean Anda akan muncul di sini setelah mendaftar.</p>}
               </section>
-            </motion.div>
+            </MotionPanel>
           )}
         </AnimatePresence>
 

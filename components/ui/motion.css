@@ -1,0 +1,45 @@
+/* Motion is shared by themes, not copied into individual screens. */
+:root{--motion-enter:220ms;--motion-exit:120ms;--motion-reveal:280ms;--motion-ease:cubic-bezier(.22,1,.36,1)}
+.ui-motion-panel{min-width:0;max-width:100%}
+.ui-motion-panel[aria-hidden=true]{pointer-events:none}
+.ui-reveal-text{display:inline-block;max-width:100%;animation:cafe-text-reveal var(--motion-reveal) var(--motion-ease) both}
+[data-ui=motion-panel] h2{animation:cafe-text-reveal var(--motion-reveal) var(--motion-ease) both}
+@keyframes cafe-text-reveal{from{opacity:0;transform:translateY(5px);clip-path:inset(0 0 100% 0)}to{opacity:1;transform:none;clip-path:inset(0)}}
+@keyframes cafe-overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes cafe-overlay-out{from{opacity:1}to{opacity:0}}
+@keyframes cafe-dialog-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cafe-dialog-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(12px)}}
+@keyframes cafe-popover-in{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes cafe-popover-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(2px) scale(.98)}}
+[data-ui=dialog-overlay][data-state=open]{animation:cafe-overlay-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=dialog-overlay][data-state=closed]{animation:cafe-overlay-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=dialog-content][data-state=open]{animation:cafe-dialog-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=dialog-content][data-state=closed]{animation:cafe-dialog-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=select-content]{transform-origin:var(--radix-select-content-transform-origin)}
+[data-ui=select-content][data-state=open]{animation:cafe-popover-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=select-content][data-state=closed]{animation:cafe-popover-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=select-trigger][data-state=open]>svg{transform:rotate(180deg)}
+.choice-strip[data-motion-indicator]{isolation:isolate}
+.choice-strip[data-motion-indicator] .choice-item{position:relative;z-index:1;transition:color var(--motion-enter) ease,background-color var(--motion-enter) ease}
+.choice-strip[data-motion-indicator] .choice-item[data-active]{border-bottom-color:transparent}
+.choice-strip[data-variant=segmented][data-motion-indicator] .choice-item[data-active]{background:transparent}
+.choice-indicator{position:absolute;left:0;bottom:0;height:2px;background:var(--primary);pointer-events:none;z-index:0}
+.choice-strip[data-variant=segmented] .choice-indicator{top:2px;bottom:2px;height:auto;border-radius:max(0px,calc(var(--radius-control) - 2px));background:var(--surface)}
+.ui-button{transition-property:color,background-color,border-color,box-shadow,opacity,transform;transition-duration:140ms;transition-timing-function:var(--motion-ease)}
+.ui-button:active:not(:disabled){transform:scale(.98)}
+.ui-field-control{transition-property:color,background-color,border-color,box-shadow;transition-duration:140ms}
+.ui-notice{animation:cafe-overlay-in var(--motion-enter) ease-out both}
+/* Short entry cues only. Existing records never replay when snapshots refresh. */
+[data-request-id],[data-order-id],[data-visit-id],[data-waitlist-id]{animation:cafe-overlay-in var(--motion-enter) ease-out both}
+@media(min-width:640px){
+ @keyframes cafe-dialog-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+ @keyframes cafe-dialog-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(4px) scale(.985)}}
+}
+/* MotionConfig also handles existing Motion components. CSS controls use the
+ * same system preference, including dialogs rendered outside the app root. */
+@media(prefers-reduced-motion:reduce){
+ :root{--motion-enter:0ms;--motion-exit:0ms;--motion-reveal:0ms}
+ .ui-reveal-text,[data-ui=motion-panel] h2,[data-ui=dialog-overlay],[data-ui=dialog-content],[data-ui=select-content],.ui-notice,[data-request-id],[data-order-id],[data-visit-id],[data-waitlist-id]{animation:none!important;clip-path:none!important}
+ .ui-button,.ui-field-control,.choice-item{transition:none!important}
+ .ui-button:active:not(:disabled){transform:none}
+}

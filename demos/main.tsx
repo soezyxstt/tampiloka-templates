@@ -8,6 +8,7 @@ import '@fontsource/source-sans-3/latin-500.css';
 import '@fontsource/source-sans-3/latin-600.css';
 import '../app/globals.css';
 import './showcase.css';
+import { MotionProvider } from '../components/ui/motion';
 import { DemoPortal } from './components/demo-portal';
 import { activeDemo, cafeConfig, getBrandCssVariables } from './config';
 import { DEMO_DOMAIN, portalDemos } from './manifest';
@@ -18,6 +19,6 @@ document.documentElement.dataset.theme = activeDemo?.theme || 'rounded';
 document.documentElement.lang = activeDemo ? 'id' : 'en';
 document.title = activeDemo ? `${activeDemo.name} · ${cafeConfig.brand.name} demo` : 'Cafe demos · Tampiloka';
 
-createRoot(document.getElementById('root')!).render(activeDemo
+createRoot(document.getElementById('root')!).render(<MotionProvider>{activeDemo
   ? <Suspense fallback={<main className="demo-loading"><span className="demo-spinner" /><h1>Menyiapkan demo…</h1><p>Menu dan ruang staf akan segera tersedia.</p></main>}><DemoWorkspace demo={activeDemo} /></Suspense>
-  : <DemoPortal demos={portalDemos()} baseDomain={DEMO_DOMAIN} />);
+  : <DemoPortal demos={portalDemos()} baseDomain={DEMO_DOMAIN} />}</MotionProvider>);

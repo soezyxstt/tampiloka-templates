@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../components/ui/workspace.css";
+@import "../components/ui/motion.css";
 
 :root {
   --background: #F7F5F1;
