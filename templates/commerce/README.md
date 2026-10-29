@@ -15,6 +15,9 @@ Demo publik: [ecommerce.tampiloka.site](https://ecommerce.tampiloka.site). Rupa 
 
 Pembatasan level diterapkan di server. Mengubah tampilan atau memanggil endpoint langsung tidak membuka fitur yang dinonaktifkan.
 
+**Modul tambahan tersedia:** `promotions`, `taxes`, `service-fees`, `customer-accounts`, `loyalty-points`, dan `membership-tiers`. Modul dipilih terpisah dari level, preset dan tema melalui `tampiloka create ... --features promotions,taxes`. Gunakan `--features none` untuk proyek tanpa tambahan; ketergantungan modul divalidasi. Poin masuk setelah pesanan selesai dan lunas, ditukar saat checkout, dan dikoreksi saat retur. Baca [panduan modul tambahan](docs/optional-modules.md), termasuk email OTP Resend dan batasnya.
+
+
 Peran staf pemilik, operasional, dan pembaca tersedia pada semua level; tiap peran hanya dapat memakai fitur yang aktif pada level tersebut.
 
 Desain dapat dipilih terpisah dari level: empat susunan halaman (`editorial`, `market`, `atelier`, `compact`), tiga palet (`sand`, `ink`, `forest`), tiga kartu (`open`, `framed`, `soft`), serta tombol `solid`/`outline`. Pilihan tersimpan di `config/commerce.json`. Ruang staf menggunakan tata letak operasional yang konsisten.
@@ -88,6 +91,8 @@ pnpm deploy
 `pnpm deploy` menjalankan build sebelum mengunggah Worker dan aset.
 
 Gunakan kata sandi unik setidaknya 12 karakter. Hanya buat peran yang diperlukan. Peran yang tidak memiliki secret tidak dapat masuk. Ruang staf ada di `/#/staff`. Jangan menaruh secret di `config/commerce.json`, kode browser, atau git.
+
+Untuk login member pada proyek yang memilih modul `customer-accounts`, verifikasi domain pengirim email di Resend lalu tambahkan `RESEND_API_KEY` dan `MEMBER_EMAIL_FROM` sebagai secrets Worker. Tanpa keduanya, login member produksi tidak tersedia. Tidak ada kode OTP demo yang dikeluarkan pada produksi.
 
 Untuk Midtrans pada level `advanced`:
 

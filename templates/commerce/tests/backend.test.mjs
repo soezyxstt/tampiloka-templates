@@ -42,7 +42,7 @@ test('level gates protect API actions, including hidden UI features',async t=>{
   const {c}=fixture(t);await c.get('/api/bootstrap');await c.post('/api/demo/config',{level:'catalog'});
   assert.equal((await c.post('/api/quote',orderInput())).status,403);assert.equal((await c.post('/api/orders',orderInput())).status,403);assert.equal((await c.post('/api/wishlist',{productId:'linen-shirt'})).status,403);assert.equal((await c.post('/api/staff/inventory',{variantId:'linen-shirt-m',delta:1,reason:'test'})).status,403);
   await c.post('/api/demo/config',{level:'whatsapp'});assert.equal((await c.post('/api/quote',orderInput())).status,200);assert.equal((await c.post('/api/orders',orderInput())).status,403);
-  await c.post('/api/demo/config',{level:'store'});assert.equal((await c.post('/api/quote',orderInput({couponCode:'RUPA10'}))).status,403);assert.equal((await create(c,{paymentMethod:'midtrans'})).status,422);
+  await c.post('/api/demo/config',{level:'store'});assert.equal((await c.post('/api/quote',orderInput({couponCode:'RUPA10'}))).status,200); // Promo is an add-on enabled independently of level.assert.equal((await create(c,{paymentMethod:'midtrans'})).status,422);
   await c.post('/api/demo/config',{level:'advanced'});assert.equal((await create(c,{paymentMethod:'midtrans'})).status,200);
 });
 
@@ -202,4 +202,62 @@ test('staff pagination rejects invalid filters and still requires staff and an o
   await c.post('/api/staff/login',{role:'viewer',password:env.STAFF_VIEWER_PASSWORD});assert.equal((await c.get('/api/staff/orders?limit=50&offset=0')).status,200);
   for(const query of ['status=unknown','limit=0','limit=251','offset=-1',`q=${'a'.repeat(101)}`])assert.equal((await c.get(`/api/staff/orders?${query}`)).status,422);
   assert.equal((await c.get('/api/staff/orders?q=%27%20OR%201%3D1')).data.total,0);env.COMMERCE_LEVEL='whatsapp';assert.equal((await c.get('/api/staff/orders')).status,403);
+});
+
+test('optional tax and service fee are quoted by the server and persisted as separate order components',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');
+  assert.equal((await c.put('/api/staff/settings',{modules:{taxes:true,serviceFees:true},pricing:{taxBps:1100,taxIncluded:false,serviceFeeBps:500}})).status,200);
+  const input=orderInput({couponCode:'RUPA10'});
+  const quoted=await c.post('/api/quote',input);
+  assert.equal(quoted.status,200,JSON.stringify(quoted.data));assert.equal(quoted.data.subtotal,329000);
+  assert.equal(quoted.data.discount,32900);assert.equal(quoted.data.serviceFee,14805);assert.equal(quoted.data.taxAmount,32571);
+  assert.equal(quoted.data.total,361476);
+  const created=await c.post('/api/orders',{...input,expectedTotal:quoted.data.total});
+  assert.equal(created.status,200,JSON.stringify(created.data));assert.equal(created.data.taxAmount,32571);assert.equal(created.data.serviceFee,14805);
+  assert.equal(created.data.shippingFee,18000);
+  const scope=await scopeFor(env,c);const stored=env.DB.db.prepare('SELECT * FROM orders WHERE scope=? AND id=?').get(scope,created.data.id);
+  assert.equal(stored.shipping_base_fee,18000);assert.equal(stored.shipping_fee,18000+32571+14805);
+  assert.equal(stored.total,stored.subtotal-stored.discount+stored.shipping_fee);
+  await c.put('/api/staff/settings',{pricing:{taxIncluded:true}});
+  const inclusive=await c.post('/api/quote',input);
+  assert.equal(inclusive.data.total,328905);assert.equal(inclusive.data.taxAmount,Math.round(296100*1100/11100));
+  assert.equal(inclusive.data.taxIncluded,true);
+  // Saved totals do not change when settings change.
+  assert.equal((await c.get('/api/orders/'+created.data.id)).data.total,361476);
+});
+test('demo email verification owns one member, points earn on completed paid orders and refund only once',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');
+  const requested=await c.post('/api/member/start',{email:'member@example.com',name:'Pembeli Uji'});
+  assert.equal(requested.status,200,JSON.stringify(requested.data));assert.match(requested.data.demoCode,/^\d{6}$/);
+  assert.equal((await c.post('/api/member/verify',{code:'x'})).status,422);
+  const verified=await c.post('/api/member/verify',{code:requested.data.demoCode});
+  assert.equal(verified.status,200,JSON.stringify(verified.data));assert.equal(verified.data.email,'member@example.com');
+  const order=(await create(c)).data;
+  assert.equal((await action(c,order.id,'confirm-payment',{reference:'TRANSFER-MEMBER'})).status,200);
+  assert.equal((await action(c,order.id,'process')).status,200);
+  assert.equal((await action(c,order.id,'ship',{carrier:'Kurir demo',trackingNumber:'RESI-MEMBER'})).status,200);
+  assert.equal((await action(c,order.id,'complete')).status,200);
+  const earned=(await c.get('/api/bootstrap')).data.loyalty.points;assert.equal(earned,32);
+  assert.equal((await action(c,order.id,'complete')).status,200);assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,earned);
+  const redeemInput=orderInput({redeemPoints:10});
+  const quote=await c.post('/api/quote',redeemInput);assert.equal(quote.status,200,JSON.stringify(quote.data));
+  assert.equal(quote.data.pointsDiscount,1000);assert.equal(quote.data.total,346000);
+  const redeemed=await c.post('/api/orders',{...redeemInput,expectedTotal:quote.data.total});
+  assert.equal(redeemed.status,200,JSON.stringify(redeemed.data));assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,22);
+  assert.equal((await customerAction(c,redeemed.data.id,'cancel')).status,200);
+  assert.equal((await customerAction(c,redeemed.data.id,'cancel')).status,200);
+  assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,32);
+  const scope=await scopeFor(env,c);
+  assert.deepEqual(env.DB.db.prepare('SELECT kind,delta FROM loyalty_entries WHERE scope=? AND order_id=? ORDER BY kind').all(scope,redeemed.data.id),[{kind:'redeem',delta:-10},{kind:'restore',delta:10}]);
+});
+test('member sessions cannot use points without verified ownership; production email requires a provider',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');
+  assert.equal((await c.post('/api/quote',orderInput({redeemPoints:10}))).status,401);
+  await c.put('/api/staff/settings',{modules:{customerAccounts:false,loyaltyPoints:false,membershipTiers:false,promotions:false}});
+  assert.equal((await c.post('/api/member/start',{email:'any@example.com'})).status,403);
+  assert.equal((await c.post('/api/quote',orderInput({couponCode:'RUPA10'}))).status,403);
+  const live=environment({DEMO_MODE:'false',COMMERCE_LEVEL:'store'});
+  t.after(()=>live.DB.close());const visitor=client(live);
+  await visitor.get('/api/bootstrap');
+  assert.equal((await visitor.post('/api/member/start',{email:'any@example.com',name:'Any'})).status,503);
 });

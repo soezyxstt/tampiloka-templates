@@ -1,7 +1,7 @@
 import type { Coupon, Product, StaffSnapshot, StoreConfig } from '../src/shared/contracts.ts';
 import type { D1Statement, Env, Row, Session } from './types.ts';
 import { all, auditStatement, configFor, couponFrom, ordersFrom, productsFor, q, reviewsFor, wishlistFor } from './db.ts';
-import { capabilities, fail, id, integer, now, requireFeature, staff, text } from './security.ts';
+import { capabilities, fail, featureKeys, id, integer, now, requireFeature, staff, text, validateModules } from './security.ts';
 
 export async function snapshot(env:Env,session:Session):Promise<StaffSnapshot> {
   const role=staff(session); const config=await configFor(env,session); const cap=capabilities(config);
@@ -102,6 +102,16 @@ export async function saveSettings(env:Env,session:Session,input:Row) {
   if(updated.bank.accountNumber&&!/^\d{5,30}$/.test(updated.bank.accountNumber))fail(422,'INVALID_ACCOUNT','Nomor rekening hanya boleh berisi angka.');
   if(input.shippingNote!==undefined)updated.shippingNote=text(input.shippingNote,'Catatan pengiriman',1000);
   if(input.returnDays!==undefined)updated.returnDays=integer(input.returnDays,'Batas retur',1,30);
+  if(input.modules!==undefined){
+    if(!session.demo)fail(403,'MODULES_LOCKED','Modul produksi dipilih saat membuat proyek melalui CLI.');
+    if(!input.modules||typeof input.modules!=='object'||Array.isArray(input.modules))fail(422,'INVALID_MODULES','Pilihan modul tidak valid.');
+    const next={...updated.modules};
+    for(const [key,value] of Object.entries(input.modules)){
+      if(!featureKeys.includes(key as typeof featureKeys[number])||typeof value!=='boolean')fail(422,'INVALID_MODULES','Pilihan modul tidak valid.');
+      next[key as typeof featureKeys[number]]=value as boolean;
+    }
+    updated.modules=next;
+  }
   if(input.pricing!==undefined){
     if(!input.pricing||typeof input.pricing!=='object'||Array.isArray(input.pricing))fail(422,'INVALID_PRICING','Pengaturan harga tidak valid.');
     if(input.pricing.taxBps!==undefined)updated.pricing!.taxBps=integer(input.pricing.taxBps,'Tarif pajak basis poin',0,10000);
@@ -115,6 +125,7 @@ export async function saveSettings(env:Env,session:Session,input:Row) {
     if(!Array.isArray(input.shippingMethods)||input.shippingMethods.length<1||input.shippingMethods.length>10)fail(422,'INVALID_SHIPPING','Sediakan 1 hingga 10 metode pengiriman.');const ids=new Set<string>();
     updated.shippingMethods=input.shippingMethods.map((method:Row)=>{const methodId=text(method.id,'ID pengiriman',40,true);if(!/^[a-z0-9_-]+$/.test(methodId)||ids.has(methodId))fail(422,'INVALID_SHIPPING','ID metode pengiriman tidak valid atau berulang.');ids.add(methodId);if(typeof method.requiresAddress!=='boolean')fail(422,'INVALID_SHIPPING','Syarat alamat pengiriman harus berupa benar atau salah.');return {id:methodId,name:text(method.name,'Nama layanan',100,true),description:text(method.description,'Keterangan layanan',250),fee:integer(method.fee,'Ongkir',0,1_000_000),estimatedDays:text(method.estimatedDays,'Waktu pengiriman',100),requiresAddress:method.requiresAddress};});
   }
+  validateModules(updated);
   await env.DB.batch([q(env,'UPDATE scopes SET config_json=? WHERE id=?',JSON.stringify(updated),session.scope),auditStatement(env,session,'settings.updated',session.scope,'Pengaturan toko diperbarui')]);return {config:updated};
 }
 export async function toggleWishlist(env:Env,session:Session,input:Row) {

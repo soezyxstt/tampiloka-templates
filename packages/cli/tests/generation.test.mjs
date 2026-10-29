@@ -78,3 +78,28 @@ test('dry run has no filesystem effects',async t=>{
   const parent=await temporary(t),result=run('create','preview','--out',parent,'--template','commerce','--dry-run','--yes','--json');
   assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).dryRun,true);assert.deepEqual(await readdir(parent),[]);
 });
+
+test('optional commerce modules are independent from preset and are validated before generation',async t=>{
+  const parent=await temporary(t);
+  const flags='promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers';
+  const result=run('create','modular-shop','--out',parent,'--template','commerce','--level','store','--preset','market','--features',flags,'--yes','--json');
+  assert.equal(result.status,0,result.stderr);
+  const config=await read(join(parent,'modular-shop/config/commerce.json'));
+  assert.equal(config.level,'store');assert.equal(config.appearance.layout,'market');
+  assert.deepEqual(config.modules,{promotions:true,taxes:true,serviceFees:true,customerAccounts:true,loyaltyPoints:true,membershipTiers:true});
+  const doctor=run('doctor','--dir',join(parent,'modular-shop'),'--json');assert.equal(doctor.status,0,doctor.stderr);
+  const simple=run('create','simple-shop','--out',parent,'--template','commerce','--level','store','--features','none','--yes');
+  assert.equal(simple.status,0,simple.stderr);
+  assert.ok(Object.values((await read(join(parent,'simple-shop/config/commerce.json'))).modules).every(value=>value===false));
+  for(const args of [
+    ['--level','catalog','--features','taxes'],
+    ['--level','store','--features','loyalty-points'],
+    ['--level','store','--features','membership-tiers'],
+    ['--level','store','--features','promotions,unknown'],
+    ['--level','store','--features','taxes,taxes'],
+  ]){
+    const rejected=run('create','invalid-module','--out',parent,'--template','commerce',...args,'--yes');
+    assert.notEqual(rejected.status,0,args.join(' '));
+  }
+  assert.deepEqual((await readdir(parent)).sort(),['modular-shop','simple-shop']);
+});
