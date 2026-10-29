@@ -248,7 +248,7 @@ test('demo email verification owns one member, points earn on completed paid ord
   assert.equal((await customerAction(c,redeemed.data.id,'cancel')).status,200);
   assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,32);
   const scope=await scopeFor(env,c);
-  assert.deepEqual(env.DB.db.prepare('SELECT kind,delta FROM loyalty_entries WHERE scope=? AND order_id=? ORDER BY kind').all(scope,redeemed.data.id),[{kind:'redeem',delta:-10},{kind:'restore',delta:10}]);
+  assert.deepEqual(env.DB.db.prepare('SELECT kind,delta FROM loyalty_entries WHERE scope=? AND order_id=? ORDER BY kind').all(scope,redeemed.data.id).map(row=>({...row})),[{kind:'redeem',delta:-10},{kind:'restore',delta:10}]);
 });
 test('member sessions cannot use points without verified ownership; production email requires a provider',async t=>{
   const {env,c}=fixture(t);await c.get('/api/bootstrap');
