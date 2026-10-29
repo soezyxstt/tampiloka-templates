@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
+import { motion, useReducedMotion } from 'motion/react';
+import { MOTION } from './motion';
 
 export interface ChoiceItem<T extends string> {
   id: T;
@@ -25,6 +27,26 @@ export interface ChoiceStripProps<T extends string> {
 export function ChoiceStrip<T extends string>({ items, value, onChange, ariaLabel, variant='underline', kind='filter', className }: ChoiceStripProps<T>) {
   const root = React.useRef<HTMLDivElement & HTMLElement>(null);
   const Container = kind === 'navigation' ? 'nav' : 'div';
+  const reduce = useReducedMotion();
+  const [indicator, setIndicator] = React.useState<{ x:number; width:number } | null>(null);
+  React.useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const active = el.querySelector<HTMLElement>('button[data-active]');
+      if (!active) { setIndicator(null); return; }
+      const next = { x: active.offsetLeft, width: active.offsetWidth };
+      setIndicator(old => old?.x === next.x && old?.width === next.width ? old : next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    el.querySelectorAll('button[data-choice]').forEach(button => observer.observe(button));
+    void document.fonts.ready.then(measure);
+    return () => { live = false; observer.disconnect(); };
+  }, [items, value, variant]);
   function keyboard(event: React.KeyboardEvent<HTMLElement>) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     const buttons = Array.from(root.current?.querySelectorAll<HTMLButtonElement>('button[data-choice]') || []);
@@ -39,7 +61,8 @@ export function ChoiceStrip<T extends string>({ items, value, onChange, ariaLabe
     else if (button.offsetLeft + button.offsetWidth > parent.scrollLeft + parent.clientWidth) parent.scrollLeft = button.offsetLeft + button.offsetWidth - parent.clientWidth;
     onChange(items[next].id);
   }
-  return <Container ref={root} role={kind === 'filter' ? 'group' : undefined} aria-label={ariaLabel} data-ui="choice-strip" data-variant={variant} className={cn('choice-strip', className)} onKeyDown={keyboard}>
+  return <Container ref={root} role={kind === 'filter' ? 'group' : undefined} aria-label={ariaLabel} data-ui="choice-strip" data-motion-indicator={indicator ? "true" : undefined} data-variant={variant} className={cn('choice-strip', className)} onKeyDown={keyboard}>
+    {indicator && <motion.span aria-hidden="true" data-ui="choice-indicator" className="choice-indicator" initial={false} animate={indicator} transition={{ type: 'tween', duration: reduce ? 0 : MOTION.enter, ease: MOTION.ease }} />}
     {items.map(item => {
       const active = item.id === value, Icon = item.icon;
       return <button key={item.id} type="button" data-choice data-active={active || undefined} aria-current={kind === 'navigation' && active ? 'page' : undefined} aria-pressed={kind === 'filter' ? active : undefined} onClick={() => onChange(item.id)} className="choice-item">

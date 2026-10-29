@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
+import { MotionPanel } from '@/components/ui/motion';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Button,
@@ -702,11 +703,9 @@ export function StaffApp({
         {/* =================================================================== */}
         {/* TAB 1: KASIR & PESANAN (UNIFIED POS WORKSPACE)                      */}
         {/* =================================================================== */}
-        {sectionEnabled('kasir') && activeSection === 'kasir' && (
-          <motion.div
+        <AnimatePresence mode="wait" initial={false}><MotionPanel key={activeSection}>{sectionEnabled('kasir') && activeSection === 'kasir' && (
+          <div
             key="pos-kasir"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
             className="workspace-stack"
           >
             <StatStrip items={[
@@ -1232,17 +1231,15 @@ export function StaffApp({
               </div>
             </div>}
             {!canTables && <VisitService snapshot={snapshot} busy={busy} canTables={false} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onNotice={setActionNotice} onOpenBills={canCashier ? openVisitBills : undefined} />}
-          </motion.div>
+          </div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 2: DAPUR & BAR (CLEAN KDS WORKSPACE)                            */}
         {/* =================================================================== */}
         {sectionEnabled('dapur') && activeSection === 'dapur' && (
-          <motion.div
+          <div
             key="pos-dapur"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
             <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
@@ -1381,17 +1378,15 @@ export function StaffApp({
                 })}
               </div>
             )}
-          </motion.div>
+          </div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 3: MEJA, KUNJUNGAN & ANTREAN TAMU                               */}
         {/* =================================================================== */}
         {sectionEnabled('meja') && activeSection === 'meja' && (
-          <motion.div
+          <div
             key="pos-meja"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
             <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
@@ -1609,17 +1604,15 @@ export function StaffApp({
                 </section>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 4: KATALOG MENU, MULTI-FOTO & STOK PORSI                        */}
         {/* =================================================================== */}
         {sectionEnabled('menu') && activeSection === 'menu' && (
-          <motion.div
+          <div
             key="pos-menu"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
             {/* Clean Toolbar */}
@@ -1829,14 +1822,14 @@ export function StaffApp({
                   ))}
               </div>
             </section>
-          </motion.div>
+          </div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 5: LAPORAN HARIAN & SHIFT KASIR                                 */}
         {/* =================================================================== */}
         {sectionEnabled('laporan') && activeSection === 'laporan' && (
-          <motion.div key="pos-laporan" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div key="pos-laporan" className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
               <div className="flex flex-wrap items-end gap-2"><div className="space-y-1"><Label htmlFor="report-date">Tanggal tagihan</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div><Button variant="secondary" size="sm" onClick={() => setReportDate(todayReportDate)}>Hari ini</Button></div>
               <Button variant="secondary" size="sm" disabled={!reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />Unduh CSV</Button>
@@ -1855,17 +1848,15 @@ export function StaffApp({
             </div>
             <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Daftar tagihan</h2>{!reportBills.length ? <EmptyState title="Belum ada tagihan" description="Pilih tanggal lain atau buat pesanan untuk melihat laporan." /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label="Daftar tagihan tanggal terpilih" tabIndex={0}><table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{['Pemesan / meja', 'Status', 'Nilai tagihan', 'Diterima bersih', 'Sisa'].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}><th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState).label}</td><td className="px-4 py-3"><Money amount={Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0))} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody></table></div>}</section>
             <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Catatan shift kasir</h2>{!reportShifts.length ? <p className="text-sm text-[var(--muted-foreground)]">Tidak ada shift pada tanggal ini.</p> : <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">{reportShifts.map((shift: any) => <div key={shift.id} className="py-4 flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold">{shift.drawerName}</p><p className="text-xs text-[var(--muted-foreground)] mt-1">{shift.operatorName} · {shift.state === 'OPEN' ? 'Terbuka' : 'Ditutup'}</p></div><dl className="flex flex-wrap gap-5 text-sm"><div><dt className="text-xs text-[var(--muted-foreground)]">Perkiraan laci</dt><dd className="mt-1"><Money amount={shift.expectedCashIdr} /></dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Uang terhitung</dt><dd className="mt-1">{shift.countedCashIdr == null ? 'Belum ditutup' : <Money amount={shift.countedCashIdr} />}</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Selisih</dt><dd className="mt-1">{shift.varianceIdr == null ? 'Belum ditutup' : <Money amount={shift.varianceIdr} signed />}</dd></div></dl></div>)}</div>}</section>
-          </motion.div>
+          </div>
         )}
 
         {/* =================================================================== */}
         {/* TAB 6: PENGATURAN PAJAK, PROMO & OUTLET                             */}
         {/* =================================================================== */}
         {sectionEnabled('pengaturan') && activeSection === 'pengaturan' && (
-          <motion.div
+          <div
             key="pos-pengaturan"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
 
@@ -2075,8 +2066,8 @@ export function StaffApp({
                 </div>
               </section>}
             </div>
-          </motion.div>
-        )}
+          </div>
+        )}</MotionPanel></AnimatePresence>
       </main>
 
       <DialogModal open={Boolean(rejectingRequest)} onClose={() => { if (!busy) setRejectingRequest(null); }} title="Tolak pesanan">

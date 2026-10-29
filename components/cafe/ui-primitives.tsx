@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { RevealText } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { InlineNotice } from '@/components/ui/workspace-primitives';
 export { InlineNotice, Surface, StatStrip } from '@/components/ui/workspace-primitives';
@@ -18,7 +19,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Re-export reusable shadcn/ui & animated primitives so all modules share one design system
 import { Button, buttonVariants, type ButtonProps } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export function PageHeader({
       )}
     >
       <h1 className="font-heading text-[22px] leading-[28px] md:text-[26px] md:leading-[34px] font-bold text-[var(--foreground)] tracking-tight">
-        {title}
+        <RevealText key={title}>{title}</RevealText>
       </h1>
       {actions && <div className="min-w-0 flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -639,39 +640,23 @@ export function DialogModal({
   children: React.ReactNode;
   maxWidth?: string;
 }) {
-  const shouldReduceMotion = useReducedMotion();
   const descriptionId = React.useId();
+  const opener = React.useRef<HTMLElement | null>(null);
+  React.useLayoutEffect(() => { if (open && document.activeElement instanceof HTMLElement) opener.current = document.activeElement; }, [open]);
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#2C2521]/45 backdrop-blur-sm" />
-        <DialogPrimitive.Content
-          aria-describedby={srDescription ? descriptionId : undefined}
-          className={cn(
-            'fixed bottom-0 left-1/2 z-50 flex max-h-[92dvh] w-full -translate-x-1/2 flex-col overflow-hidden rounded-t-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[var(--radius-panel)]',
-            maxWidth
-          )}
-        >
-          <div className="flex justify-center pt-3 sm:hidden" aria-hidden="true">
-            <div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
-          </div>
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
-            <DialogPrimitive.Title className="font-heading text-lg font-semibold tracking-tight">
-              {title}
-            </DialogPrimitive.Title>
-            <DialogPrimitive.Close asChild>
-              <button type="button" aria-label="Tutup" className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-[var(--surface-muted)]">
-                <X className="h-5 w-5" />
-              </button>
-            </DialogPrimitive.Close>
-          </div>
-          {srDescription && <DialogPrimitive.Description id={descriptionId} className="sr-only">{srDescription}</DialogPrimitive.Description>}
-          <motion.div initial={{ opacity: shouldReduceMotion ? 1 : 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} className="space-y-4 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-            {children}
-          </motion.div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogContent aria-describedby={srDescription ? descriptionId : undefined} className={maxWidth} onCloseAutoFocus={(event) => {
+        if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus({ preventScroll: true }); }
+      }}>
+        <div className="flex justify-center pt-3 sm:hidden" aria-hidden="true"><div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" /></div>
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+          <DialogTitle className="font-heading text-lg font-semibold tracking-tight"><RevealText>{title}</RevealText></DialogTitle>
+          <DialogClose asChild><Button type="button" variant="ghost" size="icon" aria-label="Tutup"><X className="h-5 w-5" /></Button></DialogClose>
+        </div>
+        {srDescription && <DialogDescription id={descriptionId} className="sr-only">{srDescription}</DialogDescription>}
+        <div className="space-y-4 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }

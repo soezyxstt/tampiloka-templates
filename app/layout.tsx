@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { Manrope, Source_Sans_3 } from 'next/font/google';
 import { cafeConfig, getBrandCssVariables } from '@/src/config/cafe';
 import './globals.css';
+import { MotionProvider } from '@/components/ui/motion';
 
 const manrope = Manrope({ subsets: ['latin'], weight: ['600', '700', '800'], display: 'swap', variable: '--font-brand-heading' });
 const sourceSans = Source_Sans_3({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-sans' });
@@ -17,7 +18,7 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" data-theme={cafeConfig.theme} className={`${manrope.variable} ${sourceSans.variable}`} style={getBrandCssVariables() as CSSProperties}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased"><MotionProvider>{children}</MotionProvider></body>
     </html>
   );
 }
