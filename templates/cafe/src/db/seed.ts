@@ -595,6 +595,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       { id: 'pool_croissant', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-CROISSANT', name: 'Croissant Mentega', mode: 'FINITE', onHand: 12, reserved: 1, version: 1 },
       { id: 'pool_nasi_ayam', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-AYAM', name: 'Porsi Ayam Panggang Rempah', mode: 'FINITE', onHand: 25, reserved: 1, version: 1 },
       { id: 'pool_pisang_goreng', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-PISANG', name: 'Pisang Goreng Keju Palem', mode: 'FINITE', onHand: 0, reserved: 0, version: 1 },
+      { id: 'pool_cappuccino', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-CAP', name: 'Cappuccino', mode: 'UNLIMITED', onHand: 999, reserved: 0, version: 1 },
+      { id: 'pool_nasi_goreng', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-NASGOR', name: 'Nasi Goreng Kampung', mode: 'FINITE', onHand: 20, reserved: 0, version: 1 },
+      { id: 'pool_pain_chocolat', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-PAIN', name: 'Pain au Chocolat', mode: 'FINITE', onHand: 10, reserved: 0, version: 1 },
       { id: 'pool_oat_milk', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'POOL-OAT', name: 'Takaran Susu Oat Barista', mode: 'FINITE', onHand: 15, reserved: 0, version: 1 },
     ]).onConflictDoNothing();
 
@@ -610,15 +613,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Es Kopi Susu Gula Aren',
         slug: 'es-kopi-susu-gula-aren',
         description: 'Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.',
-        photoUrl: '/images/menu/es-kopi-susu-aren.svg',
+        photoUrl: 'https://images.unsplash.com/photo-1777878176922-130222ceb11f?auto=format&fit=crop&w=800&q=80',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: [
-            '/images/menu/es-kopi-susu-aren.svg',
-            '/images/menu/es-kopi-susu-aren-2.svg',
-            '/images/menu/es-kopi-susu-aren-3.svg',
-          ],
+          photos: ['https://images.unsplash.com/photo-1777878176922-130222ceb11f?auto=format&fit=crop&w=800&q=80'],
         },
         allergensJson: ['Susu sapi'],
         tagsJson: ['kopi susu', 'gula aren', 'favorit', 'dingin'],
@@ -689,11 +688,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Matcha Latte Uji Kyoto',
         slug: 'matcha-latte-uji',
         description: 'Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.',
-        photoUrl: '/images/menu/matcha-latte-uji.svg',
+        photoUrl: 'https://images.unsplash.com/photo-1717603545758-88cc454db69b?auto=format&fit=crop&w=800&q=80',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: ['/images/menu/matcha-latte-uji.svg'],
+          photos: ['https://images.unsplash.com/photo-1717603545758-88cc454db69b?auto=format&fit=crop&w=800&q=80'],
         },
         allergensJson: ['Susu sapi'],
         tagsJson: ['matcha', 'hijau', 'latte', 'non-kopi'],
@@ -740,11 +739,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Croissant Mentega Prancis',
         slug: 'croissant-mentega-prancis',
         description: 'Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.',
-        photoUrl: '/images/menu/croissant-mentega.svg',
+        photoUrl: 'https://images.unsplash.com/photo-1736173985657-a08ba56d5a28?auto=format&fit=crop&w=800&q=80',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: ['/images/menu/croissant-mentega.svg'],
+          photos: ['https://images.unsplash.com/photo-1736173985657-a08ba56d5a28?auto=format&fit=crop&w=800&q=80'],
         },
         allergensJson: ['Gandum / Gluten', 'Susu / Mentega', 'Telur'],
         tagsJson: ['roti', 'croissant', 'pastry', 'teman kopi'],
@@ -777,6 +776,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         sortOrder: 7,
         active: true,
       },
+      { id: 'item_cappuccino', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-008', categoryId: 'cat_kopi', stationId: 'st_bar', stationCode: 'BAR', name: "Cappuccino", slug: 'cappuccino', description: "Espresso dan susu kukus dengan lapisan busa lembut.", photoUrl: null, scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: [] }, allergensJson: ["Susu sapi"], tagsJson: ["kopi", "susu", "hangat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 8, active: true },
+      { id: 'item_nasi_goreng', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-009', categoryId: 'cat_makanan', stationId: 'st_kitchen', stationCode: 'KITCHEN', name: "Nasi Goreng Kampung", slug: 'nasi-goreng-kampung', description: "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.", photoUrl: 'https://images.unsplash.com/photo-1627308595186-e6bb36712645?auto=format&fit=crop&w=800&q=80', scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: ['https://images.unsplash.com/photo-1627308595186-e6bb36712645?auto=format&fit=crop&w=800&q=80'] }, allergensJson: ["Telur", "Kedelai"], tagsJson: ["nasi", "makan siang"], prepMinutes: 8, manualSoldOut: false, sortOrder: 9, active: true },
+      { id: 'item_pain_chocolat', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-0010', categoryId: 'cat_pastry', stationId: 'st_pastry', stationCode: 'PASTRY', name: "Pain au Chocolat", slug: 'pain-au-chocolat', description: "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.", photoUrl: null, scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: [] }, allergensJson: ["Gandum / Gluten", "Susu / Mentega", "Telur"], tagsJson: ["pastry", "cokelat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 10, active: true },
     ]).onConflictDoNothing();
 
     await db.insert(menuVariants).values([
@@ -791,6 +793,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       { id: 'var_ayam_jumbo', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_nasi_ayam', code: 'M005-JMB', name: 'Porsi Jumbo (2 Potong Ayam)', priceIdr: 58000, stockPoolId: 'pool_nasi_ayam', consumptionUnits: 2, isDefault: false, active: true },
       { id: 'var_croissant_std', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_croissant', code: 'M006-STD', name: 'Hangat Standar', priceIdr: 24000, stockPoolId: 'pool_croissant', consumptionUnits: 1, isDefault: true, active: true },
       { id: 'var_pisang_std', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_pisang_goreng', code: 'M007-STD', name: 'Isi 4 Potong', priceIdr: 22000, stockPoolId: 'pool_pisang_goreng', consumptionUnits: 1, isDefault: true, active: true },
+      { id: 'var_cappuccino', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_cappuccino', code: 'M008-STD', name: "Panas", priceIdr: 30000, stockPoolId: 'pool_cappuccino', consumptionUnits: 1, isDefault: true, active: true },
+      { id: 'var_nasi_goreng', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_nasi_goreng', code: 'M009-STD', name: "Porsi reguler", priceIdr: 38000, stockPoolId: 'pool_nasi_goreng', consumptionUnits: 1, isDefault: true, active: true },
+      { id: 'var_pain_chocolat', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_pain_chocolat', code: 'M0010-STD', name: "Satu potong", priceIdr: 28000, stockPoolId: 'pool_pain_chocolat', consumptionUnits: 1, isDefault: true, active: true },
     ]).onConflictDoNothing();
 
     await db.insert(modifierGroups).values([

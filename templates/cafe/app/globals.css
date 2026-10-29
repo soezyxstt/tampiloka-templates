@@ -4,13 +4,13 @@
 @import "../components/ui/motion.css";
 
 :root {
-  --background: #F7F5F1;
+  --background: #F8F7F4;
   --surface: #FFFFFF;
   --foreground: #2C2521;
-  --muted-foreground: #776F68;
-  --border: #E7E1DA;
-  --primary: #A84A30;
-  --primary-ink: #A84A30;
+  --muted-foreground: #5F5A55;
+  --border: #D9D3CB;
+  --primary: #8C3828;
+  --primary-ink: #8C3828;
   --primary-foreground: #FFFFFF;
   --primary-hover: color-mix(in srgb, var(--primary) 82%, black);
   --surface-muted: #F0ECE6;

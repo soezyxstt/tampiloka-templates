@@ -61,9 +61,7 @@
       "name": "Es Kopi Susu Gula Aren",
       "description": "Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.",
       "photos": [
-        "/images/menu/es-kopi-susu-aren.svg",
-        "/images/menu/es-kopi-susu-aren-2.svg",
-        "/images/menu/es-kopi-susu-aren-3.svg"
+        "https://images.unsplash.com/photo-1777878176922-130222ceb11f?auto=format&fit=crop&w=800&q=80"
       ],
       "allergens": [
         "Susu sapi"
@@ -234,7 +232,7 @@
       "name": "Matcha Latte Uji Kyoto",
       "description": "Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.",
       "photos": [
-        "/images/menu/matcha-latte-uji.svg"
+        "https://images.unsplash.com/photo-1717603545758-88cc454db69b?auto=format&fit=crop&w=800&q=80"
       ],
       "allergens": [
         "Susu sapi"
@@ -376,7 +374,7 @@
       "name": "Croissant Mentega Prancis",
       "description": "Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.",
       "photos": [
-        "/images/menu/croissant-mentega.svg"
+        "https://images.unsplash.com/photo-1736173985657-a08ba56d5a28?auto=format&fit=crop&w=800&q=80"
       ],
       "allergens": [
         "Gandum / Gluten",
@@ -428,6 +426,93 @@
           "priceIdr": 22000,
           "isDefault": true,
           "available": false
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_cappuccino",
+      "categoryId": "cat_kopi",
+      "name": "Cappuccino",
+      "description": "Espresso dan susu kukus dengan lapisan busa lembut.",
+      "photos": [],
+      "allergens": [
+        "Susu sapi"
+      ],
+      "tags": [
+        "kopi",
+        "susu",
+        "hangat"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 8,
+      "variants": [
+        {
+          "id": "var_cappuccino",
+          "name": "Panas",
+          "priceIdr": 30000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_nasi_goreng",
+      "categoryId": "cat_makanan",
+      "name": "Nasi Goreng Kampung",
+      "description": "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.",
+      "photos": [
+        "https://images.unsplash.com/photo-1627308595186-e6bb36712645?auto=format&fit=crop&w=800&q=80"
+      ],
+      "allergens": [
+        "Telur",
+        "Kedelai"
+      ],
+      "tags": [
+        "nasi",
+        "makan siang"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 9,
+      "variants": [
+        {
+          "id": "var_nasi_goreng",
+          "name": "Porsi reguler",
+          "priceIdr": 38000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_pain_chocolat",
+      "categoryId": "cat_pastry",
+      "name": "Pain au Chocolat",
+      "description": "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.",
+      "photos": [],
+      "allergens": [
+        "Gandum / Gluten",
+        "Susu / Mentega",
+        "Telur"
+      ],
+      "tags": [
+        "pastry",
+        "cokelat"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 10,
+      "variants": [
+        {
+          "id": "var_pain_chocolat",
+          "name": "Satu potong",
+          "priceIdr": 28000,
+          "isDefault": true,
+          "available": true
         }
       ],
       "modifierGroups": []
