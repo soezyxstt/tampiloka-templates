@@ -4,6 +4,25 @@ export const commerceLevels = Object.freeze({
   store: { name: 'Toko', description: 'Checkout, transfer manual atau COD, stok, pesanan, dan pengiriman.', capabilities: ['catalog','cart','checkout','orders','inventory','wishlist','reports'] },
   advanced: { name: 'Toko lengkap', description: 'Tambah gateway, kupon, retur, dan ulasan pembeli.', capabilities: ['catalog','cart','checkout','orders','inventory','coupons','gateway','returns','reviews','wishlist','reports'] },
 });
+export const commerceFeatureIds = Object.freeze(['promotions','taxes','serviceFees','customerAccounts','loyaltyPoints','membershipTiers']);
+export const commerceFeatureLabels = Object.freeze({
+  promotions:'Kode promo dan voucher',taxes:'Perhitungan pajak',serviceFees:'Biaya layanan',
+  customerAccounts:'Akun pelanggan terverifikasi',loyaltyPoints:'Poin belanja',membershipTiers:'Tingkat member'
+});
+const featureAliases={promotions:'promotions',taxes:'taxes','service-fees':'serviceFees','customer-accounts':'customerAccounts','loyalty-points':'loyaltyPoints','membership-tiers':'membershipTiers'};
+export function commerceModulesFor(level,features) {
+  if(!Object.hasOwn(commerceLevels,level))throw new Error(`Level commerce tidak dikenal: ${level}.`);
+  const provided=features===undefined?(level==='advanced'?'promotions':'none'):features;
+  if(typeof provided!=='string')throw new Error('Daftar fitur harus berupa teks dipisahkan koma.');
+  const tokens=provided.trim()==='all'?['promotions','taxes','service-fees','customer-accounts','loyalty-points','membership-tiers']:provided.trim()==='none'||provided.trim()===''?[]:provided.split(',').map(s=>s.trim());
+  const ids=tokens.map(name=>featureAliases[name]);
+  if(ids.some(id=>!id))throw new Error('Modul tidak dikenal. Gunakan: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers.');
+  if(new Set(ids).size!==ids.length)throw new Error('Modul dipilih lebih dari satu kali.');
+  if(ids.length && !['store','advanced'].includes(level))throw new Error('Modul tambahan membutuhkan level store atau advanced.');
+  if(ids.includes('loyaltyPoints')&&!ids.includes('customerAccounts'))throw new Error('loyalty-points membutuhkan customer-accounts.');
+  if(ids.includes('membershipTiers')&&!ids.includes('loyaltyPoints'))throw new Error('membership-tiers membutuhkan loyalty-points.');
+  return Object.fromEntries(commerceFeatureIds.map(id=>[id,ids.includes(id)]));
+}
 export const commercePresets = Object.freeze({
   editorial: { name: 'Editorial', description: 'Foto besar dan koleksi terbuka.', layout: 'editorial', palette: 'sand', card: 'open', button: 'solid' },
   market: { name: 'Market', description: 'Kategori tetap dan katalog padat.', layout: 'market', palette: 'ink', card: 'framed', button: 'solid' },
