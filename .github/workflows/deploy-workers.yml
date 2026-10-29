@@ -1,0 +1,155 @@
+name: Deploy changed Workers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/showcase/**'
+      - 'templates/commerce/**'
+      - 'packages/ui-core/**'
+      - 'packages/theme-engine/**'
+      - 'packages/shared-utils/**'
+      - 'packages/registry/**'
+      - 'packages/config/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-workers.yml'
+  pull_request:
+    paths:
+      - 'apps/showcase/**'
+      - 'templates/commerce/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-workers.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Worker to deploy
+        type: choice
+        required: true
+        options: [showcase, commerce, all]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: deploy-workers-production
+  queue: max
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      showcase: ${{ steps.filter.outputs.showcase }}
+      commerce: ${{ steps.filter.outputs.commerce }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        if: github.event_name != 'workflow_dispatch'
+        id: filter
+        with:
+          base: ${{ github.event_name == 'push' && github.event.before || github.base_ref }}
+          filters: |
+            showcase:
+              - '.github/workflows/deploy-workers.yml'
+              - 'apps/showcase/**'
+              - 'packages/{registry,ui-core,theme-engine,shared-utils,config}/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            commerce:
+              - '.github/workflows/deploy-workers.yml'
+              - 'templates/commerce/**'
+              - 'packages/{ui-core,theme-engine,shared-utils,config}/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+  deploy:
+    needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: showcase
+            package: '@tampiloka/showcase'
+          - target: commerce
+            package: '@tampiloka/template-commerce'
+    if: >-
+      github.event_name != 'pull_request' && (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.showcase == 'true' || needs.changes.outputs.commerce == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check whether this Worker changed
+        id: select
+        env:
+          TARGET: ${{ matrix.target }}
+          MANUAL_TARGET: ${{ inputs.target }}
+          EVENT_NAME: ${{ github.event_name }}
+          SHOWCASE_CHANGED: ${{ needs.changes.outputs.showcase }}
+          COMMERCE_CHANGED: ${{ needs.changes.outputs.commerce }}
+        run: |
+          selected=false
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            [[ "$MANUAL_TARGET" == all || "$MANUAL_TARGET" == "$TARGET" ]] && selected=true
+          elif [[ "$TARGET" == showcase && "$SHOWCASE_CHANGED" == true ]] || [[ "$TARGET" == commerce && "$COMMERCE_CHANGED" == true ]]; then
+            selected=true
+          fi
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        if: steps.select.outputs.selected == 'true'
+        with:
+          persist-credentials: false
+          ref: main
+      - uses: pnpm/action-setup@v4
+        if: steps.select.outputs.selected == 'true'
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        if: steps.select.outputs.selected == 'true'
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked workspace
+        if: steps.select.outputs.selected == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Deploy showcase
+        if: steps.select.outputs.selected == 'true' && matrix.target == 'showcase'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm --filter @tampiloka/showcase deploy
+      - name: Deploy commerce demo
+        if: steps.select.outputs.selected == 'true' && matrix.target == 'commerce'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm --filter @tampiloka/template-commerce deploy:demo
+
+  verify-build:
+    if: github.event_name == 'pull_request'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build showcase
+        if: needs.changes.outputs.showcase == 'true'
+        run: pnpm --filter @tampiloka/showcase build
+      - name: Build commerce
+        if: needs.changes.outputs.commerce == 'true'
+        run: pnpm --filter @tampiloka/template-commerce build
