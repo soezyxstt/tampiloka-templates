@@ -81,6 +81,10 @@ This is not a full WCAG conformance audit. Screen-reader reading order beyond th
 
 `tests/staff-browser.mjs` passed seven scenario groups using actual UI submissions and subsequent API reads: product creation with a relative image path; name/price editing while preserving audited stock; inventory adjustment and ledger appearance; coupon creation and deactivation; store identity and shipping-fee settings; viewer read-only controls; and operations stock access without catalog editing. Evidence is in `test-results/staff/report.json` and the corresponding stable screenshots. Product changes, stock, promotions and settings were persisted by the real Worker and D1 implementation.
 
+The staff order list now loads all available history through `GET /api/staff/orders`, in pages of 50, with server-side search and status filters. It no longer uses the snapshot's latest 250 records as its data source. Search or filter changes reset to the first page; the visible range and filtered total are explicit. Previous requests are aborted and guarded by a sequence number, and results are tied to their request parameters, so older searches cannot replace a newer result. Selected order details are independent of the current page and are updated directly from successful action responses. When an action removes the last matching order on a page, the list moves back to the last available page while the detail stays open.
+
+`tests/staff-pagination.mjs` passed four controlled browser regression checks with 301 fixture orders and a 250-order snapshot: opening the oldest order beyond the snapshot; changing that order while preserving its updated detail and correcting an empty last page; resetting pagination for server status filters; and rejecting a delayed stale search response. Its mobile check also passed at 390 pixels with scrolling confined to the table. A positioned table-scroll container prevents the visually hidden action-column label from extending the document width. This browser fixture tests the UI state machine; the backend's separate SQL regression verifies persisted queries, counts, filters, ordering and isolation. Evidence is recorded in `test-results/staff-pagination/report.json` and its desktop/mobile screenshots.
+
 `tests/checkout-recovery.mjs` passed two additional scenarios. If a request was saved before the browser lost the response, order history locates the original idempotency key, opens the saved order and clears the pending attempt. If the request was never saved, the recovery action submits its original payload and key. Both produced exactly one order and cleared the matching cart and pending attempt. A changed cart is retained. This prevents a connection failure from silently creating a second order or permanently blocking the next checkout.
 
 Commerce TypeScript checking and the production build passed after these fixes. Full customer/staff order lifecycle, cross-device tracking, simulated gateway and feature-level checks are maintained separately in the project's `tests/browser.mjs` business-flow suite. Real payment-provider credentials, settlements and courier integrations require their own configured production acceptance checks.
@@ -92,6 +96,7 @@ With the actual demo preview running, run the following from `templates/commerce
 ```sh
 node tests/visual.mjs
 node tests/staff-browser.mjs
+node tests/staff-pagination.mjs
 node tests/checkout-recovery.mjs
 ```
 

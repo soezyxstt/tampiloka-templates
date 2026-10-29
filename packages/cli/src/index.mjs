@@ -225,7 +225,8 @@ export async function createProject(target,initial,sourceRoot,registry) {
     await rename(temp,destination);
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}
-  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${target}\n  ${template.id==='cafe'?'npm ci\n  npm run demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${JSON.stringify(destination)}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
+  const shellDestination = "'" + destination.replaceAll("'", "'\"'\"'") + "'";
+  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?'npm ci\n  npm run demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
   return result;
 }
 

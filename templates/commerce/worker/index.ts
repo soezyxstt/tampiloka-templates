@@ -75,7 +75,7 @@ async function route(request:Request,env:Env,session:Session,path:string) {
   if(path==='/api/reviews'&&method==='GET'){requireFeature(capabilities((await configFor(env,session)).level),'reviews');return {reviews:await reviewsFor(env,session.scope)};}
   if(path==='/api/reviews'&&method==='POST')return submitReview(env,session,await body(request));
   if(path==='/api/staff/snapshot'&&method==='GET'){staff(session);await expireManualOrders(env,session);return snapshot(env,session);}
-  if(path==='/api/staff/orders'&&method==='GET'){const query=new URL(request.url).searchParams;return staffOrders(env,session,Number(query.get('limit')||50),Number(query.get('offset')||0));}
+  if(path==='/api/staff/orders'&&method==='GET'){const query=new URL(request.url).searchParams;return staffOrders(env,session,Number(query.get('limit')||50),Number(query.get('offset')||0),query.get('q')||'',query.get('status')||'all');}
   match=path.match(/^\/api\/staff\/orders\/([a-zA-Z0-9_-]+)\/actions$/);
   if(match&&method==='POST'){
     const input=await body(request);

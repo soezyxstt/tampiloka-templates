@@ -80,7 +80,7 @@ Requests and responses use JSON unless noted. Successful bootstrap, quote, order
 | `POST /api/staff/login` | `{ password, role? }` → `Bootstrap` and rotated cookie |
 | `POST /api/logout` | Revoke current session, create a fresh customer/demo session |
 | `GET /api/staff/snapshot` | `StaffSnapshot` with latest 250 orders, full-store metrics/customer totals, and pagination metadata |
-| `GET /api/staff/orders?limit=50&offset=0` | `{ orders, total, hasMore, limit, offset }`; maximum page size 250 |
+| `GET /api/staff/orders?limit=50&offset=0&q=&status=all` | `{ orders, total, hasMore, limit, offset }`; maximum page size 250; `total` counts all matching rows before pagination |
 | `POST /api/staff/orders/:id/actions` | Staff transition → updated `Order` |
 | `POST /api/staff/products` | New product → `{ product }` |
 | `PUT /api/staff/products/:id` | Partial product update → `{ product }` |
@@ -170,6 +170,8 @@ The scheduled handler expires up to 500 unpaid manual/demo reservations in a bat
 
 Dashboard totals and customer aggregates cover the entire store even when the recent-order list reaches its 250-row page size. Revenue means orders currently marked paid; refunded/refund-due orders are excluded. CSV export includes up to 10,000 rows. Larger exports require an explicit paged export job rather than treating the recent list as the complete history.
 
+The staff order list searches the entire store before applying pagination. `q` accepts up to 100 characters and matches a literal part of the order number, recipient name, or phone. `status` accepts `all`, any order status from the shared contract, `verification` for pending transfer verification, or `returns` for an active return. Invalid filters are rejected. Results sort by `created_at DESC, id DESC`. Count and page selection share one database batch so both use the same filters and store scope.
+
 ## Verification
 
 Run the actual SQL/domain tests on Node 22.18+ or Node 24:
@@ -178,7 +180,7 @@ Run the actual SQL/domain tests on Node 22.18+ or Node 24:
 node --experimental-strip-types --test --test-isolation=none tests/backend.test.mjs
 ```
 
-The harness implements the D1 interface over Node's SQLite engine. It executes the migration, triggers, transactions, and Worker routes. It does not replace order calculations or authorization with mock responses. The 25 tests cover scope privacy, auth and role gates, cross-origin rejection, feature gates, idempotency and attempt recovery, concurrent overselling, multi-line rollback, coupon limits, expected totals, manual/COD lifecycle, returns/refunds, gateway signatures/status/amount/replay/failure, expired-session cleanup, CSV injection, tracking-code rotation/throttling, full-store totals beyond 250 orders, and changed shipping fees.
+The harness implements the D1 interface over Node's SQLite engine. It executes the migration, triggers, transactions, and Worker routes. It does not replace order calculations or authorization with mock responses. The 27 tests cover scope privacy, auth and role gates, cross-origin rejection, feature gates, idempotency and attempt recovery, concurrent overselling, multi-line rollback, coupon limits, expected totals, manual/COD lifecycle, returns/refunds, gateway signatures/status/amount/replay/failure, expired-session cleanup, CSV injection, tracking-code rotation/throttling, full-store totals beyond 250 orders, changed shipping fees, and filtered archive pagination across more than 250 orders.
 
 Run a newly deployed **demo** through the live API:
 
@@ -188,4 +190,4 @@ node tests/backend-live.mjs https://ecommerce.tampiloka.site
 
 The live script refuses `demo: false`, creates its own isolated scope, exercises nine buyer/staff/API scenarios, and resets that scope afterward. It never submits a real payment or sends a WhatsApp message. Browser visual/accessibility checks and tests of actual merchant credentials remain separate from these backend checks.
 
-On 29 October 2026, all 25 SQL/Worker tests and strict backend TypeScript checks passed. The live API script passed all nine scenarios against the actual local Worker preview at `http://127.0.0.1:4174` and the deployed Cloudflare Worker at `https://ecommerce.tampiloka.site`. The deployed test report is `test-results/live-api.json`. The attempt-recovery endpoint was added after that deployed run and has its own SQL/Worker test; final deployment should include it with the matching frontend recovery change.
+On 29 October 2026, all 27 SQL/Worker tests and strict backend TypeScript checks passed. The live API script passed all nine scenarios against the actual local Worker preview at `http://127.0.0.1:4174` and the deployed Cloudflare Worker at `https://ecommerce.tampiloka.site`, including attempt recovery in the latest report. The deployed test report is `test-results/live-api.json`. The later staff archive search/filter change has its own SQL/Worker tests and needs the matching frontend and Worker deployed together.

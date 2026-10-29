@@ -11,7 +11,7 @@
     "build": "vite build && node scripts/build-worker.mjs",
     "preview": "node scripts/preview.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/backend*.mjs",
+    "test": "node --experimental-strip-types --test tests/backend.test.mjs",
     "test:e2e": "node tests/browser.mjs",
     "db:local": "wrangler d1 migrations apply DB --local --persist-to .data",
     "db:remote": "wrangler d1 migrations apply DB --remote",

@@ -181,3 +181,25 @@ test('checkout recovery lookup returns only the current session attempt and resp
   const other=client(env,'127.0.0.2');await other.get('/api/bootstrap');assert.equal((await other.get(`/api/orders/attempt/${key}`)).data.order,null);
   env.COMMERCE_LEVEL='catalog';assert.equal((await c.get(`/api/orders/attempt/${key}`)).status,403);
 });
+
+test('staff searches and status pages find orders beyond 250 without crossing store scopes',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');const created=(await create(c,{paymentMethod:'cod'})).data;const source=env.DB.db.prepare('SELECT * FROM orders WHERE id=?').get(created.id);const keys=Object.keys(source);const insert=env.DB.db.prepare(`INSERT INTO orders(${keys.join(',')}) VALUES(${keys.map(()=>'?').join(',')})`);
+  for(let i=0;i<300;i++){
+    const status=['completed','awaiting_payment','processing','cancelled'][i%4];const row={...source,id:`archive-${i}`,number:`ARCHIVE-${String(i).padStart(4,'0')}`,idempotency_key:`archive-key-${i}`,status,payment_status:i%4===1?'pending_verification':i%4===3?'unpaid':i===8?'refunded':'paid',return_status:i===0?'requested':i===4?'rejected':i===8?'refunded':i===12?'approved':i===16?'received':'none',created_at:new Date(Date.UTC(2026,0,1,0,0,i)).toISOString(),customer_json:JSON.stringify({name:i===0?'Pelanggan Arsip 100%_nyata':`Kelompok ${i%3} Pembeli ${i}`,phone:`081200${String(i).padStart(6,'0')}`})};insert.run(...keys.map(key=>row[key]));
+  }
+  assert.equal((await c.get('/api/staff/snapshot')).data.orders.some(o=>o.id==='archive-0'),false);
+  const old=(await c.get('/api/staff/orders?limit=50&offset=0&q=ARCHIVE-0000&status=all')).data;assert.equal(old.total,1);assert.equal(old.orders[0].id,'archive-0');assert.equal(old.hasMore,false);
+  assert.equal((await c.get('/api/staff/orders?q=100%25_nyata')).data.orders[0].id,'archive-0');assert.equal((await c.get('/api/staff/orders?q=081200000000')).data.orders[0].id,'archive-0');
+  const first=(await c.get('/api/staff/orders?limit=3&offset=0&q=ARCHIVE&status=verification')).data;const second=(await c.get('/api/staff/orders?limit=3&offset=3&q=ARCHIVE&status=verification')).data;assert.equal(first.total,75);assert.equal(second.total,75);assert.equal(first.hasMore,true);assert.equal(second.offset,3);assert.ok(first.orders.every(o=>o.paymentStatus==='pending_verification'));assert.equal(first.orders.some(a=>second.orders.some(b=>a.id===b.id)),false);
+  const returns=(await c.get('/api/staff/orders?status=returns&q=ARCHIVE')).data;assert.equal(returns.total,3);assert.deepEqual(returns.orders.map(o=>o.id),['archive-16','archive-12','archive-0']);assert.equal((await c.get('/api/staff/orders?status=completed&q=ARCHIVE')).data.total,75);
+  const end=(await c.get('/api/staff/orders?limit=20&offset=70&q=ARCHIVE&status=verification')).data;assert.equal(end.orders.length,5);assert.equal(end.hasMore,false);
+  const other=client(env,'127.0.0.2');await other.get('/api/bootstrap');const otherScope=await scopeFor(env,other);const otherSession=env.DB.db.prepare('SELECT token_hash FROM sessions WHERE scope=?').get(otherScope).token_hash;const privateRow={...source,scope:otherScope,id:'other-scope-order',number:'ARCHIVE-0000',session_id:otherSession,customer_json:JSON.stringify({name:'Nama khusus toko lain',phone:'081277777777'})};insert.run(...keys.map(key=>privateRow[key]));
+  assert.equal((await other.get('/api/staff/orders?q=ARCHIVE-0000')).data.orders[0].id,'other-scope-order');assert.equal((await c.get('/api/staff/orders?q=ARCHIVE-0000')).data.orders[0].id,'archive-0');assert.equal((await c.get('/api/staff/orders?q=Nama%20khusus%20toko%20lain',{'X-Demo-Scope':otherScope})).data.total,0);
+});
+
+test('staff pagination rejects invalid filters and still requires staff and an orders-capable level',async t=>{
+  const {env,c}=fixture(t,{DEMO_MODE:'false',STAFF_VIEWER_PASSWORD:'viewer-test-password-123'});await c.get('/api/bootstrap');assert.equal((await c.get('/api/staff/orders?q=test&status=all')).status,401);
+  await c.post('/api/staff/login',{role:'viewer',password:env.STAFF_VIEWER_PASSWORD});assert.equal((await c.get('/api/staff/orders?limit=50&offset=0')).status,200);
+  for(const query of ['status=unknown','limit=0','limit=251','offset=-1',`q=${'a'.repeat(101)}`])assert.equal((await c.get(`/api/staff/orders?${query}`)).status,422);
+  assert.equal((await c.get('/api/staff/orders?q=%27%20OR%201%3D1')).data.total,0);env.COMMERCE_LEVEL='whatsapp';assert.equal((await c.get('/api/staff/orders')).status,403);
+});

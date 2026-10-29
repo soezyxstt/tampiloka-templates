@@ -17,10 +17,22 @@ export async function snapshot(env:Env,session:Session):Promise<StaffSnapshot> {
   const customers=customerRows.map(r=>({...JSON.parse(r.customer_json),orderCount:r.order_count,totalSpent:r.total_spent,lastOrderAt:r.last_order_at}));
   return {orders,pagination:{limit:250,total:totals?.orders||0,hasMore:(totals?.orders||0)>orders.length},products,customers,coupons:coupons.map(couponFrom),inventory:inventory.map(m=>({id:m.id,variantId:m.variant_id,productName:m.product_name,variantName:m.variant_name,delta:m.delta,reason:m.reason,orderId:m.order_id,createdAt:m.created_at})),audit:audit.map(a=>({id:a.id,action:a.action,entityId:a.entity_id,detail:a.detail,actor:a.actor,createdAt:a.created_at})),metrics:{revenue:totals?.revenue||0,orders:totals?.orders||0,pendingOrders:totals?.pending||0,lowStock:products.filter(p=>p.active).flatMap(p=>p.variants).filter(v=>v.stock<5).length,customers:totals?.customers||0,averageOrderValue:Math.round(totals?.average||0),refunded:totals?.refunded||0},role,config,capabilities:cap};
 }
-export async function staffOrders(env:Env,session:Session,limit=50,offset=0) {
+export async function staffOrders(env:Env,session:Session,limit=50,offset=0,search='',status='all') {
   staff(session);requireFeature(capabilities((await configFor(env,session)).level),'orders');integer(limit,'Jumlah baris',1,250);integer(offset,'Posisi baris',0,10_000_000);
-  const rows=await all(env,'SELECT * FROM orders WHERE scope=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?',session.scope,limit,offset);const count=await q(env,'SELECT COUNT(*) AS total FROM orders WHERE scope=?',session.scope).first<Row>();
-  return {orders:await ordersFrom(env,rows),total:count!.total,hasMore:offset+rows.length<count!.total,limit,offset};
+  const query=text(search,'Pencarian',100).toLowerCase();const filter=text(status,'Status',40)||'all';
+  if(!['all','awaiting_payment','confirmed','processing','shipped','completed','cancelled','verification','returns'].includes(filter))fail(422,'INVALID_STATUS_FILTER','Filter status pesanan tidak valid.');
+  const conditions=['scope=?'];const params:unknown[]=[session.scope];
+  if(query){conditions.push("(instr(lower(number),?)>0 OR instr(lower(json_extract(customer_json,'$.name')),?)>0 OR instr(lower(json_extract(customer_json,'$.phone')),?)>0)");params.push(query,query,query);}
+  if(filter==='verification')conditions.push("payment_status='pending_verification'");
+  else if(filter==='returns')conditions.push("return_status NOT IN ('none','rejected','refunded')");
+  else if(filter!=='all'){conditions.push('status=?');params.push(filter);}
+  const where=conditions.join(' AND ');
+  const [page,count]=await env.DB.batch<Row>([
+    q(env,`SELECT * FROM orders WHERE ${where} ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`,...params,limit,offset),
+    q(env,`SELECT COUNT(*) AS total FROM orders WHERE ${where}`,...params),
+  ]);
+  const total=count.results[0].total;
+  return {orders:await ordersFrom(env,page.results),total,hasMore:offset+page.results.length<total,limit,offset};
 }
 function imageUrls(value:unknown):string[] {
   if(!Array.isArray(value)||value.length>8) fail(422,'INVALID_IMAGES','Gunakan maksimal delapan alamat gambar.');

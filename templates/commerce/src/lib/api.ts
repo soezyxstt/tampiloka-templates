@@ -11,6 +11,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   return body as T;
 }
 const send = <T>(path: string, data: unknown, method = 'POST') => request<T>(path, { method, body: JSON.stringify(data) });
+export interface StaffOrderPage { orders: Order[]; total: number; hasMore: boolean; limit: number; offset: number }
 export const api = {
   bootstrap: () => request<Bootstrap>('/bootstrap'),
   configure: (data: { level?: string; preset?: string }) => send<Bootstrap>('/demo/config', data),
@@ -22,6 +23,10 @@ export const api = {
   orderAction: (id: string, action: string, data: Record<string, unknown> = {}) => send<Order>(`/orders/${encodeURIComponent(id)}/actions`, { action, ...data }),
   simulatePayment: (orderId: string, status: 'paid' | 'failed') => send<Order>('/demo/payment', { orderId, status }),
   staff: () => request<StaffSnapshot>('/staff/snapshot'),
+  staffOrders: (query: { limit: number; offset: number; q: string; status: string }, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ limit: String(query.limit), offset: String(query.offset), q: query.q, status: query.status });
+    return request<StaffOrderPage>(`/staff/orders?${params}`, { signal });
+  },
   login: (password: string, role = 'owner') => send<Bootstrap>('/staff/login', { password, role }),
   retryPayment: (id: string) => send<Order>(`/orders/${encodeURIComponent(id)}/payment`, {}),
   reconcilePayment: (id: string) => send<Order>(`/orders/${encodeURIComponent(id)}/reconcile`, {}),

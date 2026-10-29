@@ -66,6 +66,7 @@ jobs:
           pnpm --filter @tampiloka/template-commerce test:e2e
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-browser.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/checkout-recovery.mjs
+          pnpm --filter @tampiloka/template-commerce exec node tests/staff-pagination.mjs
       - name: Verify gallery navigation and responsive layouts
         run: pnpm test:showcase
       - name: Verify cafe motion, layout, presets and lifecycle
