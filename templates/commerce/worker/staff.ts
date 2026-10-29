@@ -4,7 +4,7 @@ import { all, auditStatement, configFor, couponFrom, ordersFrom, productsFor, q,
 import { capabilities, fail, id, integer, now, requireFeature, staff, text } from './security.ts';
 
 export async function snapshot(env:Env,session:Session):Promise<StaffSnapshot> {
-  const role=staff(session); const config=await configFor(env,session); const cap=capabilities(config.level);
+  const role=staff(session); const config=await configFor(env,session); const cap=capabilities(config);
   const [products,rows,coupons,inventory,audit,totals,customerRows]=await Promise.all([
     productsFor(env,session.scope,true),cap.orders?all(env,'SELECT * FROM orders WHERE scope=? ORDER BY created_at DESC LIMIT 250',session.scope):Promise.resolve([]),
     cap.coupons?all(env,'SELECT * FROM coupons WHERE scope=? ORDER BY code',session.scope):Promise.resolve([]),
@@ -18,7 +18,7 @@ export async function snapshot(env:Env,session:Session):Promise<StaffSnapshot> {
   return {orders,pagination:{limit:250,total:totals?.orders||0,hasMore:(totals?.orders||0)>orders.length},products,customers,coupons:coupons.map(couponFrom),inventory:inventory.map(m=>({id:m.id,variantId:m.variant_id,productName:m.product_name,variantName:m.variant_name,delta:m.delta,reason:m.reason,orderId:m.order_id,createdAt:m.created_at})),audit:audit.map(a=>({id:a.id,action:a.action,entityId:a.entity_id,detail:a.detail,actor:a.actor,createdAt:a.created_at})),metrics:{revenue:totals?.revenue||0,orders:totals?.orders||0,pendingOrders:totals?.pending||0,lowStock:products.filter(p=>p.active).flatMap(p=>p.variants).filter(v=>v.stock<5).length,customers:totals?.customers||0,averageOrderValue:Math.round(totals?.average||0),refunded:totals?.refunded||0},role,config,capabilities:cap};
 }
 export async function staffOrders(env:Env,session:Session,limit=50,offset=0,search='',status='all') {
-  staff(session);requireFeature(capabilities((await configFor(env,session)).level),'orders');integer(limit,'Jumlah baris',1,250);integer(offset,'Posisi baris',0,10_000_000);
+  staff(session);requireFeature(capabilities(await configFor(env,session)),'orders');integer(limit,'Jumlah baris',1,250);integer(offset,'Posisi baris',0,10_000_000);
   const query=text(search,'Pencarian',100).toLowerCase();const filter=text(status,'Status',40)||'all';
   if(!['all','awaiting_payment','confirmed','processing','shipped','completed','cancelled','verification','returns'].includes(filter))fail(422,'INVALID_STATUS_FILTER','Filter status pesanan tidak valid.');
   const conditions=['scope=?'];const params:unknown[]=[session.scope];
@@ -76,14 +76,14 @@ export async function saveProduct(env:Env,session:Session,productId:string|null,
   return {product:(await productsFor(env,session.scope,true)).find(p=>p.id===pid)!};
 }
 export async function adjustInventory(env:Env,session:Session,input:Row) {
-  staff(session,true);requireFeature(capabilities((await configFor(env,session)).level),'inventory');
+  staff(session,true);requireFeature(capabilities(await configFor(env,session)),'inventory');
   const variantId=text(input.variantId,'Varian',100,true);const delta=integer(input.delta,'Perubahan stok',-1_000_000,1_000_000);if(!delta)fail(422,'INVALID_DELTA','Perubahan stok tidak boleh nol.');const reason=text(input.reason,'Alasan',300,true);
   const row=await q(env,'SELECT id FROM variants WHERE scope=? AND id=?',session.scope,variantId).first();if(!row)fail(404,'VARIANT_NOT_FOUND','Varian tidak ditemukan.');
   await env.DB.batch([q(env,'UPDATE variants SET stock=stock+? WHERE scope=? AND id=?',delta,session.scope,variantId),q(env,'INSERT INTO inventory_movements(scope,id,variant_id,delta,reason,created_at) VALUES(?,?,?,?,?,?)',session.scope,id(),variantId,delta,reason,now()),auditStatement(env,session,'inventory.adjusted',variantId,`${delta>0?'+':''}${delta}: ${reason}`)]);
   const products=await productsFor(env,session.scope,true);return {variant:products.flatMap(p=>p.variants).find(v=>v.id===variantId)!};
 }
 export async function saveCoupon(env:Env,session:Session,input:Row) {
-  staff(session,true,true);requireFeature(capabilities((await configFor(env,session)).level),'coupons');
+  staff(session,true,true);requireFeature(capabilities(await configFor(env,session)),'coupons');
   const code=text(input.code,'Kode promo',30,true).toUpperCase();if(!/^[A-Z0-9_-]{3,30}$/.test(code)) fail(422,'INVALID_COUPON','Kode promo memakai 3 hingga 30 huruf atau angka.');
   if(!['fixed','percentage'].includes(input.kind)) fail(422,'INVALID_COUPON','Jenis promo tidak valid.');
   const value=integer(input.value,'Nilai promo',1,input.kind==='percentage'?100:100_000_000);const min=integer(input.minSpend??0,'Minimal belanja',0,1_000_000_000);const max=integer(input.maxDiscount??0,'Batas potongan',0,1_000_000_000);const limit=integer(input.useLimit??0,'Batas penggunaan',0,1_000_000);
@@ -94,7 +94,7 @@ export async function saveCoupon(env:Env,session:Session,input:Row) {
   const coupon=await q(env,'SELECT * FROM coupons WHERE scope=? AND code=?',session.scope,code).first<Row>();return {coupon:couponFrom(coupon!)};
 }
 export async function saveSettings(env:Env,session:Session,input:Row) {
-  staff(session,true,true);const current=await configFor(env,session);const updated:StoreConfig={...current,brand:{...current.brand},bank:{...current.bank}};
+  staff(session,true,true);const current=await configFor(env,session);const updated:StoreConfig={...current,brand:{...current.brand},bank:{...current.bank},pricing:{...current.pricing} as NonNullable<StoreConfig['pricing']>};
   for(const key of ['name','tagline','description','whatsapp','email','address'] as const) if(input.brand?.[key]!==undefined) updated.brand[key]=text(input.brand[key],key,key==='description'?1000:300,key==='name');
   if(updated.brand.whatsapp&&!/^\+?\d{8,16}$/.test(updated.brand.whatsapp))fail(422,'INVALID_PHONE','Nomor WhatsApp harus berupa angka dengan kode negara.');
   if(updated.brand.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updated.brand.email))fail(422,'INVALID_EMAIL','Email toko tidak valid.');
@@ -102,6 +102,15 @@ export async function saveSettings(env:Env,session:Session,input:Row) {
   if(updated.bank.accountNumber&&!/^\d{5,30}$/.test(updated.bank.accountNumber))fail(422,'INVALID_ACCOUNT','Nomor rekening hanya boleh berisi angka.');
   if(input.shippingNote!==undefined)updated.shippingNote=text(input.shippingNote,'Catatan pengiriman',1000);
   if(input.returnDays!==undefined)updated.returnDays=integer(input.returnDays,'Batas retur',1,30);
+  if(input.pricing!==undefined){
+    if(!input.pricing||typeof input.pricing!=='object'||Array.isArray(input.pricing))fail(422,'INVALID_PRICING','Pengaturan harga tidak valid.');
+    if(input.pricing.taxBps!==undefined)updated.pricing!.taxBps=integer(input.pricing.taxBps,'Tarif pajak basis poin',0,10000);
+    if(input.pricing.serviceFeeBps!==undefined)updated.pricing!.serviceFeeBps=integer(input.pricing.serviceFeeBps,'Biaya layanan basis poin',0,10000);
+    if(input.pricing.taxIncluded!==undefined) {
+      if(typeof input.pricing.taxIncluded!=='boolean')fail(422,'INVALID_PRICING','Harga termasuk pajak harus benar atau salah.');
+      updated.pricing!.taxIncluded=input.pricing.taxIncluded;
+    }
+  }
   if(input.shippingMethods!==undefined){
     if(!Array.isArray(input.shippingMethods)||input.shippingMethods.length<1||input.shippingMethods.length>10)fail(422,'INVALID_SHIPPING','Sediakan 1 hingga 10 metode pengiriman.');const ids=new Set<string>();
     updated.shippingMethods=input.shippingMethods.map((method:Row)=>{const methodId=text(method.id,'ID pengiriman',40,true);if(!/^[a-z0-9_-]+$/.test(methodId)||ids.has(methodId))fail(422,'INVALID_SHIPPING','ID metode pengiriman tidak valid atau berulang.');ids.add(methodId);if(typeof method.requiresAddress!=='boolean')fail(422,'INVALID_SHIPPING','Syarat alamat pengiriman harus berupa benar atau salah.');return {id:methodId,name:text(method.name,'Nama layanan',100,true),description:text(method.description,'Keterangan layanan',250),fee:integer(method.fee,'Ongkir',0,1_000_000),estimatedDays:text(method.estimatedDays,'Waktu pengiriman',100),requiresAddress:method.requiresAddress};});
@@ -109,7 +118,7 @@ export async function saveSettings(env:Env,session:Session,input:Row) {
   await env.DB.batch([q(env,'UPDATE scopes SET config_json=? WHERE id=?',JSON.stringify(updated),session.scope),auditStatement(env,session,'settings.updated',session.scope,'Pengaturan toko diperbarui')]);return {config:updated};
 }
 export async function toggleWishlist(env:Env,session:Session,input:Row) {
-  requireFeature(capabilities((await configFor(env,session)).level),'wishlist');const productId=text(input.productId,'Produk',100,true);
+  requireFeature(capabilities(await configFor(env,session)),'wishlist');const productId=text(input.productId,'Produk',100,true);
   if(!await q(env,'SELECT id FROM products WHERE scope=? AND id=? AND active=1',session.scope,productId).first())fail(404,'PRODUCT_NOT_FOUND','Produk tidak ditemukan.');
   const exists=await q(env,'SELECT product_id FROM wishlist WHERE scope=? AND session_id=? AND product_id=?',session.scope,session.tokenHash,productId).first();
   if(exists)await q(env,'DELETE FROM wishlist WHERE scope=? AND session_id=? AND product_id=?',session.scope,session.tokenHash,productId).run();
@@ -117,7 +126,7 @@ export async function toggleWishlist(env:Env,session:Session,input:Row) {
   return {wishlist:await wishlistFor(env,session)};
 }
 export async function submitReview(env:Env,session:Session,input:Row) {
-  requireFeature(capabilities((await configFor(env,session)).level),'reviews');const productId=text(input.productId,'Produk',100,true);const orderId=text(input.orderId,'Pesanan',100,true);const rating=integer(input.rating,'Penilaian',1,5);const comment=text(input.comment,'Ulasan',1000,true);
+  requireFeature(capabilities(await configFor(env,session)),'reviews');const productId=text(input.productId,'Produk',100,true);const orderId=text(input.orderId,'Pesanan',100,true);const rating=integer(input.rating,'Penilaian',1,5);const comment=text(input.comment,'Ulasan',1000,true);
   const order=await q(env,"SELECT customer_json FROM orders WHERE scope=? AND id=? AND session_id=? AND status='completed' AND payment_status='paid'",session.scope,orderId,session.tokenHash).first<Row>();
   if(!order||!await q(env,'SELECT product_id FROM order_items WHERE scope=? AND order_id=? AND product_id=?',session.scope,orderId,productId).first())fail(403,'REVIEW_NOT_ELIGIBLE','Ulasan tersedia setelah pesanan barang ini selesai dan dibayar.');
   const reviewId=id();const author=JSON.parse(order.customer_json).name.split(' ')[0];
@@ -125,7 +134,7 @@ export async function submitReview(env:Env,session:Session,input:Row) {
   return {review:(await reviewsFor(env,session.scope)).find(r=>r.id===reviewId)!};
 }
 export async function exportOrders(env:Env,session:Session) {
-  staff(session);requireFeature(capabilities((await configFor(env,session)).level),'reports');
+  staff(session);requireFeature(capabilities(await configFor(env,session)),'reports');
   const rows=await all(env,'SELECT * FROM orders WHERE scope=? ORDER BY created_at DESC LIMIT 10000',session.scope);
   const cell=(value:unknown)=>{let s=String(value??'');if(/^[=+\-@\t\r]/.test(s))s=`'${s}`;return `"${s.replaceAll('"','""')}"`;};
   const data=[['Nomor','Tanggal','Nama','Telepon','Status','Pembayaran','Metode','Subtotal','Diskon','Ongkir','Total'],...rows.map(r=>{const c=JSON.parse(r.customer_json);return[r.number,r.created_at,c.name,c.phone,r.status,r.payment_status,r.payment_method,r.subtotal,r.discount,r.shipping_fee,r.total];})];

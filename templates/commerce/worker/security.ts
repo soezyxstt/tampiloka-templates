@@ -28,10 +28,8 @@ export function capabilities(input: CommerceLevel | StoreConfig): Capabilities {
 export function validateModules(config: StoreConfig): void {
   const modules = config.modules || {};
   for (const key of Object.keys(modules)) if (!featureKeys.includes(key as CommerceFeature) || typeof modules[key as CommerceFeature] !== 'boolean') fail(503,'INVALID_MODULES','Konfigurasi modul toko tidak valid.');
-  const cap = capabilities(config);
-  if (modules.loyaltyPoints && !cap.customerAccounts) fail(503,'INVALID_MODULES','Poin membutuhkan akun pelanggan dan checkout.');
-  if (modules.membershipTiers && !cap.loyaltyPoints) fail(503,'INVALID_MODULES','Tingkat member membutuhkan modul poin.');
-  if (Object.values(modules).some(Boolean) && !cap.checkout) fail(503,'INVALID_MODULES','Modul tambahan membutuhkan level toko dengan checkout.');
+  if (modules.loyaltyPoints && !modules.customerAccounts) fail(503,'INVALID_MODULES','Poin membutuhkan akun pelanggan dan checkout.');
+  if (modules.membershipTiers && !modules.loyaltyPoints) fail(503,'INVALID_MODULES','Tingkat member membutuhkan modul poin.');
   const { taxBps = 0, serviceFeeBps = 0, taxIncluded = false } = config.pricing || {};
   if (![taxBps, serviceFeeBps].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 10000) || typeof taxIncluded !== 'boolean') fail(503,'INVALID_PRICING','Tarif pajak atau layanan tidak valid.');
   const loyalty = config.loyalty;

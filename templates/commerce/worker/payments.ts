@@ -14,7 +14,7 @@ async function providerFetch(url:string,init:RequestInit):Promise<Row> {
   if(!response.ok) fail(502,'GATEWAY_ERROR','Penyedia pembayaran belum dapat memproses permintaan. Pesanan tetap tersimpan.'); return data;
 }
 export async function startPayment(env:Env,session:Session,orderId:string) {
-  const cfg=await configFor(env,session); requireFeature(capabilities(cfg.level),'gateway');
+  const cfg=await configFor(env,session); requireFeature(capabilities(cfg),'gateway');
   const row=await rawOrder(env,session,orderId);
   if(row.payment_method!=='midtrans'||row.status!=='awaiting_payment'||!['pending','unpaid'].includes(row.payment_status)) fail(409,'INVALID_TRANSITION','Pesanan ini tidak menunggu pembayaran gateway.');
   if(session.demo||row.payment_url) return orderFrom(env,row);
@@ -27,7 +27,7 @@ export async function startPayment(env:Env,session:Session,orderId:string) {
 }
 export async function simulatePayment(env:Env,session:Session,input:Row) {
   if(!session.demo) fail(403,'DEMO_ONLY','Simulasi hanya tersedia pada demo.');
-  const cfg=await configFor(env,session); requireFeature(capabilities(cfg.level),'gateway');
+  const cfg=await configFor(env,session); requireFeature(capabilities(cfg),'gateway');
   const orderId=text(input.orderId,'Pesanan',100,true); const row=await rawOrder(env,session,orderId,true);
   if(row.payment_method!=='midtrans') fail(409,'INVALID_PAYMENT','Simulasi ini hanya untuk pembayaran gateway demo.');
   if(!['paid','failed'].includes(input.status)) fail(422,'INVALID_STATUS','Pilih hasil simulasi pembayaran.');

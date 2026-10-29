@@ -5,6 +5,7 @@ import { all, auditStatement, bootstrap, configFor, orderFor, orderFrom, ordersF
 import { createOrder, customerAction, expireManualOrders, quoteFor, rawOrder, staffAction } from './orders.ts';
 import { gatewayRefund, paymentWebhook, reconcilePayment, simulatePayment, startPayment } from './payments.ts';
 import { adjustInventory, exportOrders, saveCoupon, saveProduct, saveSettings, snapshot, staffOrders, submitReview, toggleWishlist } from './staff.ts';
+import { beginMemberLogin, verifyMemberLogin, signOutMember } from './loyalty.ts';
 import { rotateTrackingCode, trackOrder } from './tracking.ts';
 import { body, capabilities, digest, fail, HttpError, id, isDemo, now, rateLimit, requireFeature, safeEqual, sameOrigin, staff, text } from './security.ts';
 export type { Env } from './types.ts';
@@ -47,6 +48,9 @@ async function route(request:Request,env:Env,session:Session,path:string) {
   }
   if(path==='/api/staff/login'&&method==='POST')return login(request,env,session,await body(request));
   if(path==='/api/logout'&&method==='POST'){await q(env,'DELETE FROM sessions WHERE token_hash=?',session.tokenHash).run();Object.assign(session,await sessionFor(request,env,true));return bootstrap(env,session);}
+  if(path==='/api/member/start'&&method==='POST')return beginMemberLogin(request,env,session,await body(request));
+  if(path==='/api/member/verify'&&method==='POST')return verifyMemberLogin(env,session,await body(request));
+  if(path==='/api/member/logout'&&method==='POST')return signOutMember(env,session);
   if(path==='/api/products'&&method==='GET'){const b=await bootstrap(env,session);return {products:b.products,categories:b.categories};}
   if(path==='/api/quote'&&method==='POST')return quoteFor(env,session,await body(request));
   if(path==='/api/orders'&&method==='POST'){
@@ -56,30 +60,30 @@ async function route(request:Request,env:Env,session:Session,path:string) {
   if(path==='/api/orders/track'&&method==='POST')return trackOrder(request,env,await body(request));
   const attemptMatch=path.match(/^\/api\/orders\/attempt\/([A-Za-z0-9_-]{8,100})$/);
   if(attemptMatch&&method==='GET'){
-    requireFeature(capabilities((await configFor(env,session)).level),'orders');
+    requireFeature(capabilities(await configFor(env,session)),'orders');
     const row=await q(env,'SELECT * FROM orders WHERE scope=? AND session_id=? AND idempotency_key=?',session.scope,session.tokenHash,attemptMatch[1]).first<Row>();
     return {order:row?await orderFrom(env,row):null};
   }
   if(path==='/api/orders/my'&&method==='GET') {
-    requireFeature(capabilities((await configFor(env,session)).level),'orders');await expireManualOrders(env,session);
+    requireFeature(capabilities(await configFor(env,session)),'orders');await expireManualOrders(env,session);
     const rows=await all(env,'SELECT * FROM orders WHERE scope=? AND session_id=? ORDER BY created_at DESC LIMIT 100',session.scope,session.tokenHash);return {orders:await ordersFrom(env,rows)};
   }
-  let match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)$/);if(match&&method==='GET'){requireFeature(capabilities((await configFor(env,session)).level),'orders');return orderFor(env,session,match[1]);}
+  let match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)$/);if(match&&method==='GET'){requireFeature(capabilities(await configFor(env,session)),'orders');return orderFor(env,session,match[1]);}
   match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/actions$/);if(match&&method==='POST')return customerAction(env,session,match[1],await body(request));
-  match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/tracking-code$/);if(match&&method==='POST'){requireFeature(capabilities((await configFor(env,session)).level),'orders');return rotateTrackingCode(env,session,match[1]);}
+  match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/tracking-code$/);if(match&&method==='POST'){requireFeature(capabilities(await configFor(env,session)),'orders');return rotateTrackingCode(env,session,match[1]);}
   match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/payment$/);if(match&&method==='POST')return startPayment(env,session,match[1]);
-  match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/reconcile$/);if(match&&method==='POST'){requireFeature(capabilities((await configFor(env,session)).level),'gateway');return reconcilePayment(env,session,match[1]);}
+  match=path.match(/^\/api\/orders\/([a-zA-Z0-9_-]+)\/reconcile$/);if(match&&method==='POST'){requireFeature(capabilities(await configFor(env,session)),'gateway');return reconcilePayment(env,session,match[1]);}
   if(path==='/api/demo/payment'&&method==='POST')return simulatePayment(env,session,await body(request));
-  if(path==='/api/wishlist'&&method==='GET'){requireFeature(capabilities((await configFor(env,session)).level),'wishlist');return {wishlist:await wishlistFor(env,session)};}
+  if(path==='/api/wishlist'&&method==='GET'){requireFeature(capabilities(await configFor(env,session)),'wishlist');return {wishlist:await wishlistFor(env,session)};}
   if(path==='/api/wishlist'&&method==='POST')return toggleWishlist(env,session,await body(request));
-  if(path==='/api/reviews'&&method==='GET'){requireFeature(capabilities((await configFor(env,session)).level),'reviews');return {reviews:await reviewsFor(env,session.scope)};}
+  if(path==='/api/reviews'&&method==='GET'){requireFeature(capabilities(await configFor(env,session)),'reviews');return {reviews:await reviewsFor(env,session.scope)};}
   if(path==='/api/reviews'&&method==='POST')return submitReview(env,session,await body(request));
   if(path==='/api/staff/snapshot'&&method==='GET'){staff(session);await expireManualOrders(env,session);return snapshot(env,session);}
   if(path==='/api/staff/orders'&&method==='GET'){const query=new URL(request.url).searchParams;return staffOrders(env,session,Number(query.get('limit')||50),Number(query.get('offset')||0),query.get('q')||'',query.get('status')||'all');}
   match=path.match(/^\/api\/staff\/orders\/([a-zA-Z0-9_-]+)\/actions$/);
   if(match&&method==='POST'){
     const input=await body(request);
-    if(input.action==='refund'&&!session.demo&&!input.manual){staff(session,true,true);requireFeature(capabilities((await configFor(env,session)).level),'orders');const row=await rawOrder(env,session,match[1],true);if(row.payment_method==='midtrans')return gatewayRefund(env,session,match[1],input);}
+    if(input.action==='refund'&&!session.demo&&!input.manual){staff(session,true,true);requireFeature(capabilities(await configFor(env,session)),'orders');const row=await rawOrder(env,session,match[1],true);if(row.payment_method==='midtrans')return gatewayRefund(env,session,match[1],input);}
     return staffAction(env,session,match[1],input);
   }
   if(path==='/api/staff/products'&&method==='POST')return saveProduct(env,session,null,await body(request));
