@@ -1,0 +1,7 @@
+:root{--brand-canvas:#f7f5f0;--brand-surface:#fff;--brand-text:#242820;--brand-muted:#62665c;--brand-action:#344c3a;--brand-on-action:#fff;--brand-border:#dedfd5;--brand-focus:#4e6b4d;--brand-font-body:Manrope,system-ui,sans-serif;--brand-font-display:Manrope,system-ui,sans-serif;--brand-radius:4px}
+[data-palette="ink"]{--brand-canvas:#f7f7f7;--brand-surface:#fff;--brand-text:#202124;--brand-muted:#60636b;--brand-action:#202124;--brand-on-action:#fff;--brand-border:#dedfe3;--brand-focus:#4c5883}
+[data-palette="forest"]{--brand-canvas:#f1f4ef;--brand-surface:#fff;--brand-text:#1e3428;--brand-muted:#586b5d;--brand-action:#23553b;--brand-on-action:#fff;--brand-border:#d2ddd0;--brand-focus:#317b54}
+[data-layout="editorial"]{--composition-gap:28px;--composition-product-ratio:4/5;--composition-columns:3}
+[data-layout="market"]{--composition-gap:16px;--composition-product-ratio:1;--composition-columns:4}
+[data-layout="atelier"]{--composition-gap:32px;--composition-product-ratio:3/4;--composition-columns:2}
+[data-layout="compact"]{--composition-gap:12px;--composition-product-ratio:1;--composition-columns:1}

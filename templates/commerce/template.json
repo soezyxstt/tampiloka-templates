@@ -1,0 +1,14 @@
+{
+  "$schema": "../../packages/registry/template.schema.json",
+  "schemaVersion": 1,
+  "id": "commerce",
+  "name": "Commerce",
+  "status": "available",
+  "description": "Katalog brand hingga toko dengan stok, pesanan, pembayaran, dan staf.",
+  "defaultPreset": "editorial",
+  "defaultLevel": "store",
+  "presets": ["editorial","market","atelier","compact"],
+  "levels": ["catalog","whatsapp","store","advanced"],
+  "sharedPackages": ["ui-core","theme-engine","shared-utils","config"],
+  "demoUrl": "https://ecommerce.tampiloka.site"
+}

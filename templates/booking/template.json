@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "booking",
+  "name": "Booking",
+  "status": "planned",
+  "description": "Jadwal, layanan, dan pemesanan.",
+  "presets": [],
+  "sharedPackages": []
+}

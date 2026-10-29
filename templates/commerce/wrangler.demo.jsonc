@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tampiloka-commerce-demo",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-29",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": { "DEMO_MODE": "true" },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "tampiloka-commerce-demo",
+    "database_id": "4236b694-99df-4e48-82a6-f4d5a8ce457e",
+    "migrations_dir": "migrations"
+  }],
+  "routes": [{ "pattern": "ecommerce.tampiloka.site", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["0 * * * *"] }
+}

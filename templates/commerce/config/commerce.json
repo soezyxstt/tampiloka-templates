@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "name": "Rupa",
+    "tagline": "Dipakai setiap hari. Disukai lebih lama.",
+    "description": "Pilihan pakaian, tas, dan benda rumah untuk keseharian. Rupa adalah brand contoh untuk mencoba template Tampiloka.",
+    "whatsapp": "",
+    "email": "halo@example.com",
+    "address": "Bandung, Jawa Barat"
+  },
+  "level": "advanced",
+  "preset": "editorial",
+  "appearance": { "layout": "editorial", "palette": "sand", "card": "open", "button": "solid" },
+  "currency": "IDR",
+  "bank": { "name": "Bank contoh", "accountNumber": "0000000000", "accountHolder": "Rupa Demo" },
+  "shippingNote": "Tarif pengiriman contoh. Atur wilayah dan biaya kirim sebelum menerima pesanan nyata.",
+  "returnDays": 7
+}

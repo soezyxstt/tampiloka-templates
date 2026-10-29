@@ -1,0 +1,5 @@
+{
+  "name": "@tampiloka/shared-utils", "version": "1.0.0", "private": true,
+  "type": "module", "exports": { ".": { "types": "./src/index.d.mts", "import": "./src/index.mjs" } },
+  "files": ["src"]
+}

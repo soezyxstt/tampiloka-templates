@@ -1,0 +1,4 @@
+{
+  "name": "@tampiloka/theme-engine", "version": "1.0.0", "private": true,
+  "type": "module", "exports": { ".": { "types": "./src/index.d.mts", "import": "./src/index.mjs" }, "./styles.css": "./src/styles.css" }, "files": ["src"]
+}

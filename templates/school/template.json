@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "school",
+  "name": "School",
+  "status": "planned",
+  "description": "Informasi dan operasional sekolah.",
+  "presets": [],
+  "sharedPackages": []
+}
