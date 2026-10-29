@@ -10,9 +10,38 @@
   },
   "level": "advanced",
   "preset": "editorial",
-  "appearance": { "layout": "editorial", "palette": "sand", "card": "open", "button": "solid" },
+  "appearance": {
+    "layout": "editorial",
+    "palette": "sand",
+    "card": "open",
+    "button": "solid"
+  },
   "currency": "IDR",
-  "bank": { "name": "Bank contoh", "accountNumber": "0000000000", "accountHolder": "Rupa Demo" },
+  "bank": {
+    "name": "Bank contoh",
+    "accountNumber": "0000000000",
+    "accountHolder": "Rupa Demo"
+  },
   "shippingNote": "Tarif pengiriman contoh. Atur wilayah dan biaya kirim sebelum menerima pesanan nyata.",
-  "returnDays": 7
+  "returnDays": 7,
+  "modules": {
+    "promotions": true,
+    "taxes": false,
+    "serviceFees": false,
+    "customerAccounts": true,
+    "loyaltyPoints": true,
+    "membershipTiers": true
+  },
+  "pricing": {
+    "taxBps": 0,
+    "taxIncluded": false,
+    "serviceFeeBps": 0
+  },
+  "loyalty": {
+    "earnSpendIdr": 10000,
+    "pointValueIdr": 100,
+    "minRedeemPoints": 10,
+    "silverSpendIdr": 1000000,
+    "goldSpendIdr": 5000000
+  }
 }

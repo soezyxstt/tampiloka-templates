@@ -6,6 +6,8 @@ const photo = (id: string) => `/images/${id}.webp`;
 export const defaultConfig: StoreConfig = {
   brand: { name: 'Rupa', tagline: 'Pilihan baik untuk setiap hari.', description: 'Pakaian, kulit, dan benda rumah dengan bentuk yang tenang. Rupa adalah toko contoh untuk demo Tampiloka.', whatsapp: '', email: 'demo@tampiloka.site', address: 'Bandung, Jawa Barat' },
   level: 'advanced', preset: 'editorial', currency: 'IDR',
+  pricing: { taxBps: 0, taxIncluded: false, serviceFeeBps: 0 },
+  loyalty: { earnSpendIdr: 10000, pointValueIdr: 100, minRedeemPoints: 10, silverSpendIdr: 1000000, goldSpendIdr: 5000000 },
   bank: { name: 'Bank demo', accountNumber: '0000000000', accountHolder: 'RUPA DEMO' },
   shippingNote: 'Tarif contoh per pesanan. Toko mengisi nomor resi setelah mengirim barang.', returnDays: 7,
 };
