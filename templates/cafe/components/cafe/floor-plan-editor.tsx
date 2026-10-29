@@ -290,7 +290,7 @@ export function FloorPlanEditor({
         <div className="lg:col-span-7 space-y-2">
           <div
             data-testid="floor-plan-svg-container"
-            className="w-full overflow-x-auto bg-[#F5F4EF] border border-[var(--border)] rounded-[10px] p-3"
+            className="w-full overflow-x-auto bg-[var(--surface-muted)] border border-[var(--border)] rounded-[10px] p-3"
           >
             <svg
               viewBox="-400 -400 10800 8800"

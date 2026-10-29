@@ -80,11 +80,11 @@ function ThemePreview({ theme }: { theme: DemoTheme }) {
     <div className="dp-preview-heading"><span>Dapur Pagi</span><CupIcon /></div>
     <div className="dp-preview-menu">
       <div className="dp-preview-product">
-        <div className="dp-preview-image"><img src="/images/menu/es-kopi-susu-aren.svg" alt="" width="124" height="112" /></div>
+        <div className="dp-preview-image"><img src="/images/menu/photos/kopi-aren.jpg" alt="" width="124" height="112" /></div>
         <div className="dp-preview-product-copy"><h3>Es Kopi Susu{' '}<br />Gula Aren</h3><span>Rp28.000</span></div>
       </div>
       <div className="dp-preview-product">
-        <div className="dp-preview-image"><img src="/images/menu/croissant-mentega.svg" alt="" width="124" height="112" /></div>
+        <div className="dp-preview-image"><img src="/images/menu/photos/croissant.jpg" alt="" width="124" height="112" /></div>
         <div className="dp-preview-product-copy"><h3>Croissant{' '}<br />Mentega</h3><span>Rp24.000</span></div>
       </div>
     </div>
@@ -97,7 +97,7 @@ function PackageSample({ demo }: { demo: DemoPreset }) {
   return <div className="dp-package-sample dp-theme" data-demo-theme={demo.theme} aria-hidden="true">
     <div className="dp-sample-name">Dapur Pagi</div>
     <div className="dp-sample-row">
-      {customer ? <img src="/images/menu/es-kopi-susu-aren.svg" alt="" width="64" height="68" loading="lazy" /> : <div className="dp-sample-table">04</div>}
+      {customer ? <img src="/images/menu/photos/kopi-aren.jpg" alt="" width="64" height="68" loading="lazy" /> : <div className="dp-sample-table">04</div>}
       <div><strong>{customer ? 'Es Kopi Susu' : 'Meja 04'}</strong><span>{customer ? 'Gula Aren' : '2 × Es Kopi Susu'}</span></div>
       <span className="dp-sample-price">{customer ? 'Rp28.000' : 'Rp56.000'}</span>
     </div>

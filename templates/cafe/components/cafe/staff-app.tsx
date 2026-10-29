@@ -34,6 +34,7 @@ import { OrderInbox } from './order-inbox';
 import { DemoPaymentControls } from './demo-payment-controls';
 import { ShiftControls } from './shift-controls';
 import { VisitService } from './visit-service';
+import styles from './staff-app.module.css';
 import { sanitizeSpreadsheetExportCell } from '@/src/domain/rules';
 import {
   Check,
@@ -647,18 +648,18 @@ export function StaffApp({
       : 0;
 
   return (
-    <div className="cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace}`}>
       <aside className="staff-sidebar">
         <div className="flex items-center gap-3 px-2 py-3">
           <BrandMark />
           <div className="min-w-0"><p className="font-heading font-bold text-base leading-snug break-words">{cafeConfig.brand.name}</p></div>
         </div>
-        <div className="mt-8" />
+        <p className={styles.sidebarLabel}>Operasional</p>
         <nav aria-label="Navigasi operasional desktop" className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
             return <button key={item.id} type="button" aria-current={activeSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionNotice(''); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${activeSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
-              <Icon className="h-[18px] w-[18px] shrink-0" /><span className="flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] tabular-nums">{item.count}</span>}
+              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" /><span className="min-w-0 flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] tabular-nums">{item.count}</span>}
             </button>;
           })}
         </nav>
@@ -677,6 +678,7 @@ export function StaffApp({
             {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.userName}</option>)}
           </SelectField>
           <div className="staff-actions">
+            {lastUpdated && <span className={styles.syncText}>{lastUpdated}</span>}
             <Button variant="ghost" size="icon" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label="Perbarui data operasional"><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
             <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} aria-label="Keluar dari portal staf"><LogOut className="h-4 w-4" /></Button>
           </div>
@@ -1697,7 +1699,7 @@ export function StaffApp({
                           setPhotoDraftList(itemPhotos);
                           setNewPhotoUrlInput('');
                         }}
-                        className="relative w-14 h-14 rounded-[10px] overflow-hidden border border-[var(--border)] bg-[#F2EFE9] shrink-0 cursor-pointer group"
+                        className="relative w-14 h-14 rounded-[10px] overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)] shrink-0 cursor-pointer group"
                       >
                         {itemPhotos[0] ? (
                           <Image
@@ -2277,7 +2279,7 @@ export function StaffApp({
                   {newMenuPhotos.map((pUrl, idx) => (
                     <div
                       key={`${pUrl}_${idx}`}
-                      className="relative w-12 h-12 rounded-[6px] overflow-hidden border border-[var(--border)] bg-[#F2EFE9]"
+                      className="relative w-12 h-12 rounded-[6px] overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)]"
                     >
                       <Image
                         src={pUrl}
@@ -2383,7 +2385,7 @@ export function StaffApp({
                     key={`${url}_${idx}`}
                     className="p-2 rounded-[8px] border border-[var(--border)] bg-[var(--background)] space-y-1.5"
                   >
-                    <div className="relative w-full h-16 rounded-[6px] overflow-hidden bg-[#F2EFE9]">
+                    <div className="relative w-full h-16 rounded-[6px] overflow-hidden bg-[var(--surface-muted)]">
                       <Image
                         src={url}
                         alt={`${editingPhotosItem.name} ${idx + 1}`}

@@ -4,18 +4,18 @@
 @import "../components/ui/motion.css";
 
 :root {
-  --background: #F7F5F1;
+  --background: #F5F7FC;
   --surface: #FFFFFF;
-  --foreground: #2C2521;
-  --muted-foreground: #776F68;
-  --border: #E7E1DA;
-  --primary: #A84A30;
-  --primary-ink: #A84A30;
+  --foreground: #182334;
+  --muted-foreground: #455468;
+  --border: #C5CEDB;
+  --primary: #1746A2;
+  --primary-ink: #1746A2;
   --primary-foreground: #FFFFFF;
   --primary-hover: color-mix(in srgb, var(--primary) 82%, black);
-  --surface-muted: #F0ECE6;
-  --border-strong: #CCC0B5;
-  --accent-surface: var(--brand-tint, #F3E7DE);
+  --surface-muted: #E9EEF6;
+  --border-strong: #7A899D;
+  --accent-surface: var(--brand-tint, #EAF0FC);
 
   --status-success-fg: #1A5C38;
   --status-success-bg: #EBF5EE;
@@ -57,9 +57,9 @@ h1, h2, h3, h4, .font-heading {
 
 html { scroll-behavior: smooth; }
 body { margin: 0; }
-::selection { background: #E9CDBD; color: #2C2521; }
+::selection { background: #CEDCFA; color: #182334; }
 button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--primary-ink); outline-offset: 4px; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--primary-ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -91,3 +91,6 @@ button:disabled { cursor:not-allowed; }
 
 
 .connection-notice{min-width:0;align-items:flex-start;overflow-wrap:anywhere}.connection-notice>span{min-width:0;flex:1;white-space:normal}.connection-notice>button{flex-shrink:0}
+
+/* Keep keyboard focus visible on shared controls with their own ring styles. */
+.ui-button:focus-visible,.ui-field-control:focus-visible { outline:3px solid var(--primary-ink); outline-offset:2px; }

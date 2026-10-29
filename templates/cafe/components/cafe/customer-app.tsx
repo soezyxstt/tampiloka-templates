@@ -57,6 +57,9 @@ import {
   Pencil,
   X,
   Download,
+  BookOpenText,
+  ShoppingBag,
+  ClipboardList,
 } from 'lucide-react';
 
 const paymentLabel = (state: string) => ({ SETTLED: 'Lunas', PARTIALLY_PAID: 'Dibayar sebagian', REFUND_DUE: 'Menunggu pengembalian', NO_BILL: 'Menunggu tagihan' }[state] || 'Belum dibayar');
@@ -611,6 +614,12 @@ export function CustomerApp({
     }
   };
 
+  // Each screen is a separate task. Start at its heading when switching tabs,
+  // including when the previous screen was scrolled beneath the sticky header.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [activeScreen]);
+
 
   const configuringPhotos: string[] = useMemo(() => {
     if (!configuringItem) return [];
@@ -626,7 +635,7 @@ export function CustomerApp({
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
       <a className="skip-link" href="#customer-content">Ke menu utama</a>
-      <header className="sticky top-0 z-30 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--border)]">
+      <header className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
           <div className="flex items-center gap-2 min-w-0">
@@ -777,8 +786,8 @@ export function CustomerApp({
               <PageHeader title="Menu" className="border-b-0 pb-0" />
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
               {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
-                <button type="button" onClick={() => setActiveScreen('pesanan')} className="w-full min-h-[44px] flex items-center justify-between gap-3 py-2 border-b border-[var(--border)] text-left">
-                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><Receipt className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
+                <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
+                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
@@ -832,7 +841,7 @@ export function CustomerApp({
               key="screen-keranjang"
               className="space-y-6"
             >
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+              <div className={styles.screenHeading}>
                 <h1 className="font-heading text-[22px] font-bold">Keranjang</h1>
                 <Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>
                   + Tambah menu
@@ -1017,7 +1026,7 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[#CBDAC8] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[#DFE8DD] cursor-pointer transition-colors"
+                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
@@ -1026,7 +1035,7 @@ export function CustomerApp({
                       )}
                     </div>}
 
-                    <div className="p-4 rounded-[var(--radius-panel)] bg-[var(--surface)] border border-[var(--border)] space-y-3">
+                    <div className={`${styles.summary} space-y-3`}>
                       <PaymentBreakdown
                         subtotalIdr={activeQuote?.subtotalIdr ?? cartSummary.subtotalIdr}
                         discountIdr={activeQuote?.discountIdr ?? cartSummary.discountIdr}
@@ -1080,8 +1089,9 @@ export function CustomerApp({
               key="screen-pesanan"
               className="space-y-6"
             >
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+              <div className={styles.ordersHeading}>
                 <h1 className="font-heading text-[22px] font-bold">Pesanan</h1>
+                <div className={styles.ordersActions}>
                 <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>Refresh</Button>
                 <Button
                   variant="primary"
@@ -1090,6 +1100,7 @@ export function CustomerApp({
                 >
                   Bayar / Lihat Struk
                 </Button>
+                </div>
               </div>
 
               {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title="Belum ada pesanan" description="Pesanan Anda akan muncul di sini." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
@@ -1110,8 +1121,8 @@ export function CustomerApp({
                         );
                         return (
                           <div key={req.id} className="py-3.5 space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold text-[15px]">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="min-w-0 break-words font-semibold text-[15px]">
                                 Meja {req.tableLabel} · {req.customerName}
                               </span>
                               <StatusLabel label="Menunggu konfirmasi staf" tone="warning" />
@@ -1138,10 +1149,7 @@ export function CustomerApp({
 
               {/* Accepted Orders with 3 Distinct Status Axes (Clean Editorial List) */}
               {customerOrders.length > 0 && <section className="space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">
-                  Pesanan diterima
-                </h2>
-                <div className="divide-y divide-[var(--border)] border-t border-b border-[var(--border)]">
+                <div className={styles.orderList}>
                   {customerOrders.map((ord: any) => {
                     const units = (snapshot?.orderUnits || []).filter(
                       (u: any) => u.orderId === ord.id
@@ -1149,11 +1157,10 @@ export function CustomerApp({
                     const billing = summarizeOrderBilling(ord.id, snapshot?.bills || []);
 
                     return (
-                      <article key={ord.id} data-order-id={ord.id} className="py-4 space-y-3">
+                      <article key={ord.id} data-order-id={ord.id} className={`${styles.orderArticle} space-y-3`}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
-                              Pesanan #{ord.orderNumber || String(ord.id).slice(-6).toUpperCase()} ·{' '}
                               {ord.customerName}
                             </p>
                             <p className="text-[12px] text-[var(--muted-foreground)]">
@@ -1179,9 +1186,9 @@ export function CustomerApp({
                           {units.map((u: any) => (
                             <div
                               key={u.id}
-                              className="py-2 flex items-center justify-between gap-3 text-[14px]"
+                              className={styles.orderUnit}
                             >
-                              <div>
+                              <div className={styles.orderUnitDetails}>
                                 <span className="font-medium text-[var(--foreground)]">
                                   1× {u.itemNameSnapshot || u.itemName}
                                 </span>{' '}
@@ -1200,6 +1207,7 @@ export function CustomerApp({
                               </div>
 
                               <StatusLabel
+                                className={styles.orderUnitStatus}
                                 label={
                                   ['SERVED', 'DELIVERED', 'PICKED_UP'].includes(u.fulfillmentStatus)
                                     ? (u.fulfillmentStatus === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan')
@@ -1240,7 +1248,7 @@ export function CustomerApp({
               key="screen-pembayaran"
               className="space-y-6"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+              <div className={styles.screenHeading}>
                 <h1 className="font-heading text-[22px] font-bold">Pembayaran</h1>
                 <SelectField
                   aria-label="Pilih tagihan meja"
@@ -1329,7 +1337,7 @@ export function CustomerApp({
                   {/* Payment Summary & QRIS / VA Interactive Checkout */}
                   <section className="pt-4 border-t border-[var(--border)] space-y-4">
                     <h2 className="font-heading text-[16px] font-semibold">Ringkasan</h2>
-                    <PaymentBreakdown
+                    <div className={styles.summary}><PaymentBreakdown
                       subtotalIdr={selectedBill.subtotalIdr}
                       discountIdr={selectedBill.discountIdr}
                       serviceIdr={selectedBill.serviceIdr}
@@ -1342,7 +1350,7 @@ export function CustomerApp({
                       serviceChargeBps={snapshot?.outlet?.serviceChargeBps ?? 500}
                       taxBps={snapshot?.outlet?.taxBps ?? 1000}
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
-                    />
+                    /></div>
 
                     {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">Bayar di kasir</p><p className="mt-1 text-sm">Sebutkan nama pemesan atau nomor meja. Staf akan mencatat pembayaran Anda.</p></div>}
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
@@ -1844,8 +1852,8 @@ export function CustomerApp({
       </AnimatePresence>
 
       <nav className={styles.bottomNav} aria-label="Navigasi pelanggan">
-        {([{ screen: 'menu', label: 'Menu', icon: Coffee }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingCart }, { screen: 'pesanan', label: 'Pesanan', icon: Receipt }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" /><span>{label}</span></button>)}
-        <button type="button" onClick={() => setShareOpen(true)}><QrCode className="w-5 h-5" /><span>Bagikan menu</span></button>
+        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingBag }, { screen: 'pesanan', label: 'Pesanan', icon: ClipboardList }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+        <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>Bagikan menu</span></button>
       </nav>
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title="Bagikan menu">
         <div className="text-center space-y-4">

@@ -61,9 +61,7 @@
       "name": "Es Kopi Susu Gula Aren",
       "description": "Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.",
       "photos": [
-        "/images/menu/es-kopi-susu-aren.svg",
-        "/images/menu/es-kopi-susu-aren-2.svg",
-        "/images/menu/es-kopi-susu-aren-3.svg"
+        "/images/menu/photos/kopi-aren.jpg"
       ],
       "allergens": [
         "Susu sapi"
@@ -169,8 +167,7 @@
       "name": "Manual Brew V60 Arabika Garut Kamojang Single Origin Natural",
       "description": "Seduhan manual V60 biji kopi Arabika Kamojang Garut dengan karakter rasa buah tropis, teh hitam, dan cokelat manis.",
       "photos": [
-        "/images/menu/manual-brew-v60.svg",
-        "/images/menu/manual-brew-v60-2.svg"
+        "/images/menu/photos/v60.jpg"
       ],
       "allergens": [],
       "tags": [
@@ -206,7 +203,9 @@
       "categoryId": "cat_teh",
       "name": "Teh Melati Dingin Daun Asli",
       "description": "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/teh.jpg"
+      ],
       "allergens": [],
       "tags": [
         "teh",
@@ -234,7 +233,7 @@
       "name": "Matcha Latte Uji Kyoto",
       "description": "Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.",
       "photos": [
-        "/images/menu/matcha-latte-uji.svg"
+        "/images/menu/photos/matcha.jpg"
       ],
       "allergens": [
         "Susu sapi"
@@ -292,8 +291,7 @@
       "name": "Nasi Ayam Panggang Rempah Sambal Matah",
       "description": "Paha ayam panggang bumbu rempah nusantara dengan nasi putih hangat, lalapan segar, dan sambal pilihan.",
       "photos": [
-        "/images/menu/nasi-ayam-rempah.svg",
-        "/images/menu/nasi-ayam-rempah-2.svg"
+        "/images/menu/photos/ayam.jpg"
       ],
       "allergens": [
         "Kemiri",
@@ -376,7 +374,7 @@
       "name": "Croissant Mentega Prancis",
       "description": "Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.",
       "photos": [
-        "/images/menu/croissant-mentega.svg"
+        "/images/menu/photos/croissant.jpg"
       ],
       "allergens": [
         "Gandum / Gluten",
@@ -408,7 +406,9 @@
       "categoryId": "cat_kudapan",
       "name": "Pisang Goreng Keju Gula Palem",
       "description": "Pisang tanduk goreng tepung renyah dengan taburan keju parut dan gula palem.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/pisang.jpg"
+      ],
       "allergens": [
         "Susu / Keju",
         "Gluten"
@@ -428,6 +428,97 @@
           "priceIdr": 22000,
           "isDefault": true,
           "available": false
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_cappuccino",
+      "categoryId": "cat_kopi",
+      "name": "Cappuccino",
+      "description": "Espresso dan susu kukus dengan lapisan busa lembut.",
+      "photos": [
+        "/images/menu/photos/cappuccino.jpg"
+      ],
+      "allergens": [
+        "Susu sapi"
+      ],
+      "tags": [
+        "kopi",
+        "susu",
+        "hangat"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 8,
+      "variants": [
+        {
+          "id": "var_cappuccino",
+          "name": "Panas",
+          "priceIdr": 30000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_nasi_goreng",
+      "categoryId": "cat_makanan",
+      "name": "Nasi Goreng Kampung",
+      "description": "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.",
+      "photos": [
+        "/images/menu/photos/nasi-goreng.jpg"
+      ],
+      "allergens": [
+        "Telur",
+        "Kedelai"
+      ],
+      "tags": [
+        "nasi",
+        "makan siang"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 9,
+      "variants": [
+        {
+          "id": "var_nasi_goreng",
+          "name": "Porsi reguler",
+          "priceIdr": 38000,
+          "isDefault": true,
+          "available": true
+        }
+      ],
+      "modifierGroups": []
+    },
+    {
+      "id": "item_pain_chocolat",
+      "categoryId": "cat_pastry",
+      "name": "Pain au Chocolat",
+      "description": "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.",
+      "photos": [
+        "/images/menu/photos/pain-chocolat.jpg"
+      ],
+      "allergens": [
+        "Gandum / Gluten",
+        "Susu / Mentega",
+        "Telur"
+      ],
+      "tags": [
+        "pastry",
+        "cokelat"
+      ],
+      "active": true,
+      "available": true,
+      "sortOrder": 10,
+      "variants": [
+        {
+          "id": "var_pain_chocolat",
+          "name": "Satu potong",
+          "priceIdr": 28000,
+          "isDefault": true,
+          "available": true
         }
       ],
       "modifierGroups": []

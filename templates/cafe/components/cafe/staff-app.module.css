@@ -1,0 +1,38 @@
+/* Staff workspace refinements; shared controls retain their existing behavior. */
+.workspace :global(.staff-sidebar) {
+  padding: 20px 14px;
+}
+.sidebarLabel {
+  margin: 30px 12px 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.workspace :global(.staff-sidebar nav button) {
+  min-height: 46px;
+}
+.workspace :global(.staff-sidebar nav button[aria-current="page"]) {
+  box-shadow: inset 3px 0 var(--primary-ink);
+}
+.workspace :global(.staff-toolbar) {
+  min-height: 64px;
+}
+.syncText {
+  display: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (min-width: 1024px) {
+  .syncText { display: inline; }
+}
+@media (max-width: 767px) {
+  .workspace :global(.staff-toolbar) { gap: 4px 8px; }
+  .workspace :global(.staff-identity p) { overflow-wrap: normal; }
+  .workspace :global(.staff-identity p:first-child) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .workspace :global(.staff-main) { padding-inline: 16px; }
+}

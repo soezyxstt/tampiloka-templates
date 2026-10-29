@@ -1,12 +1,12 @@
 :root { --font-sans:'Source Sans 3'; --font-brand-heading:'Manrope'; }
-.demo-toolbar { min-height:54px; padding:6px 20px; display:flex; align-items:center; gap:20px; background:#2c2521; color:#fff; font-size:13px; }
+.demo-toolbar { min-height:54px; padding:6px 20px; display:flex; align-items:center; gap:20px; background:#182334; color:#fff; font-size:13px; }
 .demo-toolbar a,.demo-toolbar button { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:0 8px; border-radius:6px; }
 .demo-toolbar a:hover,.demo-toolbar button:hover { background:#ffffff16; }
 .demo-back { white-space:nowrap; }
-.demo-package-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e8e0d8; }
+.demo-package-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#DDE5F2; }
 .demo-toolbar-actions { display:flex; align-items:center; gap:6px; }
 .demo-toolbar button:disabled { opacity:.5; }
-.demo-context { background:#eee8df; color:#5e5147; font-size:12px; line-height:18px; border-bottom:1px solid #d9cdbf; }
+.demo-context { background:#E9EEF6; color:#455468; font-size:12px; line-height:18px; border-bottom:1px solid #C5CEDB; }
 .demo-context summary { padding:7px 20px; cursor:pointer; }
 .demo-context p { margin:0; padding:2px 20px 12px; max-width:850px; }
 .demo-scenarios { padding:0 20px; border-bottom:1px solid var(--border); background:var(--surface); font-size:14px; }
@@ -17,8 +17,8 @@
 .demo-scenario-controls :disabled { opacity:.6; }
 .demo-scenario-content p { margin:0; color:var(--muted-foreground); line-height:1.5; }
 .demo-scenario-content a { width:fit-content; min-height:44px; display:inline-flex; align-items:center; text-decoration:underline; font-weight:600; }
-.demo-scenario-content [role="alert"] { color:var(--destructive); }
-.demo-scenarios :is(button,select,summary,a):focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.demo-scenario-content [role="alert"] { color:var(--status-danger-fg); }
+.demo-scenarios :is(button,select,summary,a):focus-visible { outline:3px solid var(--primary-ink); outline-offset:3px; }
 .demo-loading { min-height:70vh; padding:50px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; }
 .demo-loading h1 { font-size:24px; line-height:1.3; font-weight:600; }
 .demo-loading p { max-width:420px; color:var(--muted-foreground); }

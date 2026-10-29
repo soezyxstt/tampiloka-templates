@@ -5,7 +5,7 @@
     "shortName": "DP",
     "description": "Kopi, sajian hangat, dan waktu yang menyenangkan.",
     "logo": "",
-    "primaryColor": "#A84A30"
+    "primaryColor": "#1746A2"
   },
   "theme": "rounded",
   "modules": ["catalog", "ordering", "payments", "cashier", "kitchen", "dashboard", "tables", "loyalty", "marketing"],
