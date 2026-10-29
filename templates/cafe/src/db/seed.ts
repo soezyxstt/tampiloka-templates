@@ -637,14 +637,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Manual Brew V60 Arabika Garut Kamojang Single Origin Natural',
         slug: 'manual-brew-v60-arabika-garut',
         description: 'Seduhan manual V60 biji kopi Arabika Kamojang Garut dengan karakter rasa buah tropis, teh hitam, dan cokelat manis.',
-        photoUrl: '/images/menu/manual-brew-v60.svg',
+        photoUrl: '/images/menu/photos/v60.jpg',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: [
-            '/images/menu/manual-brew-v60.svg',
-            '/images/menu/manual-brew-v60-2.svg',
-          ],
+          photos: ['/images/menu/photos/v60.jpg'],
         },
         allergensJson: [],
         tagsJson: ['manual brew', 'v60', 'filter', 'arabika', 'garut'],
@@ -664,11 +661,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Teh Melati Dingin Daun Asli',
         slug: 'teh-melati-dingin',
         description: 'Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.',
-        photoUrl: null,
+        photoUrl: '/images/menu/photos/teh.jpg',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: [],
+          photos: ['/images/menu/photos/teh.jpg'],
         },
         allergensJson: [],
         tagsJson: ['teh', 'melati', 'segar', 'non-kopi'],
@@ -712,14 +709,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Nasi Ayam Panggang Rempah Sambal Matah',
         slug: 'nasi-ayam-panggang-rempah',
         description: 'Paha ayam panggang bumbu rempah nusantara dengan nasi putih hangat, lalapan segar, dan sambal pilihan.',
-        photoUrl: '/images/menu/nasi-ayam-rempah.svg',
+        photoUrl: '/images/menu/photos/ayam.jpg',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: [
-            '/images/menu/nasi-ayam-rempah.svg',
-            '/images/menu/nasi-ayam-rempah-2.svg',
-          ],
+          photos: ['/images/menu/photos/ayam.jpg'],
         },
         allergensJson: ['Kemiri', 'Terasi pada sambal'],
         tagsJson: ['nasi', 'ayam', 'sambal matah', 'makan siang'],
@@ -763,11 +757,11 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         name: 'Pisang Goreng Keju Gula Palem',
         slug: 'pisang-goreng-keju',
         description: 'Pisang tanduk goreng tepung renyah dengan taburan keju parut dan gula palem.',
-        photoUrl: null,
+        photoUrl: '/images/menu/photos/pisang.jpg',
         scheduleJson: {
           allDay: true,
           days: [0, 1, 2, 3, 4, 5, 6],
-          photos: [],
+          photos: ['/images/menu/photos/pisang.jpg'],
         },
         allergensJson: ['Susu / Keju', 'Gluten'],
         tagsJson: ['pisang', 'gorengan', 'manis'],
@@ -776,9 +770,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         sortOrder: 7,
         active: true,
       },
-      { id: 'item_cappuccino', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-008', categoryId: 'cat_kopi', stationId: 'st_bar', stationCode: 'BAR', name: "Cappuccino", slug: 'cappuccino', description: "Espresso dan susu kukus dengan lapisan busa lembut.", photoUrl: null, scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: [] }, allergensJson: ["Susu sapi"], tagsJson: ["kopi", "susu", "hangat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 8, active: true },
+      { id: 'item_cappuccino', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-008', categoryId: 'cat_kopi', stationId: 'st_bar', stationCode: 'BAR', name: "Cappuccino", slug: 'cappuccino', description: "Espresso dan susu kukus dengan lapisan busa lembut.", photoUrl: '/images/menu/photos/cappuccino.jpg', scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: ['/images/menu/photos/cappuccino.jpg'] }, allergensJson: ["Susu sapi"], tagsJson: ["kopi", "susu", "hangat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 8, active: true },
       { id: 'item_nasi_goreng', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-009', categoryId: 'cat_makanan', stationId: 'st_kitchen', stationCode: 'KITCHEN', name: "Nasi Goreng Kampung", slug: 'nasi-goreng-kampung', description: "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.", photoUrl: '/images/menu/photos/nasi-goreng.jpg', scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: ['/images/menu/photos/nasi-goreng.jpg'] }, allergensJson: ["Telur", "Kedelai"], tagsJson: ["nasi", "makan siang"], prepMinutes: 8, manualSoldOut: false, sortOrder: 9, active: true },
-      { id: 'item_pain_chocolat', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-0010', categoryId: 'cat_pastry', stationId: 'st_pastry', stationCode: 'PASTRY', name: "Pain au Chocolat", slug: 'pain-au-chocolat', description: "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.", photoUrl: null, scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: [] }, allergensJson: ["Gandum / Gluten", "Susu / Mentega", "Telur"], tagsJson: ["pastry", "cokelat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 10, active: true },
+      { id: 'item_pain_chocolat', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, externalCode: 'M-0010', categoryId: 'cat_pastry', stationId: 'st_pastry', stationCode: 'PASTRY', name: "Pain au Chocolat", slug: 'pain-au-chocolat', description: "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.", photoUrl: '/images/menu/photos/pain-chocolat.jpg', scheduleJson: { allDay: true, days: [0, 1, 2, 3, 4, 5, 6], photos: ['/images/menu/photos/pain-chocolat.jpg'] }, allergensJson: ["Gandum / Gluten", "Susu / Mentega", "Telur"], tagsJson: ["pastry", "cokelat"], prepMinutes: 8, manualSoldOut: false, sortOrder: 10, active: true },
     ]).onConflictDoNothing();
 
     await db.insert(menuVariants).values([

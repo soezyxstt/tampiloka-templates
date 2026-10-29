@@ -35,7 +35,7 @@ export const PRESETS = Object.freeze({
 
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion: 1,
-  brand: { name: 'Dapur Pagi', shortName: 'DP', description: 'Kopi, sajian hangat, dan waktu yang menyenangkan.', logo: '', primaryColor: '#8C3828' },
+  brand: { name: 'Dapur Pagi', shortName: 'DP', description: 'Kopi, sajian hangat, dan waktu yang menyenangkan.', logo: '', primaryColor: '#1746A2' },
   theme: 'rounded',
   modules: Object.keys(MODULES),
   venue: { tenantSlug: 'dapur-pagi', outletSlug: 'dapur-pagi', name: 'Dapur Pagi', address: 'Bandung, Jawa Barat', phone: '' },
@@ -112,7 +112,7 @@ export function validateConfig(input) {
     timezone: string(root.timezone, 'timezone', 80),
     payment: { mode: payment.mode },
   };
-  if (!/^#[0-9a-f]{6}$/i.test(clean.brand.primaryColor)) issues.push('brand.primaryColor must use a six-digit hex color, such as #8C3828.');
+  if (!/^#[0-9a-f]{6}$/i.test(clean.brand.primaryColor)) issues.push('brand.primaryColor must use a six-digit hex color, such as #1746A2.');
   clean.brand.primaryColor = clean.brand.primaryColor.toUpperCase();
   if (clean.brand.logo) {
     const local = /^\/(?!\/)/.test(clean.brand.logo) && !clean.brand.logo.split(/[?#]/)[0].split('/').includes('..') && !clean.brand.logo.includes('\\');
@@ -163,7 +163,7 @@ export function readableAccent(hex) {
   const luminance = values => values.map(value => value / 255)
     .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
     .reduce((total, value, index) => total + value * [0.2126, 0.7152, 0.0722][index], 0);
-  const surfaces = [[255, 255, 255], [247, 245, 241]].map(luminance);
+  const surfaces = [[255, 255, 255], [245, 247, 252], [247, 245, 241]].map(luminance);
   const passes = values => {
     const ink = luminance(values);
     return surfaces.every(surface => (Math.max(ink, surface) + 0.05) / (Math.min(ink, surface) + 0.05) >= 4.5);

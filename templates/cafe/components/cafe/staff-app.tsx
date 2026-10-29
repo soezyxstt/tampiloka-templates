@@ -1699,7 +1699,7 @@ export function StaffApp({
                           setPhotoDraftList(itemPhotos);
                           setNewPhotoUrlInput('');
                         }}
-                        className="relative w-14 h-14 rounded-[10px] overflow-hidden border border-[var(--border)] bg-[#F2EFE9] shrink-0 cursor-pointer group"
+                        className="relative w-14 h-14 rounded-[10px] overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)] shrink-0 cursor-pointer group"
                       >
                         {itemPhotos[0] ? (
                           <Image
@@ -2279,7 +2279,7 @@ export function StaffApp({
                   {newMenuPhotos.map((pUrl, idx) => (
                     <div
                       key={`${pUrl}_${idx}`}
-                      className="relative w-12 h-12 rounded-[6px] overflow-hidden border border-[var(--border)] bg-[#F2EFE9]"
+                      className="relative w-12 h-12 rounded-[6px] overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)]"
                     >
                       <Image
                         src={pUrl}
@@ -2385,7 +2385,7 @@ export function StaffApp({
                     key={`${url}_${idx}`}
                     className="p-2 rounded-[8px] border border-[var(--border)] bg-[var(--background)] space-y-1.5"
                   >
-                    <div className="relative w-full h-16 rounded-[6px] overflow-hidden bg-[#F2EFE9]">
+                    <div className="relative w-full h-16 rounded-[6px] overflow-hidden bg-[var(--surface-muted)]">
                       <Image
                         src={url}
                         alt={`${editingPhotosItem.name} ${idx + 1}`}

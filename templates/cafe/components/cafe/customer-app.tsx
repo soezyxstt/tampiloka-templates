@@ -60,7 +60,6 @@ import {
   BookOpenText,
   ShoppingBag,
   ClipboardList,
-  HandHelping,
 } from 'lucide-react';
 
 const paymentLabel = (state: string) => ({ SETTLED: 'Lunas', PARTIALLY_PAID: 'Dibayar sebagian', REFUND_DUE: 'Menunggu pengembalian', NO_BILL: 'Menunggu tagihan' }[state] || 'Belum dibayar');
@@ -788,7 +787,7 @@ export function CustomerApp({
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
               {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
                 <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
-                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><Receipt className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
+                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
@@ -1027,7 +1026,7 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[#CBDAC8] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[#DFE8DD] cursor-pointer transition-colors"
+                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
@@ -1853,7 +1852,7 @@ export function CustomerApp({
       </AnimatePresence>
 
       <nav className={styles.bottomNav} aria-label="Navigasi pelanggan">
-        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingBag }, { screen: 'pesanan', label: 'Pesanan', icon: ClipboardList }, { screen: 'bantuan', label: 'Panggil pelayan', icon: HandHelping }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingBag }, { screen: 'pesanan', label: 'Pesanan', icon: ClipboardList }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
         <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>Bagikan menu</span></button>
       </nav>
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title="Bagikan menu">

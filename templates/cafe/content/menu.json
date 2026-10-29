@@ -167,8 +167,7 @@
       "name": "Manual Brew V60 Arabika Garut Kamojang Single Origin Natural",
       "description": "Seduhan manual V60 biji kopi Arabika Kamojang Garut dengan karakter rasa buah tropis, teh hitam, dan cokelat manis.",
       "photos": [
-        "/images/menu/manual-brew-v60.svg",
-        "/images/menu/manual-brew-v60-2.svg"
+        "/images/menu/photos/v60.jpg"
       ],
       "allergens": [],
       "tags": [
@@ -204,7 +203,9 @@
       "categoryId": "cat_teh",
       "name": "Teh Melati Dingin Daun Asli",
       "description": "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/teh.jpg"
+      ],
       "allergens": [],
       "tags": [
         "teh",
@@ -290,8 +291,7 @@
       "name": "Nasi Ayam Panggang Rempah Sambal Matah",
       "description": "Paha ayam panggang bumbu rempah nusantara dengan nasi putih hangat, lalapan segar, dan sambal pilihan.",
       "photos": [
-        "/images/menu/nasi-ayam-rempah.svg",
-        "/images/menu/nasi-ayam-rempah-2.svg"
+        "/images/menu/photos/ayam.jpg"
       ],
       "allergens": [
         "Kemiri",
@@ -406,7 +406,9 @@
       "categoryId": "cat_kudapan",
       "name": "Pisang Goreng Keju Gula Palem",
       "description": "Pisang tanduk goreng tepung renyah dengan taburan keju parut dan gula palem.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/pisang.jpg"
+      ],
       "allergens": [
         "Susu / Keju",
         "Gluten"
@@ -435,7 +437,9 @@
       "categoryId": "cat_kopi",
       "name": "Cappuccino",
       "description": "Espresso dan susu kukus dengan lapisan busa lembut.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/cappuccino.jpg"
+      ],
       "allergens": [
         "Susu sapi"
       ],
@@ -493,7 +497,9 @@
       "categoryId": "cat_pastry",
       "name": "Pain au Chocolat",
       "description": "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.",
-      "photos": [],
+      "photos": [
+        "/images/menu/photos/pain-chocolat.jpg"
+      ],
       "allergens": [
         "Gandum / Gluten",
         "Susu / Mentega",

@@ -13,7 +13,7 @@ export const DialogTitle = DialogPrimitive.Title;
 export const DialogDescription = DialogPrimitive.Description;
 
 export const DialogOverlay = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Overlay>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>>(
-  ({ className, ...props }, ref) => <DialogPrimitive.Overlay ref={ref} {...props} data-ui="dialog-overlay" className={cn('fixed inset-0 z-50 bg-[#2C2521]/45 backdrop-blur-sm', className)} />
+  ({ className, ...props }, ref) => <DialogPrimitive.Overlay ref={ref} {...props} data-ui="dialog-overlay" className={cn('fixed inset-0 z-50 bg-[#182334]/45 backdrop-blur-sm', className)} />
 );
 DialogOverlay.displayName = 'DialogOverlay';
 

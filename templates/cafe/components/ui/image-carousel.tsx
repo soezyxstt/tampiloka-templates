@@ -94,7 +94,7 @@ export function ImageCarousel({
       {/* Main Sliding Viewport */}
       <div
         className={cn(
-          'relative w-full overflow-hidden rounded-[12px] bg-[#F2EFE9] border border-[var(--border)] group',
+          'relative w-full overflow-hidden rounded-[12px] bg-[var(--surface-muted)] border border-[var(--border)] group',
           heightClassName
         )}
       >
@@ -287,7 +287,7 @@ export function ThumbnailImageSlider({
   return (
     <div
       className={cn(
-        'w-[92px] h-[92px] sm:w-[104px] sm:h-[104px] relative rounded-[10px] overflow-hidden border border-[var(--border)] bg-[#F2EFE9] shrink-0 group select-none',
+        'w-[92px] h-[92px] sm:w-[104px] sm:h-[104px] relative rounded-[10px] overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)] shrink-0 group select-none',
         className
       )}
     >
