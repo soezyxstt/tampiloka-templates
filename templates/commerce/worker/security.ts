@@ -33,7 +33,13 @@ export function validateModules(config: StoreConfig): void {
   const { taxBps = 0, serviceFeeBps = 0, taxIncluded = false } = config.pricing || {};
   if (![taxBps, serviceFeeBps].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 10000) || typeof taxIncluded !== 'boolean') fail(503,'INVALID_PRICING','Tarif pajak atau layanan tidak valid.');
   const loyalty = config.loyalty;
-  if (loyalty && !Object.values(loyalty).every(n => Number.isSafeInteger(n) && n >= 0 && n <= 100000000)) fail(503,'INVALID_LOYALTY','Aturan poin tidak valid.');
+  if (loyalty) {
+    const values=Object.values(loyalty);
+    if(!values.every(n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000)
+      || !(loyalty.earnSpendIdr>0) || !(loyalty.pointValueIdr>0) || !(loyalty.minRedeemPoints>0)
+      || loyalty.goldSpendIdr<loyalty.silverSpendIdr)
+      fail(503,'INVALID_LOYALTY','Aturan poin tidak valid.');
+  }
 }
 export function requireFeature(cap: Capabilities, key: keyof Capabilities) { if (!cap[key]) fail(403, 'FEATURE_DISABLED', 'Fitur ini tidak tersedia pada tingkat toko yang dipilih.'); }
 export function staff(session: Session, write = false, owner = false): StaffRole {

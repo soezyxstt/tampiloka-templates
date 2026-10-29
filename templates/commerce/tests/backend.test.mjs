@@ -218,6 +218,9 @@ test('optional tax and service fee are quoted by the server and persisted as sep
   const scope=await scopeFor(env,c);const stored=env.DB.db.prepare('SELECT * FROM orders WHERE scope=? AND id=?').get(scope,created.data.id);
   assert.equal(stored.shipping_base_fee,18000);assert.equal(stored.shipping_fee,18000+32571+14805);
   assert.equal(stored.total,stored.subtotal-stored.discount+stored.shipping_fee);
+  const exported=await c.get('/api/staff/export/orders.csv');
+  assert.equal(exported.status,200);assert.match(exported.data,/"Diskon poin","Poin ditukar","Ongkir","Pajak","Pajak termasuk harga","Biaya layanan","Total"/);
+  assert.ok(exported.data.includes('"18000","32571","Tidak","14805","361476"'),'CSV separates fees from shipping and preserves the price snapshot');
   await c.put('/api/staff/settings',{pricing:{taxIncluded:true}});
   const inclusive=await c.post('/api/quote',input);
   assert.equal(inclusive.data.total,328905);assert.equal(inclusive.data.taxAmount,Math.round(296100*1100/11100));
@@ -247,6 +250,13 @@ test('demo email verification owns one member, points earn on completed paid ord
   assert.equal((await customerAction(c,redeemed.data.id,'cancel')).status,200);
   assert.equal((await customerAction(c,redeemed.data.id,'cancel')).status,200);
   assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,32);
+  const secondDevice=client(env,'127.0.0.75');await secondDevice.get('/api/bootstrap');
+  const secondRequest=await secondDevice.post('/api/member/start',{email:'MEMBER@example.com',name:'Pembeli Uji'});
+  assert.equal(secondRequest.status,200);
+  const secondLogin=await secondDevice.post('/api/member/verify',{code:secondRequest.data.demoCode});
+  assert.equal(secondLogin.status,200);assert.equal(secondLogin.data.points,0,'different demo visitors get separate store scopes');
+  assert.notEqual(secondLogin.data.id,verified.data.id);
+  assert.equal((await secondDevice.get('/api/orders/my')).data.orders.length,0,'separate demo visitors cannot see orders');
   const scope=await scopeFor(env,c);
   assert.deepEqual(env.DB.db.prepare('SELECT kind,delta FROM loyalty_entries WHERE scope=? AND order_id=? ORDER BY kind').all(scope,redeemed.data.id).map(row=>({...row})),[{kind:'redeem',delta:-10},{kind:'restore',delta:10}]);
 });

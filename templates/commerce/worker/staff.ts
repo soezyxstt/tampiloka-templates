@@ -121,6 +121,14 @@ export async function saveSettings(env:Env,session:Session,input:Row) {
       updated.pricing!.taxIncluded=input.pricing.taxIncluded;
     }
   }
+  if(input.loyalty!==undefined){
+    if(!input.loyalty||typeof input.loyalty!=='object'||Array.isArray(input.loyalty))fail(422,'INVALID_LOYALTY','Pengaturan poin tidak valid.');
+    const loyalty={...updated.loyalty} as NonNullable<StoreConfig['loyalty']>;
+    const fields=['earnSpendIdr','pointValueIdr','minRedeemPoints','silverSpendIdr','goldSpendIdr'] as const;
+    for(const key of fields)if(input.loyalty[key]!==undefined)loyalty[key]=integer(input.loyalty[key],key,key==='silverSpendIdr'?0:1,100_000_000);
+    if(loyalty.goldSpendIdr<loyalty.silverSpendIdr)fail(422,'INVALID_LOYALTY','Batas Gold harus setidaknya sebesar Silver.');
+    updated.loyalty=loyalty;
+  }
   if(input.shippingMethods!==undefined){
     if(!Array.isArray(input.shippingMethods)||input.shippingMethods.length<1||input.shippingMethods.length>10)fail(422,'INVALID_SHIPPING','Sediakan 1 hingga 10 metode pengiriman.');const ids=new Set<string>();
     updated.shippingMethods=input.shippingMethods.map((method:Row)=>{const methodId=text(method.id,'ID pengiriman',40,true);if(!/^[a-z0-9_-]+$/.test(methodId)||ids.has(methodId))fail(422,'INVALID_SHIPPING','ID metode pengiriman tidak valid atau berulang.');ids.add(methodId);if(typeof method.requiresAddress!=='boolean')fail(422,'INVALID_SHIPPING','Syarat alamat pengiriman harus berupa benar atau salah.');return {id:methodId,name:text(method.name,'Nama layanan',100,true),description:text(method.description,'Keterangan layanan',250),fee:integer(method.fee,'Ongkir',0,1_000_000),estimatedDays:text(method.estimatedDays,'Waktu pengiriman',100),requiresAddress:method.requiresAddress};});
@@ -148,6 +156,14 @@ export async function exportOrders(env:Env,session:Session) {
   staff(session);requireFeature(capabilities(await configFor(env,session)),'reports');
   const rows=await all(env,'SELECT * FROM orders WHERE scope=? ORDER BY created_at DESC LIMIT 10000',session.scope);
   const cell=(value:unknown)=>{let s=String(value??'');if(/^[=+\-@\t\r]/.test(s))s=`'${s}`;return `"${s.replaceAll('"','""')}"`;};
-  const data=[['Nomor','Tanggal','Nama','Telepon','Status','Pembayaran','Metode','Subtotal','Diskon','Ongkir','Total'],...rows.map(r=>{const c=JSON.parse(r.customer_json);return[r.number,r.created_at,c.name,c.phone,r.status,r.payment_status,r.payment_method,r.subtotal,r.discount,r.shipping_fee,r.total];})];
+  const data=[
+    ['Nomor','Tanggal','Nama','Telepon','Status','Pembayaran','Metode','Subtotal','Diskon promo','Diskon poin','Poin ditukar','Ongkir','Pajak','Pajak termasuk harga','Biaya layanan','Total'],
+    ...rows.map(r=>{
+      const c=JSON.parse(r.customer_json);
+      return [r.number,r.created_at,c.name,c.phone,r.status,r.payment_status,r.payment_method,
+        r.subtotal,r.discount-(r.points_discount||0),r.points_discount||0,r.points_redeemed||0,
+        r.shipping_base_fee??r.shipping_fee,r.tax_amount||0,r.tax_included?'Ya':'Tidak',r.service_fee||0,r.total];
+    }),
+  ];
   return '\uFEFF'+data.map(row=>row.map(cell).join(',')).join('\r\n');
 }
