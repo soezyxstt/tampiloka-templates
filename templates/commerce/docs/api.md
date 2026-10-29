@@ -15,6 +15,8 @@ Rupa is a fictional store. The checked-in products, prices, bank details, delive
 | Manual transfer and COD | No | No | Yes | Yes |
 | Coupons, gateway, returns, verified reviews | No | No | No | Yes |
 
+Optional modules can be selected separately through the CLI: promotions, taxes, service-fees, customer-accounts, loyalty-points, membership-tiers. See [optional-modules.md](optional-modules.md) for dependencies, calculation order, OTP setup, and production limitations.
+
 These are server gates, not only hidden buttons. Production reads its level from `COMMERCE_LEVEL` or the generated `config/commerce.json`. A browser cannot elevate a production store through the demo controls. Appearance and feature level are separate.
 
 ## Configuration and bindings
@@ -29,6 +31,7 @@ These are server gates, not only hidden buttons. Production reads its level from
 | `STAFF_OPERATIONS_PASSWORD` | Operations secret, at least 12 characters |
 | `STAFF_VIEWER_PASSWORD` | Read-only staff secret, at least 12 characters |
 | `MIDTRANS_SERVER_KEY` | Server-only Midtrans key; never place it in Vite variables or client code |
+| `RESEND_API_KEY` / `MEMBER_EMAIL_FROM` | Required only when member email login is enabled in production; never sent to clients |
 | `MIDTRANS_ENVIRONMENT` | `production` explicitly selects live endpoints; every other value uses sandbox |
 | `ALLOWED_ORIGIN` | Optional exact Origin validation override for a trusted reverse proxy; this is not a CORS implementation |
 
@@ -63,6 +66,9 @@ Requests and responses use JSON unless noted. Successful bootstrap, quote, order
 | `GET /api/health` | Database reachability and demo mode |
 | `GET /api/bootstrap` | `Bootstrap`: configuration, gated capabilities, catalog, shipping/payment options, session, wishlist, reviews |
 | `GET /api/products` | `{ products, categories }` |
+| `POST /api/member/start` | `{email,name?}` → `{sent,expiresInSeconds}`; returns `demoCode` only when DEMO_MODE=true |
+| `POST /api/member/verify` | `{code}` → verified member summary; binds membership to the current HttpOnly session |
+| `POST /api/member/logout` | Unbinds member from current session (staff session unchanged) |
 | `POST /api/quote` | `QuoteInput` → server-priced `Quote` |
 | `POST /api/orders` | `CreateOrderInput` → `Order`; new orders also return a one-time `trackingCode` |
 | `GET /api/orders/my` | `{ orders }`, latest 100 belonging to the current customer session |
@@ -111,6 +117,8 @@ Demo-only routes: `POST /api/demo/config { level?, preset? }`, `POST /api/demo/r
   "idempotencyKey": "a-new-random-key-for-this-attempt"
 }
 ```
+
+The quote also includes `taxAmount`, `taxIncluded`, `serviceFee`, `pointsRedeemed`, and `pointsDiscount`. New orders snapshot the same values. Tax/fees default to zero and are off unless the module is enabled. See [optional-modules.md](optional-modules.md) for tax bases, point redemption, and the additive D1 migration.
 
 Money uses integer IDR. The server ignores submitted prices and totals other than `expectedTotal`, which acts as a buyer acceptance check. If the computed total differs, checkout returns `409 PRICE_CHANGED`. The server combines repeated variant lines, checks stock, validates quantities, checks the coupon and shipping method, and validates required recipient data.
 

@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties } from 'react';
-import { Manrope, Source_Sans_3 } from 'next/font/google';
+// Use the already-installed local fonts so client builds never depend on Google Fonts uptime.
+import '@fontsource/manrope/600.css';
+import '@fontsource/manrope/700.css';
+import '@fontsource/manrope/800.css';
+import '@fontsource/source-sans-3/400.css';
+import '@fontsource/source-sans-3/500.css';
+import '@fontsource/source-sans-3/600.css';
 import { cafeConfig, getBrandCssVariables } from '@/src/config/cafe';
 import './globals.css';
 import { MotionProvider } from '@/components/ui/motion';
 
-const manrope = Manrope({ subsets: ['latin'], weight: ['600', '700', '800'], display: 'swap', variable: '--font-brand-heading' });
-const sourceSans = Source_Sans_3({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-sans' });
+const fontVariables = { '--font-brand-heading': '"Manrope"', '--font-sans': '"Source Sans 3"' };
 
 export const metadata: Metadata = {
   title: { default: cafeConfig.brand.name, template: `%s | ${cafeConfig.brand.name}` },
@@ -17,7 +22,7 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" data-theme={cafeConfig.theme} className={`${manrope.variable} ${sourceSans.variable}`} style={getBrandCssVariables() as CSSProperties}>
+    <html lang="id" data-theme={cafeConfig.theme} style={{ ...getBrandCssVariables(), ...fontVariables } as CSSProperties}>
       <body className="min-h-screen antialiased"><MotionProvider>{children}</MotionProvider></body>
     </html>
   );

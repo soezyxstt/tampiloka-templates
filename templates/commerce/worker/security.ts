@@ -1,4 +1,4 @@
-import type { CommerceLevel, Capabilities, StaffRole } from '../src/shared/contracts.ts';
+import type { CommerceLevel, Capabilities, StaffRole, StoreConfig, CommerceFeature } from '../src/shared/contracts.ts';
 import type { Env, Session } from './types.ts';
 
 export class HttpError extends Error {
@@ -11,9 +11,35 @@ export const id = () => crypto.randomUUID().replaceAll('-', '');
 export async function digest(value: string, algorithm = 'SHA-256') { return [...new Uint8Array(await crypto.subtle.digest(algorithm, new TextEncoder().encode(value)))].map(x => x.toString(16).padStart(2, '0')).join(''); }
 export function safeEqual(a: string, b: string) { if (a.length !== b.length) return false; let result = 0; for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i); return result === 0; }
 export const isDemo = (env: Env) => env.DEMO_MODE === 'true';
-export function capabilities(level: CommerceLevel): Capabilities {
+export const featureKeys: CommerceFeature[] = ['promotions','taxes','serviceFees','customerAccounts','loyaltyPoints','membershipTiers'];
+export function capabilities(input: CommerceLevel | StoreConfig): Capabilities {
+  const level = typeof input === 'string' ? input : input.level;
+  const modules = typeof input === 'string' ? undefined : input.modules;
   const checkout = level === 'store' || level === 'advanced'; const advanced = level === 'advanced';
-  return { catalog: true, cart: level !== 'catalog', whatsapp: level === 'whatsapp', checkout, orders: checkout, inventory: checkout, coupons: advanced, gateway: advanced, returns: advanced, reviews: advanced, wishlist: level !== 'catalog', reports: checkout };
+  // Existing deployments without a module manifest retain their original coupon gate.
+  const enabled = (name: CommerceFeature, fallback = false) => checkout && (modules?.[name] ?? fallback);
+  const customerAccounts = enabled('customerAccounts');
+  const loyaltyPoints = customerAccounts && enabled('loyaltyPoints');
+  return { catalog: true, cart: level !== 'catalog', whatsapp: level === 'whatsapp', checkout, orders: checkout, inventory: checkout,
+    coupons: enabled('promotions',advanced), gateway: advanced, returns: advanced, reviews: advanced, wishlist: level !== 'catalog', reports: checkout,
+    taxes: enabled('taxes'), serviceFees: enabled('serviceFees'), customerAccounts, loyaltyPoints,
+    membershipTiers: loyaltyPoints && enabled('membershipTiers') };
+}
+export function validateModules(config: StoreConfig): void {
+  const modules = config.modules || {};
+  for (const key of Object.keys(modules)) if (!featureKeys.includes(key as CommerceFeature) || typeof modules[key as CommerceFeature] !== 'boolean') fail(503,'INVALID_MODULES','Konfigurasi modul toko tidak valid.');
+  if (modules.loyaltyPoints && !modules.customerAccounts) fail(503,'INVALID_MODULES','Poin membutuhkan akun pelanggan dan checkout.');
+  if (modules.membershipTiers && !modules.loyaltyPoints) fail(503,'INVALID_MODULES','Tingkat member membutuhkan modul poin.');
+  const { taxBps = 0, serviceFeeBps = 0, taxIncluded = false } = config.pricing || {};
+  if (![taxBps, serviceFeeBps].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 10000) || typeof taxIncluded !== 'boolean') fail(503,'INVALID_PRICING','Tarif pajak atau layanan tidak valid.');
+  const loyalty = config.loyalty;
+  if (loyalty) {
+    const values=Object.values(loyalty);
+    if(!values.every(n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000)
+      || !(loyalty.earnSpendIdr>0) || !(loyalty.pointValueIdr>0) || !(loyalty.minRedeemPoints>0)
+      || loyalty.goldSpendIdr<loyalty.silverSpendIdr)
+      fail(503,'INVALID_LOYALTY','Aturan poin tidak valid.');
+  }
 }
 export function requireFeature(cap: Capabilities, key: keyof Capabilities) { if (!cap[key]) fail(403, 'FEATURE_DISABLED', 'Fitur ini tidak tersedia pada tingkat toko yang dipilih.'); }
 export function staff(session: Session, write = false, owner = false): StaffRole {
