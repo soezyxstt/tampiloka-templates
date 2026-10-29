@@ -154,3 +154,9 @@ Galeri memakai Cloudflare Workers Static Assets pada `templates.tampiloka.site`.
 5. Ubah status menjadi `available` setelah proyek hasil CLI juga bisa berjalan.
 
 Jangan memindahkan aturan bisnis cafe ke paket global untuk dipakai commerce. Bagikan komponen dan fungsi yang benar-benar sama; simpan transaksi serta aturan tiap sistem di templatenya.
+
+### Deployment otomatis demo
+
+Push ke `main` memicu Pages untuk cafe jika file cafe atau konfigurasi workspace berubah. Build watch paths diatur pada project Cloudflare `tampiloka-cafe-demos`. Galeri dan commerce menggunakan workflow `.github/workflows/deploy-workers.yml`; masing-masing dideploy hanya jika direktori atau paket bersama yang dipakainya berubah. Perubahan lockfile dan konfigurasi workspace memicu keduanya. Workflow juga dapat dijalankan manual dari Actions untuk memulihkan deployment yang gagal.
+
+Workflow Workers membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang deploy Workers dan mengelola domain terkait. Perubahan skema D1 harus diterapkan secara terpisah sebelum deploy commerce jika diperlukan; workflow tidak menjalankan migrasi database otomatis. Deployment berjalan terpisah dari workflow verifikasi, jadi pantau hasil keduanya.
