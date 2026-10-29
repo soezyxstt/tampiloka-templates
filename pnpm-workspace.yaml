@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+  - templates/*
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
+  - unrs-resolver
+  - workerd
+
+linkWorkspacePackages: true

@@ -1,0 +1,12 @@
+{
+  "$schema": "../../packages/registry/template.schema.json",
+  "schemaVersion": 1,
+  "id": "cafe",
+  "name": "Cafe & resto",
+  "status": "available",
+  "description": "Menu, pesanan dari meja, kasir, dapur, dan operasional.",
+  "defaultPreset": "catalog",
+  "presets": ["catalog","order-at-cashier","order-and-pay","cashier","cashier-kitchen","operations","menu-cashier","menu-order-cashier","full"],
+  "sharedPackages": [],
+  "demoUrl": "https://cafe.tampiloka.site"
+}

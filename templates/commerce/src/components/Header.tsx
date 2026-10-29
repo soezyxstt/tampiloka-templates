@@ -1,0 +1,12 @@
+import { ContactAction } from './ContactAction';
+import { Heart, Menu, Package, Search, ShoppingBag, X } from 'lucide-react';
+import { useState } from 'react';
+import { useCommerce } from '../lib/store';
+import { IconButton, Modal } from './ui';
+
+export function Header() {
+  const { data, cart, setCartOpen, navigate, view } = useCommerce(); const [menu, setMenu] = useState(false);
+  if (!data) return null;
+  const count = cart.reduce((sum, line) => sum + line.quantity, 0);
+  return <><header className="store-header"><button className="brand" onClick={() => navigate('shop')} aria-label={`${data.config.brand.name}, beranda`}>{data.config.brand.name}<span className="brand-period">.</span></button><nav aria-label="Navigasi toko" className="desktop-nav"><button className={view === 'shop' ? 'active' : ''} onClick={() => { navigate('shop'); requestAnimationFrame(() => document.querySelector('#collection')?.scrollIntoView({ behavior: 'smooth' })); }}>Koleksi</button><button onClick={() => { navigate('shop'); requestAnimationFrame(() => document.querySelector('#about')?.scrollIntoView({ behavior: 'smooth' })); }}>Tentang {data.config.brand.name}</button>{data.capabilities.orders && <button onClick={() => navigate('orders')} className={view === 'orders' ? 'active' : ''}>Pesanan saya</button>}</nav><div className="header-tools">{data.capabilities.wishlist && <IconButton label="Produk tersimpan" onClick={() => navigate('wishlist')}><Heart size={20} /></IconButton>}{data.capabilities.orders && <IconButton label="Pesanan saya" className="mobile-orders" onClick={() => navigate('orders')}><Package size={20} /></IconButton>}{data.capabilities.cart && <button className="cart-button" onClick={() => setCartOpen(true)} aria-label={`Keranjang, ${count} produk`}><ShoppingBag size={20} /><span>{count}</span></button>}<IconButton label="Buka menu" className="mobile-menu" onClick={() => setMenu(true)}><Menu size={22} /></IconButton></div></header><Modal open={menu} onClose={() => setMenu(false)} title="Menu"><nav className="mobile-navigation"><button onClick={() => { navigate('shop'); setMenu(false); }}>Semua koleksi</button>{data.capabilities.orders && <button onClick={() => { navigate('orders'); setMenu(false); }}>Pesanan saya</button>}{data.capabilities.wishlist && <button onClick={() => { navigate('wishlist'); setMenu(false); }}>Produk tersimpan</button>}<ContactAction>Hubungi toko</ContactAction></nav></Modal></>;
+}

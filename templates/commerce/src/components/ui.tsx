@@ -1,0 +1,20 @@
+import { Button as CoreButton, Dialog as CoreDialog, Input, NativeSelect as Select, Textarea } from '@tampiloka/ui-core';
+export { Input, Select, Textarea };
+import { forwardRef, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Check, LoaderCircle, Minus, Plus, X } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
+
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' | 'danger'; loading?: boolean; compact?: boolean }>(function Button({ variant = 'primary', loading, compact, children, className = '', disabled, ...props }, ref) {
+  return <CoreButton ref={ref} variant={variant === 'primary' ? 'solid' : variant === 'secondary' ? 'outline' : variant === 'quiet' ? 'ghost' : 'danger'} size={compact ? 'sm' : 'md'} className={`button button-${variant} ${compact ? 'button-compact' : ''} ${className}`} disabled={disabled || loading} {...props}>{loading && <LoaderCircle size={16} className="spin" aria-hidden="true" />}{children}</CoreButton>;
+});
+export function IconButton({ label, children, className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) { return <CoreButton variant="ghost" size="icon" className={`icon-button ${className}`} {...props} aria-label={label} title={label}>{children}</CoreButton>; }
+export function Modal({ open, onClose, title, description, children, size = 'regular', className = '' }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; size?: 'regular' | 'wide' | 'drawer'; className?: string }) {
+  return <CoreDialog open={open} onOpenChange={value => !value && onClose()} title={title} description={description || title} className={`modal modal-${size} ${className} ${description ? '' : 'hide-description'}`}>{children}</CoreDialog>;
+}
+export function Field({ label, help, children, className = '' }: { label: string; help?: string; children: ReactNode; className?: string }) { return <label className={`field ${className}`}><span>{label}</span>{children}{help && <small>{help}</small>}</label>; }
+export function Quantity({ value, onChange, max = 99, min = 1, label = 'Jumlah' }: { value: number; onChange: (value: number) => void; max?: number; min?: number; label?: string }) { return <div className="quantity" role="group" aria-label={label}><IconButton label={`Kurangi ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(value - 1)}><Minus size={15} /></IconButton><output aria-live="polite">{value}</output><IconButton label={`Tambah ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(value + 1)}><Plus size={15} /></IconButton></div>; }
+export function ProductImage({ src, alt, className = '', loading = 'lazy' }: { src?: string; alt: string; className?: string; loading?: 'eager' | 'lazy' }) { const [failed, setFailed] = useState(false); useEffect(() => setFailed(false), [src]); return src && !failed ? <img src={src} alt={alt} className={className} loading={loading} onError={() => setFailed(true)} /> : <span className={`image-fallback ${className}`} role="img" aria-label={alt}>{alt}</span>; }
+export function EmptyState({ icon, title, description, action }: { icon?: ReactNode; title: string; description: string; action?: ReactNode }) { return <div className="empty-state">{icon}<h2>{title}</h2><p>{description}</p>{action}</div>; }
+export function InlineError({ children }: { children: ReactNode }) { return children ? <p className="inline-error" role="alert">{children}</p> : null; }
+export function PageMotion({ children, className = '' }: { children: ReactNode; className?: string }) { const reduced = useReducedMotion(); return <motion.div className={className} initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .22 }}>{children}</motion.div>; }
+export function SuccessMark() { return <span className="success-mark"><Check size={24} strokeWidth={1.7} aria-hidden="true" /></span>; }

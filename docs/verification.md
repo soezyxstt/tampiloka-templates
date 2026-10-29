@@ -1,141 +1,81 @@
-# Verification and delivery record
+# Hasil verifikasi monorepo
 
-Verified on 28 October 2026 against the reusable cafe template implementation. Local tools: Node.js 24.22.1, Next.js 15.5.28, Playwright 1.56.1 and Chromium. The repository CI configuration uses Node.js 22. The original showcase release is recorded in [PR #1](https://github.com/soezyxstt/cafe-template/pull/1); the lifecycle corrections described below supersede its narrower operational coverage.
+Tanggal pemeriksaan: 29 Oktober 2026. Dokumen ini mencatat pemeriksaan yang sudah berjalan pada pekerjaan migrasi cafe dan penambahan commerce. Commit rilis dan hasil deploy akhir perlu dipadankan dengan bukti setelah publikasi selesai.
 
-## Version 0.3.1: complete visit lifecycle
+## Commerce
 
-The release verifies explicit seating through departure and cleaning, with backend guards and actual customer/staff UI interaction. The [lifecycle guide](lifecycle.md) contains the reproducible data matrix and operating instructions.
-
-| Gate | Verified result | Coverage |
+| Pemeriksaan | Hasil | Cakupan dan bukti |
 | --- | --- | --- |
-| Core suite | 91 tests passed | 19 config/CLI, 10 catalog, 30 domain/capability/billing, and 32 database tests including 30 lifecycle scenario subtests |
-| Browser adapter and mock-state suite | 22 tests passed | Existing crypto/schema/durability checks plus all 14 mock states, module restrictions and invalid-loader preservation |
-| Final lifecycle browser run | 11 cases / 24 checks passed | Prepay, pay later, add-on, partial cash/change, cancelled/successful QR, kitchen, takeaway, rejection, immediate/deferred refund, split/merge, manager exception, external counter, private waitlist and all mock states |
-| Final preset browser run | Nine presets / 37 checks passed | Mobile customer, tablet staff, module gates, images and connected UI workflows |
-| Generated client HTTP tests | 10/10 passed | All nine presets and catalog-only without database credentials |
-| Fresh catalog client core suite | 91 tests passed | Inherited backend fixtures run independently from the client's selected modules |
-| Build and static checks | Passed | TypeScript, ESLint, Next.js production build and Vite showcase build |
+| SQL, transaksi, dan API Worker | **25 tes lulus** | Schema/trigger nyata melalui adapter D1 di SQLite; [tes backend](../templates/commerce/tests/backend.test.mjs) |
+| TypeScript backend | **Lulus** | Pemeriksaan ketat pada seluruh Worker |
+| API Worker lokal | **9 skenario lulus** | `http://127.0.0.1:4174`; mencakup pemulihan percobaan checkout; `templates/commerce/test-results/local-api.json` |
+| API domain publik, build final | **9 skenario lulus** | `https://ecommerce.tampiloka.site`; `templates/commerce/test-results/live-api.json`; termasuk endpoint pemulihan checkout, diverifikasi 29 Oktober 2026 05:11 UTC |
+| Alur browser lokal | **9 pemeriksaan lulus** | Pembeli dan staf memakai Worker/D1 yang berjalan; `templates/commerce/test-results/browser/report.json`; tidak ada galat runtime browser selama alur tersebut |
+| Tampilan responsif | **24 tampilan lulus pemeriksaan otomatis** | Empat preset, lebar 320/390/768/1440 piksel, serta sebagian kombinasi dengan gerak dikurangi; `templates/commerce/test-results/visual/report.json` |
 
-The final local browser runs used `/assets/index-DsNKL03W.js` and confirmed that all 89 application/configuration source files remained unchanged during verification. The lifecycle run covered customer width 390 px and staff width 1024 px. Both browser suites recorded zero page errors, console errors and attempted network mutations. Reports are generated at `test-results/lifecycle-final/` and `test-results/demos-final/`, not committed as screenshot archives.
+Tes backend mencakup pembatas level/peran, privasi antar sesi, penolakan asal situs lain, harga dari server, total yang disetujui pembeli, kupon, idempotensi, stok yang diperebutkan serentak, pembatalan seluruh transaksi bila satu barang gagal, COD, transfer manual, pengiriman, ulasan, retur, refund, tracking lintas perangkat, dan pembersihan data kedaluwarsa. Tes laporan memakai lebih dari 250 pesanan untuk memastikan angka toko tidak terpotong oleh ukuran halaman.
 
-Backend cases also cover conflicting seating/acceptance/departure, stale quote reuse across table generations, invalid cleanup/enable actions, waitlist ownership/capacity/expiry, private ticket privacy, invalid payment policies, rejected cash-out, modifier stock, multiple-receipt refunds, no-open-drawer rollback, and funding dependencies after split/merge. A floor-plan draft cannot change live geometry; publication is blocked while the room is occupied.
+Tes API lokal dan publik memakai ruang demo terpisah. Keduanya memeriksa beberapa barang dalam satu checkout, verifikasi transfer, proses pengiriman, penerimaan, ulasan, retur/refund, isolasi data, stok D1, pembatas peran, dan hasil pembayaran gateway demo. Run lokal terbaru juga memeriksa `GET /api/orders/attempt/:key` dan mencatat reset data uji berhasil.
 
-The CI workflow now installs Chromium and runs both browser suites against its own built artifact. JSON reports and screenshots are retained as the **cafe-browser-verification** artifact. Public-domain checks are repeated after merge/deployment; the release PR records the exact commit, CI runs and Pages deployment.
+**Status endpoint pemulihan:** tes SQL/Worker, API lokal, dan API domain publik sudah lulus. Run publik final mencatat `includesAttemptRecovery: true` dan `cleanup.success: true`. UI pemulihan tersimpan/belum tersimpan juga lulus dua skenario, masing-masing menghasilkan tepat satu pesanan.
 
-The [Figma lifecycle review](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=169-4063) adds five component families with 11 states to the existing v2 page, reusing its variables, text styles, buttons and fields.
+Tes browser lokal meliputi pencarian kosong/reset, wishlist, pemilihan varian, keranjang, kupon, ongkir, checkout manual, pelacakan dengan kode pada perangkat lain, pekerjaan staf, penerimaan barang, ulasan, retur, refund, gateway demo, dan pesan WhatsApp yang dapat ditinjau tanpa mengirimkannya.
 
-## Version 0.3.0: public showcase and cleanup verification
+Pemindaian aksesibilitas awal dengan axe tidak menemukan pelanggaran otomatis pada dua ukuran yang diperiksa. Namun, pemeriksaan kontras untuk satu elemen dengan pseudo-element masih berstatus `incomplete`. Ini bukan klaim kepatuhan WCAG penuh. Hasil rinci ada di `templates/commerce/test-results/visual/accessibility.json`; pemeriksaan manual dan keadaan dialog tetap memiliki cakupan tersendiri.
 
-The public showcase reuses the application UI and domain service, with a browser-local database adapter for Cloudflare Pages. It does not use a shared public transaction database or collect real payments.
+## Monorepo, CLI, showcase, dan cafe
 
-| Check | Result | Coverage |
-| --- | --- | --- |
-| Current core suite | 51 tests pass | 19 config/CLI, 10 catalog, 21 domain/capability, and one isolated database integration scenario |
-| Browser adapter unit suite | 5 tests pass | Node-compatible hashes and IDs, generated schema freshness, strict persistence acknowledgement and storage failure handling |
-| Browser runtime integration | 6 workflow groups pass | Cross-tab idempotent order submission, simulated settlement, kitchen, discounted POS, cash/change, shifts, persistence after leader closure, independent visitors and reset |
-| All preset Pages browser suite | 9 presets and 37 checks pass | Actual static Pages server, customer width 390, staff width 1024, module controls, images, and complete UI workflows |
-| Public hub review | Pass | Nine package cards, customer/staff filters, all five theme previews, local links, phone/desktop layout and keyboard navigation |
-| Fresh independent client | Pass | Actual locked installation, typecheck, lint, 51 core tests and Next production build after showcase dependencies/source are excluded |
-| Production builds | Pass | Main Next.js application and static Vite showcase |
-| TypeScript and ESLint | Pass | Final runtime, application, showcase, scripts and tests |
-
-The all-preset suite tested actual UI order submission, staff acceptance in a second tab, simulated QR settlement, a two-line POS order with a Rp5,000 discount, reload/shared-bill persistence and toolbar reset. It reported zero page errors, console/CSP errors, broken visible images or network mutation requests. The catalog does not initialize the browser database. Browser evidence is generated locally at `test-results/demos/demos-browser.json` and is excluded from version control.
-
-The isolated production runtime harness measured cold initialization at 2.496 seconds, warm snapshots at 79–112 ms and ordinary commands at 87–134 ms. These are local measurements, not network performance guarantees. Complete domain operations execute inside one elected database worker; each action awaits a strict IndexedDB flush before returning. The tests also close the leader tab and reload to verify persistence.
-
-The fresh client installation contains no Vite, Wrangler, Miniflare, Workerd, showcase font packages or browser crypto helper package. Its lockfile retains only the reachable dependency graph, preserving pinned versions. The source repository's additional CI demo steps use `--if-present`, so the same workflow remains valid after scaffolding.
-
-Run commands and public addresses are documented in the [showcase guide](demos.md). The earlier implementation checks below describe the template before adding the public showcase and remain useful as historical coverage.
-
-## Template v2 implementation checks
-
-| Check | Result | Coverage |
-| --- | --- | --- |
-| TypeScript | Pass | Application, CLI declarations, server routes and catalog types |
-| ESLint | Pass, no errors or warnings | Source and scripts; the one-time browser storage hydration has a narrow documented exception |
-| Config and CLI | 18 tests pass | All 512 module combinations; presets, themes, contrast, invalid input, safe scaffolding, no overwrite, no secret/database copy, exact CI-file allowlist |
-| Static catalog | 10 tests pass | Public content validation, default variants, availability, QR identifiers, public export and runtime boundary |
-| Domain and capabilities | 21 tests pass | Money, charges, cash/change, stock, kitchen transitions, enabled modules and customer/staff command restrictions |
-| Isolated database integration | 1 scenario passes | Real quote, POS discount, idempotent submission/acceptance, cash receipts, insufficient cash, active external attempt, demo settlement, invalid backward kitchen transition and changed prices |
-| Generated client integration | All 9 demo presets pass | Separate client directories and databases, enabled/disabled routes, public snapshots, QR entry, ordering and cashier workflows |
-| Database-free catalog HTTP | Pass | Home and valid QR 200; invalid QR, staff page and staff snapshot 404; mutations blocked; no database directory created |
-| Production builds | Pass | Main full-demo configuration and a fresh catalog client |
-| Full demo browser | 9 checks pass | Tested against the built production server, not just a development render |
-| Static catalog browser | 5 checks pass | Phone layout, read-only item details, QR sharing, no-table fallback and absence of database access |
-
-The database test deliberately logs rejected invalid operations; those expected errors are covered by assertions. These are not failing test results.
-
-## Browser journeys
-
-The full demo check creates fictional test orders and verifies:
-
-1. Mobile search, empty results and reset.
-2. QR menu → item options → cart → customer name → server price review → submission, without requiring GPS again for a valid table QR.
-3. Staff acceptance creates an order and bill.
-4. Online checkout creates a clearly labeled, nonpayable demo QR and remains pending.
-5. A shared bill URL opens the matching payment screen on its first render.
-6. The staff simulation records settlement for that exact bill.
-7. A two-item POS order applies a Rp5,000 discount after server review.
-8. All five themes render at 390 px without document overflow or broken images.
-9. No browser page errors occur.
-
-The static catalog check runs in a fresh CLI-generated client at 390 × 844. It checks sample-content and manual-availability labels, item descriptions/variants, absent order/cart/staff controls, a valid table QR, and a copied menu link. With an empty table list, both header and profile show venue information instead of an invented table; sharing opens the root menu. No database is created.
-
-Independent visual review covered customer screens at 390 × 844 and staff screens at 1024 × 768. It identified and corrected crowded phone header actions, an oversized mobile introduction, truncated tablet bill identities, and a clipped cash-payment amount. Tablet navigation now uses the top bar below 1280 px. The final payment action fits its full amount, and document width matches viewport width.
-
-Earlier responsive checks also exercised customer widths 320, 768 and 1440 and the desktop staff view. The retained final images below are the focused phone/tablet review and the production browser journeys; they should be used for the current visual handoff.
-
-## Repository cleanup
-
-The cleanup was measured against [commit `7fb253d`](https://github.com/soezyxstt/cafe-template/commit/7fb253d648ebe015fdd82f786de3ea4ae6a793d8). It removes **448 obsolete files totaling 77.20 MB** from the current file tree: **98.01%** of that revision's 78.76 MB of uncompressed file content. This measures the checked-out files, not Git's compressed storage; the historical revision remains available.
-
-| Removed material | Files | Uncompressed size |
-| --- | ---: | ---: |
-| AI Studio temporary captures | 69 | 6.99 MB |
-| Historical benchmark gallery | 62 | 20.01 MB |
-| Earlier application screenshots | 48 | 5.06 MB |
-| Earlier UI test gallery and duplicate ZIP | 243 | 43.75 MB |
-| Generated verification images and results | 18 | 1.05 MB |
-| Unused Firebase/AI Studio setup, responsive helper, old ESLint config, duplicate Bun lockfile, and superseded Python check | 8 | 0.33 MB |
-
-Active application code, domain/database logic, CLI and automated tests, the npm lockfile, public content, and all nine source menu illustrations are retained. [Benchmark notes](benchmark-notes.md) preserve the design observations. Evidence links below point to the historical revision so new client projects and deployments do not need to carry screenshot archives.
-
-## Historical evidence
-
-The following evidence records the verified implementation at commit `7fb253d`. Links are pinned to that revision. Generated screenshots and test output were removed from the reusable source tree during repository cleanup; current checks write fresh local output under `test-results/`.
-
-- [Machine-readable verification summary](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/verification-summary.json)
-- [Production browser results](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/browser-workflows.json)
-- [Static catalog browser results](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/static-catalog/static-catalog-browser.json)
-- [Fresh catalog production build/start result](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/static-catalog/catalog-production.json)
-- [Independent phone/tablet geometry review](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-review/final-review.json)
-
-| View | Screenshot |
+| Pemeriksaan | Hasil |
 | --- | --- |
-| Customer phone | [390 px menu](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-review/final-customer-390-viewport.png) |
-| Cashier tablet | [1024 px workspace](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-review/final-staff-1024.png) |
-| Real static catalog | [Generated client](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/static-catalog/catalog-mobile.png) |
-| Checkout | [Cart and price review](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/customer-cart.png) |
-| Payment simulation | [Explicit demo QR](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/customer-payment-demo.png) |
-| Multi-item POS | [Server-reviewed order](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/cashier-order-review.png) |
-| Themes | [Boxy](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-boxy-mobile.png), [Rounded](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-rounded-mobile.png), [Editorial](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-editorial-mobile.png), [Playful](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-playful-mobile.png), [Airy](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-airy-mobile.png) |
+| Instalasi workspace dengan pnpm 10.28.2 dan lockfile tetap | Lulus pada 10 proyek workspace |
+| Tes CLI | **7 lulus** |
+| Tes registry | **6 lulus** |
+| Arsip CLI dipasang di luar repo | Lulus; menghasilkan proyek cafe dan commerce tanpa bergantung pada checkout sumber |
+| Proyek commerce hasil CLI | Instalasi, typecheck, build frontend, dan build Worker lulus di luar monorepo |
+| Showcase | Typecheck dan build lulus |
+| Browser showcase | Lulus pada lebar 320/390/768/1440; 13 demo, filter, pencarian, reset, tautan level, tanpa galat runtime atau halaman melebar |
+| Cafe | Typecheck dan build demo lulus |
+| Tes inti cafe | **97 lulus** |
+| Browser cafe: gerak | **25 pemeriksaan lulus** |
+| Browser cafe: UI ringkas | **40 pemeriksaan lulus** |
+| Browser cafe: tata letak staf | **176 pemeriksaan lulus** pada sembilan preset |
+| Browser cafe: preset | **39 pemeriksaan lulus**, sembilan dari sembilan preset |
+| Browser cafe: siklus pesanan | **25 pemeriksaan lulus**, 12 dari 12 kasus |
 
-The isolated catalog production record includes a warning from the inherited `output: 'standalone'` configuration. That setting was subsequently removed so `npm start` is the correct runner. The final main build and production browser suite passed with the corrected configuration; the older isolated record is annotated, not rewritten to imply an unperformed rerun.
+CLI juga diperiksa terhadap opsi tidak valid, template yang masih direncanakan, tujuan yang sudah ada, traversal path, symlink, dan dry run. Hasil generator memakai paket bersama melalui dependensi `file:`, mode produksi, ID D1 kosong, serta tidak menyalin secret lokal atau konfigurasi demo Tampiloka. Rincian pemeriksaan monorepo ada di [monorepo-verification.md](monorepo-verification.md).
 
-## Figma handoff
+## Batas bukti pembayaran dan integrasi
 
-The existing [Design Kit](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=116-43) now has a dedicated **12 Cafe Template v2** page. Original pages are preserved. Readback confirmed 80 variables across three collections, 11 text styles, nine UI component families with 44 main variants, five phone screens, three staff screens, and three editable source illustrations. The latest ink token is shared with the runtime's readable custom-brand treatment.
+Midtrans sudah memiliki adapter server dan tes dengan respons provider terkontrol: pembuatan checkout, signature webhook, pemeriksaan status langsung, kecocokan jumlah uang, pengiriman ulang/perubahan urutan notifikasi, kegagalan gateway, dan refund yang menunggu konfirmasi provider. **Kredensial merchant, transaksi sandbox merchant, pembayaran nyata, dan penerimaan uang nyata belum diuji dalam sesi ini.** Pembayaran pada demo hanya simulasi.
 
-The kit contains editable text, vectors, variables and components. Its source map is documented in [design-system.md](design-system.md). This is an explicit design/implementation contract, not automatic two-way synchronization. Figma's editorial font is Lora because Georgia is unavailable in the connected font inventory; the code uses Georgia. That substitution is documented.
+Pengiriman memakai tarif tetap yang diatur toko serta resi yang diisi staf. Tes ini tidak membuktikan integrasi ongkir, pembelian label, atau pelacakan otomatis dari kurir. Transfer manual memakai referensi teks. Refund manual memerlukan pengiriman uang di luar aplikasi sebelum staf mencatatnya.
 
-## Practical limits
+## Ulangi pemeriksaan
 
-The read-only catalog can serve a real client's reviewed content now. Transactional modules are working local demos and remain gated behind `CAFE_DEMO_DB=1`. The sample staff PINs are not authentication, customer identities are not signed production sessions, and online settlement is simulated. The unsigned webhook is blocked.
+Dari akar monorepo:
 
-A live ordering installation needs authenticated staff/customer sessions, enforced roles and outlet ownership, a private durable database with migrations/backups, and a verified payment adapter. A member/loyalty rollout also needs real identity and OTP integration. Reports show sales and receipts, not profit or a full accounting ledger. The fixture assumes one client per database.
+```sh
+pnpm verify
+pnpm test:showcase
+pnpm --filter @tampiloka/template-cafe test:demo-all
+```
 
-The automated UI run uses Chromium. Safari, Firefox, physical QR scanners, receipt printers, network-loss reconciliation across devices, and real provider settlement have not been verified. Check those against the chosen client's deployment and hardware. Configuration validation and readable color tokens improve reuse; they do not constitute a complete accessibility or security certification.
+Untuk commerce, jalankan preview pada terminal lain, lalu tes API dan browser:
 
-## Repeat the checks
+```sh
+pnpm --filter @tampiloka/template-commerce build
+pnpm --filter @tampiloka/template-commerce preview
+```
 
-See [scripts/README.md](../scripts/README.md#verification) for commands. `npm test` is isolated from client databases. `npm run test:presets` creates and cleans temporary projects. `npm run test:browser` intentionally writes demo orders and simulated payments, so point it only at a dedicated full-service demo. The browser suite rejects a snapshot that is not explicitly marked as a demo.
+Dari folder `templates/commerce`:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/backend.test.mjs
+pnpm test:e2e
+node tests/backend-live.mjs http://127.0.0.1:4174 --report test-results/local-api.json
+node tests/backend-live.mjs https://ecommerce.tampiloka.site --report test-results/live-api.json
+```
+
+Jika lingkungan Node memakai proxy dari variabel lingkungan, gunakan dukungan proxy bawaan Node 24, misalnya `NODE_USE_ENV_PROXY=1`, tanpa menghapus konfigurasi proxy. Skrip API live menolak target yang bukan demo dan mereset ruang datanya setelah pemeriksaan.
+
+Folder `test-results` berisi keluaran uji lokal dan tidak otomatis masuk commit. Dokumen ini dan skrip pengujian menjadi catatan yang ikut sumber; lampirkan atau simpan laporan hasil sesuai kebutuhan rilis. Jangan menyertakan cookie, kata sandi, kode tracking, atau identitas penerima ketika membagikan bukti.

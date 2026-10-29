@@ -1,0 +1,4 @@
+{
+  "name": "@tampiloka/config", "version": "1.0.0", "private": true,
+  "files": ["tsconfig.base.json"], "exports": { "./tsconfig.base.json": "./tsconfig.base.json" }
+}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-worker/
+.data/
+.wrangler/
+.turbo/
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+*.log
+*.tsbuildinfo
+test-results/
+playwright-report/
+coverage/
+.DS_Store

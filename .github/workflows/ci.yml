@@ -1,4 +1,4 @@
-name: Verify template
+name: Verify Tampiloka templates
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       live_layout:
-        description: "Check staff layouts on the deployed tampiloka.site demos only"
+        description: Check deployed cafe staff layouts
         type: boolean
         required: false
         default: false
@@ -22,47 +22,65 @@ jobs:
   verify:
     if: github.event_name != 'workflow_dispatch' || inputs.live_layout != true
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
-      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
-      - name: Check out repository
+      - name: Check out source
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: "22"
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked workspace
+        run: pnpm install --frozen-lockfile
+      - name: Test registry and standalone client generation
+        run: pnpm test:registry && pnpm test:cli
+      - name: Test cafe transactions and runtime
+        run: pnpm --filter @tampiloka/template-cafe test && pnpm --filter @tampiloka/template-cafe test:demo-runtime
+      - name: Test commerce permissions, pricing, stock and payments
+        run: pnpm --filter @tampiloka/template-commerce test
       - name: Check types
-        run: npm run typecheck
-      - name: Lint
-        run: npm run lint
-      - name: Test config, catalog, domain, database and shared UI contracts
-        run: npm test
-      - name: Test browser demo adapters when included
-        run: npm run test:demo-runtime --if-present
-      - name: Build application
-        run: npm run build
-      - name: Build public demos when included
-        run: npm run demos:build --if-present
-      - name: Install Chromium for public demo acceptance tests
-        if: hashFiles('demos/manifest.ts') != ''
-        run: npx playwright install --with-deps chromium
-      - name: Verify compact interactions, layouts, presets and customer/staff lifecycle
-        run: npm run test:demo-all --if-present
-      - name: Verify matching Cloudflare assets, live UI and catalog handoff
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('demos/manifest.ts') != ''
-        run: node --experimental-strip-types scripts/demos-live-verify.mjs
-      - name: Keep browser verification evidence
-        if: always() && hashFiles('test-results/**/*.json') != ''
+        run: pnpm typecheck
+      - name: Lint cafe
+        run: pnpm --filter @tampiloka/template-cafe lint
+      - name: Build templates and gallery
+        run: pnpm build && pnpm build:cafe
+      - name: Install Chromium
+        run: pnpm --filter @tampiloka/template-commerce exec playwright install --with-deps chromium
+      - name: Verify commerce customer and staff flow
+        run: |
+          pnpm --filter @tampiloka/template-commerce preview > /tmp/tampiloka-commerce-preview.log 2>&1 &
+          COMMERCE_PREVIEW_PID=$!
+          trap 'kill "$COMMERCE_PREVIEW_PID" 2>/dev/null || true' EXIT
+          for COMMERCE_ATTEMPT in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4174/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4174/api/health
+          pnpm --filter @tampiloka/template-commerce test:e2e
+          pnpm --filter @tampiloka/template-commerce exec node tests/staff-browser.mjs
+          pnpm --filter @tampiloka/template-commerce exec node tests/checkout-recovery.mjs
+      - name: Verify gallery navigation and responsive layouts
+        run: pnpm test:showcase
+      - name: Verify cafe motion, layout, presets and lifecycle
+        run: pnpm --filter @tampiloka/template-cafe test:demo-all
+      - name: Keep verification evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: cafe-browser-verification
-          path: test-results/
+          name: template-verification
+          path: |
+            templates/cafe/test-results/
+            templates/commerce/test-results/
+            apps/showcase/test-results/
+            test-results/
+          if-no-files-found: ignore
           retention-days: 14
 
   live_layout:
@@ -73,51 +91,26 @@ jobs:
       CAFE_DEMO_BASE_DOMAIN: tampiloka.site
       CAFE_LAYOUT_OUTPUT: test-results/staff-layout-live
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Set up Node.js 22
-        if: hashFiles('demos/manifest.ts') != ''
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-      - name: Install locked dependencies
-        if: hashFiles('demos/manifest.ts') != ''
-        run: npm ci
-      - name: Install Chromium
-        if: hashFiles('demos/manifest.ts') != ''
-        run: npx playwright install --with-deps chromium
-      - name: Verify deployed staff layouts without server mutations
-        if: hashFiles('demos/manifest.ts') != ''
-        run: node --experimental-strip-types tests/demos-staff-layout.mjs
-      - name: Keep deployed layout evidence
-        if: always() && hashFiles('test-results/**/*.json') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: cafe-layout-live
-          path: test-results/
-          retention-days: 14
-
-  client_presets:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      NEXT_TELEMETRY_DISABLED: '1'
-    steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
-        if: hashFiles('demos/manifest.ts') != ''
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: '22'
-          cache: npm
-      - name: Install template dependencies
-        if: hashFiles('demos/manifest.ts') != ''
-        run: npm ci
-      - name: Verify all fresh CLI presets and explicit read-only catalog
-        if: hashFiles('demos/manifest.ts') != ''
-        run: npm run test:presets
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @tampiloka/template-cafe exec playwright install --with-deps chromium
+      - name: Verify live layouts without server mutations
+        working-directory: templates/cafe
+        run: node --experimental-strip-types tests/demos-staff-layout.mjs
+      - name: Keep evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cafe-layout-live
+          path: templates/cafe/test-results/
+          if-no-files-found: ignore
+          retention-days: 14

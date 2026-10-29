@@ -1,0 +1,117 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+import { mkdir, writeFile } from 'node:fs/promises';
+
+const base = process.env.COMMERCE_TEST_URL || 'http://127.0.0.1:4174';
+const out = 'test-results/staff';
+await mkdir(out, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const page = await context.newPage();
+const results = [];
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+const nav = name => page.getByRole('navigation', { name: 'Navigasi ruang staf' }).getByRole('button', { name, exact: true });
+const snapshot = async () => { const response = await context.request.get(`${base}/api/staff/snapshot`); assert.equal(response.status(), 200); return response.json(); };
+const dialog = () => page.getByRole('dialog');
+try {
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Staf', exact: true }).click();
+  await page.getByRole('heading', { name: 'Ringkasan toko' }).waitFor();
+  await nav('Produk').click();
+  await page.getByRole('button', { name: 'Tambah produk', exact: true }).click();
+  await dialog().getByLabel('Nama produk', { exact: true }).fill('Tas Pengujian Rupa');
+  await dialog().getByLabel('Bahan', { exact: true }).fill('Kanvas katun');
+  await dialog().getByLabel('Deskripsi', { exact: true }).fill('Produk contoh untuk memeriksa alur pengelolaan katalog melalui ruang staf.');
+  await dialog().getByLabel('URL atau path foto utama').fill('/images/canvas-tote.webp');
+  await dialog().getByLabel('Nama varian', { exact: true }).fill('Pasir');
+  await dialog().getByLabel('Harga (Rp)', { exact: true }).fill('125000');
+  await dialog().getByLabel('Stok awal').fill('7');
+  await dialog().getByRole('button', { name: 'Simpan produk', exact: true }).click();
+  await dialog().waitFor({ state: 'detached' });
+  let row = page.getByRole('row').filter({ hasText: 'Tas Pengujian Rupa' });
+  await row.waitFor();
+  let product = (await snapshot()).products.find(product => product.name === 'Tas Pengujian Rupa');
+  assert.equal(product.variants[0].stock, 7);
+  assert.equal(product.price, 125000);
+  results.push('create product with relative asset path');
+
+  await row.getByRole('button', { name: 'Ubah', exact: true }).click();
+  assert.equal(await dialog().getByLabel('Stok saat ini').getAttribute('readonly'), '');
+  await dialog().getByLabel('Nama produk', { exact: true }).fill('Tas Pengujian Rupa Baru');
+  await dialog().getByLabel('Harga (Rp)', { exact: true }).fill('135000');
+  await dialog().getByRole('button', { name: 'Simpan produk', exact: true }).click();
+  await dialog().waitFor({ state: 'detached' });
+  product = (await snapshot()).products.find(item => item.id === product.id);
+  assert.equal(product.name, 'Tas Pengujian Rupa Baru');
+  assert.equal(product.price, 135000);
+  results.push('edit product and preserve audited stock');
+
+  row = page.getByRole('row').filter({ hasText: product.name });
+  await row.getByRole('button', { name: 'Stok', exact: true }).click();
+  await dialog().getByLabel(/^Perubahan stok/).fill('3');
+  await dialog().getByLabel('Alasan', { exact: true }).fill('Penerimaan contoh dari pemasok');
+  await dialog().getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
+  await dialog().waitFor({ state: 'detached' });
+  assert.equal((await snapshot()).products.find(item => item.id === product.id).variants[0].stock, 10);
+  await nav('Stok').click();
+  await page.getByText('Penerimaan contoh dari pemasok', { exact: true }).waitFor();
+  results.push('inventory adjustment and ledger');
+
+  await nav('Promo').click();
+  await page.getByRole('button', { name: 'Tambah promo', exact: true }).click();
+  await dialog().getByLabel('Kode', { exact: true }).fill('QARUPA10');
+  await dialog().getByLabel('Minimum belanja (Rp)').fill('100000');
+  await dialog().getByLabel('Batas penggunaan').fill('5');
+  await dialog().getByRole('button', { name: 'Simpan promo', exact: true }).click();
+  await dialog().waitFor({ state: 'detached' });
+  const coupon = (await snapshot()).coupons.find(coupon => coupon.code === 'QARUPA10');
+  assert.equal(coupon.value, 10);
+  assert.equal(coupon.useLimit, 5);
+  await page.getByRole('row').filter({ hasText: 'QARUPA10' }).getByRole('button', { name: 'Ubah', exact: true }).click();
+  await dialog().getByLabel('Aktifkan promo').uncheck();
+  await dialog().getByRole('button', { name: 'Simpan promo', exact: true }).click();
+  await dialog().waitFor({ state: 'detached' });
+  assert.equal((await snapshot()).coupons.find(coupon => coupon.code === 'QARUPA10').active, false);
+  results.push('create and disable coupon');
+
+  await nav('Pengaturan').click();
+  await page.getByLabel('Nama toko', { exact: true }).fill('Rupa QA');
+  await page.getByLabel('Tarif (Rp)', { exact: true }).first().fill('18000');
+  await page.getByRole('button', { name: 'Simpan pengaturan', exact: true }).click();
+  await page.getByText('Pengaturan toko tersimpan.', { exact: true }).waitFor();
+  const config = (await snapshot()).config;
+  assert.equal(config.brand.name, 'Rupa QA');
+  assert.equal(config.shippingMethods[0].fee, 18000);
+  results.push('store identity and shipping fee settings');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/settings-desktop.png`, fullPage: true });
+
+  await page.getByLabel('Peran demo').selectOption('viewer');
+  await page.waitForFunction(() => document.querySelector('.staff-sidebar select')?.value === 'viewer');
+  await nav('Produk').click();
+  assert.equal(await page.getByRole('button', { name: 'Tambah produk', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Ubah', exact: true }).count(), 0);
+  await nav('Pengaturan').click();
+  assert.equal(await page.getByLabel('Nama toko', { exact: true }).isDisabled(), true);
+  results.push('viewer permissions reflect read-only interface');
+  await page.getByLabel('Peran demo').selectOption('operations');
+  await page.waitForFunction(() => document.querySelector('.staff-sidebar select')?.value === 'operations');
+  await nav('Produk').click();
+  assert.equal(await page.getByRole('button', { name: 'Tambah produk', exact: true }).count(), 0);
+  assert.ok(await page.getByRole('button', { name: 'Stok', exact: true }).count());
+  results.push('operations can adjust stock and cannot alter catalog');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/products-desktop.png`, fullPage: true });
+  assert.deepEqual(errors, []);
+} catch (error) {
+  await page.screenshot({ path: `${out}/failure.png`, fullPage: true });
+  await writeFile(`${out}/failure.txt`, `${error.stack}\n${await page.locator('body').innerText()}`);
+  throw error;
+} finally {
+  await writeFile(`${out}/report.json`, JSON.stringify({ url: base, checkedAt: new Date().toISOString(), results, errors }, null, 2));
+  await browser.close();
+}
+console.log(JSON.stringify({ passed: results.length, results }, null, 2));

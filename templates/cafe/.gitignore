@@ -1,0 +1,18 @@
+node_modules/
+.next/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Persisted local demo database
+.local/
+
+*.tsbuildinfo
+
+# Generated demo and verification output
+dist-demos/
+test-results/
+.wrangler/
+.dev.vars*

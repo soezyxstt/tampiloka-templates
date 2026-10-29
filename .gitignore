@@ -16,3 +16,12 @@ dist-demos/
 test-results/
 .wrangler/
 .dev.vars*
+!.dev.vars.example
+
+# Monorepo build outputs and local data
+.turbo/
+dist/
+dist-worker/
+.data/
+packages/cli/payload/
+*.tgz

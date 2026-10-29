@@ -1,217 +1,156 @@
-# Cafe Template
+# Tampiloka Templates
 
-> Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](docs/compact-ui.md).
+Satu monorepo untuk membuat proyek klien dari template yang bisa dipakai ulang. Cafe dan commerce punya alur pelanggan, ruang kerja staf, preset, konfigurasi, dan tes sendiri. CLI memilih template serta kelengkapannya, lalu membuat proyek mandiri.
 
-A reusable cafe website and operations template with independent choices for **brand identity**, **component style**, and **service scope**. Customer screens start with phone layouts; staff workspaces prioritize tablets and desktop screens. The application currently uses Indonesian copy, integer Indonesian Rupiah prices, and a configurable outlet timezone.
+Lihat semua pilihan di [galeri template](https://templates.tampiloka.site).
 
-There are three runtime paths:
-
-| Runtime | What you can use now |
-| --- | --- |
-| Public menu catalog | Publish a client's checked menu and table QR links from local JSON files. No database, staff login, or payment account is required. |
-| Ordering and staff demo | Demonstrate customer ordering, POS, kitchen, tables, payments, and reports using a persisted local database. Staff access and online settlement are demo implementations. Live transactions require the adapters described below. |
-| Public preset showcase | Share all nine preset demos on Cloudflare Pages. Each visitor gets a separate database in their browser; customer and staff tabs at the same preset address share that visitor's data. |
-
-## Show the demos to clients
-
-The full demo includes explicit guest seating, a guarded departure checklist, separate table cleaning, and 14 reproducible mock scenarios. Open the staff workspace and expand **Data untuk mencoba alur operasional** to choose a starting point. See the [visit lifecycle and test-data guide](docs/lifecycle.md) for the complete customer/cashier/kitchen flow.
-
-Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packages and component themes. Every preset has a dedicated address, and each applicable demo offers customer and staff views. The customer layout starts on phones; the staff workspace starts on tablets and desktops.
-
-| Preset | Client demo |
-| --- | --- |
-| Menu and waiter requests | [cafe-catalog.tampiloka.site](https://cafe-catalog.tampiloka.site) |
-| Order, pay at the counter | [cafe-order.tampiloka.site](https://cafe-order.tampiloka.site) |
-| Order and pay | [cafe-pay.tampiloka.site](https://cafe-pay.tampiloka.site) |
-| Cashier | [cafe-pos.tampiloka.site](https://cafe-pos.tampiloka.site) |
-| Cashier and kitchen | [cafe-kitchen.tampiloka.site](https://cafe-kitchen.tampiloka.site) |
-| Cafe operations | [cafe-operations.tampiloka.site](https://cafe-operations.tampiloka.site) |
-| Menu and cashier | [cafe-menu-pos.tampiloka.site](https://cafe-menu-pos.tampiloka.site) |
-| Menu, orders and cashier | [cafe-menu-order-pos.tampiloka.site](https://cafe-menu-order-pos.tampiloka.site) |
-| Full service | [cafe-full.tampiloka.site](https://cafe-full.tampiloka.site) |
-
-The demos use fictional sample data and cannot collect money. Open customer and staff views in the **same browser at the same demo address** to demonstrate their connected workflow. Separate devices or browsers have separate sessions. Changes survive a page reload; **Ulangi** resets that preset for your browser. The first transactional visit downloads and initializes its local database.
-
-See the [showcase guide](docs/demos.md) for a presentation walkthrough, local development, browser requirements, and Cloudflare Pages deployment. New client projects created by the CLI exclude the portfolio and its Vite/Wrangler dependencies.
-
-## Start the supplied demo
-
-Use Node.js **22.12 or newer** and npm. From this repository:
-
-```sh
-npm ci
-npm run demo
-```
-
-The runner prepares a local PGlite database and starts Next.js. A hosted database or payment-provider account is unnecessary for this demo. Dependencies and Google fonts need network access during installation/build.
-
-| Page | Default URL |
-| --- | --- |
-| Customer menu | <http://localhost:3000> |
-| Demo studio | <http://localhost:3000/demo> |
-| Staff workspace | <http://localhost:3000/staff/dapur-pagi/dapur-pagi> |
-
-The demo studio previews all five themes, opens customer and staff views, generates a client setup command, and downloads table QR codes. A theme preview does not change the saved client configuration. For phone testing, open the studio through a domain or LAN address reachable from the phone before generating its QR code; the phone cannot use your computer's `localhost`.
-
-Open customer and staff views side by side. Submit a customer order, receive it in the staff inbox, advance preparation, and review the bill. The cashier supports multi-item orders, options, notes, a manual discount, partial payments, cash received, and change. Online checkout produces a **nonpayable demo QR**; the staff simulation controls complete, expire, or cancel the attempt.
-
-### Demo staff access
-
-The staff screen offers quick role buttons and these sample PINs. They are browser demo controls, **not server authentication**. Anyone who can reach the demo server must be a trusted demo participant.
-
-| Sample person | Role | PIN |
+| Template | Status | Bisa dicoba |
 | --- | --- | --- |
-| Raka Pratama | Owner | `1111` |
-| Nadia Kusuma | Manager | `1111` |
-| Sinta Maharani | Cashier | `2222` |
-| Dimas Saputra | Waiter | `4444` |
-| Fajar Nugraha | Bar | `3333` |
-| Budi Santoso | Kitchen | `3333` |
+| Commerce | Tersedia | [ecommerce.tampiloka.site](https://ecommerce.tampiloka.site) |
+| Cafe & resto | Tersedia, 9 preset | [cafe.tampiloka.site](https://cafe.tampiloka.site) |
+| Dashboard | Direncanakan | Belum masuk pilihan CLI |
+| School | Direncanakan | Belum masuk pilihan CLI |
+| Booking | Direncanakan | Belum masuk pilihan CLI |
 
-Available roles and sections depend on the selected modules. For another port, run `npm run demo -- --port 3001`.
+Demo memakai data contoh. Konfigurasi produksi punya database dan rahasia sendiri. Demo commerce menyimpan data pada server dalam sesi terpisah untuk tiap pengunjung; demo cafe mempertahankan runtime lokal browser yang sudah ada. Jangan memakai database demo untuk klien.
 
-Data persists between restarts. The default directory is `.local/<outletSlug>/cafe-db`; `CAFE_DEMO_DATA_DIR` can override it. Run only one server against a database directory. See [script and database instructions](scripts/README.md) before preparing or resetting an existing demo.
+## Mulai
 
-## Create a client project
-
-Run this from the template directory. The destination must not already exist.
+Gunakan Node.js 22.18 atau lebih baru. Node.js 24 dipakai dalam CI.
 
 ```sh
-npm run cafe -- init ../kopi-senja --name "Kopi Senja" --short-name KS --slug kopi-senja --preset menu-order-cashier --theme editorial --color "#173E35" --yes
-cd ../kopi-senja
-npm ci
-npm run cafe -- doctor
-npm run demo
+git clone https://github.com/soezyxstt/tampiloka-templates.git
+cd tampiloka-templates
+npm install --global pnpm@10.28.2
+pnpm install --frozen-lockfile
+pnpm tampiloka list
+pnpm dev
 ```
 
-Omit `--yes` in a terminal for interactive choices. Add `--dry-run` to preview a configuration without creating files. The CLI copies application code, public assets, content, scripts, tests, and docs, and sets the client's identity and route slugs. Dependencies, Git history, secrets, local databases, and generated output are excluded.
-
-Each client has its own project and database. Generated transaction demos start with sample menu items and tables, no sample sales, and an empty cash shift when cashier is enabled. Their `.env.local` sets `CAFE_DEMO_EMPTY=1` and a project-local database directory. This flag affects new databases; it does not delete existing orders. Only projects generated with exactly `--modules catalog` use the database-free path. The `catalog` preset includes the waiter inbox and uses the transactional runtime.
-
-### Service presets and compatibility aliases
+Galeri lokal berjalan di `http://127.0.0.1:5175`.
 
 ```sh
-npm run cafe -- presets
-npm run cafe -- modules
+pnpm dev:commerce
+pnpm dev:cafe
 ```
 
-| Preset | Included experience |
+Commerce berjalan di `http://127.0.0.1:5174` dengan API lokal pada port `8787`. Perintah dev menyiapkan migrasi D1 lokal. Cafe demo berjalan di `http://127.0.0.1:4173`. Jalankan masing-masing pada terminal terpisah.
+
+## Satu CLI
+
+Saat berada di monorepo, gunakan `pnpm tampiloka`. Untuk perintah global dari folder mana pun:
+
+```sh
+npm install --global ./packages/cli
+cd ..
+tampiloka create kopi-senja
+```
+
+Wizard menanyakan template, preset, nama brand, WhatsApp, serta pilihan desain yang berlaku. CLI dapat dipakai tanpa pertanyaan:
+
+```sh
+tampiloka create kopi-senja --template cafe --preset full --theme editorial --name "Kopi Senja" --yes
+tampiloka create rupa --template commerce --preset atelier --level store --name "Rupa" --yes
+tampiloka create katalog-brand --template commerce --level whatsapp --whatsapp 628123456789 --yes
+tampiloka create toko-ramai --template commerce --preset market --level advanced --card framed --button solid --yes
+tampiloka presets commerce
+tampiloka doctor --dir ./rupa
+```
+
+`--out /path/ke/clients` memilih folder induk. `--dry-run` menampilkan pilihan tanpa menulis file. `--json` menghasilkan data untuk skrip. CLI menolak nama/path yang tidak aman, template yang belum dibuat, opsi yang salah, dan folder yang sudah ada. Jika pembuatan gagal, CLI menghapus folder sementara miliknya.
+
+Untuk memasang CLI pada mesin tanpa checkout monorepo:
+
+```sh
+pnpm cli:pack
+npm install --global ./tampiloka-cli-1.0.0.tgz
+```
+
+Arsip membawa sumber cafe, commerce, registry, dan paket bersama yang dibutuhkan. Paket ini belum diasumsikan terbit di npm.
+
+## Tingkat fitur commerce
+
+| Fitur | `catalog` | `whatsapp` | `store` | `advanced` |
+| --- | :---: | :---: | :---: | :---: |
+| Produk, pencarian, filter, detail, varian | Ya | Ya | Ya | Ya |
+| Keranjang dan daftar favorit |  | Ya | Ya | Ya |
+| Daftar belanja ke WhatsApp |  | Ya |  |  |
+| Checkout dan riwayat pesanan |  |  | Ya | Ya |
+| Transfer manual dan COD |  |  | Ya | Ya |
+| Produk, stok, pelanggan, dan laporan staf |  |  | Ya | Ya |
+| Kupon |  |  |  | Ya |
+| Gateway Midtrans |  |  |  | Ya, perlu kunci provider |
+| Retur dan ulasan pembeli |  |  |  | Ya |
+
+Server memeriksa level fitur. Menyembunyikan tombol saja tidak cukup. Harga, ongkir, kupon, stok, dan perubahan status pesanan berasal dari server. Demo memakai simulasi pembayaran yang jelas; toko nyata memakai konfigurasi dan kredensial provider sendiri.
+
+`advanced` adalah toko milik satu bisnis. Fitur multi-penjual seperti komisi seller, pencairan escrow, sengketa antarpihak, dan logistik marketplace belum menjadi bagian template. Rincian alur, endpoint, status, dan batas pembayaran ada di [panduan commerce](templates/commerce/docs/api.md).
+
+## Desain terpisah dari fitur
+
+| Pilihan | Nilai |
 | --- | --- |
-| `catalog` | Public menu, personal order list, waiter inbox and offline payment confirmation |
-| `order-at-cashier` | Compatibility alias for `catalog`, with the same modules and offline payment flow |
-| `order-and-pay` | Menu, customer ordering, and online checkout simulation |
-| `cashier` | Staff POS, discounts, bills, payments, and cash shifts |
-| `cashier-kitchen` | Cashier plus preparation queues |
-| `operations` | Cashier, kitchen, and sales reports |
-| `menu-cashier` | Public browsing plus staff POS; customers place orders with staff |
-| `menu-order-cashier` | Public menu, customer ordering, and full cashier |
-| `full` | All nine modules, including tables, loyalty, and promotions |
+| Preset / layout commerce | `editorial`, `market`, `atelier`, `compact` |
+| Warna contoh | `sand`, `ink`, `forest` |
+| Kartu produk | `open`, `framed`, `soft` |
+| Tombol utama | `solid`, `outline` |
+| Tema cafe | `boxy`, `rounded`, `editorial`, `playful`, `airy` |
 
-`order-at-cashier` includes the inbox needed to receive and finish orders without the full POS. Online-payment presets expose simulation controls even when cashier is absent. Reports distinguish billed sales, receipts, refunds, and outstanding amounts; they do not calculate profit or operating costs.
+Preset menyediakan titik awal. `--layout`, `--theme`, `--card`, dan `--button` dapat mengubah pilihan secara terpisah. Warna contoh bukan aturan dari design kit. Klien tetap punya warna, font, logo, foto, dan nada bahasanya sendiri. `website-design-kit` mengarahkan susunan konten, alur baca, perilaku responsif, komponen, dan ulasan visual.
 
-For another combination, use an exact module list:
+Empat layout commerce punya susunan yang berbeda: editorial membuka dengan foto dan koleksi; market menonjolkan kategori serta grid padat; atelier memakai galeri pilihan; compact memakai baris belanja cepat. Ruang kerja staf tetap memakai letak aksi dan alur tugas yang tetap.
 
-```sh
-npm run cafe -- init ../custom-cafe --name "Custom Cafe" --modules catalog,ordering,cashier,kitchen,tables --theme rounded --yes
-```
+## Struktur
 
-The CLI validates dependencies, and server commands enforce the enabled modules. For example, ordering requires catalog; payments, kitchen, dashboard, and loyalty require ordering or cashier. Cashier can run without a public menu. See the [complete package rules](docs/client-setup.md#choose-a-custom-scope).
-
-### Five component themes
-
-| Theme | Component treatment |
+| Folder | Fungsi |
 | --- | --- |
-| `boxy` | Square edges, compact spacing, clear borders |
-| `rounded` | Soft corners and balanced spacing |
-| `editorial` | Serif headings, open menu rows, fine rules |
-| `playful` | Strong borders, expressive type, offset shadows |
-| `airy` | Loose spacing, lighter surfaces, minimal borders |
+| `apps/showcase` | Galeri seluruh demo yang membaca registry |
+| `packages/cli` | `tampiloka create`, daftar preset, dan doctor |
+| `packages/registry` | Template, status, preset, level, dan manifest |
+| `packages/ui-core` | Tombol, field, dialog Radix, dan motion bersama |
+| `packages/theme-engine` | Pilihan komposisi dan token brand terpisah |
+| `packages/shared-utils` | Format rupiah, slug, dan bantuan tampilan |
+| `packages/config` | Aturan TypeScript bersama |
+| `templates/cafe` | Source cafe lengkap beserta semua tes dan demo lama |
+| `templates/commerce` | Storefront, staf, Worker, D1, dan tes commerce |
+| `templates/dashboard`, `school`, `booking` | Manifest rencana; belum ditawarkan CLI |
+| `design-kit` | Panduan pemakaian serta rujukan design kit utama |
 
-The aliases `boxie`, `roundy`, `fun`, and `loose` are accepted. Theme selection changes shape, spacing, typography, and composition independently from the brand color.
+## Proyek klien
 
-Change an existing client's public settings with the CLI:
+CLI menyalin source template dan paket bersama yang memang dibutuhkan. Dependensi `workspace:*` berubah menjadi `file:./packages/...` pada commerce, sehingga proyek klien tetap berjalan sendiri. Cafe mempertahankan generator serta npm lockfile yang sudah teruji. CLI tidak menyalin `node_modules`, `.git`, data lokal, rahasia, atau hasil build.
 
-```sh
-npm run cafe -- configure --theme airy --color "#173E35" --logo-file ../assets/kopi-senja.svg --yes
-```
+Proyek klien tidak menerima pembaruan induk secara otomatis. Catat versi asal di `tampiloka.project.json`, lalu terapkan perbaikan yang dibutuhkan lewat commit yang bisa ditinjau. Cara ini menjaga perubahan khusus klien dari perubahan serentak yang tidak diuji.
 
-This example expects your logo file to exist. You can also place a logo in `public/brand/` and set `--logo /brand/logo.svg`. Restart development or rebuild after changing configuration. `configure` changes public settings; it does not migrate stored data or rewrite environment files.
-
-| File | Client-specific content |
-| --- | --- |
-| `config/cafe.json` | Brand, theme, modules, route slugs, contact details, timezone, payment mode |
-| `content/menu.json` | Public catalog items, categories, variants, options, prices, hours, and facilities |
-| `content/tables.json` | Public table labels and QR tokens |
-| `public/brand/`, `public/images/` | Logo and menu images |
-| `.env.local` | Server runtime settings; never commit credentials |
-
-The configuration and content JSON files are public. Keep private credentials out of them.
-
-## Publish a real menu catalog
-
-Create a read-only project with exactly the `catalog` module:
+## Pengujian
 
 ```sh
-npm run cafe -- init ../menu-client --name "Kopi Senja" --modules catalog --theme editorial --yes
-cd ../menu-client
-npm ci
-npm run dev
+pnpm test:cli
+pnpm test:registry
+pnpm --filter @tampiloka/template-commerce test
+pnpm --filter @tampiloka/template-cafe test
+pnpm typecheck
+pnpm build:commerce
+pnpm build:cafe
+pnpm build:showcase
 ```
 
-Edit `content/menu.json` and `content/tables.json`, and put client images in `public/`. Replace the fictional menu, prices, allergens, hours, facilities, and photos. After checking the content with the client, change the menu's `sample` flag to `false`. Static availability is maintained manually.
+`pnpm build` juga membangun aplikasi Next.js cafe. Tes browser commerce berjalan dengan `pnpm --filter @tampiloka/template-commerce test:e2e`; tes browser cafe tersedia di `templates/cafe/tests`. Jalankan alur pelanggan sampai staf, bukan hanya build.
 
-Stop the development server, then validate and build:
+## Deploy
 
-```sh
-npm run catalog:validate
-npm run cafe -- doctor
-npm run build
-npm start
-```
+Commerce memakai Cloudflare Worker dan D1. `wrangler.jsonc` adalah konfigurasi proyek baru dengan ID database kosong dan `DEMO_MODE=false`. `wrangler.demo.jsonc` khusus demo Tampiloka dan tidak ikut proyek klien. Siapkan D1, terapkan migrasi, simpan rahasia staf/gateway dengan Wrangler, lalu deploy. Perintah lengkap ada di [README commerce](templates/commerce/README.md).
 
-Leave `CAFE_DEMO_DB` unset or `0`, with exactly `modules: ["catalog"]`. This runs a Next.js server using the public JSON catalog, without database credentials or transaction access. Rebuild after changing content for a production deployment. A table link uses the client's deployed domain followed by `/t/<tenantSlug>/<outletSlug>/m/<qrToken>`.
+Cafe tetap memakai proyek Pages dan domain demo yang sudah ada. Konfigurasi build setelah migrasi harus menunjuk `templates/cafe` atau menjalankan `pnpm build:cafe` dari root. Hasilnya berada di `templates/cafe/dist-demos`.
 
-If you configured a menu in the local demo first, export it from another terminal:
+Galeri memakai Cloudflare Workers Static Assets pada `templates.tampiloka.site`. Jalankan `pnpm --filter @tampiloka/showcase deploy` untuk membangun galeri dan mengunggahnya dengan konfigurasi di `apps/showcase/wrangler.jsonc`.
 
-```sh
-npm run catalog:export -- --dry-run
-npm run catalog:export -- --overwrite
-```
+## Menambah template
 
-The exporter reads only a local server and copies public menu/table content. It excludes staff, guests, transactions, and credentials. Images are not copied, and the output remains marked as sample content until you explicitly review it. See [content editing](content/README.md) for schema and export details.
+1. Buat aplikasi mandiri di `templates/<id>` dan tambahkan `template.json`.
+2. Definisikan preset, konfigurasi, alur utama, dan tesnya.
+3. Tambahkan entri registry dengan status `planned` selama belum bisa dipakai.
+4. Dukung generator, build, typecheck, dan uji alur pelanggan/staf.
+5. Ubah status menjadi `available` setelah proyek hasil CLI juga bisa berjalan.
 
-## Before live ordering or payments
-
-All transactional packages currently require explicit demo mode. Enabling a module does not provision a merchant account or production infrastructure. Outside demo mode, unsupported transaction paths are blocked with `LIVE_ADAPTER_REQUIRED`, and the unsigned payment webhook never settles a bill.
-
-Live transactions require server-authenticated staff and customer sessions, enforced role/outlet permissions, a private production database with migrations and backups, and a real payment-provider adapter with verified webhooks. Loyalty also needs a real member login/OTP provider. The current database fixture assumes one client per database.
-
-The [runtime guide](docs/runtime.md) explains this boundary, data visibility, stock handling, quote validation, payment behavior, and receipt calculations. Keep demos separate from live customer operations.
-
-## Development and verification
-
-```sh
-npm run typecheck
-npm run lint
-npm test
-npm run build
-```
-
-`npm test` runs configuration/CLI, catalog, domain, and isolated database integration tests. It does not require an existing demo server or reset a client database. GitHub Actions runs these checks on Node.js 22.
-
-Optional suites are `npm run test:presets` for temporary client projects across service packages, and `npm run test:browser` for the running full-service demo. Browser checks need Playwright Chromium and create demo orders and payments; use a dedicated test demo. See [verification commands](scripts/README.md#verification) for setup and output locations.
-
-Built with Next.js, React, TypeScript, Tailwind CSS, Drizzle, and PGlite/PostgreSQL. PostgreSQL plumbing is present; supplying its credentials alone does not enable live transactions.
-
-## Design and documentation
-
-The editable [Cafe Template v2 Figma kit](https://www.figma.com/design/eXWI36xzNr8gtLBxFW0G6r/Design-Kit?node-id=116-43) contains the theme comparison, customer and staff references, components, and service map. [Design-system documentation](docs/design-system.md) maps the kit to implementation files and records differences. This is an explicit shared design contract; it does not provide automatic two-way Figma synchronization.
-
-- [Client setup, branding, presets, and CLI reference](docs/client-setup.md)
-- [Public demos, presentation walkthrough, and Cloudflare Pages](docs/demos.md)
-- [Public catalog content](content/README.md)
-- [Runtime and live integration requirements](docs/runtime.md)
-- [Scripts, local database, and verification](scripts/README.md)
-- [Design system and Figma source map](docs/design-system.md)
-- [Verification results and screenshots](docs/verification.md)
-- [Benchmark notes and historical source](docs/benchmark-notes.md)
+Jangan memindahkan aturan bisnis cafe ke paket global untuk dipakai commerce. Bagikan komponen dan fungsi yang benar-benar sama; simpan transaksi serta aturan tiap sistem di templatenya.
