@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { environment, client, create, orderInput, scopeFor } from './backend-harness.mjs';
 import { cleanup } from '../worker/index.ts';
 import { digest } from '../worker/security.ts';
@@ -270,4 +271,48 @@ test('member sessions cannot use points without verified ownership; production e
   t.after(()=>live.DB.close());const visitor=client(live);
   await visitor.get('/api/bootstrap');
   assert.equal((await visitor.post('/api/member/start',{email:'any@example.com',name:'Any'})).status,503);
+});
+
+test('loyalty eligibility is fixed at checkout when modules are toggled',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');
+  const challenge=await c.post('/api/member/start',{email:'toggle@example.com',name:'Pembeli'});
+  assert.equal((await c.post('/api/member/verify',{code:challenge.data.demoCode})).status,200);
+  const eligible=await create(c);assert.equal(eligible.status,200);
+  assert.equal((await c.put('/api/staff/settings',{modules:{loyaltyPoints:false,membershipTiers:false}})).status,200);
+  const ineligible=await create(c);assert.equal(ineligible.status,200);
+  async function complete(id) {
+    assert.equal((await action(c,id,'confirm-payment',{reference:'TRANSFER'})).status,200);
+    assert.equal((await action(c,id,'process')).status,200);
+    assert.equal((await action(c,id,'ship',{carrier:'Kurir',trackingNumber:'RESI'})).status,200);
+    assert.equal((await action(c,id,'complete')).status,200);
+  }
+  await complete(eligible.data.id);
+  assert.equal((await c.put('/api/staff/settings',{modules:{loyaltyPoints:true,membershipTiers:true}})).status,200);
+  await complete(ineligible.data.id);
+  const summary=(await c.get('/api/bootstrap')).data.loyalty;
+  assert.equal(summary.points,32);assert.equal(summary.completedSpend,329000);
+  const scope=await scopeFor(env,c);
+  assert.deepEqual(env.DB.db.prepare('SELECT loyalty_eligible FROM orders WHERE scope=? AND id IN (?,?) ORDER BY loyalty_eligible').all(scope,eligible.data.id,ineligible.data.id).map(row=>row.loyalty_eligible),[0,1]);
+  assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS count FROM loyalty_entries WHERE scope=? AND order_id=?').get(scope,ineligible.data.id).count,0);
+});
+
+test('loyalty eligibility migration preserves outstanding legacy member orders',async t=>{
+  const {env,c}=fixture(t);await c.get('/api/bootstrap');
+  const challenge=await c.post('/api/member/start',{email:'legacy@example.com',name:'Pembeli'});
+  assert.equal((await c.post('/api/member/verify',{code:challenge.data.demoCode})).status,200);
+  const order=await create(c);assert.equal(order.status,200);
+  // Reconstruct the pre-0003 schema with an existing order, then upgrade it.
+  env.DB.db.exec('DROP TRIGGER earn_member_points; ALTER TABLE orders DROP COLUMN loyalty_eligible');
+  env.DB.db.exec(readFileSync(new URL('../migrations/0003_loyalty_eligibility.sql',import.meta.url),'utf8'));
+  const id=order.data.id;
+  assert.equal((await action(c,id,'confirm-payment',{reference:'TRANSFER'})).status,200);
+  assert.equal((await action(c,id,'process')).status,200);
+  assert.equal((await action(c,id,'ship',{carrier:'Kurir',trackingNumber:'RESI'})).status,200);
+  assert.equal((await action(c,id,'complete')).status,200);
+  assert.equal((await c.get('/api/bootstrap')).data.loyalty.points,32);
+  assert.equal((await customerAction(c,id,'request-return',{reason:'Rusak'})).status,200);
+  assert.equal((await action(c,id,'approve-return')).status,200);
+  assert.equal((await action(c,id,'receive-return')).status,200);
+  const member=(await c.get('/api/bootstrap')).data.loyalty;
+  assert.equal(member.points,0);assert.equal(member.completedSpend,0);
 });
