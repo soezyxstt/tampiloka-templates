@@ -61,7 +61,7 @@
       "name": "Es Kopi Susu Gula Aren",
       "description": "Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.",
       "photos": [
-        "https://images.unsplash.com/photo-1777878176922-130222ceb11f?auto=format&fit=crop&w=800&q=80"
+        "/images/menu/photos/kopi-aren.jpg"
       ],
       "allergens": [
         "Susu sapi"
@@ -232,7 +232,7 @@
       "name": "Matcha Latte Uji Kyoto",
       "description": "Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.",
       "photos": [
-        "https://images.unsplash.com/photo-1717603545758-88cc454db69b?auto=format&fit=crop&w=800&q=80"
+        "/images/menu/photos/matcha.jpg"
       ],
       "allergens": [
         "Susu sapi"
@@ -374,7 +374,7 @@
       "name": "Croissant Mentega Prancis",
       "description": "Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.",
       "photos": [
-        "https://images.unsplash.com/photo-1736173985657-a08ba56d5a28?auto=format&fit=crop&w=800&q=80"
+        "/images/menu/photos/croissant.jpg"
       ],
       "allergens": [
         "Gandum / Gluten",
@@ -464,7 +464,7 @@
       "name": "Nasi Goreng Kampung",
       "description": "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.",
       "photos": [
-        "https://images.unsplash.com/photo-1627308595186-e6bb36712645?auto=format&fit=crop&w=800&q=80"
+        "/images/menu/photos/nasi-goreng.jpg"
       ],
       "allergens": [
         "Telur",

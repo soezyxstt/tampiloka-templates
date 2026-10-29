@@ -24,7 +24,8 @@
 .ordersActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .orderUnit{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;font-size:14px;line-height:1.5}
 .orderUnitDetails{min-width:0;overflow-wrap:anywhere}
-.orderUnitStatus{flex:none;max-width:45%;overflow-wrap:normal}
+.orderUnitDetails p{margin-top:4px}
+.orderUnitStatus{flex:none;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 :global([data-theme="editorial"]) .menuGrid{grid-template-columns:1fr;gap:0}
 :global([data-theme="editorial"]) .menuCard{flex-direction:row;border-bottom:1px solid var(--border-strong);padding:12px 0}
 :global([data-theme="editorial"]) .menuImage{width:116px;min-width:116px;aspect-ratio:1;align-self:flex-start}

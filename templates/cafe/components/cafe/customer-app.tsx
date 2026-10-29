@@ -636,7 +636,7 @@ export function CustomerApp({
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
       <a className="skip-link" href="#customer-content">Ke menu utama</a>
-      <header className="sticky top-0 z-30 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--border)]">
+      <header className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
           <div className="flex items-center gap-2 min-w-0">
@@ -1122,8 +1122,8 @@ export function CustomerApp({
                         );
                         return (
                           <div key={req.id} className="py-3.5 space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold text-[15px]">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="min-w-0 break-words font-semibold text-[15px]">
                                 Meja {req.tableLabel} · {req.customerName}
                               </span>
                               <StatusLabel label="Menunggu konfirmasi staf" tone="warning" />
@@ -1150,9 +1150,6 @@ export function CustomerApp({
 
               {/* Accepted Orders with 3 Distinct Status Axes (Clean Editorial List) */}
               {customerOrders.length > 0 && <section className="space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">
-                  Pesanan diterima
-                </h2>
                 <div className={styles.orderList}>
                   {customerOrders.map((ord: any) => {
                     const units = (snapshot?.orderUnits || []).filter(
@@ -1165,7 +1162,6 @@ export function CustomerApp({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
-                              Pesanan #{ord.orderNumber || String(ord.id).slice(-6).toUpperCase()} ·{' '}
                               {ord.customerName}
                             </p>
                             <p className="text-[12px] text-[var(--muted-foreground)]">

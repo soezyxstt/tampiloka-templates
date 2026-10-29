@@ -9,4 +9,4 @@ These photos illustrate fictional sample menu items; they are not photos of actu
 | Croissant Mentega Prancis | Mathias Reding | [Coffee and croissant](https://unsplash.com/photos/a-cup-of-coffee-and-a-croissant-on-a-table-RJCODpGceTQ) |
 | Nasi Goreng Kampung | Vicky Ng | [Fried rice with egg](https://unsplash.com/photos/fried-rice-with-sunny-side-up-egg-on-gray-ceramic-plate-NT5oqzp-050) |
 
-The demo uses external `images.unsplash.com` URLs. Photos require the visitor or image optimizer to reach that host and may be unavailable offline or if the provider changes the URLs. Other items retain local illustrations or the existing no-photo fallback.
+The four credited photos are stored locally under `public/images/menu/photos/`, resized to 800 pixels wide for the demo. Other items retain local illustrations or the existing no-photo fallback.
