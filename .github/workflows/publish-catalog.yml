@@ -43,6 +43,52 @@ jobs:
           name: public-demo-catalog
           path: packages/registry/dist/catalog.v1.json
           retention-days: 14
+      - name: Wait for published preview images
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { setTimeout as delay } from 'node:timers/promises';
+          import { validatePublicCatalog } from './packages/registry/src/public-catalog.mjs';
+          const catalog = validatePublicCatalog(JSON.parse(readFileSync('packages/registry/dist/catalog.v1.json', 'utf8')));
+          const pending = new Set(catalog.entries.map(entry => entry.imageUrl));
+          const total = pending.size;
+          const lastErrors = new Map();
+          const deadline = Date.now() + 180_000;
+          let round = 0;
+          while (pending.size && Date.now() < deadline) {
+            round += 1;
+            const queue = [...pending];
+            let next = 0;
+            async function checkImages() {
+              while (next < queue.length && Date.now() < deadline) {
+                const url = queue[next++];
+                try {
+                  const response = await fetch(url, {
+                    method: 'HEAD', cache: 'no-store', redirect: 'error',
+                    headers: { 'Cache-Control': 'no-cache' },
+                    signal: AbortSignal.timeout(Math.max(1, Math.min(10_000, deadline - Date.now()))),
+                  });
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                  const type = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+                  if (!type.startsWith('image/')) throw new Error(`Expected image content, received ${type || 'no Content-Type'}`);
+                  pending.delete(url);
+                  lastErrors.delete(url);
+                } catch (error) {
+                  lastErrors.set(url, String(error.message ?? error).slice(0, 160));
+                }
+              }
+            }
+            await Promise.all(Array.from({ length: Math.min(5, queue.length) }, () => checkImages()));
+            console.log(`Preview images ready: ${total - pending.size}/${total}; attempt ${round}`);
+            const remaining = deadline - Date.now();
+            if (pending.size && remaining > 0) await delay(Math.min(5_000, remaining));
+          }
+          if (pending.size) {
+            const details = [...pending].map(url => `${url}: ${lastErrors.get(url) ?? 'not checked before deadline'}`).join('\n');
+            throw new Error(`Preview images are not ready after 180 seconds. Catalog publication stopped.\n${details}`);
+          }
+          NODE
       - name: Publish catalog independently of the marketing app
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
@@ -52,14 +98,43 @@ jobs:
       - name: Verify public feed
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
-          curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors --header 'Cache-Control: no-cache' "https://catalog.tampiloka.site/catalog.v1.json?revision=${GITHUB_SHA}" --output /tmp/tampiloka-catalog-live.json
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs';
+          import { setTimeout as delay } from 'node:timers/promises';
           import assert from 'node:assert/strict';
           import { validatePublicCatalog } from './packages/registry/src/public-catalog.mjs';
           const expected = JSON.parse(readFileSync('packages/registry/dist/catalog.v1.json', 'utf8'));
-          const live = JSON.parse(readFileSync('/tmp/tampiloka-catalog-live.json', 'utf8'));
-          validatePublicCatalog(live);
-          assert.deepEqual(live, expected, 'Live catalog does not match this commit');
-          console.log('Exact published catalog verified:', live.entries.length, 'demos');
+          validatePublicCatalog(expected);
+          const deadline = Date.now() + 180_000;
+          let attempt = 0;
+          let verified = false;
+          let lastReason = 'No response received';
+          while (Date.now() < deadline) {
+            attempt += 1;
+            const url = new URL('https://catalog.tampiloka.site/catalog.v1.json');
+            url.searchParams.set('revision', process.env.GITHUB_SHA);
+            url.searchParams.set('attempt', String(attempt));
+            try {
+              const response = await fetch(url, {
+                cache: 'no-store', redirect: 'error',
+                headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+                signal: AbortSignal.timeout(Math.max(1, Math.min(15_000, deadline - Date.now()))),
+              });
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const live = await response.json();
+              validatePublicCatalog(live);
+              assert.deepEqual(live, expected, 'Live catalog does not match this commit');
+              console.log('Exact published catalog verified:', live.entries.length, 'demos; attempt', attempt);
+              verified = true;
+              break;
+            } catch (error) {
+              lastReason = error.code === 'ERR_ASSERTION'
+                ? 'Live JSON still differs from the generated artifact'
+                : String(error.message ?? error).slice(0, 200);
+              console.log(`Catalog verification attempt ${attempt}: ${lastReason}`);
+            }
+            const remaining = deadline - Date.now();
+            if (remaining > 0) await delay(Math.min(5_000, remaining));
+          }
+          if (!verified) throw new Error(`Catalog did not match this commit within 180 seconds. Last result: ${lastReason}`);
           NODE
