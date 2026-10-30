@@ -129,10 +129,11 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
       const next = await api.configure({ level, preset });
       productsRef.current = next.products; setData(next);
       const url = new URL(location.href); url.searchParams.set('level', level); url.searchParams.set('preset', preset); history.replaceState(null, '', url);
-      setProduct(null); setCartOpen(false); navigate('shop');
+      setProduct(null); setCartOpen(false); navigate(view === 'staff' ? 'staff' : 'shop');
     } catch (cause) { notify(cause instanceof Error ? cause.message : 'Pengaturan belum tersimpan.', 'error'); }
     finally { setBusy(false); }
   };
   return <Store.Provider value={{ data, loading, error, refresh, cart, addItem, setQuantity, clearCart: () => setCart([]), cartOpen, setCartOpen, product, setProduct, view, navigate, appearance, setAppearance, notice, notify, configure, busy }}>{children}</Store.Provider>;
 }
 export function useCommerce() { const store = useContext(Store); if (!store) throw new Error('CommerceProvider diperlukan'); return store; }
+

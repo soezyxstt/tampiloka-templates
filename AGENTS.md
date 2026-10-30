@@ -21,7 +21,7 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 - Raw values are allowed **only** where a token is *defined*:
   - cafe: the `:root` block in `templates/cafe/app/globals.css`, demo chrome tokens at the top of `demos/components/demo-portal.css` / `demos/showcase.css`, and `src/config/catalog.mjs` (default brand color).
   - commerce: the `:root` token block at the top of `templates/commerce/src/styles/base.css`.
-  - packages: `packages/theme-engine/src/index.mjs` **and** `styles.css` (keep the two in sync).
+  - packages: `packages/theme-engine/src/index.mjs` **and** `styles.css` (keep the two in sync); shared demo chrome tokens in `packages/ui-core/src/demo.css`.
 - `var(--token, #fallback)` fallbacks are fine; pure `#fff`/`#000` are allowed only as ink on a solid fill.
 - Need a tint, hover or overlay? Derive it: `color-mix(in srgb, var(--primary) 8%, var(--surface))`, `color-mix(in srgb, var(--foreground) 45%, transparent)`. Do not invent a new hex.
 - Need a genuinely new role? Add a token to the definition block, document it in the tables below, and check contrast.
@@ -128,10 +128,54 @@ Rules:
 
 Heavy work (full builds, browser suites) follows the sandbox routing rules in the user's global instructions; small checks may run locally.
 
+## Shared Tampiloka demo system
+
+These rules apply to **every current and future public template demo**, including cafe, commerce, dashboards, booking, school, and later families. The accepted interaction reference is the commerce demo; the select appearance follows `soezyxstt/tampiloka` at `apps/tampiloka/components/ui/select.tsx`. A new family must join this system instead of inventing another demo launcher.
+
+### Navigation and controls
+
+1. Use `DemoToolbarShell` from `@tampiloka/ui-core/demo` and the shared `@tampiloka/ui-core/demo.css`. Keep its brand link, control group, view navigation, selected states, focus treatment, and responsive order shared. Extend this primitive for a missing capability rather than copy its markup into another template.
+   Import `demo.css` after the app styles. Use the shared `--demo-control-height`, `--demo-control-radius`, `--demo-option-radius`, and `--demo-gap` tokens; chrome colors use `--demo-chrome-*` / `--demo-panel-*`. Select accessible names are `Tema demo` / `Demo theme` and `Mode demo` / `Demo mode`. Reserve `--demo-height` for the measured toolbar offset.
+2. Put **theme and mode selectors at the top of the running demo**. A visitor must be able to change either immediately. A grid of mode cards farther down a portal is not the primary mode switch. The default demo entry opens a working preview.
+3. Keep theme/style and feature mode independent. A theme changes presentation; a mode changes enabled features. Do not silently change the chosen mode when changing the theme, or the theme when changing the mode.
+4. Keep customer/staff or equivalent role navigation in the same toolbar. Show the current view with text and a selected state. Only offer views supported by the active mode; switching to a staff-only mode must select a valid view. In-app links that switch views must also update the toolbar state.
+5. Link the Tampiloka brand back to the shared `/templates` gallery, using `/en/templates` for English. Use the verified brand artwork and preserve its proportions and surface-appropriate variant. Template brand colors and layout may vary; the exploration controls must remain recognizable as Tampiloka.
+6. Preserve working demo subdomains and deep links. Keep supported theme, mode, view, and `lang=id|en` state in the URL. Build URLs with `URL`/`URLSearchParams`, preserve unrelated valid parameters and hashes, and test refresh, copied links, and browser back/forward. Never rename public preset/theme IDs merely to change their labels.
+7. Keep reset and sample-scenario actions secondary. Do not confuse demo reset with a purchase, staff operation, or navigation action. Reset affects demo data only. Payment simulation and sample-brand disclosures must remain clear.
+
+### Select fields, language, and small screens
+
+- Reuse the app's accessible select primitive (Radix/Base UI) with the shared demo select classes. Follow Tampiloka's compact trigger, aligned popup, selected check, restrained border, and open/close motion. Do not replace it with a click-only custom menu or a differently styled native select for one family.
+- Give theme/mode fields clear accessible names. Support keyboard selection, Escape, focus return, disabled states, long labels, popup scrolling, and reduced motion. Keep popups above sticky content and within the viewport. Use at least 16px input text on phones and 44px public touch targets.
+- Place **ID/EN at the bottom right of every demo** using the shared language control styling. Keep the position consistent across customer and staff views. Respect safe-area insets and move it above fixed customer navigation, cart/payment bars, or other fixed actions so it never covers them.
+- Resolve explicit `lang` first, retain the visitor's choice, and pass the locale through gallery/demo navigation. Translate controls, option labels, loading/error states, and both customer and staff views. Language changes must not reset orders, theme, mode, or active view.
+- Let toolbar rows wrap at narrow widths. Measure the toolbar's actual height for sticky content offsets; do not assume one fixed desktop height. Do not hide horizontal overflow to conceal a layout failure. Scope shared chrome styles so they do not recolor the actual customer's storefront or staff workspace.
+
+### Public catalog and the marketing repository
+
+- This repository owns the public demo catalog. `soezyxstt/tampiloka` consumes its versioned JSON **at runtime** for `/templates` and the landing-page template preview. Adding a public demo must not require editing a list, importing this repository, or rebuilding the marketing app.
+- Keep template IDs, availability, preset IDs, and base demo URLs canonical in `packages/registry/templates.json` and its existing runtime registry. Put bilingual public presentation, explicit visibility/readiness, featured flags, and routing metadata in `packages/registry/public-demos.json`. Generate the versioned feed with `pnpm catalog:build`; do not edit `packages/registry/dist/` by hand.
+- The public endpoint is `https://catalog.tampiloka.site/catalog.v1.json`, served by Worker `tampiloka-catalog`. `.github/workflows/publish-catalog.yml` tests and publishes metadata changes independently. Run `pnpm catalog:test` before publication and verify that the deployed feed equals the exact generated artifact. The Worker supports ETag and a 60-second cache with a 120-second stale-while-revalidate window.
+- Use one generated catalog for all public demo families. Keep schema version, update time, localized family/mode names, localized entry names/descriptions, stable IDs, public URLs, image URLs, visibility, and mode URLs explicit. Consumers must derive available families and modes from that data rather than a closed `cafe | commerce` list.
+- Publish only entries explicitly marked public and ready. Prospect/client-specific, private, unlisted, unfinished, and internal demos must not leak into the public feed. Keep private contacts, credentials, internal API addresses, and client records out of public metadata.
+- Use absolute HTTPS demo and thumbnail URLs. Record complete per-mode URLs so consumers do not need to know a template's routing scheme. Preserve stable entry IDs when editing copy or artwork. Validate unique IDs, family/mode references, required Indonesian/English text, and safe URLs before publishing.
+- Keep publishing automatic from the catalog's source files. Changes to public metadata must update the public JSON independently of a marketing-site deployment. Retain the last working catalog when validation or publication fails; never overwrite it with a failed or partial response.
+- The marketing consumer must validate the schema at runtime, use bounded caching, show useful loading/empty/error/retry states, and label stale fallback data. Do not introduce a second manually maintained demo list as a fallback.
+- When adding a new template, update its manifest and catalog metadata, ensure its demo URLs and images work, publish the catalog, and check that it appears in the existing marketing gallery without a marketing source change.
+
+### Required verification and documentation
+
+Check customer views at 360px, 390px, and a desktop width (1280 to 1440px), plus staff at 1024px. Exercise selectors, role changes, language changes, deep links, reload/back navigation, and overlap with fixed actions. Check normal and reduced-motion states, open dropdowns, long labels, and no horizontal page overflow. Preserve existing order/payment/stock/permission behavior when changing the shell.
+
+Run design-token lint, affected template typechecks, catalog validation/tests, and the existing affected browser suites. Update obsolete selectors when controls change, while retaining their behavioral assertions. Record the actual checks and any blocked checks; a build alone does not prove visual or interaction quality. Update this file and the relevant template design docs whenever the shared contract changes.
+
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
 
+- **2026-10-30**: Standardized public demo exploration around shared theme/mode selectors, customer/staff navigation, bottom-right ID/EN, Tampiloka select styling, and a runtime public catalog contract for current and future template families.
+
 - **2026-10-30**: Added Indonesian and English demo controls and localized customer and staff flows; cafe sample menus now use realistic photographs.
 
 - **2026-10-30**: Replaced cool blue (cafe) and olive-grey (commerce) defaults with warm, low-glare palettes. Cafe default brand `#1746A2` → `#A94C27` (terracotta) on `#FBF8F3` cream; commerce Sand palette now charcoal CTA + clay `accent`; Ink/Forest refined. Added `accent` palette role, shared `--tl-*` status/overlay tokens, `--overlay`/`--status-danger-border`/`--status-danger-hover` in cafe. Removed hardcoded colors from components, raised minimum text size to 12px, strengthened input borders to ≥3:1. Added `scripts/check-design-tokens.mjs` (`pnpm lint:design`) and this rulebook.
+

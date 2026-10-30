@@ -1,5 +1,16 @@
 # Commerce design decisions
 
+## Shared demo exploration, 30 October 2026
+
+Cafe and commerce now use `DemoToolbarShell` from `@tampiloka/ui-core/demo` and load `@tampiloka/ui-core/demo.css` after their own styles. One component owns logo placement, theme/mode selectors, customer/staff navigation, mobile wrapping, selected states and the measured `--demo-height`. The original outlined Tampiloka SVG links back to the gallery, including `/en/templates` for English visitors.
+
+The demo theme and mode selectors use the same quiet outlined trigger, 8px corners, aligned 6px popup offset, right-side check and short popup motion as Tampiloka's existing form controls. Radix retains keyboard and focus behavior. Controls remain at least 44px tall, and select text is 16px on phones. Demo chrome uses stable `--demo-chrome-*` and `--demo-panel-*` tokens independently of the chosen storefront palette. The storefront layouts, product controls and staff workflows keep their own brand roles.
+
+The mode select uses feature level; the theme select uses the existing composition preset. Both update the URL through the current store configuration flow. Changing a mode or theme while viewing staff keeps staff selected. ID/EN remains fixed at the lower right with the shared control style. `?lang=id` and `?lang=en` preserve the gallery locale across origins, and toggling the language updates that parameter without clearing preset, level, product or hash state.
+
+The shared exports accept app-owned controls and view actions; they do not implement product or order behavior. New template demos should reuse these exports and provide their available views, localized accessible names and a gallery return URL. The new names `Tema demo`/`Demo theme` and `Mode demo`/`Demo mode` also appear in the browser test selectors.
+
+
 The Sand palette uses a warm canvas (`#f7f5f1`), charcoal action (`#2a2420`) and clay price/promotion accent (`#a4492a`); Ink and Forest retain their palette IDs with warm-neutral and forest-green harmonies. Shared status and overlay tokens (`--tl-*`) are defined by `@tampiloka/theme-engine` and aliased in `src/styles/base.css` (the only place raw color values appear in commerce CSS). Minimum text size is 12 px everywhere (`pnpm lint:design`), with 16 px inputs on phones and ≥3:1 input borders (`--line-strong`). Demo controls support Indonesian and English, with the browser language as the initial choice.
 
 Date: 29 October 2026 (palette and typography updated 30 October 2026; see `AGENTS.md`). Fictional concept brand: Rupa. The brand name, sample catalogue, prices, addresses, bank account and business copy are demonstration content, not claims about a real merchant. Public demo UI states this explicitly. Replace the content and licensed assets when generating a client project.
@@ -102,3 +113,4 @@ node tests/checkout-recovery.mjs
 ```
 
 The additional tests accept `COMMERCE_TEST_URL`; they are intended for the isolated demo. Generated clients should test against a staging deployment with appropriate fixtures. The root lifecycle suite uses its own documented `COMMERCE_BASE_URL` setting. Transient screenshots, reports and browser logs remain in ignored test-output directories; the reproducible test sources and this review record are part of the repository.
+

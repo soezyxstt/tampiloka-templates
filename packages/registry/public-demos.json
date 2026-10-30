@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "families": [
+    {
+      "id": "commerce",
+      "template": "commerce",
+      "visibility": "public",
+      "ready": true,
+      "name": {
+        "id": "Toko online",
+        "en": "Online stores"
+      },
+      "description": {
+        "id": "Lihat produk, coba belanja, dan jelajahi ruang kerja staf.",
+        "en": "Browse products, try checkout, and explore a staff workspace."
+      },
+      "route": {
+        "base": "template",
+        "presetParam": "preset",
+        "modeParam": "level"
+      },
+      "entries": [
+        {
+          "id": "commerce-editorial",
+          "preset": "editorial",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Editorial",
+            "en": "Editorial"
+          },
+          "description": {
+            "id": "Foto produk besar dan susunan koleksi yang lapang.",
+            "en": "Large product photos with an open collection layout."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/commerce-editorial.webp",
+          "featured": true
+        },
+        {
+          "id": "commerce-market",
+          "preset": "market",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Market",
+            "en": "Market"
+          },
+          "description": {
+            "id": "Kategori yang mudah dijelajahi dan katalog dalam tampilan grid.",
+            "en": "Clear categories and a browsable product grid."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/commerce-market.webp",
+          "featured": false
+        },
+        {
+          "id": "commerce-atelier",
+          "preset": "atelier",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Atelier",
+            "en": "Atelier"
+          },
+          "description": {
+            "id": "Tampilan koleksi dengan penekanan pada foto produk.",
+            "en": "Curated collections with a focus on product photography."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/commerce-atelier.webp",
+          "featured": false
+        },
+        {
+          "id": "commerce-compact",
+          "preset": "compact",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Compact",
+            "en": "Compact"
+          },
+          "description": {
+            "id": "Daftar produk ringkas untuk membandingkan pilihan.",
+            "en": "A concise product list for comparing options."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/commerce-compact.webp",
+          "featured": false
+        }
+      ],
+      "defaultMode": "store",
+      "modes": [
+        {
+          "id": "catalog",
+          "name": {
+            "id": "Katalog",
+            "en": "Catalog"
+          },
+          "description": {
+            "id": "Tampilkan produk dan detailnya; pembeli dapat menghubungi toko untuk bertanya.",
+            "en": "Products and details, with inquiries through the store contact."
+          }
+        },
+        {
+          "id": "whatsapp",
+          "name": {
+            "id": "Keranjang + WhatsApp",
+            "en": "Cart + WhatsApp"
+          },
+          "description": {
+            "id": "Pembeli menyusun keranjang, lalu membuka daftar belanja di WhatsApp.",
+            "en": "Customers send their shopping list through WhatsApp."
+          }
+        },
+        {
+          "id": "store",
+          "name": {
+            "id": "Toko",
+            "en": "Store"
+          },
+          "description": {
+            "id": "Terima pesanan dengan transfer manual atau COD, lalu kelola stok dan pengiriman.",
+            "en": "Checkout, manual transfer or cash on delivery, inventory, orders, and shipping."
+          }
+        },
+        {
+          "id": "advanced",
+          "name": {
+            "id": "Toko lengkap",
+            "en": "Full store"
+          },
+          "description": {
+            "id": "Tambahkan pilihan gateway, kupon, retur, dan ulasan pada alur toko.",
+            "en": "Adds payment gateway options, coupons, returns, and reviews."
+          }
+        }
+      ]
+    },
+    {
+      "id": "cafe",
+      "template": "cafe",
+      "visibility": "public",
+      "ready": true,
+      "name": {
+        "id": "Kafe dan restoran",
+        "en": "Cafes and restaurants"
+      },
+      "description": {
+        "id": "Coba pesanan dari meja, kasir, dapur, dan ruang kerja staf.",
+        "en": "Try table ordering, cashier, kitchen, and staff tools."
+      },
+      "route": {
+        "base": "preset"
+      },
+      "entries": [
+        {
+          "id": "cafe-catalog",
+          "preset": "catalog",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Menu + permintaan ke pelayan",
+            "en": "Menu + waiter request"
+          },
+          "description": {
+            "id": "Menu digital dan daftar pilihan pelanggan; pembayaran dilakukan di tempat.",
+            "en": "A digital menu and guest order list, with payment on site."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-catalog.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-order-at-cashier",
+          "preset": "order-at-cashier",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Pesan, bayar di kasir",
+            "en": "Order, pay at cashier"
+          },
+          "description": {
+            "id": "Pelanggan memesan dari meja, lalu staf menerima pesanannya.",
+            "en": "Guests order from their table and staff receive the order."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-order-at-cashier.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-order-and-pay",
+          "preset": "order-and-pay",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Pesan dan bayar",
+            "en": "Order and pay"
+          },
+          "description": {
+            "id": "Pilih menu, kirim pesanan, dan coba simulasi pembayaran online.",
+            "en": "Choose items, place an order, and try simulated online payment."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-order-and-pay.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-cashier",
+          "preset": "cashier",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Kasir",
+            "en": "Cashier"
+          },
+          "description": {
+            "id": "Catat pesanan langsung, diskon, pembayaran tunai, dan giliran kerja.",
+            "en": "Walk-in orders, discounts, cash payments, and shifts."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-cashier.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-cashier-kitchen",
+          "preset": "cashier-kitchen",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Kasir + dapur",
+            "en": "Cashier + kitchen"
+          },
+          "description": {
+            "id": "Catat pesanan di kasir dan pantau antrean persiapan dapur.",
+            "en": "Record orders at the cashier and follow the kitchen queue."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-cashier-kitchen.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-operations",
+          "preset": "operations",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Operasional",
+            "en": "Operations"
+          },
+          "description": {
+            "id": "Kelola pesanan, persiapan dapur, dan laporan dari ruang staf.",
+            "en": "Manage orders, kitchen preparation, and reports in the staff workspace."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-operations.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-menu-cashier",
+          "preset": "menu-cashier",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Menu + kasir",
+            "en": "Menu + cashier"
+          },
+          "description": {
+            "id": "Pelanggan melihat menu digital; staf mencatat pesanan di kasir.",
+            "en": "Guests browse the menu and staff record orders."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-menu-cashier.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-menu-order-cashier",
+          "preset": "menu-order-cashier",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Menu + pesanan + kasir",
+            "en": "Menu + orders + cashier"
+          },
+          "description": {
+            "id": "Pelanggan memesan dari meja; kasir mengelola tagihan.",
+            "en": "Guests order from their table and the cashier manages the bill."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-menu-order-cashier.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-full",
+          "preset": "full",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Layanan lengkap",
+            "en": "Full service"
+          },
+          "description": {
+            "id": "Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.",
+            "en": "Explore the guest, cashier, kitchen, table service, and reporting flow."
+          },
+          "imageUrl": "https://tampiloka.site/images/templates/cafe-full.webp",
+          "featured": true
+        }
+      ]
+    }
+  ]
+}

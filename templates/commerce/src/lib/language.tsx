@@ -10,6 +10,8 @@ let demoContent = false;
 const LanguageContext = createContext<{ language: Language; setLanguage: (language: Language) => void }>({ language: 'en', setLanguage: () => {} });
 
 function initialLanguage(): Language {
+  const requested = new URLSearchParams(location.search).get('lang');
+  if (requested === 'id' || requested === 'en') return requested;
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved === 'id' || saved === 'en') return saved;
@@ -21,9 +23,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(initialLanguage);
   activeLanguage = language;
   useEffect(() => { document.documentElement.lang = language; }, [language]);
+  useEffect(() => {
+    const sync = () => { const next = initialLanguage(); activeLanguage = next; setLanguageState(next); };
+    const storage = (event: StorageEvent) => { if (event.key === storageKey) sync(); };
+    window.addEventListener('popstate', sync);
+    window.addEventListener('storage', storage);
+    return () => { window.removeEventListener('popstate', sync); window.removeEventListener('storage', storage); };
+  }, []);
   const setLanguage = (next: Language) => {
     activeLanguage = next;
     try { localStorage.setItem(storageKey, next); } catch { /* Selection still works for this session. */ }
+    const url = new URL(location.href);
+    url.searchParams.set('lang', next);
+    history.replaceState(null, '', url);
     setLanguageState(next);
   };
   return <LanguageContext.Provider value={{ language, setLanguage }}>{children}</LanguageContext.Provider>;
@@ -52,5 +64,6 @@ export function t(text: string): string {
 
 export function LanguageToggle() {
   const { language, setLanguage } = useLanguage();
-  return <button type="button" className="language-toggle" aria-label={language === 'id' ? 'Ubah bahasa ke Inggris' : 'Switch language to Indonesian'} onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}>{language === 'id' ? 'ID / EN' : 'EN / ID'}</button>;
+  return <button type="button" className="language-toggle tl-demo-language" aria-label={language === 'id' ? 'Ubah bahasa ke Inggris' : 'Switch language to Indonesian'} onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}>{language === 'id' ? 'ID / EN' : 'EN / ID'}</button>;
 }
+

@@ -137,6 +137,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
+      '@tampiloka/ui-core':
+        specifier: workspace:*
+        version: link:../../packages/ui-core
       '@types/node':
         specifier: ^20
         version: 20.19.43
@@ -8900,3 +8903,4 @@ snapshots:
       zod: 4.6.7
 
   zod@4.6.7: {}
+

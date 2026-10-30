@@ -190,7 +190,7 @@ const EXCLUDED_DIRECTORIES = new Set(['node_modules', '.git', '.next', '.local',
 // Traverse only the two ancestors of the reviewed CI file; no other GitHub
 // settings, deployment workflows, credentials, or hidden files are inherited.
 const CI_PATHS = new Set(['.github', join('.github', 'workflows'), join('.github', 'workflows', 'ci.yml')]);
-const SHOWCASE_PACKAGES = new Set(['@fontsource/manrope', '@fontsource/source-sans-3', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler']);
+const SHOWCASE_PACKAGES = new Set(['@tampiloka/ui-core', '@fontsource/manrope', '@fontsource/source-sans-3', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler']);
 const DEPENDENCY_GROUPS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
 function clientPackage(source, name) {
@@ -444,3 +444,4 @@ main().catch(error => {
   process.stderr.write(`${error instanceof ConfigError ? error.message : `Cafe CLI: ${error.message}`}\n`);
   process.exitCode = 1;
 });
+

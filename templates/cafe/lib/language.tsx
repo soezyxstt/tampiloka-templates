@@ -7,6 +7,8 @@ const LanguageContext = createContext<{ language: Language; setLanguage: (value:
 let memoryChoice: Language | undefined;
 
 function initialLanguage(): Language {
+  const requested = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('lang');
+  if (requested === 'id' || requested === 'en') return requested;
   if (memoryChoice) return memoryChoice;
   try {
     const saved = localStorage.getItem('tampiloka-language-choice');
@@ -18,8 +20,9 @@ function initialLanguage(): Language {
 function subscribe(notify: () => void) {
   const sync = (event: StorageEvent) => { if (event.key === 'tampiloka-language-choice') { memoryChoice = undefined; notify(); } };
   window.addEventListener('storage', sync);
+  window.addEventListener('popstate', notify);
   window.addEventListener('tampiloka-language-change', notify);
-  return () => { window.removeEventListener('storage', sync); window.removeEventListener('tampiloka-language-change', notify); };
+  return () => { window.removeEventListener('storage', sync); window.removeEventListener('popstate', notify); window.removeEventListener('tampiloka-language-change', notify); };
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
@@ -28,6 +31,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const choose = (value: Language) => {
     memoryChoice = value;
     try { localStorage.setItem('tampiloka-language-choice', value); } catch { /* Keep the choice for this session. */ }
+    const url = new URL(window.location.href);
+    url.searchParams.set('lang', value);
+    window.history.replaceState(null, '', url);
     window.dispatchEvent(new Event('tampiloka-language-change'));
   };
   return <LanguageContext.Provider value={{ language, setLanguage: choose }}>{children}</LanguageContext.Provider>;
@@ -39,7 +45,8 @@ export function useCafeLanguage() {
   return { ...context, t };
 }
 
-export function LanguageToggle() {
+export function LanguageToggle({ floating = false }: { floating?: boolean }) {
   const { language, setLanguage } = useCafeLanguage();
-  return <button type="button" className="cafe-language-toggle" style={{ minHeight: 36, padding: '0 9px', border: '1px solid currentColor', borderRadius: 6, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }} aria-label={language === 'id' ? 'Ganti bahasa ke Inggris' : 'Switch language to Indonesian'} onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}>{language === 'id' ? 'ID / EN' : 'EN / ID'}</button>;
+  return <button type="button" className={floating ? 'cafe-language-toggle tl-demo-language' : 'cafe-language-toggle min-h-11 px-3 border border-current rounded-md text-xs font-semibold whitespace-nowrap'} aria-label={language === 'id' ? 'Ganti bahasa ke Inggris' : 'Switch language to Indonesian'} onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}>{language === 'id' ? 'ID / EN' : 'EN / ID'}</button>;
 }
+

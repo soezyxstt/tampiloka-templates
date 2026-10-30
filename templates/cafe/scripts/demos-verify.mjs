@@ -32,7 +32,7 @@ try {
   }
   if (!ready) throw new Error('The static demo preview did not become available.');
   const failures = [];
-  for (const script of ['tests/demos-motion.mjs', 'tests/demos-compact-ui.mjs', 'tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs', 'tests/language-browser.mjs']) {
+  for (const script of ['tests/demo-navigation.test.mjs', 'tests/demos-explorer.mjs', 'tests/demos-motion.mjs', 'tests/demos-compact-ui.mjs', 'tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs', 'tests/language-browser.mjs']) {
     if (interrupted) throw new Error('Browser verification interrupted.');
     currentTest = spawn(process.execPath, ['--experimental-strip-types', script], { cwd: root, env, stdio: 'inherit' });
     const [code, signal] = await once(currentTest, 'exit');
@@ -46,3 +46,4 @@ try {
   process.removeListener('SIGINT', stop);
   process.removeListener('SIGTERM', stop);
 }
+
