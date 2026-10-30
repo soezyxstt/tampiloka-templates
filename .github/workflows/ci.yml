@@ -21,7 +21,8 @@ concurrency:
 jobs:
   verify:
     if: github.event_name != 'workflow_dispatch' || inputs.live_layout != true
-    runs-on: ubuntu-latest
+    # The locked Playwright release supports this image; ubuntu-latest can advance independently.
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       NEXT_TELEMETRY_DISABLED: '1'
@@ -84,7 +85,7 @@ jobs:
 
   live_layout:
     if: github.event_name == 'workflow_dispatch' && inputs.live_layout == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CAFE_DEMO_BASE_DOMAIN: tampiloka.site
@@ -113,3 +114,4 @@ jobs:
           path: templates/cafe/test-results/
           if-no-files-found: ignore
           retention-days: 14
+
