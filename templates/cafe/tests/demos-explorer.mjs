@@ -55,8 +55,12 @@ try {
 
   await page.getByRole('combobox', { name: 'Demo theme', exact: true }).focus();
   await page.keyboard.press('Enter');
+  await page.getByRole('listbox').waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'option');
   await page.keyboard.press('End');
+  await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'option' && document.activeElement.textContent.trim() === 'Airy');
   await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'airy');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'airy');
   assert.equal(new URL(page.url()).searchParams.get('theme'), 'airy');
   await page.getByRole('navigation', { name: 'Demo view' }).getByRole('link', { name: 'Staff', exact: true }).click();
