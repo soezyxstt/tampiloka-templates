@@ -35,7 +35,11 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
     try { sessionStorage.setItem(customerRouteKey, route); } catch { /* In-app navigation can still use the state value. */ }
     return route;
   }, [customerRouteKey]);
-  useEffect(() => { if (activeView === 'pelanggan') rememberCustomerRoute(); }, [activeView, theme, language, rememberCustomerRoute]);
+  useEffect(() => {
+    if (activeView !== 'pelanggan') return;
+    const route = `${location.pathname}${location.search}${location.hash}`;
+    try { sessionStorage.setItem(customerRouteKey, route); } catch { /* Route state still supports in-app navigation. */ }
+  }, [activeView, theme, language, customerRouteKey]);
 
   useEffect(() => {
     let active = true;
