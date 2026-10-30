@@ -2,9 +2,9 @@
 
 ## Monorepo untuk produksi internal
 
-Repo ini menyimpan template yang dipakai tim. Setiap hasil CLI adalah proyek klien mandiri. Registry bukan database pelanggan, showcase bukan aplikasi tenant, dan paket bersama tidak menyimpan aturan order cafe atau commerce.
+Repo ini menyimpan template yang dipakai tim. Setiap hasil CLI adalah proyek klien mandiri. Registry bukan database pelanggan, dan paket bersama tidak menyimpan aturan order cafe atau commerce.
 
-`pnpm-workspace.yaml` memetakan aplikasi, paket, dan template. Turbo menjalankan build/typecheck/test menurut dependensi. Cafe mempertahankan Next.js dan runtime demo browser yang sudah ada. Commerce memakai React/Vite, Worker, dan D1. Setiap template boleh memilih stack yang memenuhi kebutuhannya; CLI tidak mensyaratkan semuanya memakai router yang sama.
+`pnpm-workspace.yaml` memetakan paket dan template. Turbo menjalankan build/typecheck/test menurut dependensi. Cafe mempertahankan Next.js dan runtime demo browser yang sudah ada. Commerce memakai React/Vite, Worker, dan D1. Setiap template boleh memilih stack yang memenuhi kebutuhannya; CLI tidak mensyaratkan semuanya memakai router yang sama.
 
 ## Batas paket
 

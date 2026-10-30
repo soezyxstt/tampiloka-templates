@@ -49,7 +49,7 @@ jobs:
         run: pnpm typecheck
       - name: Lint cafe
         run: pnpm --filter @tampiloka/template-cafe lint
-      - name: Build templates and gallery
+      - name: Build templates
         run: pnpm build && pnpm build:cafe
       - name: Install Chromium
         run: pnpm --filter @tampiloka/template-commerce exec playwright install --with-deps chromium
@@ -67,8 +67,6 @@ jobs:
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-browser.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/checkout-recovery.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-pagination.mjs
-      - name: Verify gallery navigation and responsive layouts
-        run: pnpm test:showcase
       - name: Verify cafe motion, layout, presets and lifecycle
         run: pnpm --filter @tampiloka/template-cafe test:demo-all
       - name: Keep verification evidence
@@ -79,7 +77,6 @@ jobs:
           path: |
             templates/cafe/test-results/
             templates/commerce/test-results/
-            apps/showcase/test-results/
             test-results/
           if-no-files-found: ignore
           retention-days: 14

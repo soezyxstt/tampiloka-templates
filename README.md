@@ -2,7 +2,7 @@
 
 Satu monorepo untuk membuat proyek klien dari template yang bisa dipakai ulang. Cafe dan commerce punya alur pelanggan, ruang kerja staf, preset, konfigurasi, dan tes sendiri. CLI memilih template serta kelengkapannya, lalu membuat proyek mandiri.
 
-Lihat semua pilihan di [galeri template](https://templates.tampiloka.site).
+Demo template tersedia melalui tautan berikut.
 
 | Template | Status | Bisa dicoba |
 | --- | --- | --- |
@@ -104,7 +104,6 @@ Empat layout commerce punya susunan yang berbeda: editorial membuka dengan foto 
 
 | Folder | Fungsi |
 | --- | --- |
-| `apps/showcase` | Galeri seluruh demo yang membaca registry |
 | `packages/cli` | `tampiloka create`, daftar preset, dan doctor |
 | `packages/registry` | Template, status, preset, level, dan manifest |
 | `packages/ui-core` | Tombol, field, dialog Radix, dan motion bersama |
@@ -132,7 +131,6 @@ pnpm --filter @tampiloka/template-cafe test
 pnpm typecheck
 pnpm build:commerce
 pnpm build:cafe
-pnpm build:showcase
 ```
 
 `pnpm build` juga membangun aplikasi Next.js cafe. Tes browser commerce berjalan dengan `pnpm --filter @tampiloka/template-commerce test:e2e`; tes browser cafe tersedia di `templates/cafe/tests`. Jalankan alur pelanggan sampai staf, bukan hanya build.
@@ -142,8 +140,6 @@ pnpm build:showcase
 Commerce memakai Cloudflare Worker dan D1. `wrangler.jsonc` adalah konfigurasi proyek baru dengan ID database kosong dan `DEMO_MODE=false`. `wrangler.demo.jsonc` khusus demo Tampiloka dan tidak ikut proyek klien. Siapkan D1, terapkan migrasi, simpan rahasia staf/gateway dengan Wrangler, lalu deploy. Perintah lengkap ada di [README commerce](templates/commerce/README.md).
 
 Cafe tetap memakai proyek Pages dan domain demo yang sudah ada. Konfigurasi build setelah migrasi harus menunjuk `templates/cafe` atau menjalankan `pnpm build:cafe` dari root. Hasilnya berada di `templates/cafe/dist-demos`.
-
-Galeri memakai Cloudflare Workers Static Assets pada `templates.tampiloka.site`. Jalankan `pnpm --filter @tampiloka/showcase run deploy` untuk membangun galeri dan mengunggahnya dengan konfigurasi di `apps/showcase/wrangler.jsonc`.
 
 ## Menambah template
 

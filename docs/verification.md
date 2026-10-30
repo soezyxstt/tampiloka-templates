@@ -30,7 +30,7 @@ Tes browser lokal meliputi pencarian kosong/reset, wishlist, pemilihan varian, k
 
 Pemindaian aksesibilitas awal dengan axe tidak menemukan pelanggaran otomatis pada dua ukuran yang diperiksa. Namun, pemeriksaan kontras untuk satu elemen dengan pseudo-element masih berstatus `incomplete`. Ini bukan klaim kepatuhan WCAG penuh. Hasil rinci ada di `templates/commerce/test-results/visual/accessibility.json`; pemeriksaan manual dan keadaan dialog tetap memiliki cakupan tersendiri.
 
-## Monorepo, CLI, showcase, dan cafe
+## Monorepo, CLI, dan cafe
 
 | Pemeriksaan | Hasil |
 | --- | --- |
@@ -39,8 +39,6 @@ Pemindaian aksesibilitas awal dengan axe tidak menemukan pelanggaran otomatis pa
 | Tes registry | **6 lulus** |
 | Arsip CLI dipasang di luar repo | Lulus; menghasilkan proyek cafe dan commerce tanpa bergantung pada checkout sumber |
 | Proyek commerce hasil CLI | Instalasi, typecheck, build frontend, dan build Worker lulus di luar monorepo |
-| Showcase | Typecheck dan build lulus |
-| Browser showcase | Lulus pada lebar 320/390/768/1440; 13 demo, filter, pencarian, reset, tautan level, tanpa galat runtime atau halaman melebar |
 | Cafe | Typecheck dan build demo lulus |
 | Tes inti cafe | **97 lulus** |
 | Browser cafe: gerak | **25 pemeriksaan lulus** |
@@ -63,7 +61,6 @@ Dari akar monorepo:
 
 ```sh
 pnpm verify
-pnpm test:showcase
 pnpm --filter @tampiloka/template-cafe test:demo-all
 ```
 
