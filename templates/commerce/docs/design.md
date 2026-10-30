@@ -1,9 +1,8 @@
 # Commerce design decisions
 
-The Sand palette uses a warm canvas, charcoal action and clay price accent; Ink and Forest retain their palette IDs. Shared status and overlay tokens are defined by `@tampiloka/theme-engine`. Demo controls support Indonesian and English, with the browser language as the initial choice.
+The Sand palette uses a warm canvas (`#f7f5f1`), charcoal action (`#2a2420`) and clay price/promotion accent (`#a4492a`); Ink and Forest retain their palette IDs with warm-neutral and forest-green harmonies. Shared status and overlay tokens (`--tl-*`) are defined by `@tampiloka/theme-engine` and aliased in `src/styles/base.css` (the only place raw color values appear in commerce CSS). Minimum text size is 12 px everywhere (`pnpm lint:design`), with 16 px inputs on phones and ≥3:1 input borders (`--line-strong`). Demo controls support Indonesian and English, with the browser language as the initial choice.
 
-Date: 29 October 2026. Fictional concept brand: Rupa. The brand name, sample catalogue, prices, addresses, bank account and business copy are demonstration content, not claims about a real merchant. Public demo UI states this explicitly. Replace the content and licensed assets when generating a client project.
-
+Date: 29 October 2026 (palette and typography updated 30 October 2026; see `AGENTS.md`). Fictional concept brand: Rupa. The brand name, sample catalogue, prices, addresses, bank account and business copy are demonstration content, not claims about a real merchant. Public demo UI states this explicitly. Replace the content and licensed assets when generating a client project.
 ## Source references used
 
 The website-design-kit skill guided composition, identity ownership, responsive order, primitives, motion and review. The following native desktop and mobile exports were inspected alongside each entry's notes and responsive component contract:
