@@ -235,7 +235,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.ok(bill?.id, 'Staff acceptance must create the customer bill.');
   pass('full: customer UI order appears and is accepted in a second staff tab', { preset: demo.id, orderId: order.id, billId: bill.id });
 
-  await customer.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await customer.getByRole('button', { name: 'Perbarui', exact: true }).click();
   await customer.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
   await customer.getByRole('dialog').getByRole('button', { name: /^Pembayaran(?:\s|$)/ }).click();
   await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(bill.id);

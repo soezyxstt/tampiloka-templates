@@ -103,6 +103,15 @@ try {
   const initialStock = initial.products.find(p => p.id === 'linen-shirt').variants.find(v => v.id === 'linen-shirt-m').stock;
   check('Actual Worker and D1 respond; a new visitor receives an isolated demo');
 
+  const hero = page.getByRole('region', { name: 'Produk pilihan' });
+  const firstHeroProduct = await hero.locator('.shop-hero-product strong').textContent();
+  await hero.getByRole('button', { name: 'Foto berikutnya' }).focus();
+  await page.keyboard.press('Enter');
+  assert.notEqual(await hero.locator('.shop-hero-product strong').textContent(), firstHeroProduct);
+  await hero.getByRole('button', { name: 'Foto sebelumnya' }).click();
+  assert.equal(await hero.locator('.shop-hero-product strong').textContent(), firstHeroProduct);
+  check('Hero carousel changes products and supports keyboard navigation');
+
   const presetTrigger = page.getByRole('combobox', { name: 'Preset desain' });
   const originalPreset = await presetTrigger.textContent();
   await presetTrigger.focus();

@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cpSync } from 'node:fs';
 
@@ -14,7 +14,7 @@ function browserAliases(): Plugin {
   return { name: 'cafe-browser-runtime', enforce: 'pre', resolveId(source, importer) {
     if (source === 'node:crypto') return resolve(root, 'src/demo-runtime/crypto.ts');
     if (source === 'next/image') return resolve(root, 'demos/image.tsx');
-    const candidate = source.startsWith('@/') ? resolve(root, source.slice(2)) : source.startsWith('.') && importer ? resolve(dirname(importer.split('?')[0]), source) : source;
+    const candidate = source.startsWith('@/') ? resolve(root, source.slice(2)) : source.startsWith('.') && importer ? resolve(dirname(importer.split('?')[0]), source) : isAbsolute(source) ? resolve(source.split('?')[0]) : source;
     return replacements.get(candidate) || null;
   } };
 }

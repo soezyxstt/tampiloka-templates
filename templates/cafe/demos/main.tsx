@@ -16,7 +16,7 @@ import { DEMO_DOMAIN, portalDemos } from './manifest';
 const DemoWorkspace = lazy(() => import('./workspace'));
 for (const [key, value] of Object.entries(getBrandCssVariables())) document.documentElement.style.setProperty(key, value);
 document.documentElement.dataset.theme = activeDemo?.theme || 'rounded';
-document.documentElement.lang = activeDemo ? 'id' : 'en';
+document.documentElement.lang = 'id';
 document.title = activeDemo ? `${activeDemo.name} · ${cafeConfig.brand.name} demo` : 'Cafe demos · Tampiloka';
 
 createRoot(document.getElementById('root')!).render(<MotionProvider>{activeDemo

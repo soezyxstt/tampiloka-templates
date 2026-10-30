@@ -197,7 +197,7 @@ async function accept(staff, customerName, requestId) {
 }
 async function customerOrders(customer) {
   await customer.getByRole('navigation', { name: 'Navigasi pelanggan', exact: true }).getByRole('button', { name: 'Pesanan', exact: true }).click();
-  await customer.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await customer.getByRole('button', { name: 'Perbarui', exact: true }).click();
 }
 async function orderPaymentLabel(customer, orderId, label) {
   await customerOrders(customer);
@@ -207,7 +207,7 @@ async function orderPaymentLabel(customer, orderId, label) {
 }
 async function customerPayment(customer, billId) {
   await customerOrders(customer);
-  await customer.getByRole('button', { name: 'Bayar / Lihat Struk', exact: true }).click();
+  await customer.getByRole('button', { name: 'Lihat tagihan dan pembayaran', exact: true }).click();
   await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(billId);
 }
 async function createQr(customer, billId) {
@@ -268,7 +268,7 @@ async function kitchen(staff, orderId, terminal = 'DELIVERED') {
   assert.ok(units.length);
   for (const unit of units) {
     const card = staff.locator(`[data-unit-id="${unit.id}"]`);
-    for (const [status, label] of [['PREPARING', 'Mulai Buat'], ['READY', 'Siap diantar'], [terminal, terminal === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan']]) {
+    for (const [status, label] of [['PREPARING', 'Mulai siapkan'], ['READY', 'Siap diantar'], [terminal, terminal === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan']]) {
       await card.getByRole('button', { name: label, exact: true }).click();
       await poll(staff, data => data.orderUnits.find(current => current.id === unit.id)?.fulfillmentStatus === status, `${unit.id} ${status}`);
     }
@@ -647,8 +647,8 @@ async function waitlistJourney(context) {
   const name = 'Lina Uji Antrean';
   await open(customer, urlFor('full'));
   await openCustomerWaitlist(customer);
-  await customer.getByLabel('Nama Tamu', { exact: true }).fill(name);
-  await customer.getByLabel('Jumlah Kursi', { exact: true }).fill('2');
+  await customer.getByLabel('Nama tamu', { exact: true }).fill(name);
+  await customer.getByLabel('Jumlah orang', { exact: true }).fill('2');
   await customer.getByRole('button', { name: 'Ambil antrean', exact: true }).click();
   const joined = await poll(staff, data => data.waitlistEntries.find(entry => entry.customerName === name), 'customer waitlist entry');
   const customerTicket = customer.locator(`[data-waitlist-id="${joined.value.id}"]`);
@@ -659,7 +659,7 @@ async function waitlistJourney(context) {
   await floorTabs.getByRole('button', { name: /^Panggilan & Antrean/ }).click();
   const staffTicket = staff.locator(`[data-waitlist-id="${joined.value.id}"]`);
   await staffTicket.getByLabel(`Meja untuk ${name}`, { exact: true }).selectOption(table.id);
-  await staffTicket.getByRole('button', { name: 'Panggil Tamu', exact: true }).click();
+  await staffTicket.getByRole('button', { name: 'Panggil tamu', exact: true }).click();
   await poll(staff, data => data.waitlistEntries.find(entry => entry.id === joined.value.id)?.status === 'CALLED', 'staff calls waiting guest');
   await customer.getByRole('button', { name: 'Perbarui antrean', exact: true }).click();
   await customerTicket.getByText('Dipanggil', { exact: true }).waitFor();
@@ -669,7 +669,7 @@ async function waitlistJourney(context) {
   assert.equal(await seating.getByLabel('Meja untuk tamu', { exact: true }).locator(`option[value="${table.id}"]`).count(), 0, 'A held waitlist table is unavailable to a different walk-in guest.');
   await seating.getByRole('button', { name: 'Kembali', exact: true }).click();
   await floorTabs.getByRole('button', { name: /^Panggilan & Antrean/ }).click();
-  await staffTicket.getByRole('button', { name: 'Dudukkan ke Meja', exact: true }).click();
+  await staffTicket.getByRole('button', { name: 'Tempatkan di meja', exact: true }).click();
   const seated = await poll(staff, data => data.visits.find(visit => visit.customerName === name && visit.status === 'OPEN'), 'waitlisted guest seated');
   assert.equal(seated.value.primaryTableId, table.id);
   await customer.getByRole('button', { name: 'Perbarui antrean', exact: true }).click();

@@ -523,14 +523,14 @@ export function StaffApp({
             {onBackToCustomer && (
               <Button variant="ghost" size="sm" onClick={onBackToCustomer}>
                 <ArrowLeft className="w-4 h-4" />
-                <span>Menu Tamu</span>
+                <span>Menu pelanggan</span>
               </Button>
             )}
           </div>
 
           <form onSubmit={handleStaffLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="staff-login-select">Pilih Akun Staf</Label>
+              <Label htmlFor="staff-login-select">Pilih akun staf</Label>
               <SelectField
                 id="staff-login-select"
                 value={loginStaffId}
@@ -548,7 +548,7 @@ export function StaffApp({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="staff-pin-input">PIN Keamanan (4 Digit)</Label>
+              <Label htmlFor="staff-pin-input">PIN staf (4 digit)</Label>
               <Input
                 id="staff-pin-input"
                 type="password"
@@ -556,7 +556,7 @@ export function StaffApp({
                 maxLength={6}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Masukkan PIN..."
+                placeholder="Masukkan PIN"
                 className="text-[16px] tracking-widest tabular-nums"
               />
             </div>
@@ -827,7 +827,7 @@ export function StaffApp({
                     onClick={() => setNewOrderModalOpen(true)}
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Pesanan Baru</span>
+                    <span>Pesanan baru</span>
                   </Button>
                 </div>
 
@@ -968,7 +968,7 @@ export function StaffApp({
                                   value={mergeTargetBillId}
                                   onChange={(e) => setMergeTargetBillId(e.target.value)}
                                 >
-                                  <option value="">Pilih tagihan tujuan...</option>
+                                  <option value="">Pilih tagihan tujuan</option>
                                   {activeBills
                                     .filter(
                                       (b: any) =>
@@ -1340,7 +1340,7 @@ export function StaffApp({
                               })
                             }
                           >
-                            Mulai Buat
+                            Mulai siapkan
                           </Button>
                         )}
                         {u.fulfillmentStatus === 'PREPARING' && (
@@ -1522,7 +1522,7 @@ export function StaffApp({
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      Daftar Antrean Meja (Waitlist)
+                      Antrean meja
                     </h2>
                   </div>
 
@@ -1581,7 +1581,7 @@ export function StaffApp({
                                   })
                                 }
                               >
-                                Panggil Tamu
+                                Panggil tamu
                               </Button>
                             )}
                             <Button
@@ -1596,7 +1596,7 @@ export function StaffApp({
                                 })
                               }
                             >
-                              Dudukkan ke Meja
+                              Tempatkan di meja
                             </Button>
                           </div>
                         )}
@@ -1627,7 +1627,7 @@ export function StaffApp({
                   onClick={() => setShowQrPrintModal(true)}
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Cetak QR Meja</span>
+                  <span>Cetak QR meja</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -1666,7 +1666,7 @@ export function StaffApp({
                   onChange={(e) => setMenuCategoryFilter(e.target.value)}
                 >
                   <option value="ALL">
-                    Semua Kategori ({(snapshot?.categories || []).length})
+                    Semua kategori ({(snapshot?.categories || []).length})
                   </option>
                   {(snapshot?.categories || []).map((c: any) => (
                     <option key={c.id} value={c.id}>
@@ -1771,7 +1771,7 @@ export function StaffApp({
             {/* Finite Stock Pools Section (Clean Hairline List) */}
             <section className="pt-4 space-y-3">
               <h2 className="font-heading text-[17px] font-bold">
-                Stok Porsi Harian Terbatas
+                Batas stok harian
               </h2>
               <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {(snapshot?.stockPools || [])
@@ -1817,7 +1817,7 @@ export function StaffApp({
                             setActionNotice(`Stok ${p.name} berhasil diperbarui.`);
                           }}
                         >
-                          Update Stok
+                          Perbarui stok
                         </Button>
                       </div>
                     </div>
@@ -1964,7 +1964,7 @@ export function StaffApp({
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label htmlFor="custom-srv-pct">Biaya Layanan (%)</Label>
+                      <Label htmlFor="custom-srv-pct">Biaya layanan (%)</Label>
                       <Input
                         id="custom-srv-pct"
                         type="number"
@@ -2025,7 +2025,7 @@ export function StaffApp({
                       onClick={() => setNewPromoModalOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Tambah Promo</span>
+                      <span>Tambah promo</span>
                     </Button>
                   </div>
 
@@ -2052,7 +2052,7 @@ export function StaffApp({
                 {/* Customer Feedback */}
                 <div className="pt-4 border-t border-[var(--border)] space-y-3">
                   <h2 className="font-heading text-[17px] font-bold">
-                    Ulasan Pelanggan Terbaru
+                    Ulasan pelanggan terbaru
                   </h2>
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {(snapshot?.feedbackEntries || []).map((fb: any) => (
@@ -2117,8 +2117,8 @@ export function StaffApp({
                 value={restockChoice}
                 onChange={(e) => setRestockChoice(e.target.value as any)}
               >
-                <option value="RESTOCK">Kembalikan ke stok (Belum dimasak)</option>
-                <option value="WASTE">Catat sebagai bahan terbuang (Waste)</option>
+                <option value="RESTOCK">Kembalikan ke stok (belum dimasak)</option>
+                <option value="WASTE">Catat sebagai bahan terbuang</option>
               </SelectField>
             </div>}
 
@@ -2204,7 +2204,7 @@ export function StaffApp({
                 />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label>Nama Menu</Label>
+                <Label>Nama menu</Label>
                 <Input
                   value={newMenuName}
                   onChange={(e) => setNewMenuName(e.target.value)}
@@ -2250,7 +2250,7 @@ export function StaffApp({
             </div>
 
             <div className="space-y-1">
-              <Label>Deskripsi Singkat</Label>
+              <Label>Deskripsi singkat</Label>
               <Input
                 value={newMenuDesc}
                 onChange={(e) => setNewMenuDesc(e.target.value)}
@@ -2319,7 +2319,7 @@ export function StaffApp({
                 setActionNotice('Menu baru berhasil ditambahkan ke katalog.');
               }}
             >
-              Simpan Menu Baru
+              Simpan menu baru
             </Button>
           </div>
         </div>
@@ -2406,11 +2406,11 @@ export function StaffApp({
                           }}
                           className="text-[11px] font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
                         >
-                          Jadikan Utama
+                          Jadikan foto utama
                         </button>
                       ) : (
                         <span className="text-[11px] font-semibold text-[var(--primary-ink)]">
-                          Foto Utama
+                          Foto utama
                         </span>
                       )}
                       <button
@@ -2446,7 +2446,7 @@ export function StaffApp({
                   setActionNotice(`Galeri foto ${editingPhotosItem.name} berhasil disimpan.`);
                 }}
               >
-                Simpan Galeri ({photoDraftList.length} Foto)
+                Simpan galeri ({photoDraftList.length} Foto)
               </Button>
             </div>
           </div>
@@ -2570,14 +2570,14 @@ export function StaffApp({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Kode Voucher</Label>
+              <Label>Kode voucher</Label>
               <Input
                 value={newPromoCode}
                 onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Nama Promo</Label>
+              <Label>Nama promo</Label>
               <Input
                 value={newPromoName}
                 onChange={(e) => setNewPromoName(e.target.value)}
@@ -2630,7 +2630,7 @@ export function StaffApp({
               setActionNotice(`Voucher promo ${newPromoCode} berhasil diterbitkan.`);
             }}
           >
-            Terbitkan Voucher Promo
+            Terbitkan voucher
           </Button>
         </div>
       </DialogModal>

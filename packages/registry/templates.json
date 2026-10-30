@@ -10,7 +10,7 @@
       "presets": {
         "editorial": {
           "name": "Editorial",
-          "description": "Foto besar dan koleksi terbuka.",
+          "description": "Foto produk besar dan susunan koleksi yang lapang.",
           "layout": "editorial",
           "palette": "sand",
           "card": "open",
@@ -18,7 +18,7 @@
         },
         "market": {
           "name": "Market",
-          "description": "Kategori tetap dan katalog padat.",
+          "description": "Kategori yang mudah dijelajahi dan katalog dalam tampilan grid.",
           "layout": "market",
           "palette": "ink",
           "card": "framed",
@@ -26,7 +26,7 @@
         },
         "atelier": {
           "name": "Atelier",
-          "description": "Koleksi pilihan dengan ritme gambar beragam.",
+          "description": "Tampilan koleksi dengan penekanan pada foto produk.",
           "layout": "atelier",
           "palette": "sand",
           "card": "open",
@@ -34,7 +34,7 @@
         },
         "compact": {
           "name": "Compact",
-          "description": "Baris ringkas untuk belanja cepat.",
+          "description": "Daftar produk ringkas untuk membandingkan pilihan.",
           "layout": "compact",
           "palette": "forest",
           "card": "soft",
@@ -44,14 +44,14 @@
       "levels": {
         "catalog": {
           "name": "Katalog",
-          "description": "Produk dan detail. Pembeli bertanya lewat kontak toko.",
+          "description": "Tampilkan produk dan detailnya; pembeli dapat menghubungi toko untuk bertanya.",
           "capabilities": [
             "catalog"
           ]
         },
         "whatsapp": {
           "name": "Keranjang + WhatsApp",
-          "description": "Pembeli menyusun keranjang dan mengirim daftar lewat WhatsApp.",
+          "description": "Pembeli menyusun keranjang, lalu membuka daftar belanja di WhatsApp.",
           "capabilities": [
             "catalog",
             "cart",
@@ -61,7 +61,7 @@
         },
         "store": {
           "name": "Toko",
-          "description": "Checkout, transfer manual atau COD, stok, pesanan, dan pengiriman.",
+          "description": "Terima pesanan dengan transfer manual atau COD, lalu kelola stok dan pengiriman.",
           "capabilities": [
             "catalog",
             "cart",
@@ -74,7 +74,7 @@
         },
         "advanced": {
           "name": "Toko lengkap",
-          "description": "Tambah gateway, kupon, retur, dan ulasan pembeli.",
+          "description": "Tambahkan pilihan gateway, kupon, retur, dan ulasan pada alur toko.",
           "capabilities": [
             "catalog",
             "cart",
@@ -103,47 +103,47 @@
       "presets": {
         "catalog": {
           "name": "Menu + permintaan ke pelayan",
-          "description": "Katalog, daftar pesanan pengunjung, pembayaran offline.",
+          "description": "Menu digital dan daftar pilihan pelanggan; pembayaran dilakukan di tempat.",
           "url": "https://cafe-catalog.tampiloka.site"
         },
         "order-at-cashier": {
           "name": "Pesan, bayar di kasir",
-          "description": "Pesanan mandiri dan penerimaan oleh staf.",
+          "description": "Pelanggan memesan dari meja, lalu staf menerima pesanannya.",
           "url": "https://cafe-order.tampiloka.site"
         },
         "order-and-pay": {
           "name": "Pesan dan bayar",
-          "description": "Menu, pesanan, dan simulasi pembayaran online.",
+          "description": "Pilih menu, kirim pesanan, dan coba simulasi pembayaran online.",
           "url": "https://cafe-pay.tampiloka.site"
         },
         "cashier": {
           "name": "Kasir",
-          "description": "Pesanan langsung, diskon, tunai, dan giliran kerja.",
+          "description": "Catat pesanan langsung, diskon, pembayaran tunai, dan giliran kerja.",
           "url": "https://cafe-pos.tampiloka.site"
         },
         "cashier-kitchen": {
           "name": "Kasir + dapur",
-          "description": "Kasir dan antrean persiapan dapur.",
+          "description": "Catat pesanan di kasir dan pantau antrean persiapan dapur.",
           "url": "https://cafe-kitchen.tampiloka.site"
         },
         "operations": {
           "name": "Operasional",
-          "description": "Kasir, dapur, dan laporan.",
+          "description": "Kelola pesanan, persiapan dapur, dan laporan dari ruang staf.",
           "url": "https://cafe-operations.tampiloka.site"
         },
         "menu-cashier": {
           "name": "Menu + kasir",
-          "description": "Pelanggan melihat menu, staf mencatat pesanan.",
+          "description": "Pelanggan melihat menu digital; staf mencatat pesanan di kasir.",
           "url": "https://cafe-menu-pos.tampiloka.site"
         },
         "menu-order-cashier": {
           "name": "Menu + pesanan + kasir",
-          "description": "Pesan dari meja dengan kendali tagihan di kasir.",
+          "description": "Pelanggan memesan dari meja; kasir mengelola tagihan.",
           "url": "https://cafe-menu-order-pos.tampiloka.site"
         },
         "full": {
           "name": "Layanan lengkap",
-          "description": "Pelanggan, kasir, dapur, meja, dan laporan.",
+          "description": "Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.",
           "url": "https://cafe-full.tampiloka.site"
         }
       },

@@ -1,8 +1,8 @@
 export const commerceLevels = Object.freeze({
-  catalog: { name: 'Katalog', description: 'Produk dan detail. Pembeli bertanya lewat kontak toko.', capabilities: ['catalog'] },
-  whatsapp: { name: 'Keranjang + WhatsApp', description: 'Pembeli menyusun keranjang dan mengirim daftar lewat WhatsApp.', capabilities: ['catalog','cart','whatsapp','wishlist'] },
-  store: { name: 'Toko', description: 'Checkout, transfer manual atau COD, stok, pesanan, dan pengiriman.', capabilities: ['catalog','cart','checkout','orders','inventory','wishlist','reports'] },
-  advanced: { name: 'Toko lengkap', description: 'Tambah gateway, kupon, retur, dan ulasan pembeli.', capabilities: ['catalog','cart','checkout','orders','inventory','coupons','gateway','returns','reviews','wishlist','reports'] },
+  catalog: { name: 'Katalog', description: 'Tampilkan produk dan detailnya; pembeli dapat menghubungi toko untuk bertanya.', capabilities: ['catalog'] },
+  whatsapp: { name: 'Keranjang + WhatsApp', description: 'Pembeli menyusun keranjang, lalu membuka daftar belanja di WhatsApp.', capabilities: ['catalog','cart','whatsapp','wishlist'] },
+  store: { name: 'Toko', description: 'Terima pesanan dengan transfer manual atau COD, lalu kelola stok dan pengiriman.', capabilities: ['catalog','cart','checkout','orders','inventory','wishlist','reports'] },
+  advanced: { name: 'Toko lengkap', description: 'Tambahkan pilihan gateway, kupon, retur, dan ulasan pada alur toko.', capabilities: ['catalog','cart','checkout','orders','inventory','coupons','gateway','returns','reviews','wishlist','reports'] },
 });
 export const commerceFeatureIds = Object.freeze(['promotions','taxes','serviceFees','customerAccounts','loyaltyPoints','membershipTiers']);
 export const commerceFeatureLabels = Object.freeze({
@@ -24,21 +24,21 @@ export function commerceModulesFor(level,features) {
   return Object.fromEntries(commerceFeatureIds.map(id=>[id,ids.includes(id)]));
 }
 export const commercePresets = Object.freeze({
-  editorial: { name: 'Editorial', description: 'Foto besar dan koleksi terbuka.', layout: 'editorial', palette: 'sand', card: 'open', button: 'solid' },
-  market: { name: 'Market', description: 'Kategori tetap dan katalog padat.', layout: 'market', palette: 'ink', card: 'framed', button: 'solid' },
-  atelier: { name: 'Atelier', description: 'Koleksi pilihan dengan ritme gambar beragam.', layout: 'atelier', palette: 'sand', card: 'open', button: 'outline' },
-  compact: { name: 'Compact', description: 'Baris ringkas untuk belanja cepat.', layout: 'compact', palette: 'forest', card: 'soft', button: 'solid' },
+  editorial: { name: 'Editorial', description: 'Foto produk besar dan susunan koleksi yang lapang.', layout: 'editorial', palette: 'sand', card: 'open', button: 'solid' },
+  market: { name: 'Market', description: 'Kategori yang mudah dijelajahi dan katalog dalam tampilan grid.', layout: 'market', palette: 'ink', card: 'framed', button: 'solid' },
+  atelier: { name: 'Atelier', description: 'Tampilan koleksi dengan penekanan pada foto produk.', layout: 'atelier', palette: 'sand', card: 'open', button: 'outline' },
+  compact: { name: 'Compact', description: 'Daftar produk ringkas untuk membandingkan pilihan.', layout: 'compact', palette: 'forest', card: 'soft', button: 'solid' },
 });
 export const cafePresets = Object.freeze({
-  catalog: { name: 'Menu + permintaan ke pelayan', description: 'Katalog, daftar pesanan pengunjung, pembayaran offline.', url: 'https://cafe-catalog.tampiloka.site' },
-  'order-at-cashier': { name: 'Pesan, bayar di kasir', description: 'Pesanan mandiri dan penerimaan oleh staf.', url: 'https://cafe-order.tampiloka.site' },
-  'order-and-pay': { name: 'Pesan dan bayar', description: 'Menu, pesanan, dan simulasi pembayaran online.', url: 'https://cafe-pay.tampiloka.site' },
-  cashier: { name: 'Kasir', description: 'Pesanan langsung, diskon, tunai, dan giliran kerja.', url: 'https://cafe-pos.tampiloka.site' },
-  'cashier-kitchen': { name: 'Kasir + dapur', description: 'Kasir dan antrean persiapan dapur.', url: 'https://cafe-kitchen.tampiloka.site' },
-  operations: { name: 'Operasional', description: 'Kasir, dapur, dan laporan.', url: 'https://cafe-operations.tampiloka.site' },
-  'menu-cashier': { name: 'Menu + kasir', description: 'Pelanggan melihat menu, staf mencatat pesanan.', url: 'https://cafe-menu-pos.tampiloka.site' },
-  'menu-order-cashier': { name: 'Menu + pesanan + kasir', description: 'Pesan dari meja dengan kendali tagihan di kasir.', url: 'https://cafe-menu-order-pos.tampiloka.site' },
-  full: { name: 'Layanan lengkap', description: 'Pelanggan, kasir, dapur, meja, dan laporan.', url: 'https://cafe-full.tampiloka.site' },
+  catalog: { name: 'Menu + permintaan ke pelayan', description: 'Menu digital dan daftar pilihan pelanggan; pembayaran dilakukan di tempat.', url: 'https://cafe-catalog.tampiloka.site' },
+  'order-at-cashier': { name: 'Pesan, bayar di kasir', description: 'Pelanggan memesan dari meja, lalu staf menerima pesanannya.', url: 'https://cafe-order.tampiloka.site' },
+  'order-and-pay': { name: 'Pesan dan bayar', description: 'Pilih menu, kirim pesanan, dan coba simulasi pembayaran online.', url: 'https://cafe-pay.tampiloka.site' },
+  cashier: { name: 'Kasir', description: 'Catat pesanan langsung, diskon, pembayaran tunai, dan giliran kerja.', url: 'https://cafe-pos.tampiloka.site' },
+  'cashier-kitchen': { name: 'Kasir + dapur', description: 'Catat pesanan di kasir dan pantau antrean persiapan dapur.', url: 'https://cafe-kitchen.tampiloka.site' },
+  operations: { name: 'Operasional', description: 'Kelola pesanan, persiapan dapur, dan laporan dari ruang staf.', url: 'https://cafe-operations.tampiloka.site' },
+  'menu-cashier': { name: 'Menu + kasir', description: 'Pelanggan melihat menu digital; staf mencatat pesanan di kasir.', url: 'https://cafe-menu-pos.tampiloka.site' },
+  'menu-order-cashier': { name: 'Menu + pesanan + kasir', description: 'Pelanggan memesan dari meja; kasir mengelola tagihan.', url: 'https://cafe-menu-order-pos.tampiloka.site' },
+  full: { name: 'Layanan lengkap', description: 'Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.', url: 'https://cafe-full.tampiloka.site' },
 });
 export const templates = Object.freeze([
   { id: 'commerce', name: 'Commerce', description: 'Katalog brand hingga toko dengan stok, pesanan, pembayaran, dan staf.', status: 'available', directory: 'templates/commerce', presets: commercePresets, levels: commerceLevels, demoUrl: 'https://ecommerce.tampiloka.site', defaultPreset: 'editorial', defaultLevel: 'store' },

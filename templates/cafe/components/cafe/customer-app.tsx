@@ -442,12 +442,12 @@ export function CustomerApp({
   };
 
   const handleVerifyOtp = () => {
-    setOtpStatusMessage('Login member belum tersedia. Gunakan nama pemesan.');
+    setOtpStatusMessage('Masuk sebagai member belum tersedia. Lanjutkan sebagai tamu dengan nama pemesan.');
   };
 
   const handleCheckGpsPresence = async () => {
     setCheckoutError('');
-    if (!navigator.geolocation) { setCheckoutError('GPS tidak tersedia. Gunakan kode meja.'); return; }
+    if (!navigator.geolocation) { setCheckoutError('Lokasi tidak tersedia di perangkat ini. Minta kode meja kepada staf.'); return; }
     navigator.geolocation.getCurrentPosition(async (position) => {
       try {
         const res = await onCommand('VERIFY_PRESENCE', {
@@ -459,7 +459,7 @@ export function CustomerApp({
         setPresenceStatusText(check?.message || '');
         if (!check?.eligible) setCheckoutError(check?.message || 'Lokasi belum terverifikasi.');
       } catch (err: any) { setCheckoutError(err.message); }
-    }, () => setCheckoutError('Lokasi belum terbaca. Gunakan kode meja dari staf.'), { enableHighAccuracy: true, timeout: 10000 });
+    }, () => setCheckoutError('Lokasi belum dapat dibaca. Coba lagi atau minta kode meja kepada staf.'), { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const handleUseJoinCode = async () => {
@@ -514,7 +514,7 @@ export function CustomerApp({
 
   const handleReviewOrder = async () => {
     if (guestName.trim().length < 2) { setCheckoutError('Isi nama pemesan, minimal 2 karakter.'); return; }
-    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError('Verifikasi lokasi atau masukkan kode meja.'); return; }
+    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError('Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.'); return; }
     const quote = await handleRequestQuote();
     if (quote) setConfirmOrderOpen(true);
   };
@@ -530,7 +530,7 @@ export function CustomerApp({
       return;
     }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) {
-      setCheckoutError('Verifikasi lokasi atau masukkan kode meja.');
+      setCheckoutError('Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.');
       return;
     }
 
@@ -538,7 +538,7 @@ export function CustomerApp({
       const quoteToUse = activeQuote;
       if (!quoteToUse || Date.parse(quoteToUse.expiresAt) <= Date.now()) {
         const renewed = await handleRequestQuote();
-        if (renewed) setCheckoutError('Harga telah diperbarui. Periksa total, lalu kirim pesanan lagi.');
+        if (renewed) setCheckoutError('Ringkasan harga telah diperbarui. Periksa total sebelum mengirim pesanan kembali.');
         return;
       }
 
@@ -634,7 +634,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
-      <a className="skip-link" href="#customer-content">Ke menu utama</a>
+      <a className="skip-link" href="#customer-content">Lewati ke menu</a>
       <header className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
@@ -800,7 +800,7 @@ export function CustomerApp({
                 <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">Favorit</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>Tersedia saja</FilterToggle></div>
               </div>
               {filteredCatalog.length === 0 ? (
-                <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci atau kategori lain." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
+                <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci lain atau pilih kategori yang berbeda." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
               ) : (
                 <div className={styles.menuGrid} role="list" aria-label="Menu"><AnimatePresence initial={false} mode="popLayout">
                   {filteredCatalog.map((item: any, itemIndex: number) => {
@@ -851,8 +851,8 @@ export function CustomerApp({
               {cart.length === 0 ? (
                 <EmptyState
                   title="Keranjang masih kosong"
-                  description="Pilih minuman atau makanan dari daftar menu untuk mulai memesan."
-                  actionLabel="Lihat Menu"
+                  description="Pilih makanan atau minuman dari menu, lalu tambahkan ke keranjang."
+                  actionLabel="Lihat menu"
                   onAction={() => setActiveScreen('menu')}
                 />
               ) : (
@@ -938,7 +938,7 @@ export function CustomerApp({
                       </div>
                     ) : (
                       <div className="rounded-xl bg-[var(--accent-surface)] p-4 space-y-3">
-                        <p className="text-sm text-[var(--muted-foreground)]">Login member belum tersedia.</p>
+                        <p className="text-sm text-[var(--muted-foreground)]">Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.</p>
                         <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>Lanjut sebagai tamu</Button>
                       </div>
                     )}
@@ -956,7 +956,7 @@ export function CustomerApp({
                       />
                     </div>
                     <p className="text-[13px] text-[var(--muted-foreground)]">
-                      Gunakan lokasi atau kode meja dari staf.
+                      Untuk memesan dari meja, izinkan akses lokasi atau masukkan kode yang diberikan staf.
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button
@@ -1060,7 +1060,7 @@ export function CustomerApp({
                       )}
                     </div>
 
-                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau memilih meja lain.</p>}
+                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau membantu memilih meja lain.</p>}
                     <InlineError message={checkoutError} />
                     {checkoutSuccessMsg && (
                       <StatusLabel label={checkoutSuccessMsg} tone="success" />
@@ -1092,18 +1092,18 @@ export function CustomerApp({
               <div className={styles.ordersHeading}>
                 <h1 className="font-heading text-[22px] font-bold">Pesanan</h1>
                 <div className={styles.ordersActions}>
-                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>Refresh</Button>
+                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>Perbarui</Button>
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => setActiveScreen('pembayaran')}
                 >
-                  Bayar / Lihat Struk
+                  Lihat tagihan dan pembayaran
                 </Button>
                 </div>
               </div>
 
-              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title="Belum ada pesanan" description="Pesanan Anda akan muncul di sini." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
+              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title="Belum ada pesanan" description="Setelah dikirim, pesanan Anda akan muncul di sini bersama statusnya." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
               {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? 'Pesanan kedaluwarsa' : 'Pesanan dibatalkan'} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || 'Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.'}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>Pilih menu lagi</Button></section>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
@@ -1264,9 +1264,9 @@ export function CustomerApp({
                 </SelectField>
               </div>
 
-              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label="Ringkasan seluruh tagihan"><p className="font-semibold">{customerBills.length} tagihan dalam kunjungan Anda</p><p>Sisa seluruh tagihan: <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">Pesanan tambahan atau tagihan yang dipisah dibayar masing-masing. Periksa pilihan tagihan sebelum membayar.</p></div>}
+              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label="Ringkasan seluruh tagihan"><p className="font-semibold">{customerBills.length} tagihan dalam kunjungan Anda</p><p>Sisa seluruh tagihan: <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.</p></div>}
 
-              {!selectedBill && <EmptyState title="Belum ada tagihan" description="Tagihan tersedia setelah pesanan dikonfirmasi." actionLabel="Lihat pesanan" onAction={() => setActiveScreen('pesanan')} />}
+              {!selectedBill && <EmptyState title="Belum ada tagihan" description="Tagihan akan muncul setelah pesanan diterima." actionLabel="Lihat pesanan" onAction={() => setActiveScreen('pesanan')} />}
               {selectedBill && (
                 <div className="space-y-6">
                   {/* Bill Items (Open Hairline List) */}
@@ -1352,7 +1352,7 @@ export function CustomerApp({
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
                     /></div>
 
-                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">Bayar di kasir</p><p className="mt-1 text-sm">Sebutkan nama pemesan atau nomor meja. Staf akan mencatat pembayaran Anda.</p></div>}
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">Bayar di kasir</p><p className="mt-1 text-sm">Sebutkan nama pemesan atau nomor meja di kasir. Staf akan mencatat pembayaran Anda.</p></div>}
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
@@ -1598,14 +1598,14 @@ export function CustomerApp({
               </section>}
 
               <section className="space-y-2.5 text-[14px]">
-                <h2 className="font-heading text-[16px] font-semibold">Jam Buka &amp; Fasilitas</h2>
+                <h2 className="font-heading text-[16px] font-semibold">Jam buka dan fasilitas</h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   <div className="py-2.5 flex justify-between gap-4">
                     <span className="text-[var(--muted-foreground)]">Alamat</span>
                     <span className="font-medium text-right">{snapshot?.outlet?.address}</span>
                   </div>
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Jam Operasional</span>
+                    <span className="text-[var(--muted-foreground)]">Jam operasional</span>
                     <span className="font-medium text-right">
                       {snapshot?.outlet?.openHoursText}
                     </span>
@@ -1617,7 +1617,7 @@ export function CustomerApp({
                     </span>
                   </div>
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Ketentuan Biaya</span>
+                    <span className="text-[var(--muted-foreground)]">Ketentuan biaya</span>
                     <span className="font-medium text-right">
                       {formatOutletChargePolicy(snapshot?.outlet)}
                     </span>
@@ -1640,7 +1640,7 @@ export function CustomerApp({
               </h1>
 
               <div className="rounded-2xl bg-white border border-[var(--border)] p-5">
-                <p className="text-sm text-[var(--muted-foreground)]">Login member belum tersedia.</p>
+                <p className="text-sm text-[var(--muted-foreground)]">Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.</p>
               </div>
 
               {/* Send Review (Unboxed with Hairline Top Divider) */}
@@ -1726,7 +1726,7 @@ export function CustomerApp({
                 <h2 className="font-heading text-[16px] font-semibold">Ambil antrean</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label htmlFor="waitlist-guest-name">Nama Tamu</Label>
+                    <Label htmlFor="waitlist-guest-name">Nama tamu</Label>
                     <Input
                       id="waitlist-guest-name" maxLength={60}
                       value={waitlistName}
@@ -1735,7 +1735,7 @@ export function CustomerApp({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="waitlist-party-size">Jumlah Kursi</Label>
+                    <Label htmlFor="waitlist-party-size">Jumlah orang</Label>
                     <Input
                       id="waitlist-party-size" step={1}
                       type="number"
@@ -1781,10 +1781,10 @@ export function CustomerApp({
                   <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">Antrean #{waitlistTicket.publicSequence}</p><StatusLabel label={({ WAITING: 'Menunggu', CALLED: 'Dipanggil', SEATED: 'Sudah Duduk', COMPLETED: 'Kunjungan selesai', CANCELLED: 'Dibatalkan', EXPIRED: 'Kedaluwarsa' } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} /></div>
                   <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} orang</p>
                   {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? 'Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.' : 'Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.'}</p>}
-                  {waitlistTicket.status === 'CALLED' && <p className="text-sm">Silakan temui staf untuk Meja {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` Meja ditahan hingga ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString('id-ID', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
-                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2"><p className="text-sm">Meja Anda sudah siap. Pindai QR meja untuk mulai memesan.</p>{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>Buka menu meja</Button>}</div>}
+                  {waitlistTicket.status === 'CALLED' && <p className="text-sm">Temui staf untuk menuju Meja {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` Meja ditahan hingga ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString('id-ID', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
+                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2"><p className="text-sm">Meja Anda sudah siap. Pindai kode QR di meja untuk membuka menu dan mulai memesan.</p>{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>Buka menu meja</Button>}</div>}
                   {waitlistError && <Button variant="ghost" size="sm" onClick={() => { rememberWaitlist(null); setWaitlistError(''); }}>Hapus antrean tersimpan</Button>}
-                </article> : <p className="text-sm text-[var(--muted-foreground)]">Nomor antrean Anda akan muncul di sini setelah mendaftar.</p>}
+                </article> : <p className="text-sm text-[var(--muted-foreground)]">Setelah mendaftar, nomor dan status antrean akan muncul di sini.</p>}
               </section>
             </MotionPanel>
           )}
@@ -1814,7 +1814,7 @@ export function CustomerApp({
                 className="inline-flex items-center gap-1 font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
               >
                 <Lock className="w-3 h-3" />
-                <span>Portal Staf &amp; Kasir</span>
+                <span>Ruang staf dan kasir</span>
               </button>
             )}
           </div>
@@ -1864,7 +1864,7 @@ export function CustomerApp({
       </DialogModal>
       <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title="Kirim pesanan?">
         <div className="space-y-5">
-          <p className="text-sm text-[var(--muted-foreground)]">Periksa pesanan sebelum dikirim.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Periksa menu dan jumlahnya. Pesanan akan dikirim ke staf setelah Anda mengonfirmasi.</p>
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
           <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>Kembali</Button><Button className="flex-1" disabled={busy || !cart.length} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : 'Kirim pesanan'}</Button></div>
@@ -2008,7 +2008,7 @@ export function CustomerApp({
       >
         <div className="space-y-4">
           {canOrder && <div className="space-y-1.5">
-            <Label>Pilih Mode Layanan</Label>
+            <Label>Pilih jenis layanan</Label>
             <AnimatedSegmentedControl
               options={[
                 { value: 'DINE_IN', label: 'Makan di tempat' },
@@ -2024,7 +2024,7 @@ export function CustomerApp({
 
           {orderMode === 'DINE_IN' && (
             <div className="space-y-1.5">
-              <Label htmlFor="modal-select-table">Pilih Meja Anda</Label>
+              <Label htmlFor="modal-select-table">Pilih meja</Label>
               <SelectField
                 id="modal-select-table"
                 value={selectedTableId}
@@ -2046,7 +2046,7 @@ export function CustomerApp({
             className="w-full"
             onClick={() => setTableModalOpen(false)}
           >
-            Simpan Pilihan
+            Simpan pilihan
           </Button>
         </div>
       </DialogModal>
@@ -2199,7 +2199,7 @@ export function CustomerApp({
                 {editingLineId ? 'Simpan perubahan' : 'Tambah ke keranjang'}
               </Button>
             </div></>}
-            {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">Untuk memesan, hubungi staf di kasir.</p>}
+            {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">Untuk memesan menu ini, sampaikan pilihan Anda kepada staf di kasir.</p>}
           </div>
         )}
       </DialogModal>
