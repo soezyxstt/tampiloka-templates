@@ -49,10 +49,11 @@ when the feed cannot be reached. Do not use a second hand-maintained list.
    The family, demo, thumbnail, and modes should appear without a marketing source
    change or deployment. Check that choosing a mode opens the intended preview.
 
-Existing thumbnail URLs point at the already published Tampiloka images. New
-families may host their thumbnails with their own public demos; no marketing
-asset copy is required. Public metadata must never contain private contacts,
-credentials, internal service URLs, unpublished client work, or repository paths.
+Thumbnail URLs point at images hosted with the public demos. New families must
+publish their thumbnails with the template or catalog before adding those URLs
+to the feed; no marketing asset copy is required. Public metadata must never
+contain private contacts, credentials, internal service URLs, unpublished client
+work, or repository paths.
 
 ## Version 1 contract
 
@@ -72,7 +73,7 @@ credentials, internal service URLs, unpublished client work, or repository paths
     "name": { "id": "Editorial", "en": "Editorial" },
     "description": { "id": "Foto produk besar.", "en": "Large product photos." },
     "url": "https://ecommerce.tampiloka.site/?preset=editorial&level=store",
-    "imageUrl": "https://tampiloka.site/images/templates/commerce-editorial.webp",
+    "imageUrl": "https://ecommerce.tampiloka.site/demo-previews/commerce-editorial.webp",
     "visibility": "public",
     "modeUrls": { "store": "https://ecommerce.tampiloka.site/?preset=editorial&level=store" },
     "featured": true
@@ -85,3 +86,7 @@ are optional. Each entry has a globally unique stable ID and belongs to a known
 family. When a family declares modes, every entry must include the complete
 mode URL map. Unknown major schema versions must fail validation. Add compatible
 optional fields within v1; publish a new URL/version for breaking changes.
+
+## Preview images
+
+Capture the current public demo at a 1280 × 800 viewport and export an optimized 8:5 WebP. Keep its actual theme, mode, content, and shared toolbar visible. Cafe images live in `templates/cafe/demos/public/demo-previews/` and are served at `https://cafe.tampiloka.site/demo-previews/`. Commerce images live in `templates/commerce/public/demo-previews/` and are served at `https://ecommerce.tampiloka.site/demo-previews/`. These images ship with their demo, and the catalog contains their absolute URLs. Publish the demo and image assets before marking a new entry public and ready. The marketing application does not need an asset copy or a rebuild.

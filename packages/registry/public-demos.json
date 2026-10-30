@@ -33,7 +33,7 @@
             "id": "Foto produk besar dan susunan koleksi yang lapang.",
             "en": "Large product photos with an open collection layout."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/commerce-editorial.webp",
+          "imageUrl": "https://ecommerce.tampiloka.site/demo-previews/commerce-editorial.webp",
           "featured": true
         },
         {
@@ -49,7 +49,7 @@
             "id": "Kategori yang mudah dijelajahi dan katalog dalam tampilan grid.",
             "en": "Clear categories and a browsable product grid."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/commerce-market.webp",
+          "imageUrl": "https://ecommerce.tampiloka.site/demo-previews/commerce-market.webp",
           "featured": false
         },
         {
@@ -65,7 +65,7 @@
             "id": "Tampilan koleksi dengan penekanan pada foto produk.",
             "en": "Curated collections with a focus on product photography."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/commerce-atelier.webp",
+          "imageUrl": "https://ecommerce.tampiloka.site/demo-previews/commerce-atelier.webp",
           "featured": false
         },
         {
@@ -81,7 +81,7 @@
             "id": "Daftar produk ringkas untuk membandingkan pilihan.",
             "en": "A concise product list for comparing options."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/commerce-compact.webp",
+          "imageUrl": "https://ecommerce.tampiloka.site/demo-previews/commerce-compact.webp",
           "featured": false
         }
       ],
@@ -163,7 +163,7 @@
             "id": "Menu digital dan daftar pilihan pelanggan; pembayaran dilakukan di tempat.",
             "en": "A digital menu and guest order list, with payment on site."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-catalog.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-catalog.webp",
           "featured": false
         },
         {
@@ -179,7 +179,7 @@
             "id": "Pelanggan memesan dari meja, lalu staf menerima pesanannya.",
             "en": "Guests order from their table and staff receive the order."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-order-at-cashier.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-order-at-cashier.webp",
           "featured": false
         },
         {
@@ -195,7 +195,7 @@
             "id": "Pilih menu, kirim pesanan, dan coba simulasi pembayaran online.",
             "en": "Choose items, place an order, and try simulated online payment."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-order-and-pay.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-order-and-pay.webp",
           "featured": false
         },
         {
@@ -211,7 +211,7 @@
             "id": "Catat pesanan langsung, diskon, pembayaran tunai, dan giliran kerja.",
             "en": "Walk-in orders, discounts, cash payments, and shifts."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-cashier.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-cashier.webp",
           "featured": false
         },
         {
@@ -227,7 +227,7 @@
             "id": "Catat pesanan di kasir dan pantau antrean persiapan dapur.",
             "en": "Record orders at the cashier and follow the kitchen queue."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-cashier-kitchen.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-cashier-kitchen.webp",
           "featured": false
         },
         {
@@ -243,7 +243,7 @@
             "id": "Kelola pesanan, persiapan dapur, dan laporan dari ruang staf.",
             "en": "Manage orders, kitchen preparation, and reports in the staff workspace."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-operations.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-operations.webp",
           "featured": false
         },
         {
@@ -259,7 +259,7 @@
             "id": "Pelanggan melihat menu digital; staf mencatat pesanan di kasir.",
             "en": "Guests browse the menu and staff record orders."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-menu-cashier.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-menu-cashier.webp",
           "featured": false
         },
         {
@@ -275,7 +275,7 @@
             "id": "Pelanggan memesan dari meja; kasir mengelola tagihan.",
             "en": "Guests order from their table and the cashier manages the bill."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-menu-order-cashier.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-menu-order-cashier.webp",
           "featured": false
         },
         {
@@ -291,7 +291,7 @@
             "id": "Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.",
             "en": "Explore the guest, cashier, kitchen, table service, and reporting flow."
           },
-          "imageUrl": "https://tampiloka.site/images/templates/cafe-full.webp",
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-full.webp",
           "featured": true
         }
       ]
