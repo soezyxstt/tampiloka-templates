@@ -12,6 +12,8 @@
     "test": "turbo run test",
     "test:cli": "node --test packages/cli/tests/*.test.mjs",
     "test:registry": "node --test packages/registry/tests/*.test.mjs",
+    "catalog:build": "node scripts/build-public-catalog.mjs",
+    "catalog:test": "node --test packages/registry/tests/public-catalog.test.mjs",
     "lint:design": "node scripts/check-design-tokens.mjs",
     "tampiloka": "node packages/cli/bin/tampiloka.mjs",
     "cli:pack": "pnpm --filter @tampiloka/cli pack",
@@ -26,3 +28,4 @@
     "typescript": "5.9.3"
   }
 }
+

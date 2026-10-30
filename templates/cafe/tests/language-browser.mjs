@@ -9,7 +9,9 @@ try {
     const page = await context.newPage();
     await page.goto(base);
     await page.waitForFunction(expected => document.documentElement.lang === expected, expected);
-    await page.getByRole('heading', { name: expected === 'id' ? 'Demo kafe' : 'Cafe demos', exact: true }).waitFor();
+    const mode = page.getByRole('combobox', { name: expected === 'id' ? 'Mode demo' : 'Demo mode', exact: true });
+    await mode.waitFor();
+    assert.equal(await mode.textContent(), expected === 'id' ? 'Layanan lengkap' : 'Full service');
     await context.close();
     console.log(`PASS ${locale} defaults to ${expected}`);
   }
@@ -57,3 +59,4 @@ try {
 } finally {
   await browser.close();
 }
+

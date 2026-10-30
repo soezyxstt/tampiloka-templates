@@ -1,15 +1,23 @@
-:root { --font-sans:'Source Sans 3'; --font-brand-heading:'Manrope';
-  /* Demo toolbar chrome: espresso bar matching the cafe palette. */
-  --demo-chrome-bg:#2A1F1A; --demo-chrome-fg:#FFFFFF; --demo-chrome-muted:#EADFD6; --demo-chrome-hover:color-mix(in srgb,var(--demo-chrome-fg) 10%,transparent); }
-.cafe-language-toggle { min-height: 36px; padding: 0 9px; border: 1px solid currentColor; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.cafe-language-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.demo-toolbar { min-height:54px; padding:6px 20px; display:flex; align-items:center; gap:20px; background:var(--demo-chrome-bg); color:var(--demo-chrome-fg); font-size:14px; }
-.demo-toolbar a,.demo-toolbar button { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:0 8px; border-radius:6px; }
-.demo-toolbar a:hover,.demo-toolbar button:hover { background:var(--demo-chrome-hover); }
-.demo-back { white-space:nowrap; }
-.demo-package-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--demo-chrome-muted); }
-.demo-toolbar-actions { display:flex; align-items:center; gap:6px; }
-.demo-toolbar button:disabled { opacity:.5; }
+/* Demo chrome stays constant while the cafe theme changes. */
+:root {
+  --font-sans:'Source Sans 3'; --font-brand-heading:'Manrope';
+  --demo-chrome-bg:#2a2420; --demo-chrome-fg:#f7f5f1; --demo-chrome-muted:#cfc7be;
+  --demo-chrome-border:#7d7167; --demo-chrome-hover:#4a413b;
+  --demo-chrome-line:color-mix(in srgb,var(--demo-chrome-fg) 14%,transparent);
+  --demo-panel-bg:#ffffff; --demo-panel-fg:#2a2420; --demo-panel-border:#e3ddd5;
+  --demo-panel-control-border:#8a8178; --demo-panel-hover:#f3eee8;
+  --demo-height:60px;
+}
+.demo-session .staff-header, .demo-session .staff-sidebar, .demo-session [data-ui=customer-header] { top:var(--demo-height); }
+.demo-session .staff-sidebar { height:calc(100dvh - var(--demo-height)); }
+[data-ui=dialog-overlay] { z-index:100; }
+[data-ui=dialog-content] { z-index:101; }
+[data-ui=select-content] { z-index:250; }
+.demo-session[data-demo-view=pelanggan] .tl-demo-language { bottom:calc(76px + var(--demo-language-cart-offset,0px) + env(safe-area-inset-bottom,0px)); }
+.demo-session[data-demo-view=pelanggan] { padding-bottom:64px; }
+/* Keep staff clearance inside the sticky grid so its sidebar can reach the page end. */
+.demo-session[data-demo-view=staf] .staff-main { padding-bottom:84px; }
+.demo-resetting { animation:demo-spin 1s linear infinite; }
 .demo-context { background:var(--surface-muted); color:var(--muted-foreground); font-size:13px; line-height:18px; border-bottom:1px solid var(--border); }
 .demo-context summary { padding:7px 20px; cursor:pointer; }
 .demo-context p { margin:0; padding:2px 20px 12px; max-width:850px; }
@@ -30,7 +38,5 @@
 .demo-loading a { text-decoration:underline; }
 .demo-spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--primary-ink); border-radius:50%; animation:demo-spin 1s linear infinite; }
 @keyframes demo-spin { to { transform:rotate(360deg); } }
-@media(max-width:620px) { .demo-toolbar { padding:5px 8px; gap:4px; font-size:12px; } .demo-package-name { display:none; } .demo-back { flex:1; } .demo-toolbar-actions { gap:0; } .demo-toolbar a,.demo-toolbar button { min-height:44px; padding:0 7px; } .demo-context summary { padding:7px 16px; } .demo-context p { padding:2px 16px 12px; } }
+@media(max-width:620px) { .demo-context summary { padding:7px 16px; } .demo-context p { padding:2px 16px 12px; } }
 
-/* Narrow demo chrome wraps rather than making the whole app wider. */
-@media(max-width:359px){.demo-toolbar{flex-wrap:wrap;gap:0}.demo-toolbar-actions{margin-left:auto;min-width:0;flex-wrap:wrap}.demo-back{flex:0 0 auto}}

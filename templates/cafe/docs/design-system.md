@@ -1,5 +1,24 @@
 # Cafe template design system
 
+## Shared demo exploration, 30 October 2026
+
+The public cafe entry opens the full interactive demo. Visitors choose the theme and service mode in the top toolbar, without first finding a card lower on a hub page. The gallery remains at `https://tampiloka.site/templates` and the outlined Tampiloka logo returns to its current language.
+
+`@tampiloka/ui-core/demo` supplies `DemoToolbarShell`, and `@tampiloka/ui-core/demo.css` supplies the shared layout, select treatment and floating language control. Commerce uses those exact exports too. Keep the CSS import after application styles. The shell accepts `family`, `label`, `galleryLabel`, `galleryUrl`, `controls`, `views`, `activeView`, `viewLabel`, and `actions`. `views` contains stable IDs, labels, optional icons, and either a local `href` or `onSelect`. It measures its height into `--demo-height`; sticky staff headers and sidebars sit below it.
+
+The select appearance follows Tampiloka's existing form controls: a quiet outlined trigger, 8px corners, an aligned popup 6px below the trigger, a right-side check, and 200ms entrance/150ms exit motion. Existing Radix primitives retain keyboard, focus and popup behavior. All demo controls have 44px touch targets; mobile select text is 16px. The narrow layout keeps brand and role actions above two full-width selectors. Theme changes affect the cafe preview, while demo navigation retains the same Tampiloka treatment.
+
+Cafe links use `/p/<preset>/` and `/p/<preset>/staff` on the current origin. Explicit mode paths take priority over legacy preset subdomains; all old subdomains, table and bill routes remain supported. `theme` and `lang` query parameters survive mode and role changes and reloads. Within the same mode, navigation retains other query values and the hash; a tab-scoped customer return route restores table links after visiting staff. A new mode clears only mode-bound bill/table/principal values and the old hash. A mode change keeps the staff view when the next mode supports it, otherwise it opens the first available view. The toolbar only offers available surfaces. In-app customer/staff actions report actual view changes to the wrapper so active navigation and the URL stay in sync; mounting or re-rendering does not rewrite a deep link.
+
+ID/EN stays fixed at the lower right, matching commerce. In the cafe customer view it sits above the bottom navigation so it cannot cover an order action. The locale from `?lang=id` or `?lang=en` takes priority over the browser default. The root loads one language control.
+
+Demo chrome tokens in `demos/showcase.css` map to the same values as commerce: espresso `--demo-chrome-bg`, warm light foreground, muted text, strong borders and hover roles; neutral light `--demo-panel-*` roles for popups. These tokens do not alter the client's cafe brand settings. The original outlined SVG comes from `tampiloka/apps/tampiloka/public/brand/logos/dark/tampiloka-wordmark-dark.svg`; it is copied unchanged into `ui-core`, with no live-text recreation.
+
+The shared package is a cafe development dependency because the CLI excludes public showcase code from client projects. `SHOWCASE_PACKAGES` removes it from the generated client's manifest, preserving standalone installation.
+
+`tests/demo-navigation.test.mjs` covers explicit paths, legacy hosts and table routes. `tests/demos-explorer.mjs` covers the direct entry, 320/390/1440px geometry, popup bounds, keyboard selection and focus return, theme/mode/role/language changes and reload. The existing staff-layout test checks sticky offsets below the measured demo toolbar. These tests join `scripts/demos-verify.mjs`; a successful unit check is not a claim that the full served UI has passed.
+
+
 The default cafe palette uses a warm cream canvas, white surfaces, espresso text and a terracotta action color. Status, overlay, strong-border and primary-ink roles are defined in `app/globals.css`; custom brand colors use the existing contrast helpers. Demo controls support Indonesian and English, with the browser language as the initial choice.
 
 Updated: 28 October 2026. This document records the shared design contract for the reusable cafe template and its editable Figma kit.
@@ -207,4 +226,5 @@ Visual review found and fixed text autosizing, stretched/cropped source illustra
 Independent browser review also checked the five customer themes at 390 px and identified two tablet cashier problems: truncated table identities and a clipped cash-payment label. Both were corrected. The final focused check at 390 × 844 and 1024 × 768 confirmed no document overflow, no page errors, readable table codes and owners, and an unclipped payment amount. The tablet uses top navigation below 1280 px, compact four-column metrics, and a bill workspace beginning within the first 768 px. The phone uses a compact introduction and keeps full brand and table context visible. The [recorded geometry review](https://github.com/soezyxstt/cafe-template/blob/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-review/final-review.json) and [final phone/tablet images](https://github.com/soezyxstt/cafe-template/tree/7fb253d648ebe015fdd82f786de3ea4ae6a793d8/design-runs/2026-10-28/evidence/theme-review) remain pinned to the verified revision. Generated evidence is excluded from the reusable source tree.
 
 The connected Figma library is not published with Code Connect. The source map above and semantic WEB token names provide the current handoff. Keep the same IDs and update the source map when changing the actual component contract.
+
 

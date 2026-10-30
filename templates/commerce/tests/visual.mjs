@@ -18,7 +18,7 @@ try {
         try {
           await page.goto(base, { waitUntil: 'networkidle' });
           await page.locator('.product-card').first().waitFor();
-          await page.getByRole('combobox', { name: 'Preset desain' }).click(); await page.getByRole('option', { name: ({ editorial: 'Editorial', market: 'Market', atelier: 'Atelier', compact: 'Compact' })[preset], exact: true }).click();
+          await page.getByRole('combobox', { name: 'Tema demo' }).click(); await page.getByRole('option', { name: ({ editorial: 'Editorial', market: 'Market', atelier: 'Atelier', compact: 'Compact' })[preset], exact: true }).click();
           await page.waitForFunction(value => document.querySelector('.commerce-app')?.getAttribute('data-preset') === value, preset);
           await page.evaluate(async () => { await document.fonts.ready; for (const image of document.images) if (!image.complete) await new Promise(resolve => { image.onload = resolve; image.onerror = resolve; }); });
           await page.waitForTimeout(reduced ? 50 : 400);
@@ -74,3 +74,4 @@ try {
 await writeFile(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ views: report.views.length, keyboard: report.keyboard, failures: report.failures }, null, 2));
 if (report.failures.length || Object.values(report.keyboard).some(value => !value)) process.exitCode = 1;
+

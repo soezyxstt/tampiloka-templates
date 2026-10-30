@@ -55,7 +55,7 @@ async function geometry(page) {
       const r = element.getBoundingClientRect();
       return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom, display: getComputedStyle(element).display };
     };
-    const selectors = ['.demo-back', '.demo-context > summary', '.demo-scenarios > summary', '.cafe-staff > header [aria-label="Petugas aktif"]', '.cafe-staff > header [aria-label="Perbarui data operasional"]', '.cafe-staff > header [aria-label="Keluar dari portal staf"]'];
+    const selectors = ['.tl-demo-brand', '.demo-context > summary', '.demo-scenarios > summary', '.cafe-staff > header [aria-label="Petugas aktif"]', '.cafe-staff > header [aria-label="Perbarui data operasional"]', '.cafe-staff > header [aria-label="Keluar dari portal staf"]'];
     const obscured = selectors.flatMap(selector => {
       const element = document.querySelector(selector);
       if (!element) return [{ selector, reason: 'missing' }];
@@ -77,7 +77,7 @@ async function geometry(page) {
       longestLabel = Math.max(...[...select.options].map(option => canvas.measureText(option.textContent).width));
       labelSpace = select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     }
-    return { width: innerWidth, height: innerHeight, scrollY, scrollWidth: document.documentElement.scrollWidth, root: rect('.cafe-staff'), sidebar: rect('.cafe-staff > aside'), header: rect('.cafe-staff > header'), main: rect('#staff-content'), scenarios: rect('.demo-scenarios'), obscured, longestLabel, labelSpace };
+    return { width: innerWidth, height: innerHeight, scrollY, scrollWidth: document.documentElement.scrollWidth, toolbar: rect('.tl-demo-toolbar'), root: rect('.cafe-staff'), sidebar: rect('.cafe-staff > aside'), header: rect('.cafe-staff > header'), main: rect('#staff-content'), scenarios: rect('.demo-scenarios'), obscured, longestLabel, labelSpace };
   });
 }
 
@@ -94,8 +94,8 @@ async function assertLayout(page, name, { atTop = true } = {}) {
       assert.ok(Math.abs(g.header.y - g.sidebar.y) < 1.5, `${name}: misaligned sidebar/header`);
       assert.ok(g.main.y >= g.header.bottom - 1, `${name}: content overlaps header`);
     } else if (g.scrollY > 300) {
-      assert.ok(Math.abs(g.header.y) < 1.5, `${name}: header not sticky`);
-      assert.ok(Math.abs(g.sidebar.y) < 1.5, `${name}: sidebar not sticky`);
+      assert.ok(Math.abs(g.header.y - g.toolbar.bottom) < 1.5, `${name}: header not sticky below demo controls`);
+      assert.ok(Math.abs(g.sidebar.y - g.toolbar.bottom) < 1.5, `${name}: sidebar not sticky below demo controls`);
       assert.ok(g.sidebar.bottom <= g.height + 1.5, `${name}: sidebar exceeds viewport`);
     }
   } else {
@@ -137,7 +137,7 @@ try {
       if (demo.id === 'cashier') {
         const originalPosition = await page.addStyleTag({ content: '.cafe-staff > aside {position:fixed!important;inset:0 auto 0 0!important;width:232px!important;}' });
         const negative = await geometry(page);
-        assert.ok(negative.obscured.some(entry => entry.selector === '.demo-back'), 'The regression detector failed to catch the original overlapping sidebar.');
+        assert.ok(negative.obscured.some(entry => entry.selector === '.demo-context > summary'), 'The regression detector failed to catch the original sidebar overlapping demo context.');
         await page.screenshot({ path: join(out, 'negative-control-fixed-sidebar.png'), animations: 'disabled' });
         await originalPosition.evaluate(element => element.remove());
         await settle(page);
@@ -172,7 +172,7 @@ try {
         await assertLayout(page, `${demo.id} ${width}px top`);
         if ([390, 1024, 1280, 1920].includes(width)) await page.screenshot({ path: join(out, `${demo.id}-${width}-top.png`), animations: 'disabled' });
         // Trial clicks detect overlays without navigating away or changing data.
-        await page.locator('.demo-back').click({ trial: true });
+        await page.locator('.tl-demo-brand').click({ trial: true });
         if ([1280, 1920].includes(width)) {
           await page.locator('.demo-context > summary').click();
           await page.locator('.demo-scenarios > summary').click();
@@ -190,7 +190,7 @@ try {
       }
       await resize(page, 1920);
       await top(page);
-      const newOrder = page.getByRole('button', { name: 'Pesanan baru', exact: true });
+      const newOrder = page.locator('#staff-content').getByRole('heading', { level: 1 }).locator('..').getByRole('button', { name: 'Pesanan baru', exact: true });
       if (await newOrder.count()) {
         await newOrder.click();
         const dialog = page.getByRole('dialog');
@@ -216,3 +216,4 @@ assert.deepEqual(pageErrors, [], 'Unexpected browser exceptions.');
 assert.deepEqual(consoleErrors, [], 'Unexpected console errors.');
 assert.deepEqual(networkWrites, [], 'No public-server mutations are permitted.');
 console.log(`Staff layout: ${checks.length} checks passed across all nine staff presets.`);
+

@@ -42,12 +42,57 @@ export function localizeDemo(demo: DemoPreset, language: 'id' | 'en'): DemoPrese
 
 /** Canonical hosts select one preset; /p/<id> also supports local/Pages previews. */
 export function resolveDemo(hostname: string, pathname: string): DemoPreset | undefined {
-  const fromHost = DEMOS.find(demo => hostname === `${demo.subdomain}.${DEMO_DOMAIN}`);
-  if (fromHost) return fromHost;
+  // Explicit mode paths take priority so the switcher can stay on the same origin.
   const pathId = pathname.match(/^\/p\/([^/]+)/)?.[1];
   if (pathId) return DEMOS.find(demo => demo.id === pathId);
   const outlet = pathname.match(/^\/(?:t|staff)\/[^/]+\/([^/]+)/)?.[1];
-  return DEMOS.find(demo => demo.subdomain === outlet);
+  if (outlet) return DEMOS.find(demo => demo.subdomain === outlet);
+  return DEMOS.find(demo => hostname === `${demo.subdomain}.${DEMO_DOMAIN}`);
+}
+
+export function demoNavigationPath(demo: DemoPreset, view: 'pelanggan' | 'staf', hostname: string): string {
+  const base = hostname === `${demo.subdomain}.${DEMO_DOMAIN}` ? '' : `/p/${demo.id}`;
+  return `${base}${view === 'staf' ? '/staff' : '/'}`;
+}
+
+/** Keep table/bill links intact within a mode; their context never crosses modes. */
+export function demoNavigationUrl(demo: DemoPreset, view: 'pelanggan' | 'staf', options: {
+  currentUrl: string;
+  currentDemoId: string;
+  theme: string;
+  language: 'id' | 'en';
+  customerRoute?: string | null;
+}): string {
+  let url = new URL(options.currentUrl);
+  const sameMode = demo.id === options.currentDemoId;
+  const wasStaff = /\/staff(?:\/|$)/.test(url.pathname);
+  if (!sameMode) {
+    url.pathname = demoNavigationPath(demo, view, url.hostname);
+    for (const key of ['bill', 'table', 'principal']) url.searchParams.delete(key);
+    url.hash = '';
+  } else if (view === 'staf') {
+    if (!wasStaff) url.pathname = demoNavigationPath(demo, view, url.hostname);
+  } else if (wasStaff) {
+    let restored = false;
+    if (options.customerRoute) {
+      try {
+        const previous = new URL(options.customerRoute, url);
+        const defaultCustomerRoute = previous.pathname === '/' || /^\/m\/[^/]+\/?$/.test(previous.pathname);
+        const previousMode = resolveDemo(previous.hostname, previous.pathname)?.id || (defaultCustomerRoute ? 'full' : undefined);
+        if (previous.origin === url.origin && previousMode === demo.id && !/\/staff(?:\/|$)/.test(previous.pathname)) {
+          for (const key of new Set(url.searchParams.keys())) previous.searchParams.delete(key);
+          for (const [key, value] of url.searchParams) previous.searchParams.append(key, value);
+          if (url.hash) previous.hash = url.hash;
+          url = previous;
+          restored = true;
+        }
+      } catch { /* A stale stored route falls back to this mode's customer entry. */ }
+    }
+    if (!restored) url.pathname = demoNavigationPath(demo, view, url.hostname);
+  }
+  url.searchParams.set('theme', options.theme);
+  url.searchParams.set('lang', options.language);
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export function demoBasePath(demo: DemoPreset): string {
@@ -61,3 +106,4 @@ export function portalDemos(): DemoPreset[] {
     ...(demo.staffPath ? { staffUrl: `/p/${demo.id}/staff` } : {}),
   }));
 }
+

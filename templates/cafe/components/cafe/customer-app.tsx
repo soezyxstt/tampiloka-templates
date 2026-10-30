@@ -634,13 +634,26 @@ export function CustomerApp({
     return configuringItem.photoUrl ? [configuringItem.photoUrl] : [];
   }, [configuringItem]);
 
+  const cartPreviewVisible = canOrder && activeScreen === 'menu' && cart.length > 0;
+  const cartPreviewRef = useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const element = cartPreviewRef.current;
+    const demo = element?.closest<HTMLElement>('.demo-session');
+    if (!element || !demo || !cartPreviewVisible) return;
+    const measure = () => demo.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => { observer.disconnect(); demo.style.removeProperty('--demo-language-cart-offset'); };
+  }, [cartPreviewVisible]);
+
   return (
-    <div className={`${styles.customer} min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col`}>
+    <div data-ui="cafe-customer" className={`${styles.customer} min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col`}>
       {/* ===================================================================== */}
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
       <a className="skip-link" href="#customer-content">{t("Lewati ke menu", "Skip to menu")}</a>
-      <header className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
+      <header data-ui="customer-header" className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
           <div className="flex items-center gap-2 min-w-0">
@@ -1829,13 +1842,15 @@ export function CustomerApp({
       {/* ANIMATED STICKY BOTTOM CART BAR ON MENU VIEW (MOBILE-FIRST)           */}
       {/* ===================================================================== */}
       <AnimatePresence>
-        {canOrder && activeScreen === 'menu' && cart.length > 0 && (
+        {cartPreviewVisible && (
           <motion.div
+            ref={cartPreviewRef}
+            data-ui="customer-cart-bar"
             initial={shouldReduceMotion ? { opacity: 0 } : { y: 64, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={shouldReduceMotion ? { opacity: 0 } : { y: 64, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-            className="fixed bottom-[76px] inset-x-0 z-20 px-4 py-3 pointer-events-none"
+            className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] inset-x-0 z-20 px-4 py-3 pointer-events-none"
           >
             <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3 bg-[var(--foreground)] text-[var(--background)] rounded-2xl px-5 py-3 shadow-xl pointer-events-auto">
               <div>
@@ -2210,3 +2225,4 @@ export function CustomerApp({
     </div>
   );
 }
+

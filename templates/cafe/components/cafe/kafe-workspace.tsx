@@ -11,7 +11,7 @@ import { localizeSystemMessage } from '@/lib/system-messages';
 export type WorkspaceView = 'pelanggan' | 'staf';
 type CustomerContext = { tableId: string; principalId: string };
 
-export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId, initialBillId }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string; initialBillId?: string }) {
+export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId, initialBillId, onViewChange }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string; initialBillId?: string; onViewChange?: (view: WorkspaceView) => void }) {
   const { language, t } = useCafeLanguage();
   const [snapshot, setSnapshot] = useState<any>(initialSnapshot);
   const customerSnapshot = useMemo(() => localizeSampleMenu(snapshot, language), [snapshot, language]);
@@ -77,6 +77,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     if ((view === 'staf' && !hasStaffModules()) || (view === 'pelanggan' && !isModuleEnabled('catalog'))) return;
     await loadSnapshot(view);
     setActiveView(view);
+    onViewChange?.(view);
   };
 
   const executeCommand = async (command: string, payload: any) => {
@@ -109,3 +110,4 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     {activeView === 'pelanggan' && isModuleEnabled('catalog') ? <CustomerApp snapshot={customerSnapshot} initialTableId={initialTableId} initialBillId={initialBillId} onContextChange={onContextChange} onCommand={executeCommand} busy={busy} onRefresh={refreshSnapshot} onOpenStaffPortal={hasStaffModules() ? () => { void switchView('staf'); } : undefined} /> : <StaffApp snapshot={snapshot} onCommand={executeCommand} onRefresh={refreshSnapshot} lastUpdated={lastUpdated} busy={busy} initialSignedIn={false} onBackToCustomer={isModuleEnabled('catalog') ? () => { void switchView('pelanggan'); } : undefined} />}
   </div>;
 }
+
