@@ -48,6 +48,7 @@ try {
   for (let i = 0; i < 18; i++) { await page.keyboard.press('Tab'); if (!await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')))) report.keyboard.focusTrapped = false; }
   await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'detached' });
   report.keyboard.escapeCloses = true;
+  await page.waitForFunction(element => element === document.activeElement, await product.elementHandle());
   report.keyboard.focusRestored = await product.evaluate(element => element === document.activeElement);
   await page.getByRole('button', { name: 'Staf', exact: true }).click();
   await page.getByRole('heading', { name: 'Ringkasan toko' }).waitFor();
@@ -59,8 +60,13 @@ try {
   report.keyboard.staffMenuFocused = await page.evaluate(() => Boolean(document.activeElement?.closest('.staff-sidebar')));
   report.keyboard.staffMenuTrapped = true;
   for (let i = 0; i < 20; i++) { await page.keyboard.press('Tab'); if (!await page.evaluate(() => Boolean(document.activeElement?.closest('.staff-sidebar')))) report.keyboard.staffMenuTrapped = false; }
+  await page.getByRole('combobox', { name: 'Peran demo' }).click();
+  await page.getByRole('option', { name: 'Pembaca', exact: true }).waitFor();
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => !document.querySelector('.staff-sidebar')?.classList.contains('is-open'));
+  await page.getByRole('option', { name: 'Pembaca', exact: true }).waitFor({ state: 'detached' });
+  report.keyboard.staffNestedSelect = await page.getByRole('dialog', { name: 'Menu ruang staf' }).isVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('[data-slot="sheet-content"].staff-sidebar').waitFor({ state: 'detached' });
   report.keyboard.staffMenuClosed = true;
   report.keyboard.staffMenuFocusRestored = await page.getByRole('button', { name: 'Buka menu staf' }).evaluate(element => element === document.activeElement);
   await context.close();

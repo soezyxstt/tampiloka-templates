@@ -24,6 +24,7 @@ test('commerce generation keeps feature level independent of all four preset com
     const output=join(parent,name),config=await read(join(output,'config/commerce.json')),pkg=await read(join(output,'package.json'));
     assert.equal(config.level,level);assert.equal(config.preset,preset);assert.equal(config.appearance.layout,preset);assert.equal(config.brand.name,'Klien Uji');assert.equal(config.brand.whatsapp,'628123456789');assert.equal(config.bank.accountNumber,'');
     assert.equal(pkg.name,name);assert.equal(pkg.dependencies['@tampiloka/ui-core'],'file:./packages/ui-core');
+    assert.equal((await read(join(output,'components.json'))).aliases.ui,'@/components/shadcn');
     assert.ok(!JSON.stringify(pkg).includes('workspace:'));
     assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
     assert.equal((await read(join(output,'wrangler.jsonc'))).d1_databases[0].database_id,'00000000-0000-0000-0000-000000000000');

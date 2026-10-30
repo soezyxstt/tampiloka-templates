@@ -113,7 +113,7 @@ async function interactive(options, registry) {
 
 const EXCLUDE_DIRS=new Set(['node_modules','.git','.next','.local','.data','.wrangler','.turbo','dist','dist-demos','dist-worker','build','coverage','test-results','playwright-report','design-runs','payload']);
 const ROOT_DIRS=new Set(['src','worker','migrations','content','config','public','scripts','tests','docs']);
-const ROOT_FILES=new Set(['package.json','tsconfig.json','tsconfig.node.json','vite.config.ts','vite.config.mts','wrangler.json','wrangler.jsonc','wrangler.toml','index.html','README.md','eslint.config.mjs','.gitignore','.env.example','.dev.vars.example']);
+const ROOT_FILES=new Set(['package.json','components.json','tsconfig.json','tsconfig.node.json','vite.config.ts','vite.config.mts','wrangler.json','wrangler.jsonc','wrangler.toml','index.html','README.md','eslint.config.mjs','.gitignore','.env.example','.dev.vars.example']);
 export async function copyTree(source,destination,{template=false}={}) {
   async function walk(from,to,depth){
     await mkdir(to,{recursive:true});
