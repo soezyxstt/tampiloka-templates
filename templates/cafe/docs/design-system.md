@@ -119,29 +119,29 @@ Keep prices in tabular numerals. Do not shrink a long product title merely to pr
 
 ### Brand and color
 
-The default demo brand is **Dapur Pagi**, with `#1746A2` as the primary color. The running demo uses a cool, high-contrast palette:
+The default demo brand is **Dapur Pagi**, with `#A94C27` (terracotta) as the primary color. The running demo uses the warm "Kopi Hangat" palette defined in `app/globals.css`:
 
 | Token | Default value |
 | --- | --- |
-| `--background` | `#F5F7FC` |
+| `--background` | `#FBF8F3` |
 | `--surface` | `#FFFFFF` |
-| `--foreground` | `#182334` |
-| `--muted-foreground` | `#455468` |
-| `--border` | `#C5CEDB` |
-| `--border-strong` | `#7A899D` |
-| `--primary` | `#1746A2` |
-| `--primary-ink` | `#1746A2` for the default brand; derived separately for readable text, icons, and focus indicators |
+| `--foreground` | `#2A1F1A` |
+| `--muted-foreground` | `#6B5C52` |
+| `--border` | `#E6DCCF` |
+| `--border-strong` | `#9A877A` |
+| `--primary` | `#A94C27` |
+| `--primary-ink` | `#A94C27` for the default brand; derived separately for readable text, icons, and focus indicators |
 | `--primary-foreground` | White for the default brand; calculated for each new color |
 | `--primary-hover` | Primary mixed with 18% black |
 | `--accent-surface` | Primary mixed with 92% white |
-| `--surface-muted` | `#E9EEF6` |
+| `--surface-muted` | `#F4EEE6` |
+| `--overlay` | Foreground mixed at 45% opacity |
 
-The linked Figma primitives reflect the earlier terracotta palette; the running application derives its brand colors from the configured primary color.
+The linked Figma primitives align with the terracotta palette; the running application derives its brand colors from the configured primary color.
 
-The configured `--primary` fill remains the client's chosen color. `--primary-ink` preserves that hue and darkens it when needed to reach at least 4.5:1 contrast against both white and `#F5F7FC`; use it for brand-colored text, icons, and focus indicators on those light surfaces. `--primary-foreground` independently selects readable black or white text on the primary fill. The Figma brand collection includes `color/primary-ink` with WEB syntax `var(--primary-ink)`, bound to existing primary-colored text and choice indicators. The existing Figma default aliases the earlier terracotta primitive; when preparing another client in Figma, set the ink alias to that client's derived value as well as updating the primary fill.
+The configured `--primary` fill remains the client's chosen color. `--primary-ink` preserves that hue and darkens it when needed to reach at least 4.5:1 contrast against white, `#FBF8F3`, `#F4EEE6`, and `#F7F5F1`; use it for brand-colored text, icons, and focus indicators on those light surfaces. `--primary-foreground` independently selects readable black or white text on the primary fill. The Figma brand collection includes `color/primary-ink` with WEB syntax `var(--primary-ink)`, bound to existing primary-colored text and choice indicators. When preparing another client in Figma, set the ink alias to that client's derived value as well as updating the primary fill.
 
-Calculated contrast ratios for the default palette are 8.63:1 for white on the primary color, 7.20:1 for muted text on the background, and 14.74:1 for foreground text on the background. A custom logo, image, or manually overridden token needs its own check.
-
+Calculated contrast ratios for the default palette are 5.60:1 for white on the primary color, 6.05:1 for muted text on the background, 15.14:1 for foreground text on the background, and 3.43:1 for `--border-strong` on white. Minimum text size across all components is 12 px (`pnpm lint:design`). A custom logo, image, or manually overridden token needs its own check.
 ## Component/source map
 
 This is an explicit source map. It does not claim automatic two-way synchronization or published Code Connect mappings.

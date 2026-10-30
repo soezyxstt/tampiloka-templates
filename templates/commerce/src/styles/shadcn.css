@@ -14,10 +14,10 @@
   --color-muted-foreground: var(--muted);
   --color-accent: var(--canvas);
   --color-accent-foreground: var(--ink);
-  --color-destructive: #a92d2d;
+  --color-destructive: var(--danger);
   --color-border: var(--line);
-  --color-input: var(--line);
-  --color-ring: var(--brand-focus, #4e6b4d);
+  --color-input: var(--line-strong);
+  --color-ring: var(--brand-focus, #9a5a3a);
   --color-popover: var(--surface);
   --color-popover-foreground: var(--ink);
   --radius: 0.625rem;

@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
  * Frontend design-token guard. Rules live in AGENTS.md ("Frontend rules").
- *  1. Raw colors (#hex, rgb(), hsl()) may appear only in CSS custom-property
- *     declarations (`--token: #hex`), var() fallbacks, or token source files.
+ *  1. Raw colors (#hex, rgb(), hsl(), Tailwind palette classes) may appear only
+ *     in CSS custom-property declarations (`--token: #hex`), var() fallbacks,
+ *     or token source files.
  *  2. No text smaller than 12px (`font-size: Npx` or Tailwind `text-[Npx]`).
- * Usage: node scripts/check-design-tokens.mjs [--json]
+ * Usage: node scripts/check-design-tokens.mjs [--json|--summary]
  */
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 
 const UI = /^(templates\/[^/]+\/(app|components|src|demos)\/|packages\/ui-core\/src\/).*\.(css|tsx|ts)$/;
 const SKIP = /(\.test\.|\/tests?\/|\/scripts\/|\/worker\/|\/db\/|\/domain\/|demo-runtime\/|\.d\.ts$|\.generated\.)/;
+const IGNORE_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage', 'test-results', '.wrangler', '.turbo']);
 /** Files that *define* palettes. Keep this list short. */
 const TOKEN_SOURCES = new Set([
   'templates/cafe/src/config/catalog.mjs',
@@ -18,10 +20,19 @@ const TOKEN_SOURCES = new Set([
 ]);
 const MIN_FONT_PX = 12;
 
-const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' })
-  .split('\n').filter(f => UI.test(f) && !SKIP.test(f) && !TOKEN_SOURCES.has(f));
+function listFiles(dir = '.') {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (IGNORE_DIRS.has(entry.name)) continue;
+    const rel = dir === '.' ? entry.name : posix.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...listFiles(rel));
+    else if (UI.test(rel) && !SKIP.test(rel) && !TOKEN_SOURCES.has(rel)) out.push(rel);
+  }
+  return out.sort();
+}
 
-const color = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g;
+const files = listFiles();
+const color = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(|\b(?:bg|text|border|ring|fill|stroke)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g;
 const findings = [];
 for (const file of files) {
   let text;
