@@ -143,7 +143,7 @@ Commerce memakai Cloudflare Worker dan D1. `wrangler.jsonc` adalah konfigurasi p
 
 Cafe tetap memakai proyek Pages dan domain demo yang sudah ada. Konfigurasi build setelah migrasi harus menunjuk `templates/cafe` atau menjalankan `pnpm build:cafe` dari root. Hasilnya berada di `templates/cafe/dist-demos`.
 
-Galeri memakai Cloudflare Workers Static Assets pada `templates.tampiloka.site`. Jalankan `pnpm --filter @tampiloka/showcase deploy` untuk membangun galeri dan mengunggahnya dengan konfigurasi di `apps/showcase/wrangler.jsonc`.
+Galeri memakai Cloudflare Workers Static Assets pada `templates.tampiloka.site`. Jalankan `pnpm --filter @tampiloka/showcase run deploy` untuk membangun galeri dan mengunggahnya dengan konfigurasi di `apps/showcase/wrangler.jsonc`.
 
 ## Menambah template
 
