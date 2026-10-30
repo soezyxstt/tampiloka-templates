@@ -1,0 +1,25 @@
+name: School demo assets
+on:
+  push:
+    branches: [feat/school-template]
+    paths: [.github/workflows/school-assets.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch illustrative educational photographs
+        run: |
+          mkdir -p images
+          curl --fail --retry 2 -L 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=82' -o images/classroom.jpg
+          curl --fail --retry 2 -L 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=82' -o images/library.jpg
+          curl --fail --retry 2 -L 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=82' -o images/workshop.jpg
+          curl --fail --retry 2 -L 'https://images.unsplash.com/photo-1580894908361-967195033215?auto=format&fit=crop&w=1000&q=82' -o images/teacher.jpg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: school-photos
+          path: images
+          retention-days: 3
