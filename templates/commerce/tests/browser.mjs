@@ -86,9 +86,9 @@ try {
   assert.equal(health.demo, true, 'This test only runs against an explicit demo, never production.');
   await page.goto(base, { waitUntil: 'networkidle' });
   await page.getByRole('combobox', { name: 'Tingkat fitur' }).waitFor();
-  if (await page.getByRole('combobox', { name: 'Tingkat fitur' }).inputValue() !== 'advanced') {
+  if ((await page.getByRole('combobox', { name: 'Tingkat fitur' }).textContent()) !== 'Toko lengkap') {
     const configured = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/demo/config');
-    await page.getByRole('combobox', { name: 'Tingkat fitur' }).selectOption('advanced');
+    await page.getByRole('combobox', { name: 'Tingkat fitur' }).click(); await page.getByRole('option', { name: 'Toko lengkap', exact: true }).click();
     assert.equal((await configured).ok(), true);
   }
   const initial = await json('/bootstrap');
@@ -97,6 +97,20 @@ try {
   assert.equal(initial.products.length, 8);
   const initialStock = initial.products.find(p => p.id === 'linen-shirt').variants.find(v => v.id === 'linen-shirt-m').stock;
   check('Actual Worker and D1 respond; a new visitor receives an isolated demo');
+
+  const presetTrigger = page.getByRole('combobox', { name: 'Preset desain' });
+  const originalPreset = await presetTrigger.textContent();
+  await presetTrigger.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'option');
+  await page.keyboard.press('End');
+  await page.waitForFunction(() => document.activeElement?.textContent === 'Compact');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('.commerce-app')?.getAttribute('data-preset') === 'compact');
+  await presetTrigger.click();
+  await page.getByRole('option', { name: originalPreset, exact: true }).click();
+  await page.waitForFunction(value => document.querySelector('.commerce-app')?.getAttribute('data-preset') === value, initial.config.preset);
+  check('Preset select supports keyboard navigation and restores the chosen preset');
 
   step = 'search-and-product';
   await page.getByRole('button', { name: 'Filter produk' }).click();
@@ -210,11 +224,11 @@ try {
 
   step = 'levels-and-whatsapp';
   await page.getByRole('button', { name: 'Pembeli', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Tingkat fitur' }).selectOption('catalog');
+  await page.getByRole('combobox', { name: 'Tingkat fitur' }).click(); await page.getByRole('option', { name: 'Katalog', exact: true }).click();
   await page.getByRole('button', { name: /^Keranjang,/ }).waitFor({ state: 'hidden' });
   assert.equal((await json('/bootstrap')).capabilities.checkout, false);
   assert.equal(await page.getByRole('button', { name: /^Keranjang,/ }).count(), 0);
-  await page.getByRole('combobox', { name: 'Tingkat fitur' }).selectOption('whatsapp');
+  await page.getByRole('combobox', { name: 'Tingkat fitur' }).click(); await page.getByRole('option', { name: 'Keranjang + WhatsApp', exact: true }).click();
   await page.getByRole('button', { name: /^Keranjang,/ }).waitFor();
   await addProduct('Kaos Harian', 'S');
   await page.getByRole('button', { name: 'Lihat pesan WhatsApp', exact: true }).click();

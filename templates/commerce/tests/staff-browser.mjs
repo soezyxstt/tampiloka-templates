@@ -88,16 +88,16 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/settings-desktop.png`, fullPage: true });
 
-  await page.getByLabel('Peran demo').selectOption('viewer');
-  await page.waitForFunction(() => document.querySelector('.staff-sidebar select')?.value === 'viewer');
+  await page.getByRole('combobox', { name: 'Peran demo' }).click(); await page.getByRole('option', { name: 'Pembaca', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Peran demo"]')?.textContent === 'Pembaca');
   await nav('Produk').click();
   assert.equal(await page.getByRole('button', { name: 'Tambah produk', exact: true }).count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Ubah', exact: true }).count(), 0);
   await nav('Pengaturan').click();
   assert.equal(await page.getByLabel('Nama toko', { exact: true }).isDisabled(), true);
   results.push('viewer permissions reflect read-only interface');
-  await page.getByLabel('Peran demo').selectOption('operations');
-  await page.waitForFunction(() => document.querySelector('.staff-sidebar select')?.value === 'operations');
+  await page.getByRole('combobox', { name: 'Peran demo' }).click(); await page.getByRole('option', { name: 'Operasional', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Peran demo"]')?.textContent === 'Operasional');
   await nav('Produk').click();
   assert.equal(await page.getByRole('button', { name: 'Tambah produk', exact: true }).count(), 0);
   assert.ok(await page.getByRole('button', { name: 'Stok', exact: true }).count());

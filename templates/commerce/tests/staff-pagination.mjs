@@ -72,7 +72,7 @@ try {
   await page.getByRole('heading', { name: 'Ringkasan toko' }).waitFor();
   await page.getByRole('navigation', { name: 'Navigasi ruang staf' }).getByRole('button', { name: /^Pesanan/ }).click();
   await page.getByText('Menampilkan 1 sampai 50 dari 301 pesanan', { exact: true }).waitFor();
-  await page.getByLabel('Filter status pesanan').selectOption('confirmed');
+  await page.getByRole('combobox', { name: 'Filter status pesanan' }).click(); await page.getByRole('option', { name: 'Siap diproses', exact: true }).click();
   await page.getByText('Menampilkan 1 sampai 50 dari 301 pesanan', { exact: true }).waitFor();
   for (let current = 2; current <= 7; current++) {
     await page.getByRole('button', { name: 'Berikutnya', exact: true }).click();
@@ -98,14 +98,14 @@ try {
   report.checks.push('Action updates the selected old order, keeps its detail open, and clamps a now-empty last page');
 
   step = 'filter resets page';
-  await page.getByLabel('Filter status pesanan').selectOption('processing');
+  await page.getByRole('combobox', { name: 'Filter status pesanan' }).click(); await page.getByRole('option', { name: 'Sedang disiapkan', exact: true }).click();
   await page.getByText('Halaman 1 dari 1', { exact: true }).waitFor();
   await page.getByText('Menampilkan 1 sampai 1 dari 1 pesanan', { exact: true }).waitFor();
   await page.getByRole('button', { name: oldest.number, exact: true }).waitFor();
   report.checks.push('Server status filtering resets to page one and finds the modified archived order');
 
   step = 'out of order search responses';
-  await page.getByLabel('Filter status pesanan').selectOption('all');
+  await page.getByRole('combobox', { name: 'Filter status pesanan' }).click(); await page.getByRole('option', { name: 'Semua status', exact: true }).click();
   await page.getByText('Halaman 1 dari 7', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Berikutnya', exact: true }).click();
   await page.getByText('Halaman 2 dari 7', { exact: true }).waitFor();

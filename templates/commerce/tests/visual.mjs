@@ -18,7 +18,7 @@ try {
         try {
           await page.goto(base, { waitUntil: 'networkidle' });
           await page.locator('.product-card').first().waitFor();
-          await page.getByLabel('Preset desain').selectOption(preset);
+          await page.getByRole('combobox', { name: 'Preset desain' }).click(); await page.getByRole('option', { name: ({ editorial: 'Editorial', market: 'Market', atelier: 'Atelier', compact: 'Compact' })[preset], exact: true }).click();
           await page.waitForFunction(value => document.querySelector('.commerce-app')?.getAttribute('data-preset') === value, preset);
           await page.evaluate(async () => { await document.fonts.ready; for (const image of document.images) if (!image.complete) await new Promise(resolve => { image.onload = resolve; image.onerror = resolve; }); });
           await page.waitForTimeout(reduced ? 50 : 400);

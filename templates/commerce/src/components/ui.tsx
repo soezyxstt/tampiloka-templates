@@ -1,9 +1,8 @@
 import { Button as CoreButton } from './shadcn/button';
 import { Dialog, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from './shadcn/dialog';
 import { Input } from './shadcn/input';
-import { NativeSelect as Select } from './shadcn/native-select';
 import { Textarea } from './shadcn/textarea';
-export { Input, Select, Textarea };
+export { Input, Textarea };
 import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Check, LoaderCircle, Minus, Plus, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
