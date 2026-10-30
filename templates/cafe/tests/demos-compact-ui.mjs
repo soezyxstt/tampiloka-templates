@@ -21,7 +21,7 @@ async function ready(page,address){
  assert.equal(state?.runtime?.localOnly,true);assert.equal(state.runtime.demo,true);
 }
 async function context(){
- const ctx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+ const ctx=await browser.newContext({locale:'id-ID',viewport:{width:390,height:844},reducedMotion:'reduce'});
  ctx.setDefaultTimeout(20000);
  await ctx.route('**/*',route=>{if(['GET','HEAD','OPTIONS'].includes(route.request().method()))return route.continue();writes.push(route.request().url());return route.abort();});
  ctx.on('page',page=>{page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});});

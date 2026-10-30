@@ -776,7 +776,7 @@ try {
   for (const item of cases.filter(entry => !selectedCases || selectedCases.includes(entry.id))) {
     const result = { id: item.id, title: LIFECYCLE_CASES.find(entry => entry.id === item.id)?.title || item.id, status: 'running', pageErrors: [], consoleErrors: [], networkMutations: [] };
     const start = Date.now();
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     context.setDefaultTimeout(30000);
     context.on('page', page => {
       page.on('pageerror', error => result.pageErrors.push({ url: page.url(), message: error.message }));

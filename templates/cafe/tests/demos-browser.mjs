@@ -316,7 +316,7 @@ try {
   for (const demo of demos) {
     const result = { id: demo.id, url: demoUrl(demo), theme: demo.theme, modules: demo.modules, status: 'running', views: [], pageErrors: [], consoleErrors: [], blockedNetworkMutations: [] };
     const started = Date.now();
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     context.setDefaultTimeout(actionTimeout);
     await context.route('**/*', async route => {
       if (!['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) {
@@ -339,6 +339,7 @@ try {
         baseline = await localSnapshot(first, `${demo.id} local runtime guard`);
         result.runtime = baseline.runtime;
         assert.ok(baseline.catalog.length > 0, `${demo.id}: sample menu is seeded.`);
+        assert.ok(baseline.catalog.every(item => item.photos.length > 0 && item.photos.every(photo => /^\/images\/menu\/photos\/[^/]+\.jpg$/.test(photo))), `${demo.id}: every sample menu item uses local photos.`);
         pass(`${demo.id}: in-browser API is explicitly local-only`, { preset: demo.id });
       }
       if (hasCustomer) result.views.push(await checkCustomer(first, demo));

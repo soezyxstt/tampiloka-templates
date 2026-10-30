@@ -1,12 +1,16 @@
-:root { --font-sans:'Source Sans 3'; --font-brand-heading:'Manrope'; }
-.demo-toolbar { min-height:54px; padding:6px 20px; display:flex; align-items:center; gap:20px; background:#182334; color:#fff; font-size:13px; }
+:root { --font-sans:'Source Sans 3'; --font-brand-heading:'Manrope';
+  /* Demo toolbar chrome: espresso bar matching the cafe palette. */
+  --demo-chrome-bg:#2A1F1A; --demo-chrome-fg:#FFFFFF; --demo-chrome-muted:#EADFD6; --demo-chrome-hover:color-mix(in srgb,var(--demo-chrome-fg) 10%,transparent); }
+.cafe-language-toggle { min-height: 36px; padding: 0 9px; border: 1px solid currentColor; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.cafe-language-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.demo-toolbar { min-height:54px; padding:6px 20px; display:flex; align-items:center; gap:20px; background:var(--demo-chrome-bg); color:var(--demo-chrome-fg); font-size:14px; }
 .demo-toolbar a,.demo-toolbar button { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:0 8px; border-radius:6px; }
-.demo-toolbar a:hover,.demo-toolbar button:hover { background:#ffffff16; }
+.demo-toolbar a:hover,.demo-toolbar button:hover { background:var(--demo-chrome-hover); }
 .demo-back { white-space:nowrap; }
-.demo-package-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#DDE5F2; }
+.demo-package-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--demo-chrome-muted); }
 .demo-toolbar-actions { display:flex; align-items:center; gap:6px; }
 .demo-toolbar button:disabled { opacity:.5; }
-.demo-context { background:#E9EEF6; color:#455468; font-size:12px; line-height:18px; border-bottom:1px solid #C5CEDB; }
+.demo-context { background:var(--surface-muted); color:var(--muted-foreground); font-size:13px; line-height:18px; border-bottom:1px solid var(--border); }
 .demo-context summary { padding:7px 20px; cursor:pointer; }
 .demo-context p { margin:0; padding:2px 20px 12px; max-width:850px; }
 .demo-scenarios { padding:0 20px; border-bottom:1px solid var(--border); background:var(--surface); font-size:14px; }

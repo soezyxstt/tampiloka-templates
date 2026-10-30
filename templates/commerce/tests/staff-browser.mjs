@@ -6,7 +6,7 @@ const base = process.env.COMMERCE_TEST_URL || 'http://127.0.0.1:4174';
 const out = 'test-results/staff';
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 1440, height: 1000 } });
 const page = await context.newPage();
 const results = [];
 const errors = [];

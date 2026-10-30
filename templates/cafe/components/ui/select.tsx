@@ -68,7 +68,7 @@ const SelectContent = React.forwardRef<
       data-ui="select-content"
       ref={ref}
       className={cn(
-        'relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-lg',
+        'relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-[var(--shadow-soft)]',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className
@@ -98,7 +98,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn('py-1.5 pl-8 pr-2 text-xs font-semibold text-[var(--muted-foreground)]', className)}
+    className={cn('py-1.5 pl-8 pr-2 text-[12px] font-semibold text-[var(--muted-foreground)]', className)}
     {...props}
   />
 ));

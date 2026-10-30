@@ -12,7 +12,7 @@ try {
   for (const preset of ['editorial', 'market', 'atelier', 'compact']) {
     for (const width of [320, 390, 768, 1440]) {
       for (const reduced of width === 390 || width === 1440 ? [false, true] : [false]) {
-        const context = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 1000 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
+        const context = await browser.newContext({ locale: 'id-ID', viewport: { width, height: width < 600 ? 844 : 1000 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
         const page = await context.newPage(); const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         try {
@@ -39,7 +39,7 @@ try {
       }
     }
   }
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } }); const page = await context.newPage();
+  const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 } }); const page = await context.newPage();
   await page.goto(base, { waitUntil: 'networkidle' });
   const product = page.locator('.product-name').first(); await product.focus(); await product.press('Enter');
   await page.getByRole('dialog').waitFor();

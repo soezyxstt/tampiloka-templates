@@ -17,7 +17,7 @@
     "test:integration": "node --experimental-strip-types --test src/db/service.integration.test.ts src/db/service.lifecycle.test.ts",
     "test:presets": "node tests/preset-integration.mjs",
     "test:browser": "node tests/browser-workflows.mjs",
-    "test:catalog": "node --experimental-strip-types --test src/catalog/static-catalog.test.ts",
+    "test:catalog": "node --experimental-strip-types --test src/catalog/static-catalog.test.ts src/catalog/sample-menu.test.ts src/db/sample-photos.test.ts lib/system-messages.test.ts",
     "catalog:validate": "node --experimental-strip-types scripts/validate-catalog.mjs",
     "catalog:export": "node --experimental-strip-types scripts/export-catalog.mjs",
     "demos:dev": "vite --config demos/vite.config.mts",
@@ -26,6 +26,7 @@
     "demos:deploy": "npm run demos:build && wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos",
     "test:demo-runtime": "node --experimental-strip-types --test tests/browser-runtime-crypto.test.mjs tests/browser-runtime-schema.test.mjs tests/browser-runtime-durability.test.mjs tests/browser-runtime-scenarios.test.mjs",
     "test:demo-browser": "node --experimental-strip-types tests/demos-browser.mjs",
+    "test:language-browser": "node tests/language-browser.mjs",
     "test:demo-lifecycle": "node --experimental-strip-types tests/demos-lifecycle.mjs",
     "test:demo-all": "node scripts/demos-verify.mjs",
     "test:ui-contracts": "node --test tests/ui-contracts.test.mjs"

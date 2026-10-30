@@ -52,6 +52,8 @@ test('cafe generation preserves catalog waiter requests and full presets',async 
     assert.equal(config.theme,'editorial');assert.ok(config.modules.includes('ordering'));
     if(preset==='catalog')assert.deepEqual(config.modules,['catalog','ordering']);else assert.ok(config.modules.includes('kitchen'));
     await lstat(join(output,'package-lock.json'));await lstat(join(output,'components/ui/motion.tsx'));
+    await lstat(join(output,'lib/language.tsx'));
+    assert.doesNotMatch(await readFile(join(output,'components/cafe/customer-app.tsx'),'utf8'), /@\/demos\/language/);
     assert.equal((await read(join(output,'tampiloka.project.json'))).template,'cafe');
     await assert.rejects(lstat(join(output,'demos')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'src/demo-runtime')),{code:'ENOENT'});

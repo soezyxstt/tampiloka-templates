@@ -2,6 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- This Vite entry serves local SVGs directly; Next's image loader is not available. */
 import { useState, type SVGProps } from 'react';
+import { LanguageToggle, useCafeLanguage } from '@/lib/language';
+import { localizeDemo } from '../manifest';
 import './demo-portal.css';
 
 export type DemoTheme = 'boxy' | 'rounded' | 'editorial' | 'playful' | 'airy';
@@ -76,29 +78,31 @@ function demoHref(demo: DemoPreset, audience: Exclude<Audience, 'all'>, baseDoma
 }
 
 function ThemePreview({ theme }: { theme: DemoTheme }) {
+  const { t } = useCafeLanguage();
   return <div className="dp-preview dp-theme" data-demo-theme={theme} aria-hidden="true">
     <div className="dp-preview-heading"><span>Dapur Pagi</span><CupIcon /></div>
     <div className="dp-preview-menu">
       <div className="dp-preview-product">
         <div className="dp-preview-image"><img src="/images/menu/photos/kopi-aren.jpg" alt="" width="124" height="112" /></div>
-        <div className="dp-preview-product-copy"><h3>Es Kopi Susu{' '}<br />Gula Aren</h3><span>Rp28.000</span></div>
+        <div className="dp-preview-product-copy"><h3>{t('Es Kopi Susu', 'Iced Milk Coffee')}{' '}<br />{t('Gula Aren', 'Palm Sugar')}</h3><span>Rp28.000</span></div>
       </div>
       <div className="dp-preview-product">
         <div className="dp-preview-image"><img src="/images/menu/photos/croissant.jpg" alt="" width="124" height="112" /></div>
-        <div className="dp-preview-product-copy"><h3>Croissant{' '}<br />Mentega</h3><span>Rp24.000</span></div>
+        <div className="dp-preview-product-copy"><h3>Croissant{' '}<br />{t('Mentega', 'Butter')}</h3><span>Rp24.000</span></div>
       </div>
     </div>
-    <div className="dp-preview-total"><span>2 menu</span><strong>Rp52.000</strong><ArrowIcon /></div>
+    <div className="dp-preview-total"><span>{t('2 menu', '2 items')}</span><strong>Rp52.000</strong><ArrowIcon /></div>
   </div>;
 }
 
 function PackageSample({ demo }: { demo: DemoPreset }) {
+  const { t } = useCafeLanguage();
   const customer = demo.modules.includes('catalog');
   return <div className="dp-package-sample dp-theme" data-demo-theme={demo.theme} aria-hidden="true">
     <div className="dp-sample-name">Dapur Pagi</div>
     <div className="dp-sample-row">
       {customer ? <img src="/images/menu/photos/kopi-aren.jpg" alt="" width="64" height="68" loading="lazy" /> : <div className="dp-sample-table">04</div>}
-      <div><strong>{customer ? 'Es Kopi Susu' : 'Meja 04'}</strong><span>{customer ? 'Gula Aren' : '2 × Es Kopi Susu'}</span></div>
+      <div><strong>{customer ? t('Es Kopi Susu', 'Iced Milk Coffee') : t('Meja 04', 'Table 04')}</strong><span>{customer ? t('Gula Aren', 'Palm Sugar') : t('2 × Es Kopi Susu', '2 × Iced Milk Coffee')}</span></div>
       <span className="dp-sample-price">{customer ? 'Rp28.000' : 'Rp56.000'}</span>
     </div>
   </div>;
@@ -106,46 +110,48 @@ function PackageSample({ demo }: { demo: DemoPreset }) {
 
 // Adapted from the kit's OPEN-07 task-led introduction and OFFER-10 shared
 // criteria comparison. Records and destinations come from the host manifest.
-export function DemoPortal({ demos, baseDomain }: DemoPortalProps) {
+export function DemoPortal({ demos: sourceDemos, baseDomain }: DemoPortalProps) {
+  const { language, t } = useCafeLanguage();
+  const demos = sourceDemos.map(demo => localizeDemo(demo, language));
   const [audience, setAudience] = useState<Audience>('all');
   const [previewTheme, setPreviewTheme] = useState<DemoTheme>('rounded');
   const selectedTheme = THEMES.find(theme => theme.id === previewTheme)!;
   const visibleDemos = demos.filter(demo => audience === 'all' || hasDestination(demo, audience));
   const audienceOptions: { id: Audience; label: string; count: number }[] = [
-    { id: 'all', label: 'Semua demo', count: demos.length },
-    { id: 'customer', label: 'Untuk pelanggan', count: demos.filter(demo => hasDestination(demo, 'customer')).length },
-    { id: 'staff', label: 'Untuk staf', count: demos.filter(demo => hasDestination(demo, 'staff')).length },
+    { id: 'all', label: t('Semua demo', 'All demos'), count: demos.length },
+    { id: 'customer', label: t('Untuk pelanggan', 'For customers'), count: demos.filter(demo => hasDestination(demo, 'customer')).length },
+    { id: 'staff', label: t('Untuk staf', 'For staff'), count: demos.filter(demo => hasDestination(demo, 'staff')).length },
   ];
 
   return <div className="dp-demo-portal">
-    <a className="dp-skip-link" href="#demo-main">Lewati ke daftar demo</a>
+    <a className="dp-skip-link" href="#demo-main">{t("Lewati ke daftar demo", "Skip to demos")}</a>
     <header className="dp-portal-header dp-container">
-      <a href="#demo-main" className="dp-portal-brand" aria-label="Beranda demo Dapur Pagi"><span className="dp-brand-mark" aria-hidden="true">DP</span>{' '}<span>Dapur Pagi</span></a>
-      <nav aria-label="Navigasi demo"><a href="#demos">Lihat demo</a><a href="#compare">Bandingkan fitur</a></nav>
+      <a href="#demo-main" className="dp-portal-brand" aria-label={t("Beranda demo Dapur Pagi", "Dapur Pagi demo home")}><span className="dp-brand-mark" aria-hidden="true">DP</span>{' '}<span>Dapur Pagi</span></a>
+      <nav aria-label={t("Navigasi demo", "Demo navigation")}><a href="#demos">{t("Lihat demo", "View demos")}</a><a href="#compare">{t("Bandingkan fitur", "Compare features")}</a><LanguageToggle /></nav>
     </header>
 
     <main id="demo-main">
       <section className="dp-portal-hero dp-container" aria-labelledby="portal-title">
         <div className="dp-hero-copy">
-          <h1 id="portal-title">Demo kafe</h1>
-          <p className="dp-hero-description">Dari menu digital hingga operasional kafe,<br className="dp-desktop-break" /> pilih alur yang sesuai dengan cara Anda melayani.</p>
-          <div className="dp-hero-actions"><a href="#demos" className="dp-button dp-button-primary">Lihat {demos.length} demo <ArrowIcon /></a><a href="#compare" className="dp-text-link">Bandingkan fitur <ArrowIcon /></a></div>
-          <div className="dp-sandbox-note"><CupIcon /><p>Perubahan tersimpan di browser ini.<br />Bisa diulang kapan saja. Tidak ada pembayaran nyata.</p></div>
+          <h1 id="portal-title">{t("Demo kafe", "Cafe demos")}</h1>
+          <p className="dp-hero-description">{t("Dari menu digital hingga operasional kafe,", "From digital menus to cafe operations,")}<br className="dp-desktop-break" /> {t("pilih alur yang sesuai dengan cara Anda melayani.", "choose the flow that suits the way you serve.")}</p>
+          <div className="dp-hero-actions"><a href="#demos" className="dp-button dp-button-primary">{t('Lihat', 'View')} {demos.length} demo <ArrowIcon /></a><a href="#compare" className="dp-text-link">{t("Bandingkan fitur", "Compare features")} <ArrowIcon /></a></div>
+          <div className="dp-sandbox-note"><CupIcon /><p>{t("Perubahan tersimpan di browser ini.", "Changes are saved in this browser.")}<br />{t("Bisa diulang kapan saja. Tidak ada pembayaran nyata.", "Reset anytime. No real payments are made.")}</p></div>
         </div>
 
         <div className="dp-theme-explorer" role="region" aria-labelledby="theme-preview-title">
-          <div className="dp-theme-explorer-title"><h2 id="theme-preview-title">Satu kafe, beragam tampilan.</h2><span>5 tema</span></div>
+          <div className="dp-theme-explorer-title"><h2 id="theme-preview-title">{t("Satu kafe, beragam tampilan.", "One cafe, different looks.")}</h2><span>{t("5 tema", "5 themes")}</span></div>
           <ThemePreview theme={previewTheme} />
-          <div className="dp-theme-controls" role="group" aria-label="Pilih contoh tema">
+          <div className="dp-theme-controls" role="group" aria-label={t("Pilih contoh tema", "Choose a sample theme")}>
             {THEMES.map(theme => <button type="button" key={theme.id} aria-pressed={previewTheme === theme.id} onClick={() => setPreviewTheme(theme.id)}>{theme.name}</button>)}
           </div>
-          <p className="dp-theme-description" aria-live="polite"><strong>{selectedTheme.name}.</strong> {selectedTheme.description}</p>
+          <p className="dp-theme-description" aria-live="polite"><strong>{selectedTheme.name}.</strong> {language === 'en' ? ({ boxy: 'Clean lines and a compact workspace.', rounded: 'Rounded corners and an easy-to-follow layout.', editorial: 'Serif headings and a print-inspired menu.', playful: 'Bold lines and rounded shapes for a playful look.', airy: 'Generous space and light typography.' } as const)[selectedTheme.id] : selectedTheme.description}</p>
         </div>
       </section>
 
       <section className="dp-packages dp-container" id="demos" aria-labelledby="packages-title">
-        <div className="dp-section-heading"><div><h2 id="packages-title">Pilih alur yang ingin dicoba</h2><p>Setiap pilihan membuka demo interaktif dengan fitur yang berbeda.</p></div><p className="dp-open-note">Tampilan pelanggan cocok untuk ponsel.<br />Tampilan staf cocok untuk tablet dan desktop.</p></div>
-        <div className="dp-package-toolbar"><div className="dp-audience-controls" role="group" aria-label="Saring demo">{audienceOptions.map(option => <button type="button" key={option.id} aria-pressed={audience === option.id} onClick={() => setAudience(option.id)}>{option.label}<span>{option.count}</span></button>)}</div><span className="dp-result-count" role="status">{visibleDemos.length} demo</span></div>
+        <div className="dp-section-heading"><div><h2 id="packages-title">{t("Pilih alur yang ingin dicoba", "Choose a flow to try")}</h2><p>{t("Setiap pilihan membuka demo interaktif dengan fitur yang berbeda.", "Each option opens an interactive demo with different features.")}</p></div><p className="dp-open-note">{t("Tampilan pelanggan cocok untuk ponsel.", "The customer view works well on phones.")}<br />{t("Tampilan staf cocok untuk tablet dan desktop.", "The staff view works well on tablets and desktops.")}</p></div>
+        <div className="dp-package-toolbar"><div className="dp-audience-controls" role="group" aria-label={t("Saring demo", "Filter demos")}>{audienceOptions.map(option => <button type="button" key={option.id} aria-pressed={audience === option.id} onClick={() => setAudience(option.id)}>{option.label}<span>{option.count}</span></button>)}</div><span className="dp-result-count" role="status">{visibleDemos.length} demo</span></div>
 
         {visibleDemos.length ? <ul className="dp-package-grid">{visibleDemos.map(demo => {
           const customerHref = demoHref(demo, 'customer', baseDomain);
@@ -157,36 +163,36 @@ export function DemoPortal({ demos, baseDomain }: DemoPortalProps) {
               <h3 id={`demo-${demo.id}`}>{demo.name}</h3>
               <p className="dp-package-description">{demo.description}</p>
               <p className="dp-package-use-case">{demo.useCase}</p>
-              <div className="dp-package-meta"><span>Tema {themeName}</span><span>{demo.modules.length} fitur</span></div>
+              <div className="dp-package-meta"><span>{t('Tema', 'Theme')} {themeName}</span><span>{demo.modules.length} {t('fitur', 'features')}</span></div>
               <div className="dp-package-actions">
-                {customerHref && <a className="dp-button dp-button-primary" href={customerHref} target="_blank" rel="noopener noreferrer" aria-label={`Coba sebagai pelanggan: ${demo.name}, terbuka di tab baru`}>Coba pelanggan <ArrowIcon diagonal /></a>}
-                {staffHref && <a className={`dp-button ${customerHref ? 'dp-button-secondary' : 'dp-button-primary'}`} href={staffHref} target="_blank" rel="noopener noreferrer" aria-label={`Coba sebagai staf: ${demo.name}, terbuka di tab baru`}>Coba staf <ArrowIcon diagonal /></a>}
+                {customerHref && <a className="dp-button dp-button-primary" href={customerHref} target="_blank" rel="noopener noreferrer" aria-label={`${t('Coba sebagai pelanggan', 'Try customer view')}: ${demo.name}, ${t('terbuka di tab baru', 'opens in a new tab')}`}>{t("Coba pelanggan", "Try customer view")} <ArrowIcon diagonal /></a>}
+                {staffHref && <a className={`dp-button ${customerHref ? 'dp-button-secondary' : 'dp-button-primary'}`} href={staffHref} target="_blank" rel="noopener noreferrer" aria-label={`${t('Coba sebagai staf', 'Try staff view')}: ${demo.name}, ${t('terbuka di tab baru', 'opens in a new tab')}`}>{t("Coba staf", "Try staff view")} <ArrowIcon diagonal /></a>}
               </div>
             </div>
           </article></li>;
-        })}</ul> : <div className="dp-empty-state"><h3>Tidak ada demo untuk pilihan ini</h3><p>Pilih tampilan lain untuk melihat demo yang tersedia.</p><button type="button" className="dp-button dp-button-secondary" onClick={() => setAudience('all')}>Tampilkan semua demo</button></div>}
+        })}</ul> : <div className="dp-empty-state"><h3>{t("Tidak ada demo untuk pilihan ini", "No demos match this selection")}</h3><p>{t("Pilih tampilan lain untuk melihat demo yang tersedia.", "Choose another view to see available demos.")}</p><button type="button" className="dp-button dp-button-secondary" onClick={() => setAudience('all')}>{t("Tampilkan semua demo", "Show all demos")}</button></div>}
       </section>
 
       <section className="dp-comparison-section" id="compare" aria-labelledby="comparison-title"><div className="dp-container">
-        <div className="dp-section-heading"><div><h2 id="comparison-title">Bandingkan fitur demo</h2><p>Lihat fitur utama pada setiap demo sebelum mencobanya.</p></div><p className="dp-comparison-help">Geser tabel untuk melihat semua fitur.</p></div>
+        <div className="dp-section-heading"><div><h2 id="comparison-title">{t("Bandingkan fitur demo", "Compare demo features")}</h2><p>{t("Lihat fitur utama pada setiap demo sebelum mencobanya.", "See the main features of each demo before trying it.")}</p></div><p className="dp-comparison-help">{t("Geser tabel untuk melihat semua fitur.", "Scroll the table to see all features.")}</p></div>
         <div className="dp-comparison-scroll" role="region" aria-label="Perbandingan fitur demo; geser ke samping untuk melihat fitur lainnya" tabIndex={0}>
-          <table className="dp-comparison"><caption className="dp-visually-hidden">Fitur yang tersedia pada setiap demo kafe</caption><thead><tr><th scope="col">Demo</th>{FEATURES.map(feature => <th key={feature.id} scope="col">{feature.name}</th>)}</tr></thead><tbody>{demos.map(demo => <tr key={demo.id}><th scope="row">{demo.name}</th>{FEATURES.map(feature => <td key={feature.id}>{demo.modules.includes(feature.id) ? <span className="dp-feature-included"><CheckIcon /><span className="dp-visually-hidden">Tersedia</span></span> : <span className="dp-feature-absent"><span className="dp-feature-minus" aria-hidden="true" /><span className="dp-visually-hidden">Tidak tersedia</span></span>}</td>)}</tr>)}</tbody></table>
+          <table className="dp-comparison"><caption className="dp-visually-hidden">{t("Fitur yang tersedia pada setiap demo kafe", "Features available in each cafe demo")}</caption><thead><tr><th scope="col">Demo</th>{FEATURES.map(feature => <th key={feature.id} scope="col">{language === 'en' ? ({catalog: 'Menu', ordering: 'Orders', payments: 'Online payment', cashier: 'Cashier', kitchen: 'Kitchen', dashboard: 'Reports'} as const)[feature.id] : feature.name}</th>)}</tr></thead><tbody>{demos.map(demo => <tr key={demo.id}><th scope="row">{demo.name}</th>{FEATURES.map(feature => <td key={feature.id}>{demo.modules.includes(feature.id) ? <span className="dp-feature-included"><CheckIcon /><span className="dp-visually-hidden">{t("Tersedia", "Available")}</span></span> : <span className="dp-feature-absent"><span className="dp-feature-minus" aria-hidden="true" /><span className="dp-visually-hidden">{t("Tidak tersedia", "Not available")}</span></span>}</td>)}</tr>)}</tbody></table>
         </div>
-        <p className="dp-comparison-footnote">Pembayaran online dalam demo hanya simulasi. Layanan lengkap juga mencakup layanan meja, loyalitas, dan promosi.</p>
+        <p className="dp-comparison-footnote">{t("Pembayaran online dalam demo hanya simulasi. Layanan lengkap juga mencakup layanan meja, loyalitas, dan promosi.", "Online payments are simulated. Full service also includes table service, loyalty and promotions.")}</p>
       </div></section>
 
       <section className="dp-try-flow dp-container" aria-labelledby="try-flow-title">
-        <div className="dp-flow-intro"><h2 id="try-flow-title">Coba dari sisi pelanggan<br />dan staf</h2><p>Pilih demo yang menyediakan pemesanan pelanggan, lalu ikuti perjalanan satu pesanan sampai diterima staf.</p></div>
+        <div className="dp-flow-intro"><h2 id="try-flow-title">{t("Coba dari sisi pelanggan", "Try the customer")}<br />{t("dan staf", "and staff views")}</h2><p>{t("Pilih demo yang menyediakan pemesanan pelanggan, lalu ikuti perjalanan satu pesanan sampai diterima staf.", "Choose a demo with customer ordering, then follow an order until staff receive it.")}</p></div>
         <ol className="dp-flow-steps">
-          <li><span className="dp-step-number">1</span><div><h3>Mulai sebagai pelanggan</h3><p>Buka "Coba pelanggan", pilih meja, lalu tambahkan menu ke pesanan.</p></div></li>
-          <li><span className="dp-step-number">2</span><div><h3>Lanjutkan sebagai staf</h3><p>Buka "Coba staf" pada demo yang sama untuk melihat dan memproses pesanan.</p></div></li>
-          <li><span className="dp-step-number">3</span><div><h3>Coba alur lainnya</h3><p>Jelajahi fitur yang tersedia atau ulangi demo untuk mencoba dari awal.</p></div></li>
+          <li><span className="dp-step-number">1</span><div><h3>{t("Mulai sebagai pelanggan", "Start as a customer")}</h3><p>{t("Buka \"Coba pelanggan\", pilih meja, lalu tambahkan menu ke pesanan.", "Open the customer view, choose a table, then add items to your order.")}</p></div></li>
+          <li><span className="dp-step-number">2</span><div><h3>{t("Lanjutkan sebagai staf", "Continue as staff")}</h3><p>{t("Buka \"Coba staf\" pada demo yang sama untuk melihat dan memproses pesanan.", "Open the staff view of the same demo to view and process the order.")}</p></div></li>
+          <li><span className="dp-step-number">3</span><div><h3>{t("Coba alur lainnya", "Try other flows")}</h3><p>{t("Jelajahi fitur yang tersedia atau ulangi demo untuk mencoba dari awal.", "Explore the available features or reset the demo to start again.")}</p></div></li>
         </ol>
       </section>
-      <div className="dp-session-note dp-container"><p>Tab pelanggan dan staf pada demo yang sama berbagi data di browser ini. Demo lain dan perangkat lain memiliki sesi terpisah. Nama, pesanan, dan pembayaran yang ditampilkan adalah contoh.</p></div>
+      <div className="dp-session-note dp-container"><p>{t("Tab pelanggan dan staf pada demo yang sama berbagi data di browser ini. Demo lain dan perangkat lain memiliki sesi terpisah. Nama, pesanan, dan pembayaran yang ditampilkan adalah contoh.", "Customer and staff tabs in the same demo share data in this browser. Other demos and devices have separate sessions. Names, orders and payments are examples.")}</p></div>
     </main>
 
-    <footer className="dp-portal-footer dp-container"><span>Dapur Pagi · Demo kafe</span><a href="#demo-main">Kembali ke atas <ArrowIcon /></a></footer>
+    <footer className="dp-portal-footer dp-container"><span>Dapur Pagi · Demo kafe</span><a href="#demo-main">{t("Kembali ke atas", "Back to top")} <ArrowIcon /></a></footer>
   </div>;
 }
 

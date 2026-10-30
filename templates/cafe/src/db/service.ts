@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { db } from './index.ts';
+import { samplePhotos } from './sample-photos.ts';
 import {
   users,
   tenants,
@@ -313,27 +314,10 @@ export async function getFullApplicationSnapshot(outletSlug = DEFAULT_OUTLET_SLU
 
       const totalAvailable = variants.reduce((sum, v) => sum + v.availableToSell, 0);
       const sched = (item.scheduleJson as any) || {};
-      const defaultMultiPhotos: Record<string, string[]> = {
-        item_kopi_aren: [
-          '/images/menu/es-kopi-susu-aren.svg',
-          '/images/menu/es-kopi-susu-aren-2.svg',
-          '/images/menu/es-kopi-susu-aren-3.svg',
-        ],
-        item_v60_garut: [
-          '/images/menu/manual-brew-v60.svg',
-          '/images/menu/manual-brew-v60-2.svg',
-        ],
-        item_nasi_ayam: [
-          '/images/menu/nasi-ayam-rempah.svg',
-          '/images/menu/nasi-ayam-rempah-2.svg',
-        ],
-        item_matcha_uji: ['/images/menu/matcha-latte-uji.svg'],
-        item_croissant: ['/images/menu/croissant-mentega.svg'],
-      };
-      const rawPhotos: string[] = Array.isArray(sched.photos)
-        ? sched.photos.filter(Boolean)
-        : defaultMultiPhotos[item.id] || (item.photoUrl ? [item.photoUrl] : []);
-      const primaryPhoto = rawPhotos[0] || item.photoUrl || null;
+      const rawPhotos = samplePhotos(Array.isArray(sched.photos)
+        ? sched.photos
+        : item.photoUrl ? [item.photoUrl] : []);
+      const primaryPhoto = rawPhotos[0] || (item.photoUrl ? samplePhotos([item.photoUrl])[0] : null);
 
       return {
         ...item,

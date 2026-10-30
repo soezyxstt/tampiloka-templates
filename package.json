@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "test:cli": "node --test packages/cli/tests/*.test.mjs",
     "test:registry": "node --test packages/registry/tests/*.test.mjs",
+    "lint:design": "node scripts/check-design-tokens.mjs",
     "tampiloka": "node packages/cli/bin/tampiloka.mjs",
     "cli:pack": "pnpm --filter @tampiloka/cli pack",
     "dev:cafe": "pnpm --filter @tampiloka/template-cafe demos:dev",

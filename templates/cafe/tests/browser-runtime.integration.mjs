@@ -51,7 +51,7 @@ async function command(page, name, payload, surface = 'staff', expectedStatus = 
 }
 
 try {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ locale: 'id-ID' });
   const customer = await open(context);
   const initial = (await command(customer, 'RESET_DEMO_DATA', {})).snapshot;
   const staff = await open(context);
@@ -118,7 +118,7 @@ try {
   assert.equal(state.bills.find(entry => entry.id === posOrder.billId).balanceIdr, 0);
   check('state survives leader tab closure and page reload');
 
-  const otherContext = await browser.newContext();
+  const otherContext = await browser.newContext({ locale: 'id-ID' });
   const isolated = await open(otherContext);
   const otherState = await snapshot(isolated);
   assert.equal(otherState.orders.some(order => order.id === accepted.orderId), false);

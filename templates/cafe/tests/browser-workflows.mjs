@@ -19,7 +19,7 @@ try {
   const item = initial.catalog.find(entry => entry.id === 'item_teh_melati');
   assert.ok(table && item?.isAvailable);
   const unique = `Browser ${Date.now()}`;
-  const customerContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const customerContext = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   const customer = await customerContext.newPage(); track(customer);
   await customer.goto(`${base}/t/${config.venue.tenantSlug}/${config.venue.outletSlug}/m/${table.qrToken}`, { waitUntil: 'networkidle' });
   assert.equal(await customer.title(), config.brand.name);
@@ -41,7 +41,7 @@ try {
   const request = full.orderRequests.find(entry => entry.customerName === unique);
   assert.ok(request, 'Customer submission persisted.');
   check('QR menu → item → cart → submit without duplicate GPS', { requestId: request.id });
-  const staffContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+  const staffContext = await browser.newContext({ locale: 'id-ID', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const staff = await staffContext.newPage(); track(staff);
   await staff.goto(`${base}/staff/${config.venue.tenantSlug}/${config.venue.outletSlug}`, { waitUntil: 'networkidle' });
   await staff.getByRole('button', { name: /Raka Pratama/ }).click();

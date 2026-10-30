@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useCafeLanguage } from '@/lib/language';
+import { localizeSystemMessage } from '@/lib/system-messages';
+import { localizeSampleName } from '@/src/catalog/sample-menu';
 import QRCode from 'qrcode';
 import Image from 'next/image';
 import styles from './customer-app.module.css';
@@ -62,8 +65,6 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-const paymentLabel = (state: string) => ({ SETTLED: 'Lunas', PARTIALLY_PAID: 'Dibayar sebagian', REFUND_DUE: 'Menunggu pengembalian', NO_BILL: 'Menunggu tagihan' }[state] || 'Belum dibayar');
-const paymentMethodLabel = (method: string) => ({ CASH: 'Tunai', QRIS: 'QRIS', VIRTUAL_ACCOUNT: 'Virtual account', MANUAL_TRANSFER: 'Transfer', EXTERNAL_COUNTER: 'Kasir eksternal' }[method] || method);
 
 export interface CartLineDraft {
   cartLineId: string;
@@ -107,6 +108,10 @@ export function CustomerApp({
   initialBillId?: string;
   onContextChange?: (tableId: string, principalId: string) => void;
 }) {
+  const { t, language } = useCafeLanguage();
+  const sampleName = (id: string, name: string) => localizeSampleName(id, name, language, Boolean(snapshot?.runtime?.demo));
+  const paymentLabel = (state: string) => ({ SETTLED: t('Lunas', 'Paid'), PARTIALLY_PAID: t('Dibayar sebagian', 'Partially paid'), REFUND_DUE: t('Menunggu pengembalian', 'Refund pending'), NO_BILL: t('Menunggu tagihan', 'Awaiting bill') }[state] || t('Belum dibayar', 'Unpaid'));
+  const paymentMethodLabel = (method: string) => ({ CASH: t('Tunai', 'Cash'), QRIS: 'QRIS', VIRTUAL_ACCOUNT: 'Virtual account', MANUAL_TRANSFER: t('Transfer', 'Bank transfer'), EXTERNAL_COUNTER: t('Kasir eksternal', 'External cashier') }[method] || method);
   const shouldReduceMotion = useReducedMotion();
   const canOrder = isModuleEnabled('ordering');
   const canPayOnline = isModuleEnabled('payments');
@@ -217,7 +222,7 @@ export function CustomerApp({
     if (!waitlistTicket?.privateToken || busy) return;
     setWaitlistError('');
     try { const response = await onCommand('WAITLIST_ACTION', { action: 'GET_STATUS', privateToken: waitlistTicket.privateToken }); rememberWaitlist({ ...waitlistTicket, ...(response?.result || response) }); }
-    catch (caught) { setWaitlistError(caught instanceof Error ? caught.message : 'Antrean belum dapat diperbarui.'); }
+    catch (caught) { setWaitlistError(caught instanceof Error ? caught.message : t('Antrean belum dapat diperbarui.', 'Could not update the waitlist.')); }
   };
 
   const selectedTable = useMemo(() => {
@@ -275,7 +280,7 @@ export function CustomerApp({
     let active = true;
     const path = selectedTable.qrToken ? `/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(selectedTable.qrToken)}` : '/';
     const url = new URL(path, window.location.origin).toString();
-    QRCode.toDataURL(url, { width: 320, margin: 2, color: { dark: '#30231f', light: '#ffffff' } })
+    QRCode.toDataURL(url, { width: 320, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
       .then((image) => { if (active) { setShareUrl(url); setShareQr(image); } })
       .catch(() => { if (active) setShareQr(''); });
     return () => { active = false; };
@@ -390,15 +395,15 @@ export function CustomerApp({
 
   const handleConfirmModalAdd = () => {
     if (!configuringItem) return;
-    if (!configuringItem.isAvailable) { setModalError('Menu sedang habis.'); return; }
+    if (!configuringItem.isAvailable) { setModalError(t("Menu sedang habis.", "This item is sold out.")); return; }
     const variant = configuringItem.variants?.find((v: any) => v.id === selectedVariantId);
     if (!variant) {
-      setModalError('Pilih salah satu varian ukuran/sajian terlebih dahulu.');
+      setModalError(t("Pilih salah satu varian ukuran/sajian terlebih dahulu.", "Choose a size or serving option first."));
       return;
     }
     if (variant.availableToSell < itemQuantity) {
       setModalError(
-        `Stok varian ${variant.name} hanya tersisa ${variant.availableToSell} porsi.`
+        language === 'id' ? `Stok varian ${variant.name} hanya tersisa ${variant.availableToSell} porsi.` : `Only ${variant.availableToSell} servings of ${variant.name} remain.`
       );
       return;
     }
@@ -410,11 +415,11 @@ export function CustomerApp({
     for (const grp of groups) {
       const countInGrp = chosenOptions.filter((o: any) => o.groupId === grp.id).length;
       if (grp.required && countInGrp < grp.minSelect) {
-        setModalError(`Pilihan wajib "${grp.name}" harus dipilih minimal ${grp.minSelect}.`);
+        setModalError(language === 'id' ? `Pilihan wajib "${grp.name}" harus dipilih minimal ${grp.minSelect}.` : `Choose at least ${grp.minSelect} option(s) for "${grp.name}".`);
         return;
       }
       if (countInGrp > grp.maxSelect) {
-        setModalError(`Pilihan "${grp.name}" maksimal ${grp.maxSelect} opsi.`);
+        setModalError(language === 'id' ? `Pilihan "${grp.name}" maksimal ${grp.maxSelect} opsi.` : `Choose at most ${grp.maxSelect} option(s) for "${grp.name}".`);
         return;
       }
     }
@@ -442,12 +447,12 @@ export function CustomerApp({
   };
 
   const handleVerifyOtp = () => {
-    setOtpStatusMessage('Masuk sebagai member belum tersedia. Lanjutkan sebagai tamu dengan nama pemesan.');
+    setOtpStatusMessage(t("Masuk sebagai member belum tersedia. Lanjutkan sebagai tamu dengan nama pemesan.", "Member sign-in is unavailable. Continue as a guest with your name."));
   };
 
   const handleCheckGpsPresence = async () => {
     setCheckoutError('');
-    if (!navigator.geolocation) { setCheckoutError('Lokasi tidak tersedia di perangkat ini. Minta kode meja kepada staf.'); return; }
+    if (!navigator.geolocation) { setCheckoutError(t("Lokasi tidak tersedia di perangkat ini. Minta kode meja kepada staf.", "Location is unavailable on this device. Ask staff for a table code.")); return; }
     navigator.geolocation.getCurrentPosition(async (position) => {
       try {
         const res = await onCommand('VERIFY_PRESENCE', {
@@ -456,10 +461,10 @@ export function CustomerApp({
         });
         const check = res?.result || res;
         setPresenceVerified(Boolean(check?.eligible));
-        setPresenceStatusText(check?.message || '');
-        if (!check?.eligible) setCheckoutError(check?.message || 'Lokasi belum terverifikasi.');
+        setPresenceStatusText(localizeSystemMessage(check?.message || '', language));
+        if (!check?.eligible) setCheckoutError(localizeSystemMessage(check?.message || t("Lokasi belum terverifikasi.", "Location has not been verified."), language));
       } catch (err: any) { setCheckoutError(err.message); }
-    }, () => setCheckoutError('Lokasi belum dapat dibaca. Coba lagi atau minta kode meja kepada staf.'), { enableHighAccuracy: true, timeout: 10000 });
+    }, () => setCheckoutError(t("Lokasi belum dapat dibaca. Coba lagi atau minta kode meja kepada staf.", "Could not read your location. Try again or ask staff for a table code.")), { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const handleUseJoinCode = async () => {
@@ -471,9 +476,9 @@ export function CustomerApp({
       });
       const check = res?.result || res;
       setPresenceVerified(Boolean(check?.eligible));
-      setPresenceStatusText(check?.message || '');
+      setPresenceStatusText(localizeSystemMessage(check?.message || '', language));
       if (!check?.eligible) {
-        setCheckoutError(check?.message || 'Kode gabung tidak valid.');
+        setCheckoutError(localizeSystemMessage(check?.message || t("Kode gabung tidak valid.", "The join code is invalid."), language));
       }
     } catch (err: any) {
       setCheckoutError(err.message);
@@ -513,8 +518,8 @@ export function CustomerApp({
   };
 
   const handleReviewOrder = async () => {
-    if (guestName.trim().length < 2) { setCheckoutError('Isi nama pemesan, minimal 2 karakter.'); return; }
-    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError('Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.'); return; }
+    if (guestName.trim().length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
+    if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering.")); return; }
     const quote = await handleRequestQuote();
     if (quote) setConfirmOrderOpen(true);
   };
@@ -522,15 +527,15 @@ export function CustomerApp({
   const handleSubmitOrderRequest = async () => {
     setCheckoutError('');
     setCheckoutSuccessMsg('');
-    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError('Lanjutkan sebagai tamu.'); return; }
+    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t("Lanjutkan sebagai tamu.", "Continue as a guest.")); return; }
     if (guestName.trim().length < 2) {
       setCheckoutError(
-        'Isi nama pemesan, minimal 2 karakter.'
+        t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")
       );
       return;
     }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) {
-      setCheckoutError('Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.');
+      setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering."));
       return;
     }
 
@@ -538,7 +543,7 @@ export function CustomerApp({
       const quoteToUse = activeQuote;
       if (!quoteToUse || Date.parse(quoteToUse.expiresAt) <= Date.now()) {
         const renewed = await handleRequestQuote();
-        if (renewed) setCheckoutError('Ringkasan harga telah diperbarui. Periksa total sebelum mengirim pesanan kembali.');
+        if (renewed) setCheckoutError(t("Ringkasan harga telah diperbarui. Periksa total sebelum mengirim pesanan kembali.", "The price summary has been updated. Check the total before resubmitting your order."));
         return;
       }
 
@@ -558,8 +563,8 @@ export function CustomerApp({
       const outcome = subRes?.result || subRes;
       setCheckoutSuccessMsg(
         outcome?.orderId
-          ? 'Pesanan diterima.'
-          : 'Menunggu konfirmasi staf.'
+          ? t("Pesanan diterima.", "Order accepted.")
+          : t("Menunggu konfirmasi staf.", "Awaiting staff confirmation.")
       );
       if (outcome?.billId) {
         setSelectedBillId(outcome.billId);
@@ -634,7 +639,7 @@ export function CustomerApp({
       {/* ===================================================================== */}
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
-      <a className="skip-link" href="#customer-content">Lewati ke menu</a>
+      <a className="skip-link" href="#customer-content">{t("Lewati ke menu", "Skip to menu")}</a>
       <header className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
@@ -644,7 +649,7 @@ export function CustomerApp({
                 type="button"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveScreen('menu')}
-                aria-label="Kembali ke menu utama"
+                aria-label={t("Kembali ke menu utama", "Back to main menu")}
                 className="w-9 h-9 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -657,8 +662,8 @@ export function CustomerApp({
                 <span className="font-heading text-[21px] leading-[25px] font-bold text-[var(--foreground)] truncate">
                   {cafeConfig.brand.name}
                 </span>
-                {snapshot?.runtime?.demo && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Demo</span>}
-                {!snapshot?.runtime?.demo && snapshot?.runtime?.sampleMenu && <span className="text-[11px] text-[var(--muted-foreground)] shrink-0">Contoh menu</span>}
+                {snapshot?.runtime?.demo && <span className="text-[12px] text-[var(--muted-foreground)] shrink-0">Demo</span>}
+                {!snapshot?.runtime?.demo && snapshot?.runtime?.sampleMenu && <span className="text-[12px] text-[var(--muted-foreground)] shrink-0">{t("Contoh menu", "Sample menu")}</span>}
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
@@ -671,7 +676,7 @@ export function CustomerApp({
                 <span className="truncate">
                   {orderMode === 'DINE_IN'
                     ? `Meja ${selectedTable.label} (${selectedTable.areaName})`
-                    : 'Bawa pulang'}
+                    : t("Bawa pulang", "Takeaway")}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 shrink-0" />
               </button> : <p className="text-xs mt-1 text-[var(--muted-foreground)]">{cafeConfig.venue.address}</p>}
@@ -692,15 +697,15 @@ export function CustomerApp({
                   setOnlyFavorites(!onlyFavorites);
                 }
               }}
-              aria-label="Filter menu favorit"
+              aria-label={t("Filter menu favorit", "Filter favorite items")}
               aria-pressed={onlyFavorites}
               className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
                 onlyFavorites
-                  ? 'text-[#9E2A2B]'
+                  ? 'text-[var(--status-danger-fg)]'
                   : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
               }`}
             >
-              <Heart className={`w-5 h-5 ${onlyFavorites ? 'fill-[#9E2A2B]' : ''}`} />
+              <Heart className={`w-5 h-5 ${onlyFavorites ? 'fill-[var(--status-danger-fg)]' : ''}`} />
               <AnimatePresence mode="popLayout">
                 {favoriteIds.size > 0 && (
                   <motion.span
@@ -708,7 +713,7 @@ export function CustomerApp({
                     initial={{ scale: 0.6, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.6, opacity: 0 }}
-                    className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--foreground)] text-[var(--background)] text-[10px] font-bold flex items-center justify-center tabular-nums"
+                    className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--foreground)] text-[var(--background)] text-[12px] leading-none font-bold flex items-center justify-center tabular-nums"
                   >
                     {favoriteIds.size}
                   </motion.span>
@@ -723,7 +728,7 @@ export function CustomerApp({
               onClick={() =>
                 setActiveScreen(activeScreen === 'keranjang' ? 'menu' : 'keranjang')
               }
-              aria-label={`Keranjang belanja (${cartSummary.totalQty} item)`}
+              aria-label={`${t('Keranjang belanja', 'Shopping cart')} (${cartSummary.totalQty} ${t('item', 'items')})`}
               className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
                 activeScreen === 'keranjang'
                   ? 'text-[var(--primary-ink)]'
@@ -740,7 +745,7 @@ export function CustomerApp({
                     initial={{ scale: 0.6, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.6, opacity: 0 }}
-                    className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-bold flex items-center justify-center tabular-nums"
+                    className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-[12px] leading-none font-bold flex items-center justify-center tabular-nums"
                   >
                     {cartSummary.totalQty}
                   </motion.span>
@@ -754,7 +759,7 @@ export function CustomerApp({
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => setProfileDrawerOpen(true)}
-              aria-label="Menu profil, pesanan, dan layanan meja"
+              aria-label={t("Menu profil, pesanan, dan layanan meja", "Profile, orders and table service menu")}
               className={`relative w-12 h-12 flex items-center justify-center transition-colors cursor-pointer ${
                 profileDrawerOpen ||
                 ['pesanan', 'pembayaran', 'bantuan', 'wifi', 'member', 'antrean'].includes(
@@ -787,20 +792,20 @@ export function CustomerApp({
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
               {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
                 <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
-                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? 'Tagihan belum dibayar' : 'Pesanan diproses'}</span></span>
+                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? t("Tagihan belum dibayar", "Unpaid bill") : t("Pesanan diproses", "Order in progress")}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
               <div className={styles.menuToolbar}>
-                <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Cari menu" />
-                <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?'Semua':category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel="Kategori menu" variant="underline" />
+                <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
+                <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? 'Favorit' : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', 'Semua menu')}</h2>
-                <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">Favorit</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>Tersedia saja</FilterToggle></div>
+                <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items'))}</h2>
+                <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">{t("Favorit", "Favorites")}</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>{t("Tersedia saja", "Available only")}</FilterToggle></div>
               </div>
               {filteredCatalog.length === 0 ? (
-                <EmptyState title="Menu tidak ditemukan" description="Coba kata kunci lain atau pilih kategori yang berbeda." actionLabel="Reset pencarian" onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
+                <EmptyState title={t("Menu tidak ditemukan", "No menu items found")} description={t("Coba kata kunci lain atau pilih kategori yang berbeda.", "Try another search or category.")} actionLabel={t("Reset pencarian", "Reset search")} onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
               ) : (
                 <div className={styles.menuGrid} role="list" aria-label="Menu"><AnimatePresence initial={false} mode="popLayout">
                   {filteredCatalog.map((item: any, itemIndex: number) => {
@@ -810,11 +815,11 @@ export function CustomerApp({
                     const favorite = favoriteIds.has(item.id);
                     return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
-                        <button type="button" onClick={() => openItemModal(item)} aria-label={`Lihat ${item.name}`} className="w-full h-full">
+                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className="w-full h-full">
                           {photos[0] ? <Image src={photos[0]} alt={item.name} width={640} height={480} unoptimized loading="lazy" /> : <Coffee className="w-12 h-12 text-[var(--primary-ink)] mx-auto" />}
                         </button>
-                        <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? 'Hapus' : 'Simpan'} ${item.name} ${favorite ? 'dari' : 'ke'} favorit`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
-                        {!item.isAvailable && <span className={styles.soldOutBadge}>Habis</span>}
+                        <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? t('Hapus', 'Remove') : t('Simpan', 'Save')} ${item.name} ${favorite ? t('dari', 'from') : t('ke', 'to')} ${t('favorit', 'favorites')}`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
+                        {!item.isAvailable && <span className={styles.soldOutBadge}>{t("Habis", "Sold out")}</span>}
                         {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} di keranjang</span>}
                       </div>
                       <div className={styles.menuCardBody}>
@@ -822,14 +827,14 @@ export function CustomerApp({
                         <p className={styles.menuDescription}>{item.description}</p>
                         <div className="flex items-center justify-between gap-2 mt-auto pt-2">
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          {canOrder && <Button variant="subtle" size="sm" aria-label={`Tambah ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Tambah</span></Button>}
+                          {canOrder && <Button variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
                         </div>
                       </div>
                     </MotionItem>;
                   })}
                 </AnimatePresence></div>
               )}
-              <p className="text-xs text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet)}</p>
+              <p className="text-xs text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet, language)}</p>
             </MotionPanel>
           )}
 
@@ -842,17 +847,17 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[22px] font-bold">Keranjang</h1>
+                <h1 className="font-heading text-[22px] font-bold">{t("Keranjang", "Cart")}</h1>
                 <Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>
-                  + Tambah menu
+                  {t("+ Tambah menu", "+ Add items")}
                 </Button>
               </div>
 
               {cart.length === 0 ? (
                 <EmptyState
-                  title="Keranjang masih kosong"
-                  description="Pilih makanan atau minuman dari menu, lalu tambahkan ke keranjang."
-                  actionLabel="Lihat menu"
+                  title={t("Keranjang masih kosong", "Your cart is empty")}
+                  description={t("Pilih makanan atau minuman dari menu, lalu tambahkan ke keranjang.", "Choose food or drinks from the menu and add them to your cart.")}
+                  actionLabel={t("Lihat menu", "View menu")}
                   onAction={() => setActiveScreen('menu')}
                 />
               ) : (
@@ -860,7 +865,7 @@ export function CustomerApp({
                   {/* 1. Daftar Item Keranjang (Open Hairline List · No outer box card) */}
                   <section className="space-y-2">
                     <h2 className="font-heading text-[16px] font-semibold">
-                      Menu ({cartSummary.totalQty} item)
+                      {t('Menu', 'Items')} ({cartSummary.totalQty} {t('item', 'items')})
                     </h2>
                     <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                       {cart.map((line, idx) => (
@@ -871,22 +876,22 @@ export function CustomerApp({
                         >
                           <div className="space-y-0.5 min-w-0">
                             <p className="font-semibold text-[15px] text-[var(--foreground)]">
-                              {line.itemName}
+                              {sampleName(line.menuItemId, line.itemName)}
                             </p>
                             <p className="text-[13px] text-[var(--muted-foreground)]">
-                              {line.variantName}
+                              {sampleName(line.variantId, line.variantName)}
                               {line.modifierNames.length > 0
                                 ? ` · ${line.modifierNames.join(', ')}`
                                 : ''}
                             </p>
                             {line.note && (
                               <p className="text-[12px] text-[var(--muted-foreground)] italic">
-                                Catatan: &ldquo;{line.note}&rdquo;
+                                {t('Catatan:', 'Note:')} &ldquo;{line.note}&rdquo;
                               </p>
                             )}
                             <div className="flex items-center gap-4 pt-2">
                               <Money amount={line.unitPriceIdr * line.quantity} className="font-semibold text-[14px]" />
-                              <button type="button" className="text-sm text-[var(--primary-ink)] inline-flex items-center gap-1" onClick={() => editCartLine(line)}><Pencil className="h-3 w-3" /> Ubah</button>
+                              <button type="button" className="text-sm text-[var(--primary-ink)] inline-flex items-center gap-1" onClick={() => editCartLine(line)}><Pencil className="h-3 w-3" /> {t("Ubah", "Edit")}</button>
                             </div>
                           </div>
 
@@ -911,7 +916,7 @@ export function CustomerApp({
                   {/* 2. Identitas Pemesan (Unboxed Section with Shadcn Input & AnimatedSegmentedControl) */}
                   <section className="space-y-3 pt-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h2 className="font-heading text-[16px] font-semibold">Nama pemesan</h2>
+                      <h2 className="font-heading text-[16px] font-semibold">{t("Nama pemesan", "Order name")}</h2>
                       {canUseLoyalty && <AnimatedSegmentedControl
                         options={[
                           { value: 'GUEST', label: 'Tamu' },
@@ -919,7 +924,7 @@ export function CustomerApp({
                         ]}
                         value={identityMode}
                         onChange={(mode) => { setIdentityMode(mode); setActiveQuote(null); }}
-                        ariaLabel="Mode identitas pemesan"
+                        ariaLabel={t("Mode identitas pemesan", "Order identity")}
                         layoutId="customer-identity-mode"
                       />}
                     </div>
@@ -927,19 +932,19 @@ export function CustomerApp({
                     {identityMode === 'GUEST' ? (
                       <div className="space-y-1.5">
                         <Label htmlFor="guest-name-input">
-                          Nama
+                          {t("Nama", "Name")}
                         </Label>
                         <Input
                           id="guest-name-input"
                           value={guestName}
                           onChange={(e) => { setGuestName(e.target.value); setActiveQuote(null); }}
-                          placeholder="Nama Anda"
+                          placeholder={t("Nama Anda", "Your name")}
                         />
                       </div>
                     ) : (
                       <div className="rounded-xl bg-[var(--accent-surface)] p-4 space-y-3">
-                        <p className="text-sm text-[var(--muted-foreground)]">Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.</p>
-                        <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>Lanjut sebagai tamu</Button>
+                        <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+                        <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
                       </div>
                     )}
                   </section>
@@ -948,15 +953,15 @@ export function CustomerApp({
                   {orderMode === 'DINE_IN' && !hasTableQrContext && <section className="pt-5 border-t border-[var(--border)] space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h2 className="font-heading text-[16px] font-semibold">
-                        Verifikasi meja
+                        {t("Verifikasi meja", "Verify table")}
                       </h2>
                       <StatusLabel
-                        label={presenceVerified ? 'Terverifikasi' : 'Belum terverifikasi'}
+                        label={presenceVerified ? t('Terverifikasi', 'Verified') : t('Belum terverifikasi', 'Not verified')}
                         tone={presenceVerified ? 'success' : 'warning'}
                       />
                     </div>
                     <p className="text-[13px] text-[var(--muted-foreground)]">
-                      Untuk memesan dari meja, izinkan akses lokasi atau masukkan kode yang diberikan staf.
+                      {t("Untuk memesan dari meja, izinkan akses lokasi atau masukkan kode yang diberikan staf.", "To order from your table, allow location access or enter the code provided by staff.")}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button
@@ -965,14 +970,14 @@ export function CustomerApp({
                         onClick={() => handleCheckGpsPresence()}
                       >
                         <MapPin className="w-4 h-4" />
-                        <span>Cek lokasi</span>
+                        <span>{t("Cek lokasi", "Check location")}</span>
                       </Button>
                       <div className="flex items-center gap-2 flex-1 min-w-[210px]">
                         <Input
-                          aria-label="Kode gabung meja dari staf"
+                          aria-label={t("Kode gabung meja dari staf", "Table join code from staff")}
                           value={joinCodeInput}
                           onChange={(e) => setJoinCodeInput(e.target.value)}
-                          placeholder="Kode meja dari staf"
+                          placeholder={t("Kode meja dari staf", "Table code from staff")}
                           className="uppercase tabular-nums"
                         />
                         <Button
@@ -980,7 +985,7 @@ export function CustomerApp({
                           disabled={busy}
                           onClick={handleUseJoinCode}
                         >
-                          Terapkan
+                          {t("Terapkan", "Apply")}
                         </Button>
                       </div>
                     </div>
@@ -994,7 +999,7 @@ export function CustomerApp({
                   {/* 4. Promo Voucher & Rincian Biaya (Single Subtle Summary Surface) */}
                   <section className="pt-5 border-t border-[var(--border)] space-y-4">
                     <h2 className="font-heading text-[16px] font-semibold">
-                      Ringkasan
+                      {t("Ringkasan", "Summary")}
                     </h2>
 
                     {canUsePromos && <div className="space-y-2">
@@ -1003,7 +1008,7 @@ export function CustomerApp({
                           id="promo-code-input"
                           value={promoCodeInput}
                           onChange={(e) => { setPromoCodeInput(e.target.value); setActiveQuote(null); }}
-                          placeholder="Masukkan kode promo (mis. HEMAT10)"
+                          placeholder={t("Masukkan kode promo (mis. HEMAT10)", "Enter promo code")}
                           className="uppercase"
                         />
                         <Button
@@ -1011,14 +1016,14 @@ export function CustomerApp({
                           disabled={busy}
                           onClick={() => handleRequestQuote()}
                         >
-                          Terapkan
+                          {t("Terapkan", "Apply")}
                         </Button>
                       </div>
 
                       {(snapshot?.promotionRules || []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                           <span className="text-[12px] text-[var(--muted-foreground)]">
-                            Voucher tersedia:
+                            {t("Voucher tersedia:", "Available vouchers:")}
                           </span>
                           {(snapshot?.promotionRules || []).map((p: any) => (
                             <motion.button
@@ -1049,8 +1054,7 @@ export function CustomerApp({
 
                       {activeQuote && (
                         <div className="pt-2 border-t border-[var(--border)] text-[12px] text-[var(--primary-ink)] font-medium">
-                          Harga berlaku
-                          hingga{' '}
+                          {t('Harga berlaku hingga', 'Price valid until')}{' '}
                           {new Date(activeQuote.expiresAt).toLocaleTimeString('id-ID', {
                             timeZone: cafeConfig.timezone,
                             hour: '2-digit',
@@ -1060,7 +1064,7 @@ export function CustomerApp({
                       )}
                     </div>
 
-                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau membantu memilih meja lain.</p>}
+                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau membantu memilih meja lain.", "This table is not ready for orders. Ask staff to prepare it or help you choose another.")}</p>}
                     <InlineError message={checkoutError} />
                     {checkoutSuccessMsg && (
                       <StatusLabel label={checkoutSuccessMsg} tone="success" />
@@ -1073,7 +1077,7 @@ export function CustomerApp({
                       disabled={busy || tableUnavailable}
                       onClick={handleReviewOrder}
                     >
-                      Periksa pesanan · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
+                      {t('Periksa pesanan', 'Review order')} · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
                     </Button>
                   </section>
                 </div>
@@ -1090,27 +1094,27 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.ordersHeading}>
-                <h1 className="font-heading text-[22px] font-bold">Pesanan</h1>
+                <h1 className="font-heading text-[22px] font-bold">{t("Pesanan", "Orders")}</h1>
                 <div className={styles.ordersActions}>
-                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>Perbarui</Button>
+                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>{t("Perbarui", "Refresh")}</Button>
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => setActiveScreen('pembayaran')}
                 >
-                  Lihat tagihan dan pembayaran
+                  {t("Lihat tagihan dan pembayaran", "View bill and payment")}
                 </Button>
                 </div>
               </div>
 
-              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title="Belum ada pesanan" description="Setelah dikirim, pesanan Anda akan muncul di sini bersama statusnya." actionLabel="Lihat menu" onAction={() => setActiveScreen('menu')} />}
-              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? 'Pesanan kedaluwarsa' : 'Pesanan dibatalkan'} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || 'Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.'}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>Pilih menu lagi</Button></section>)}
+              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} description={t("Setelah dikirim, pesanan Anda akan muncul di sini bersama statusnya.", "After you submit an order, it and its status will appear here.")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
+              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></section>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
                 0 && (
                 <section className="space-y-2.5">
                   <h2 className="font-heading text-[16px] font-semibold">
-                    Menunggu konfirmasi staf
+                    {t("Menunggu konfirmasi staf", "Awaiting staff confirmation")}
                   </h2>
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {customerRequests
@@ -1125,10 +1129,10 @@ export function CustomerApp({
                               <span className="min-w-0 break-words font-semibold text-[15px]">
                                 Meja {req.tableLabel} · {req.customerName}
                               </span>
-                              <StatusLabel label="Menunggu konfirmasi staf" tone="warning" />
+                              <StatusLabel label={t("Menunggu konfirmasi staf", "Awaiting staff confirmation")} tone="warning" />
                             </div>
                             <p className="text-[13px] text-[var(--muted-foreground)]">
-                              Total estimasi:{' '}
+                              {t('Total estimasi:', 'Estimated total:')}{' '}
                               <Money
                                 amount={matchedQuote?.totalIdr ?? req.totalIdr ?? 0}
                                 className="font-semibold"
@@ -1171,7 +1175,7 @@ export function CustomerApp({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <StatusLabel label="Diterima Staf" tone="active" />
+                            <StatusLabel label={t("Diterima Staf", "Accepted by staff")} tone="active" />
                             <StatusLabel
                               label={paymentLabel(billing.paymentState)}
                               tone={billing.paymentState === 'SETTLED' ? 'success' : billing.paymentState === 'REFUND_DUE' ? 'danger' : 'warning'}
@@ -1179,7 +1183,7 @@ export function CustomerApp({
                           </div>
                         </div>
 
-                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? 'Termasuk dalam tagihan gabungan' : billing.relatedBills.length > 1 ? `Dibagi menjadi ${billing.relatedBills.length} tagihan` : 'Tagihan pesanan ini'}</span>{billing.hasPendingPayment && <StatusLabel label="Pembayaran dalam proses" tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant="ghost" size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>Lihat tagihan · {formatIdr(bill.balanceIdr > 0 ? bill.balanceIdr : 0)}</Button>)}</div>}
+                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span>{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant="ghost" size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{t('Lihat tagihan', 'View bill')} · {formatIdr(bill.balanceIdr > 0 ? bill.balanceIdr : 0)}</Button>)}</div>}
 
                         {/* Fulfillment per Unit */}
                         <div className="pl-3 border-l-2 border-[var(--border)] divide-y divide-[var(--border)]/70">
@@ -1190,19 +1194,19 @@ export function CustomerApp({
                             >
                               <div className={styles.orderUnitDetails}>
                                 <span className="font-medium text-[var(--foreground)]">
-                                  1× {u.itemNameSnapshot || u.itemName}
+                                  1× {sampleName(u.menuItemId, u.itemNameSnapshot || u.itemName)}
                                 </span>{' '}
                                 <span className="text-[var(--muted-foreground)]">
-                                  ({u.variantNameSnapshot || u.variantName})
+                                  ({sampleName(u.variantId, u.variantNameSnapshot || u.variantName)})
                                 </span>
                                 <p className="text-[12px] text-[var(--muted-foreground)]">
-                                  Stasiun:{' '}
+                                  {t('Stasiun:', 'Station:')}{' '}
                                   {u.stationCode === 'BAR'
-                                    ? 'Bar & Kopi'
+                                    ? t('Bar & Kopi', 'Bar & Coffee')
                                     : u.stationCode === 'PASTRY'
-                                    ? 'Pastry & Roti'
-                                    : 'Dapur Utama'}
-                                  {u.note ? ` · Catatan: "${u.note}"` : ''}
+                                    ? t('Pastry & Roti', 'Pastry & Bread')
+                                    : t('Dapur Utama', 'Main kitchen')}
+                                  {u.note ? t(` · Catatan: "${u.note}"`, ` · Note: "${u.note}"`) : ''}
                                 </p>
                               </div>
 
@@ -1210,14 +1214,14 @@ export function CustomerApp({
                                 className={styles.orderUnitStatus}
                                 label={
                                   ['SERVED', 'DELIVERED', 'PICKED_UP'].includes(u.fulfillmentStatus)
-                                    ? (u.fulfillmentStatus === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan')
+                                    ? (u.fulfillmentStatus === 'PICKED_UP' ? t('Sudah diambil', 'Picked up') : t('Disajikan', 'Served'))
                                     : u.fulfillmentStatus === 'READY'
-                                    ? 'Siap Diambil/Antar'
+                                    ? t('Siap Diambil/Antar', 'Ready for pickup or serving')
                                     : u.fulfillmentStatus === 'PREPARING'
-                                    ? 'Sedang dibuat'
+                                    ? t('Sedang dibuat', 'Preparing')
                                     : u.fulfillmentStatus === 'QUEUED'
-                                    ? 'Dalam antrean'
-                                    : u.fulfillmentStatus === 'CANCELLED' ? 'Dibatalkan' : 'Menunggu pembayaran'
+                                    ? t('Dalam antrean', 'Queued')
+                                    : u.fulfillmentStatus === 'CANCELLED' ? t('Dibatalkan', 'Cancelled') : t('Menunggu pembayaran', 'Awaiting payment')
                                 }
                                 tone={
                                   ['SERVED', 'DELIVERED', 'PICKED_UP'].includes(u.fulfillmentStatus) ||
@@ -1249,9 +1253,9 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[22px] font-bold">Pembayaran</h1>
+                <h1 className="font-heading text-[22px] font-bold">{t("Pembayaran", "Payment")}</h1>
                 <SelectField
-                  aria-label="Pilih tagihan meja"
+                  aria-label={t("Pilih tagihan meja", "Choose a table bill")}
                   value={selectedBill?.id || ''}
                   onChange={(e) => setSelectedBillId(e.target.value)}
                   wrapperClassName="w-auto min-w-[230px]"
@@ -1264,9 +1268,9 @@ export function CustomerApp({
                 </SelectField>
               </div>
 
-              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label="Ringkasan seluruh tagihan"><p className="font-semibold">{customerBills.length} tagihan dalam kunjungan Anda</p><p>Sisa seluruh tagihan: <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.</p></div>}
+              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')}</p><p>{t("Sisa seluruh tagihan:", "Total outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div>}
 
-              {!selectedBill && <EmptyState title="Belum ada tagihan" description="Tagihan akan muncul setelah pesanan diterima." actionLabel="Lihat pesanan" onAction={() => setActiveScreen('pesanan')} />}
+              {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={t("Lihat pesanan", "View orders")} onAction={() => setActiveScreen('pesanan')} />}
               {selectedBill && (
                 <div className="space-y-6">
                   {/* Bill Items (Open Hairline List) */}
@@ -1307,7 +1311,7 @@ export function CustomerApp({
 
                     {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && <div className="flex items-center justify-between gap-2 pt-1">
                       <span className="text-[12px] text-[var(--muted-foreground)]">
-                        Bagikan tagihan
+                        {t("Bagikan tagihan", "Share bill")}
                       </span>
                       <Button
                         variant="secondary"
@@ -1322,12 +1326,12 @@ export function CustomerApp({
                         {copiedKey === `share_${selectedBill.id}` ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" />
-                            <span>Tersalin</span>
+                            <span>{t("Tersalin", "Copied")}</span>
                           </>
                         ) : (
                           <>
                             <Share2 className="w-3.5 h-3.5" />
-                            <span>Salin tautan</span>
+                            <span>{t("Salin tautan", "Copy link")}</span>
                           </>
                         )}
                       </Button>
@@ -1336,7 +1340,7 @@ export function CustomerApp({
 
                   {/* Payment Summary & QRIS / VA Interactive Checkout */}
                   <section className="pt-4 border-t border-[var(--border)] space-y-4">
-                    <h2 className="font-heading text-[16px] font-semibold">Ringkasan</h2>
+                    <h2 className="font-heading text-[16px] font-semibold">{t("Ringkasan", "Summary")}</h2>
                     <div className={styles.summary}><PaymentBreakdown
                       subtotalIdr={selectedBill.subtotalIdr}
                       discountIdr={selectedBill.discountIdr}
@@ -1352,13 +1356,13 @@ export function CustomerApp({
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
                     /></div>
 
-                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">Bayar di kasir</p><p className="mt-1 text-sm">Sebutkan nama pemesan atau nomor meja di kasir. Staf akan mencatat pembayaran Anda.</p></div>}
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p><p className="mt-1 text-sm">{t("Sebutkan nama pemesan atau nomor meja di kasir. Staf akan mencatat pembayaran Anda.", "Give your name or table number at the counter. Staff will record your payment.")}</p></div>}
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
                           <>
-                            <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: 'Transfer bank' }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel="Metode pembayaran" layoutId="payment-method-selector" />
-                            <div className="rounded-2xl bg-white border border-[var(--border)] p-6 text-center space-y-3">
+                            <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: t('Transfer bank', 'Bank transfer') }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel={t("Metode pembayaran", "Payment method")} layoutId="payment-method-selector" />
+                            <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-6 text-center space-y-3">
                               <QrCode className="w-10 h-10 mx-auto text-[var(--primary-ink)]" />
                               <p className="font-semibold">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</p>
                               <Money amount={selectedBill.balanceIdr} className="block text-2xl font-semibold" />
@@ -1372,25 +1376,25 @@ export function CustomerApp({
                                 await onCommand('RECORD_PAYMENT', { billId: selectedBill.id, method: selectedPaymentMethod, amountIdr: selectedBill.balanceIdr, actorName: guestName || 'Pelanggan', createExternalAttemptOnly: true, idempotencyKey: paymentSubmissionRef.current.key });
                                 paymentSubmissionRef.current = null;
                               } catch (error: any) { setPaymentFeedback(error.message); }
-                            }}>{busy ? 'Memuat…' : selectedPaymentMethod === 'QRIS' ? 'Buat QRIS' : 'Buat Virtual Account'}</Button>
+                            }}>{busy ? t('Memuat…', 'Loading…') : selectedPaymentMethod === 'QRIS' ? t('Buat QRIS', 'Create QRIS') : t('Buat Virtual Account', 'Create virtual account')}</Button>
                           </>
                         ) : (
-                          <section className="rounded-2xl border border-[var(--border)] bg-white p-5 sm:p-8 text-center space-y-4">
+                          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8 text-center space-y-4">
                             <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>{paymentIsDemo && <StatusLabel label="Demo" tone="neutral" />}</div>
                             <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
                             <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-semibold" />
-                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? 'Kode QR demo, tidak dapat dibayar' : 'Kode QRIS pembayaran'} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || 'Menyiapkan instruksi…'}</div>}
-                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? 'Kode demo. Tidak dapat dibayar.' : 'Pindai dengan mobile banking atau e-wallet.'}</p>
-                            <StatusLabel label="Menunggu pembayaran" tone="warning" />
-                            {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">Berlaku sampai {new Date(pendingAttempt.expiresAt).toLocaleTimeString('id-ID', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
+                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? t('Kode QR demo, tidak dapat dibayar', 'Demo QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>}
+                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode demo. Tidak dapat dibayar.', 'Demo code. Cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
+                            <StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" />
+                            {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">{t('Berlaku sampai', 'Valid until')} {new Date(pendingAttempt.expiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
                             <div className="flex justify-center gap-2">
-                              <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback('Status diperbarui.'); } catch (error: any) { setPaymentFeedback(error.message); } }}>Cek status</Button>
-                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 text-sm font-medium"><Download className="h-4 w-4" />Unduh</a>}
+                              <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
+                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
                             </div>
                           </section>
                         )}
                         {paymentFeedback && <p role="status" className="text-sm text-[var(--muted-foreground)]">{paymentFeedback}</p>}
-                        {cafeConfig.payment.mode === 'both' && <p className="text-sm text-[var(--muted-foreground)]">{pendingAttempt ? 'Ingin ganti metode? Minta staf membatalkan instruksi aktif sebelum membayar di kasir.' : 'Anda juga bisa membayar langsung di kasir.'}</p>}
+                        {cafeConfig.payment.mode === 'both' && <p className="text-sm text-[var(--muted-foreground)]">{pendingAttempt ? t('Ingin ganti metode? Minta staf membatalkan instruksi aktif sebelum membayar di kasir.', 'To change methods, ask staff to cancel the active instructions before paying at the counter.') : t('Anda juga bisa membayar langsung di kasir.', 'You can also pay at the counter.')}</p>}
                       </div>
                     )}
                   </section>
@@ -1413,18 +1417,18 @@ export function CustomerApp({
                       <div className="text-[13px] space-y-1 tabular-nums">
                         <div className="flex justify-between">
                           <span className="text-[var(--muted-foreground)]">
-                            No. tagihan
+                            {t("No. tagihan", "Bill no.")}
                           </span>
                           <span className="font-medium">{selectedBill.id}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">Pelanggan / meja</span>
+                          <span className="text-[var(--muted-foreground)]">{t("Pelanggan / meja", "Customer / table")}</span>
                           <span className="font-medium">
                             {selectedBill.ownerLabel} · Meja {selectedBill.tableLabel}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">Status pembayaran</span>
+                          <span className="text-[var(--muted-foreground)]">{t("Status pembayaran", "Payment status")}</span>
                           <span className="font-semibold text-[var(--status-success-fg)]">
                             {paymentLabel(selectedBill.paymentState)}
                           </span>
@@ -1444,14 +1448,14 @@ export function CustomerApp({
                         ))}
                       </div>
                       <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[14px] tabular-nums">
-                        <span>Total pembayaran diterima</span>
+                        <span>{t("Total pembayaran diterima", "Total payments received")}</span>
                         <span className="text-[var(--primary-ink)]">
                           {formatIdr(selectedBill.verifiedReceiptsIdr)}
                         </span>
                       </div>
                       {(selectedBill.receipts || []).map((receipt: any) => <div key={receipt.id} className="text-xs border-t border-[var(--border)] pt-2 space-y-1"><p>{paymentMethodLabel(receipt.method)} · <Money amount={receipt.amountIdr} /></p><p className="break-all text-[var(--muted-foreground)]">Referensi: {receipt.referenceCode}</p></div>)}
-                      {selectedBill.refundedIdr > 0 && <p className="text-sm">Sudah dikembalikan: <Money amount={selectedBill.refundedIdr} /></p>}
-                      {selectedBill.balanceIdr < 0 && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Pengembalian <Money amount={-selectedBill.balanceIdr} /> sedang menunggu penyelesaian staf.</p>}
+                      {selectedBill.refundedIdr > 0 && <p className="text-sm">{t("Sudah dikembalikan:", "Refunded:")} <Money amount={selectedBill.refundedIdr} /></p>}
+                      {selectedBill.balanceIdr < 0 && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</p>}
                     </section>
                   )}
                 </div>
@@ -1468,7 +1472,7 @@ export function CustomerApp({
               className="space-y-5"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                Panggil pelayan
+                {t("Panggil pelayan", "Call staff")}
               </h1>
 
               <section className="space-y-4">
@@ -1477,11 +1481,11 @@ export function CustomerApp({
                 </h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {[
-                    { code: 'CALL_WAITER', label: 'Panggil pelayan' },
-                    { code: 'REQUEST_BILL', label: 'Minta tagihan' },
+                    { code: 'CALL_WAITER', label: t("Panggil pelayan", "Call staff") },
+                    { code: 'REQUEST_BILL', label: t('Minta tagihan', 'Request bill') },
                     { code: 'CUTLERY_NAPKIN', label: 'Alat makan' },
                     { code: 'PACK_LEFTOVER', label: 'Bungkus makanan' },
-                    { code: 'ORDER_ISSUE', label: 'Kendala pesanan' },
+                    { code: 'ORDER_ISSUE', label: t('Kendala pesanan', 'Order issue') },
                   ].map((opt) => {
                     const active = helpType === opt.code;
                     return (
@@ -1503,13 +1507,13 @@ export function CustomerApp({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="help-notes-input">Catatan tambahan (opsional)</Label>
+                  <Label htmlFor="help-notes-input">{t("Catatan tambahan (opsional)", "Additional notes (optional)")}</Label>
                   <Textarea
                     id="help-notes-input"
                     rows={2}
                     value={helpNotes}
                     onChange={(e) => setHelpNotes(e.target.value)}
-                    placeholder="Contoh: Minta 2 sendok makan dan air hangat"
+                    placeholder={t("Contoh: Minta 2 sendok makan dan air hangat", "Example: Request 2 spoons and warm water")}
                   />
                 </div>
 
@@ -1536,7 +1540,7 @@ export function CustomerApp({
                   }}
                 >
                   <Bell className="w-4 h-4" />
-                  <span>Kirim permintaan</span>
+                  <span>{t("Kirim permintaan", "Send request")}</span>
                 </Button>
               </section>
             </MotionPanel>
@@ -1551,7 +1555,7 @@ export function CustomerApp({
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                Info kedai
+                {t("Info kedai", "Cafe info")}
               </h1>
 
               {snapshot?.wifiNetworks?.length > 0 && <section className="space-y-3">
@@ -1569,7 +1573,7 @@ export function CustomerApp({
                         </div>
                         <p className="text-[14px] text-[var(--muted-foreground)]">
                           SSID: <strong className="text-[var(--foreground)]">{w.ssid}</strong> ·
-                          Kata sandi:{' '}
+                          {t('Kata sandi:', 'Password:')}{' '}
                           <strong className="text-[var(--foreground)] tabular-nums">
                             {w.encryptedPassword}
                           </strong>
@@ -1583,12 +1587,12 @@ export function CustomerApp({
                         {copiedKey === w.id ? (
                           <>
                             <Check className="w-4 h-4 text-[var(--status-success-fg)]" />
-                            <span>Sandi Disalin</span>
+                            <span>{t("Sandi Disalin", "Password copied")}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-4 h-4" />
-                            <span>Salin Sandi</span>
+                            <span>{t("Salin Sandi", "Copy password")}</span>
                           </>
                         )}
                       </Button>
@@ -1598,28 +1602,28 @@ export function CustomerApp({
               </section>}
 
               <section className="space-y-2.5 text-[14px]">
-                <h2 className="font-heading text-[16px] font-semibold">Jam buka dan fasilitas</h2>
+                <h2 className="font-heading text-[16px] font-semibold">{t("Jam buka dan fasilitas", "Hours and facilities")}</h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Alamat</span>
+                    <span className="text-[var(--muted-foreground)]">{t("Alamat", "Address")}</span>
                     <span className="font-medium text-right">{snapshot?.outlet?.address}</span>
                   </div>
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Jam operasional</span>
+                    <span className="text-[var(--muted-foreground)]">{t("Jam operasional", "Opening hours")}</span>
                     <span className="font-medium text-right">
                       {snapshot?.outlet?.openHoursText}
                     </span>
                   </div>
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Fasilitas</span>
+                    <span className="text-[var(--muted-foreground)]">{t("Fasilitas", "Facilities")}</span>
                     <span className="font-medium text-right">
                       {snapshot?.outlet?.facilitiesText}
                     </span>
                   </div>
                   <div className="py-2.5 flex justify-between gap-4">
-                    <span className="text-[var(--muted-foreground)]">Ketentuan biaya</span>
+                    <span className="text-[var(--muted-foreground)]">{t("Ketentuan biaya", "Charges")}</span>
                     <span className="font-medium text-right">
-                      {formatOutletChargePolicy(snapshot?.outlet)}
+                      {formatOutletChargePolicy(snapshot?.outlet, language)}
                     </span>
                   </div>
                 </div>
@@ -1639,18 +1643,18 @@ export function CustomerApp({
                 Member
               </h1>
 
-              <div className="rounded-2xl bg-white border border-[var(--border)] p-5">
-                <p className="text-sm text-[var(--muted-foreground)]">Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.</p>
+              <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-5">
+                <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
               </div>
 
               {/* Send Review (Unboxed with Hairline Top Divider) */}
               <section className="pt-5 border-t border-[var(--border)] space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">Ulasan</h2>
+                <h2 className="font-heading text-[16px] font-semibold">{t("Ulasan", "Reviews")}</h2>
                 <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { label: 'Kepuasan', val: overallRating, set: setOverallRating },
-                    { label: 'Rasa Menu', val: tasteRating, set: setTasteRating },
-                    { label: 'Layanan', val: serviceRating, set: setServiceRating },
+                    { label: t('Kepuasan', 'Satisfaction'), val: overallRating, set: setOverallRating },
+                    { label: t('Rasa Menu', 'Food and drink'), val: tasteRating, set: setTasteRating },
+                    { label: t('Layanan', 'Service'), val: serviceRating, set: setServiceRating },
                   ].map((r) => (
                     <div key={r.label} className="space-y-1">
                       <Label>{r.label}</Label>
@@ -1672,7 +1676,7 @@ export function CustomerApp({
                   rows={2}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Tulis ulasan"
+                  placeholder={t("Tulis ulasan", "Write a review")}
                 />
                 {reviewSubmittedMsg && <StatusLabel label={reviewSubmittedMsg} tone="success" />}
                 <Button
@@ -1681,7 +1685,7 @@ export function CustomerApp({
                   disabled={busy}
                   onClick={async () => {
                     setReviewSubmittedMsg('');
-                    if (!currentVisit || !guestName.trim()) { setReviewSubmittedMsg('Isi nama pemesan terlebih dahulu.'); return; }
+                    if (!currentVisit || !guestName.trim()) { setReviewSubmittedMsg(t('Isi nama pemesan terlebih dahulu.', 'Enter the order name first.')); return; }
                     try {
                     await onCommand('SETTINGS_PROMO_FEEDBACK_ACTION', {
                       action: 'SUBMIT_FEEDBACK',
@@ -1704,7 +1708,7 @@ export function CustomerApp({
                   }}
                 >
                   <Star className="w-4 h-4" />
-                  <span>Kirim ulasan</span>
+                  <span>{t("Kirim ulasan", "Submit review")}</span>
                 </Button>
               </section>
             </MotionPanel>
@@ -1719,23 +1723,23 @@ export function CustomerApp({
               className="space-y-6"
             >
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                Antrean meja
+                {t("Antrean meja", "Table waitlist")}
               </h1>
 
               <section className="space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">Ambil antrean</h2>
+                <h2 className="font-heading text-[16px] font-semibold">{t("Ambil antrean", "Join waitlist")}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label htmlFor="waitlist-guest-name">Nama tamu</Label>
+                    <Label htmlFor="waitlist-guest-name">{t("Nama tamu", "Guest name")}</Label>
                     <Input
                       id="waitlist-guest-name" maxLength={60}
                       value={waitlistName}
                       onChange={(e) => setWaitlistName(e.target.value)}
-                      placeholder="Nama Anda"
+                      placeholder={t("Nama Anda", "Your name")}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="waitlist-party-size">Jumlah orang</Label>
+                    <Label htmlFor="waitlist-party-size">{t("Jumlah orang", "Party size")}</Label>
                     <Input
                       id="waitlist-party-size" step={1}
                       type="number"
@@ -1771,20 +1775,20 @@ export function CustomerApp({
                     } catch (error: any) { setWaitlistError(error.message); }
                   }}
                 >
-                  Ambil antrean
+                  {t("Ambil antrean", "Join waitlist")}
                 </Button>
               </section>
 
-              <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label="Antrean Anda">
-                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">Antrean Anda</h2>{waitlistTicket && <Button size="sm" variant="secondary" disabled={busy} onClick={refreshWaitlist}>Perbarui antrean</Button>}</div>
+              <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label={t("Antrean Anda", "Your place in line")}>
+                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="sm" variant="secondary" disabled={busy} onClick={refreshWaitlist}>{t("Perbarui antrean", "Refresh waitlist")}</Button>}</div>
                 {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">Antrean #{waitlistTicket.publicSequence}</p><StatusLabel label={({ WAITING: 'Menunggu', CALLED: 'Dipanggil', SEATED: 'Sudah Duduk', COMPLETED: 'Kunjungan selesai', CANCELLED: 'Dibatalkan', EXPIRED: 'Kedaluwarsa' } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} /></div>
-                  <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} orang</p>
-                  {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? 'Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.' : 'Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.'}</p>}
-                  {waitlistTicket.status === 'CALLED' && <p className="text-sm">Temui staf untuk menuju Meja {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` Meja ditahan hingga ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString('id-ID', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
-                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2"><p className="text-sm">Meja Anda sudah siap. Pindai kode QR di meja untuk membuka menu dan mulai memesan.</p>{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>Buka menu meja</Button>}</div>}
-                  {waitlistError && <Button variant="ghost" size="sm" onClick={() => { rememberWaitlist(null); setWaitlistError(''); }}>Hapus antrean tersimpan</Button>}
-                </article> : <p className="text-sm text-[var(--muted-foreground)]">Setelah mendaftar, nomor dan status antrean akan muncul di sini.</p>}
+                  <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</p><StatusLabel label={({ WAITING: t('Menunggu', 'Waiting'), CALLED: t('Dipanggil', 'Called'), SEATED: t('Sudah Duduk', 'Seated'), COMPLETED: t('Kunjungan selesai', 'Visit completed'), CANCELLED: t('Dibatalkan', 'Cancelled'), EXPIRED: t('Kedaluwarsa', 'Expired') } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} /></div>
+                  <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} {t('orang', 'people')}</p>
+                  {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? t('Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.', 'The previous call expired. Ask staff to call you again.') : t('Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.', 'Please wait while staff prepare a table. Refresh the waitlist for the latest call.')}</p>}
+                  {waitlistTicket.status === 'CALLED' && <p className="text-sm">{t('Temui staf untuk menuju Meja', 'Meet staff to go to table')} {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` ${t('Meja ditahan hingga', 'Table held until')} ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
+                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2"><p className="text-sm">{t("Meja Anda sudah siap. Pindai kode QR di meja untuk membuka menu dan mulai memesan.", "Your table is ready. Scan its QR code to open the menu and order.")}</p>{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>{t("Buka menu meja", "Open table menu")}</Button>}</div>}
+                  {waitlistError && <Button variant="ghost" size="sm" onClick={() => { rememberWaitlist(null); setWaitlistError(''); }}>{t("Hapus antrean tersimpan", "Remove saved waitlist entry")}</Button>}
+                </article> : <p className="text-sm text-[var(--muted-foreground)]">{t("Setelah mendaftar, nomor dan status antrean akan muncul di sini.", "Your waitlist number and status will appear here after joining.")}</p>}
               </section>
             </MotionPanel>
           )}
@@ -1804,9 +1808,9 @@ export function CustomerApp({
               onClick={() => setActiveScreen('wifi')}
               className="hover:text-[var(--foreground)] hover:underline cursor-pointer"
             >
-              Info kedai
+              {t("Info kedai", "Cafe info")}
             </button>
-            {canUseTables && <button type="button" onClick={() => setActiveScreen('bantuan')} className="hover:text-[var(--foreground)] hover:underline cursor-pointer">Panggil pelayan</button>}
+            {canUseTables && <button type="button" onClick={() => setActiveScreen('bantuan')} className="hover:text-[var(--foreground)] hover:underline cursor-pointer">{t("Panggil pelayan", "Call staff")}</button>}
             {onOpenStaffPortal && (
               <button
                 type="button"
@@ -1814,7 +1818,7 @@ export function CustomerApp({
                 className="inline-flex items-center gap-1 font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
               >
                 <Lock className="w-3 h-3" />
-                <span>Ruang staf dan kasir</span>
+                <span>{t("Ruang staf dan kasir", "Staff and cashier")}</span>
               </button>
             )}
           </div>
@@ -1833,41 +1837,41 @@ export function CustomerApp({
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className="fixed bottom-[76px] inset-x-0 z-20 px-4 py-3 pointer-events-none"
           >
-            <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3 bg-[var(--foreground)] text-white rounded-2xl px-5 py-3 shadow-xl pointer-events-auto">
+            <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3 bg-[var(--foreground)] text-[var(--background)] rounded-2xl px-5 py-3 shadow-xl pointer-events-auto">
               <div>
                 <p className="text-[13px] font-medium opacity-75">
                   {cartSummary.totalQty} item di keranjang
                 </p>
-                <p className="text-[15px] font-bold text-white tabular-nums">
-                  Estimasi <Money amount={cartSummary.totalIdr} />
+                <p className="text-[15px] font-bold text-[var(--background)] tabular-nums">
+                  {t("Estimasi", "Estimate")} <Money amount={cartSummary.totalIdr} />
                 </p>
               </div>
               <Button variant="primary" onClick={() => setActiveScreen('keranjang')}>
                 <ShoppingCart className="w-4 h-4" />
-                <span>Lihat Keranjang</span>
+                <span>{t("Lihat Keranjang", "View cart")}</span>
               </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <nav className={styles.bottomNav} aria-label="Navigasi pelanggan">
-        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: 'Keranjang', icon: ShoppingBag }, { screen: 'pesanan', label: 'Pesanan', icon: ClipboardList }, { screen: 'bantuan', label: 'Panggil pelayan', icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
-        <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>Bagikan menu</span></button>
+      <nav className={styles.bottomNav} aria-label={t("Navigasi pelanggan", "Customer navigation")}>
+        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Panggil pelayan", "Call staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+        <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>{t("Bagikan menu", "Share menu")}</span></button>
       </nav>
-      <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title="Bagikan menu">
+      <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title={t("Bagikan menu", "Share menu")}>
         <div className="text-center space-y-4">
-          {shareQr && <Image src={shareQr} width={320} height={320} unoptimized alt="Kode QR tautan menu" className="w-64 h-64 mx-auto" />}
-          <p className="text-sm text-[var(--muted-foreground)]">Bagikan menu ke teman.</p>
-          <Button className="w-full" disabled={!shareUrl} onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? 'Tersalin' : 'Salin tautan'}</Button>
+          {shareQr && <Image src={shareQr} width={320} height={320} unoptimized alt={t('Kode QR tautan menu', 'Menu link QR code')} className="w-64 h-64 mx-auto" />}
+          <p className="text-sm text-[var(--muted-foreground)]">{t("Bagikan menu ke teman.", "Share the menu with friends.")}</p>
+          <Button className="w-full" disabled={!shareUrl} onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}</Button>
         </div>
       </DialogModal>
-      <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title="Kirim pesanan?">
+      <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title={t("Kirim pesanan?", "Submit order?")}>
         <div className="space-y-5">
-          <p className="text-sm text-[var(--muted-foreground)]">Periksa menu dan jumlahnya. Pesanan akan dikirim ke staf setelah Anda mengonfirmasi.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">{t("Periksa menu dan jumlahnya. Pesanan akan dikirim ke staf setelah Anda mengonfirmasi.", "Review the items and quantities. Your order is sent to staff after confirmation.")}</p>
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
-          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>Kembali</Button><Button className="flex-1" disabled={busy || !cart.length} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : 'Kirim pesanan'}</Button></div>
+          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
         </div>
       </DialogModal>
 
@@ -1877,17 +1881,17 @@ export function CustomerApp({
       <DialogModal
         open={profileDrawerOpen}
         onClose={() => setProfileDrawerOpen(false)}
-        title="Lainnya"
+        title={t("Lainnya", "More")}
       >
         <div className="space-y-2">
           {/* Customer Identity Header (Unboxed with Hairline Bottom Divider) */}
           <div className="pb-3 border-b border-[var(--border)] flex items-center justify-between gap-2">
             <div>
-              <p className="font-heading font-semibold text-[15px]">{guestName || 'Pelanggan baru'}</p>
+              <p className="font-heading font-semibold text-[15px]">{guestName || t("Pelanggan baru", "New customer")}</p>
               <p className="text-[12px] text-[var(--muted-foreground)]">
                 {orderMode === 'DINE_IN'
                   ? selectedTable.id ? `Meja ${selectedTable.label} · ${selectedTable.areaName}` : cafeConfig.venue.address
-                  : 'Bawa pulang'}
+                  : t("Bawa pulang", "Takeaway")}
               </p>
             </div>
             {canUseLoyalty && <StatusLabel label={`${currentMember?.qualifiedVisitsCount ?? 0}/5 stempel`} tone="active" />}
@@ -1898,50 +1902,50 @@ export function CustomerApp({
             {[
               {
                 id: 'pesanan' as CustomerScreenView,
-                label: 'Pesanan',
-                desc: 'Status pesanan',
-                badge: activeOrdersCount > 0 ? `${activeOrdersCount} Aktif` : undefined,
+                label: t("Pesanan", "Orders"),
+                desc: t("Status pesanan", "Order status"),
+                badge: activeOrdersCount > 0 ? `${activeOrdersCount} ${t('Aktif', 'active')}` : undefined,
                 icon: Utensils,
               },
               {
                 id: 'pembayaran' as CustomerScreenView,
-                label: 'Pembayaran',
-                desc: 'QRIS dan struk',
+                label: t("Pembayaran", "Payment"),
+                desc: t("QRIS dan struk", "QRIS and receipt"),
                 badge:
                   unpaidBills.length > 0
                     ? formatIdr(unpaidBills[0].balanceIdr)
-                    : 'Lunas / Struk',
+                    : t("Lunas / Struk", "Paid / receipt"),
                 icon: Receipt,
               },
               {
                 id: 'keranjang' as CustomerScreenView,
-                label: 'Keranjang',
-                desc: 'Ubah pesanan',
+                label: t("Keranjang", "Cart"),
+                desc: t("Ubah pesanan", "Edit order"),
                 badge: `${cartSummary.totalQty} item`,
                 icon: ShoppingCart,
               },
               {
                 id: 'bantuan' as CustomerScreenView,
-                label: 'Panggil pelayan',
-                desc: 'Bantuan meja',
+                label: t("Panggil pelayan", "Call staff"),
+                desc: t("Bantuan meja", "Table assistance"),
                 icon: Bell,
               },
               {
                 id: 'member' as CustomerScreenView,
                 label: 'Member',
-                desc: 'Voucher & ulasan',
+                desc: t("Voucher & ulasan", "Vouchers & reviews"),
                 icon: Award,
               },
               {
                 id: 'wifi' as CustomerScreenView,
-                label: 'Info kedai',
-                desc: 'Info outlet',
+                label: t("Info kedai", "Cafe info"),
+                desc: t("Info outlet", "Outlet information"),
                 icon: Wifi,
               },
               {
                 id: 'antrean' as CustomerScreenView,
-                label: 'Antrean meja',
-                desc: 'Daftar antrean',
+                label: t("Antrean meja", "Table waitlist"),
+                desc: t("Daftar antrean", "Waitlist"),
                 icon: Clock,
               },
             ].filter(item => screenEnabled(item.id)).map((item) => {
@@ -1965,7 +1969,7 @@ export function CustomerApp({
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {item.badge && (
-                      <span className="px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)] text-[11px] font-semibold tabular-nums">
+                      <span className="px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)] text-[12px] font-semibold tabular-nums">
                         {item.badge}
                       </span>
                     )}
@@ -1980,7 +1984,7 @@ export function CustomerApp({
           {onOpenStaffPortal && (
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between gap-2">
               <span className="text-[12px] text-[var(--muted-foreground)]">
-                Staf kedai
+                {t("Staf kedai", "Cafe staff")}
               </span>
               <Button
                 variant="secondary"
@@ -1991,7 +1995,7 @@ export function CustomerApp({
                 }}
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Portal staf</span>
+                <span>{t("Portal staf", "Staff portal")}</span>
               </Button>
             </div>
           )}
@@ -2004,19 +2008,19 @@ export function CustomerApp({
       <DialogModal
         open={tableModalOpen}
         onClose={() => setTableModalOpen(false)}
-        title="Meja & layanan"
+        title={t("Meja & layanan", "Table and service")}
       >
         <div className="space-y-4">
           {canOrder && <div className="space-y-1.5">
-            <Label>Pilih jenis layanan</Label>
+            <Label>{t("Pilih jenis layanan", "Choose service")}</Label>
             <AnimatedSegmentedControl
               options={[
-                { value: 'DINE_IN', label: 'Makan di tempat' },
-                { value: 'TAKEAWAY', label: 'Bawa pulang' },
+                { value: 'DINE_IN', label: t("Makan di tempat", "Dine in") },
+                { value: 'TAKEAWAY', label: t("Bawa pulang", "Takeaway") },
               ]}
               value={orderMode}
               onChange={(mode) => { setOrderMode(mode); setActiveQuote(null); setPresenceVerified(false); }}
-              ariaLabel="Mode layanan pesanan"
+              ariaLabel={t("Mode layanan pesanan", "Order service mode")}
               layoutId="order-mode-segmented"
               className="w-full grid grid-cols-2"
             />
@@ -2024,7 +2028,7 @@ export function CustomerApp({
 
           {orderMode === 'DINE_IN' && (
             <div className="space-y-1.5">
-              <Label htmlFor="modal-select-table">Pilih meja</Label>
+              <Label htmlFor="modal-select-table">{t("Pilih meja", "Choose a table")}</Label>
               <SelectField
                 id="modal-select-table"
                 value={selectedTableId}
@@ -2032,9 +2036,9 @@ export function CustomerApp({
               >
                 {(snapshot?.tables || [])
                   .filter((t: any) => t.physicalState !== 'OUT_OF_SERVICE')
-                  .map((t: any) => (
-                    <option key={t.id} value={t.id}>
-                      Meja {t.label} · {t.areaName} ({t.capacity} kursi)
+                  .map((table: any) => (
+                    <option key={table.id} value={table.id}>
+                      {t('Meja', 'Table')} {table.label} · {table.areaName} ({table.capacity} {t('kursi', 'seats')})
                     </option>
                   ))}
               </SelectField>
@@ -2046,7 +2050,7 @@ export function CustomerApp({
             className="w-full"
             onClick={() => setTableModalOpen(false)}
           >
-            Simpan pilihan
+            {t("Simpan pilihan", "Save selection")}
           </Button>
         </div>
       </DialogModal>
@@ -2057,7 +2061,7 @@ export function CustomerApp({
       <DialogModal
         open={Boolean(configuringItem)}
         onClose={() => setConfiguringItem(null)}
-        title={configuringItem?.name || 'Detail Menu'}
+        title={configuringItem?.name || t('Detail Menu', 'Menu details')}
       >
         {configuringItem && (
           <div className="space-y-4">
@@ -2077,7 +2081,7 @@ export function CustomerApp({
 
             {/* Variants Selection (Clean Hairline Rows) */}
             <div className="space-y-1.5">
-              <p className="font-semibold text-[14px]">Varian</p>
+              <p className="font-semibold text-[14px]">{t("Varian", "Variant")}</p>
               <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {(configuringItem.variants || []).map((v: any) => {
                   const disabled = v.availableToSell <= 0;
@@ -2117,7 +2121,7 @@ export function CustomerApp({
                   <p className="font-semibold text-[14px]">{grp.name}</p>
                   <span className="text-[12px] text-[var(--muted-foreground)]">
                     {grp.required
-                      ? `Wajib (Pilih ${grp.minSelect})`
+                      ? language === 'id' ? `Wajib (Pilih ${grp.minSelect})` : `Required (Choose ${grp.minSelect})`
                       : `Opsional (Maks ${grp.maxSelect})`}
                   </span>
                 </div>
@@ -2174,13 +2178,13 @@ export function CustomerApp({
 
             {/* Ordering controls stay out of catalog-only detail sheets. */}
             {canOrder && <><div className="space-y-1.5 pt-2">
-              <Label htmlFor="item-note-input">Catatan (opsional)</Label>
+              <Label htmlFor="item-note-input">{t("Catatan (opsional)", "Notes (optional)")}</Label>
               <Input
                 id="item-note-input"
                 maxLength={200}
                 value={itemNote}
                 onChange={(e) => setItemNote(e.target.value)}
-                placeholder="Contoh: Es dipisah, disajikan hangat"
+                placeholder={t("Contoh: Es dipisah, disajikan hangat", "Example: Ice on the side, serve warm")}
               />
             </div>
 
@@ -2196,10 +2200,10 @@ export function CustomerApp({
                 onChange={setItemQuantity}
               />
               <Button variant="primary" className="flex-1" onClick={handleConfirmModalAdd}>
-                {editingLineId ? 'Simpan perubahan' : 'Tambah ke keranjang'}
+                {editingLineId ? t('Simpan perubahan', 'Save changes') : t('Tambah ke keranjang', 'Add to cart')}
               </Button>
             </div></>}
-            {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">Untuk memesan menu ini, sampaikan pilihan Anda kepada staf di kasir.</p>}
+            {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">{t("Untuk memesan menu ini, sampaikan pilihan Anda kepada staf di kasir.", "To order this item, tell the staff at the counter.")}</p>}
           </div>
         )}
       </DialogModal>

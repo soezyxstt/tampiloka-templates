@@ -22,9 +22,9 @@ const buttonVariants = cva(
         subtle:
           'bg-[var(--accent-surface)] text-[var(--primary-ink)] hover:bg-[var(--surface-muted)]',
         destructive:
-          'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-[#F3C5C5] hover:bg-[#F9DADA]',
+          'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-[var(--status-danger-border)] hover:bg-[var(--status-danger-hover)]',
         danger:
-          'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-[#F3C5C5] hover:bg-[#F9DADA]',
+          'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-[var(--status-danger-border)] hover:bg-[var(--status-danger-hover)]',
         ghost:
           'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent-surface)]/70',
         link: 'text-[var(--primary-ink)] underline-offset-4 hover:underline p-0 min-h-0',

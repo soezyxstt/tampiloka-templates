@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useCafeLanguage } from '@/lib/language';
 import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RevealText } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
@@ -181,7 +182,7 @@ export function StatusLabel({
   > = {
     neutral: {
       fg: 'text-[var(--muted-foreground)]',
-      bg: 'bg-[#F1F3EF]',
+      bg: 'bg-[var(--surface-muted)]',
       Icon: Clock,
     },
     success: {
@@ -239,8 +240,8 @@ export function StatusLabel({
 export function SearchField({
   value,
   onChange,
-  placeholder = 'Cari menu',
-  label = 'Cari menu',
+  placeholder,
+  label,
   id = 'search-menu-input',
   className,
 }: {
@@ -251,10 +252,11 @@ export function SearchField({
   id?: string;
   className?: string;
 }) {
+  const { t } = useCafeLanguage();
   return (
     <div className={cn('relative flex items-center', className)}>
       <label htmlFor={id} className="sr-only">
-        {label}
+        {label ?? t('Cari menu', 'Search menu')}
       </label>
       <Search
         className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3.5 pointer-events-none z-10"
@@ -265,7 +267,7 @@ export function SearchField({
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('Cari menu', 'Search menu')}
         className="pl-10 pr-9"
       />
       <AnimatePresence>
@@ -277,7 +279,7 @@ export function SearchField({
             transition={{ duration: 0.12 }}
             type="button"
             onClick={() => onChange('')}
-            aria-label="Bersihkan pencarian"
+            aria-label={t('Bersihkan pencarian', 'Clear search')}
             className="absolute right-2 p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -301,6 +303,7 @@ export function CategoryNav({
   activeId: string;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useCafeLanguage();
   return (
     <AnimatedUnderlineTabs
       items={categories.map((c) => ({
@@ -311,7 +314,7 @@ export function CategoryNav({
       activeId={activeId}
       onSelect={onSelect}
       layoutId="category-nav-underline"
-      ariaLabel="Kategori menu"
+      ariaLabel={t('Kategori menu', 'Menu categories')}
     />
   );
 }
@@ -320,20 +323,22 @@ export function FilterBar<T extends string>({
   options,
   value,
   onChange,
-  ariaLabel = 'Filter tampilan',
+  ariaLabel,
 }: {
   options: Array<{ value: T; label: string; count?: number }>;
   value: T;
   onChange: (next: T) => void;
   ariaLabel?: string;
 }) {
+  const { t } = useCafeLanguage();
+  const label = ariaLabel ?? t('Filter tampilan', 'Filter view');
   return (
     <AnimatedSegmentedControl
       options={options}
       value={value}
       onChange={onChange}
-      ariaLabel={ariaLabel}
-      layoutId={`filter-bar-${ariaLabel.replace(/\s+/g, '-').toLowerCase()}`}
+      ariaLabel={label}
+      layoutId={`filter-bar-${label.replace(/\s+/g, '-').toLowerCase()}`}
     />
   );
 }
@@ -355,6 +360,7 @@ export function QuantityControl({
   max?: number;
   itemLabel?: string;
 }) {
+  const { t } = useCafeLanguage();
   return (
     <div className="inline-flex items-center gap-1.5">
       <motion.button
@@ -362,7 +368,7 @@ export function QuantityControl({
         whileTap={{ scale: 0.9 }}
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
-        aria-label={`Kurangi jumlah ${itemLabel}`}
+        aria-label={t(`Kurangi jumlah ${itemLabel}`, `Decrease quantity of ${itemLabel}`)}
         className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
       >
         <Minus className="w-4 h-4" />
@@ -386,7 +392,7 @@ export function QuantityControl({
         whileTap={{ scale: 0.9 }}
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
-        aria-label={`Tambah jumlah ${itemLabel}`}
+        aria-label={t(`Tambah jumlah ${itemLabel}`, `Increase quantity of ${itemLabel}`)}
         className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
       >
         <Plus className="w-4 h-4" />
@@ -403,21 +409,21 @@ export function formatOutletChargePolicy(outlet?: {
   serviceChargeBps?: number;
   taxBps?: number;
   taxInclusiveDisplay?: boolean;
-}): string {
+}, language: 'id' | 'en' = 'id'): string {
   const srv = outlet?.serviceChargeBps ?? 500;
   const tax = outlet?.taxBps ?? 1000;
   if ((srv === 0 && tax === 0) || outlet?.taxInclusiveDisplay) {
-    return 'Harga sudah termasuk pajak (Tanpa biaya tambahan)';
+    return language === 'id' ? 'Harga sudah termasuk pajak (Tanpa biaya tambahan)' : 'Tax included (no additional charges)';
   }
   const srvPct = (srv / 100).toFixed(srv % 100 === 0 ? 0 : 1);
   const taxPct = (tax / 100).toFixed(tax % 100 === 0 ? 0 : 1);
   if (srv > 0 && tax > 0) {
-    return `Harga belum termasuk layanan ${srvPct}% & pajak ${taxPct}%`;
+    return language === 'id' ? `Harga belum termasuk layanan ${srvPct}% & pajak ${taxPct}%` : `Prices exclude ${srvPct}% service charge and ${taxPct}% tax`;
   }
   if (tax > 0) {
-    return `Harga belum termasuk pajak ${taxPct}%`;
+    return language === 'id' ? `Harga belum termasuk pajak ${taxPct}%` : `Prices exclude ${taxPct}% tax`;
   }
-  return `Harga belum termasuk biaya layanan ${srvPct}%`;
+  return language === 'id' ? `Harga belum termasuk biaya layanan ${srvPct}%` : `Prices exclude ${srvPct}% service charge`;
 }
 
 export function PaymentBreakdown({
@@ -447,6 +453,7 @@ export function PaymentBreakdown({
   taxBps?: number;
   taxInclusiveDisplay?: boolean;
 }) {
+  const { t } = useCafeLanguage();
   const noAdditionalCharge =
     (serviceChargeBps === 0 && taxBps === 0 && serviceIdr === 0 && taxIdr === 0) ||
     (taxInclusiveDisplay && serviceIdr === 0 && taxIdr === 0);
@@ -454,20 +461,20 @@ export function PaymentBreakdown({
   return (
     <div className="space-y-2 text-[14px] leading-[20px]">
       <div className="flex items-center justify-between text-[var(--muted-foreground)]">
-        <span>Subtotal menu</span>
+        <span>{t('Subtotal menu', 'Menu subtotal')}</span>
         <Money amount={subtotalIdr} className="text-[var(--foreground)]" />
       </div>
       {discountIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-success-fg)]">
-          <span>Potongan promo</span>
+          <span>{t('Potongan promo', 'Promotion discount')}</span>
           <Money amount={-discountIdr} />
         </div>
       )}
       {noAdditionalCharge ? (
         <div className="flex items-center justify-between text-[var(--muted-foreground)]">
-          <span>Pajak &amp; biaya layanan</span>
+          <span>{t('Pajak & biaya layanan', 'Tax & service charge')}</span>
           <span className="text-[13px] font-medium text-[var(--status-success-fg)]">
-            Termasuk dalam harga (Rp0)
+            {t('Termasuk dalam harga (Rp0)', 'Included in price (Rp0)')}
           </span>
         </div>
       ) : (
@@ -475,7 +482,7 @@ export function PaymentBreakdown({
           {(serviceChargeBps > 0 || serviceIdr > 0) && (
             <div className="flex items-center justify-between text-[var(--muted-foreground)]">
               <span>
-                Biaya layanan (
+                {t('Biaya layanan', 'Service charge')} (
                 {(serviceChargeBps / 100).toFixed(serviceChargeBps % 100 === 0 ? 0 : 1)}%)
               </span>
               <Money amount={serviceIdr} className="text-[var(--foreground)]" />
@@ -484,7 +491,7 @@ export function PaymentBreakdown({
           {(taxBps > 0 || taxIdr > 0) && (
             <div className="flex items-center justify-between text-[var(--muted-foreground)]">
               <span>
-                Pajak Restoran / PB1 ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
+                {t('Pajak Restoran / PB1', 'Restaurant tax / PB1')} ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
               </span>
               <Money amount={taxIdr} className="text-[var(--foreground)]" />
             </div>
@@ -492,24 +499,24 @@ export function PaymentBreakdown({
         </>
       )}
       <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px] leading-[24px] text-[var(--foreground)]">
-        <span>Total tagihan</span>
+        <span>{t('Total tagihan', 'Bill total')}</span>
         <Money amount={totalIdr} />
       </div>
       {creditAdjustmentsIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-danger-fg)]">
-          <span>Kredit koreksi / pembatalan item</span>
+          <span>{t('Kredit koreksi / pembatalan item', 'Adjustment / cancelled item credit')}</span>
           <Money amount={-creditAdjustmentsIdr} />
         </div>
       )}
       {verifiedReceiptsIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-success-fg)]">
-          <span>Pembayaran terverifikasi</span>
+          <span>{t('Pembayaran terverifikasi', 'Verified payments')}</span>
           <Money amount={verifiedReceiptsIdr} />
         </div>
       )}
       {refundedIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--muted-foreground)]">
-          <span>Pengembalian dana</span>
+          <span>{t('Pengembalian dana', 'Refunds')}</span>
           <Money amount={refundedIdr} />
         </div>
       )}
@@ -517,10 +524,10 @@ export function PaymentBreakdown({
         <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px]">
           <span>
             {balanceIdr < 0
-              ? 'Pengembalian dana'
+              ? t('Pengembalian dana', 'Refunds')
               : balanceIdr === 0
-              ? 'Sisa tagihan'
-              : 'Sisa tagihan'}
+              ? t('Sisa tagihan', 'Balance due')
+              : t('Sisa tagihan', 'Balance due')}
           </span>
           <Money
             amount={balanceIdr}
@@ -590,13 +597,14 @@ export function ConnectionStatus({
   lastSyncedAt?: string;
   onRefresh?: () => void;
 }) {
+  const { language, t } = useCafeLanguage();
   const timeText = lastSyncedAt
-    ? new Date(lastSyncedAt).toLocaleTimeString('id-ID', {
+    ? new Date(lastSyncedAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
       })
-    : 'baru saja';
+    : t('baru saja', 'just now');
 
   return (
     <div className="inline-flex items-center gap-2 text-[13px] leading-[18px] text-[var(--muted-foreground)]">
@@ -606,7 +614,7 @@ export function ConnectionStatus({
         <WifiOff className="w-3.5 h-3.5 text-[var(--status-danger-fg)]" aria-hidden="true" />
       )}
       <span className="tabular-nums">
-        {online ? `Sinkron ${timeText}` : `Luring · status terakhir ${timeText}`}
+        {online ? t(`Sinkron ${timeText}`, `Synced ${timeText}`) : t(`Luring · status terakhir ${timeText}`, `Offline · last updated ${timeText}`)}
       </span>
       {onRefresh && (
         <button
@@ -614,7 +622,7 @@ export function ConnectionStatus({
           onClick={onRefresh}
           className="text-[var(--primary-ink)] font-medium hover:underline cursor-pointer"
         >
-          Muat ulang
+          {t('Muat ulang', 'Refresh')}
         </button>
       )}
     </div>
@@ -640,6 +648,7 @@ export function DialogModal({
   children: React.ReactNode;
   maxWidth?: string;
 }) {
+  const { t } = useCafeLanguage();
   const descriptionId = React.useId();
   const opener = React.useRef<HTMLElement | null>(null);
   React.useLayoutEffect(() => { if (open && document.activeElement instanceof HTMLElement) opener.current = document.activeElement; }, [open]);
@@ -652,7 +661,7 @@ export function DialogModal({
         <div className="flex justify-center pt-3 sm:hidden" aria-hidden="true"><div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" /></div>
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <DialogTitle className="font-heading text-lg font-semibold tracking-tight"><RevealText>{title}</RevealText></DialogTitle>
-          <DialogClose asChild><Button type="button" variant="ghost" size="icon" aria-label="Tutup"><X className="h-5 w-5" /></Button></DialogClose>
+          <DialogClose asChild><Button type="button" variant="ghost" size="icon" aria-label={t('Tutup', 'Close')}><X className="h-5 w-5" /></Button></DialogClose>
         </div>
         {srDescription && <DialogDescription id={descriptionId} className="sr-only">{srDescription}</DialogDescription>}
         <div className="space-y-4 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{children}</div>

@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, RotateCcw } from 'lucide-react';
 import { KafeWorkspace, type WorkspaceView } from '../components/cafe/kafe-workspace';
 import { cafeConfig, hasStaffModules, isModuleEnabled } from './config';
-import { demoBasePath, DEMO_HUB, DEMO_DOMAIN } from './manifest';
+import { demoBasePath, DEMO_HUB, DEMO_DOMAIN, localizeDemo } from './manifest';
 import type { DemoPreset } from './components/demo-portal';
 import { ScenarioPanel } from './components/scenario-panel';
+import { LanguageToggle, useCafeLanguage } from '@/lib/language';
 
 type Prepared = { snapshot: any; view: WorkspaceView; tableId?: string; billId?: string };
 
 export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
+  const { language, t } = useCafeLanguage();
   const [prepared, setPrepared] = useState<Prepared>();
   const [error, setError] = useState('');
   const [resetting, setResetting] = useState(false);
@@ -49,7 +51,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   }, [demo.id, readOnlyCatalog]);
 
   const reset = async () => {
-    if (!confirm('Mulai ulang demo ini? Pesanan dan perubahan demo di browser ini akan dihapus.')) return;
+    if (!confirm(t('Mulai ulang demo ini? Pesanan dan perubahan demo di browser ini akan dihapus.', 'Reset this demo? Orders and demo changes in this browser will be deleted.'))) return;
     setResetting(true);
     try {
       if (!readOnlyCatalog) await (await import('../src/demo-runtime/index')).resetBrowserDemo();
@@ -57,23 +59,24 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       for (const key of Object.keys(localStorage)) if (key.startsWith(prefix)) localStorage.removeItem(key);
       sessionStorage.removeItem(`${prefix}:scenario`);
       location.reload();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Demo belum berhasil diulang.'); setResetting(false); }
+    } catch (caught) { setError(caught instanceof Error ? caught.message : t('Demo belum berhasil diulang.', 'Could not reset the demo.')); setResetting(false); }
   };
 
   return <div className="demo-session">
     <div className="demo-toolbar">
-      <a href={hub} className="demo-back"><ArrowLeft size={16} /><span>Semua demo</span></a>
-      <span className="demo-package-name">{demo.name}</span>
+      <a href={hub} className="demo-back"><ArrowLeft size={16} /><span>{t("Semua demo", "All demos")}</span></a>
+      <span className="demo-package-name">{localizeDemo(demo, language).name}</span>
       <div className="demo-toolbar-actions">
-        {isModuleEnabled('catalog') && <a href={`${base}/`}>Pelanggan<ArrowUpRight size={14} /></a>}
-        {hasStaffModules() && <a href={`${base}/staff`}>Staf<ArrowUpRight size={14} /></a>}
-        <button type="button" onClick={reset} disabled={resetting || !prepared} aria-label="Ulangi demo"><RotateCcw size={15} /><span>{resetting ? 'Mengulang…' : 'Ulangi'}</span></button>
+        {isModuleEnabled('catalog') && <a href={`${base}/`}>{t("Pelanggan", "Customer")}<ArrowUpRight size={14} /></a>}
+        {hasStaffModules() && <a href={`${base}/staff`}>{t("Staf", "Staff")}<ArrowUpRight size={14} /></a>}
+        <LanguageToggle />
+        <button type="button" onClick={reset} disabled={resetting || !prepared} aria-label={t("Ulangi demo", "Reset demo")}><RotateCcw size={15} /><span>{resetting ? t('Mengulang…', 'Resetting…') : t('Ulangi', 'Reset')}</span></button>
       </div>
     </div>
-    <details className="demo-context"><summary>Demo interaktif · tidak ada pembayaran nyata</summary><p>Perubahan tersimpan di browser ini. Tab pelanggan dan staf pada alamat demo yang sama berbagi data. Perangkat atau browser lain memiliki sesi sendiri. Gunakan “Ulangi” untuk memulai kembali.</p></details>
+    <details className="demo-context"><summary>{t('Demo interaktif · tidak ada pembayaran nyata', 'Interactive demo · no real payments')}</summary><p>{t('Perubahan tersimpan di browser ini. Tab pelanggan dan staf pada alamat demo yang sama berbagi data. Perangkat atau browser lain memiliki sesi sendiri. Gunakan “Ulangi” untuk memulai kembali.', 'Changes are saved in this browser. Customer and staff tabs on the same demo address share data. Other devices or browsers have separate sessions. Use “Reset” to start again.')}</p></details>
     {prepared?.view === 'staf' && !readOnlyCatalog && <ScenarioPanel snapshot={prepared.snapshot} />}
-    {error ? <main className="demo-loading" role="alert"><h1>Demo belum dapat dibuka</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>Coba lagi</button><a href={hub}>Pilih demo lain</a></main>
+    {error ? <main className="demo-loading" role="alert"><h1>{t("Demo belum dapat dibuka", "Demo unavailable")}</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>{t("Coba lagi", "Try again")}</button><a href={hub}>{t("Pilih demo lain", "Choose another demo")}</a></main>
       : prepared ? <KafeWorkspace initialSnapshot={prepared.snapshot} initialView={prepared.view} initialTableId={prepared.tableId} initialBillId={prepared.billId} />
-      : <main className="demo-loading" aria-live="polite"><span className="demo-spinner" /><h1>Menyiapkan demo…</h1><p>Pembukaan pertama membutuhkan beberapa saat. Setelah itu, data demo tersimpan di browser ini.</p></main>}
+      : <main className="demo-loading" aria-live="polite"><span className="demo-spinner" /><h1>{t('Menyiapkan demo…', 'Preparing demo…')}</h1><p>{t("Pembukaan pertama membutuhkan beberapa saat. Setelah itu, data demo tersimpan di browser ini.", "The first load may take a moment. Demo data is then saved in this browser.")}</p></main>}
   </div>;
 }

@@ -3,11 +3,11 @@ import { chromium } from 'playwright';
 
 // Run against the local demo preview: pnpm preview, then node tests/hero-carousel.mjs.
 const base = process.env.COMMERCE_TEST_URL || 'http://127.0.0.1:4174';
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.COMMERCE_CHROMIUM_EXECUTABLE ? { executablePath: process.env.COMMERCE_CHROMIUM_EXECUTABLE } : {}) });
 try {
   for (const preset of ['editorial', 'market', 'atelier', 'compact']) {
     for (const width of [390, 1440]) {
-      const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+      const page = await browser.newPage({ locale: 'id-ID', viewport: { width, height: 900 }, reducedMotion: 'reduce' });
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(`${base}/?preset=${preset}&level=advanced`, { waitUntil: 'networkidle' });
@@ -33,7 +33,7 @@ try {
     }
   }
   for (const count of [0, 1]) {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ locale: 'id-ID' });
     const response = await context.request.get(`${base}/api/bootstrap`);
     assert.equal(response.ok(), true);
     const bootstrap = await response.json();

@@ -1,7 +1,8 @@
 import type { Bootstrap, CartLine, Coupon, CreateOrderInput, Order, Product, Quote, QuoteInput, StaffSnapshot, StoreConfig } from '../shared/contracts';
+import { errorText } from './language';
 
 export class ApiError extends Error {
-  constructor(message: string, public code: string, public status: number) { super(message); this.name = 'ApiError'; }
+  constructor(message: string, public code: string, public status: number) { super(errorText(code, message)); this.name = 'ApiError'; }
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

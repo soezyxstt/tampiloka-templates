@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CustomerApp } from './customer-app';
 import { StaffApp } from './staff-app';
 import { cafeConfig, hasStaffModules, isModuleEnabled, THEMES } from '@/src/config/cafe';
+import { useCafeLanguage } from '@/lib/language';
+import { localizeSampleMenu } from '@/src/catalog/sample-menu';
+import { localizeSystemMessage } from '@/lib/system-messages';
 
 export type WorkspaceView = 'pelanggan' | 'staf';
 type CustomerContext = { tableId: string; principalId: string };
 
 export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId, initialBillId }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string; initialBillId?: string }) {
+  const { language, t } = useCafeLanguage();
   const [snapshot, setSnapshot] = useState<any>(initialSnapshot);
+  const customerSnapshot = useMemo(() => localizeSampleMenu(snapshot, language), [snapshot, language]);
   const [activeView, setActiveView] = useState<WorkspaceView>(isModuleEnabled('catalog') ? initialView : 'staf');
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState('');
@@ -34,18 +39,18 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     try {
       const response = await fetch(`/api/v1/snapshot?${params}`, { cache: 'no-store' });
       const json = await response.json();
-      if (!response.ok) throw new Error(json?.error?.message || 'Gagal memuat data.');
+      if (!response.ok) throw new Error(localizeSystemMessage(json?.error?.message || t('Gagal memuat data.', 'Could not load data.'), language));
       if (request === latestRequest.current && json?.data) {
         setSnapshot(json.data);
         setConnectionError('');
-        setLastUpdated(`Diperbarui ${new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: cafeConfig.timezone }).format(new Date())}`);
+        setLastUpdated(`${t('Diperbarui', 'Updated')} ${new Intl.DateTimeFormat(language === 'id' ? 'id-ID' : 'en', { hour: '2-digit', minute: '2-digit', timeZone: cafeConfig.timezone }).format(new Date())}`);
       }
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : 'Koneksi terputus. Data terakhir tetap tersedia.');
+      setConnectionError(error instanceof Error ? error.message : t('Koneksi terputus. Data terakhir tetap tersedia.', 'Connection lost. The latest data is still available.'));
     } finally {
       if (!silent) setBusy(false);
     }
-  }, [staticCatalog]);
+  }, [staticCatalog, language, t]);
 
   const refreshSnapshot = useCallback(async () => { await loadSnapshot(activeView); }, [activeView, loadSnapshot]);
   const onContextChange = useCallback((tableId: string, principalId: string) => {
@@ -60,13 +65,13 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
       if (!document.hidden && !commandPending.current) void loadSnapshot(activeView, true);
     }, 8000);
     const online = () => { void loadSnapshot(activeView, true); };
-    const offline = () => setConnectionError('Koneksi terputus. Keranjang Anda tetap tersimpan.');
+    const offline = () => setConnectionError(t('Koneksi terputus. Keranjang Anda tetap tersimpan.', 'Connection lost. Your cart is still saved.'));
     const dataChanged = () => { if (!commandPending.current) void loadSnapshot(activeView, true); };
     window.addEventListener('online', online);
     window.addEventListener('offline', offline);
     window.addEventListener('cafe:data-changed', dataChanged);
     return () => { clearInterval(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); window.removeEventListener('cafe:data-changed', dataChanged); };
-  }, [activeView, loadSnapshot, staticCatalog]);
+  }, [activeView, loadSnapshot, staticCatalog, t]);
 
   const switchView = async (view: WorkspaceView) => {
     if ((view === 'staf' && !hasStaffModules()) || (view === 'pelanggan' && !isModuleEnabled('catalog'))) return;
@@ -75,7 +80,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   };
 
   const executeCommand = async (command: string, payload: any) => {
-    if (commandPending.current) throw new Error('Permintaan sebelumnya masih diproses.');
+    if (commandPending.current) throw new Error(t('Permintaan sebelumnya masih diproses.', 'The previous request is still being processed.'));
     commandPending.current = true;
     ++latestRequest.current; // An older poll must never overwrite a command response.
     setBusy(true);
@@ -86,12 +91,12 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
         body: JSON.stringify({ command, payload, surface: activeView === 'staf' ? 'staff' : 'customer', tableId: context.current.tableId, principalId: context.current.principalId }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json?.error?.message || 'Permintaan gagal diproses.');
+      if (!response.ok) throw new Error(localizeSystemMessage(json?.error?.message || t('Permintaan gagal diproses.', 'Request failed.'), language));
       if (json?.data?.snapshot) setSnapshot(json.data.snapshot);
       setConnectionError('');
       return json?.data;
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : 'Permintaan belum berhasil. Coba lagi.');
+      setConnectionError(error instanceof Error ? error.message : t('Permintaan belum berhasil. Coba lagi.', 'Request failed. Try again.'));
       throw error;
     } finally {
       commandPending.current = false;
@@ -100,7 +105,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   };
 
   return <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
-    {connectionError && <div className="connection-notice" role="status"><span>{connectionError}</span><button type="button" disabled={busy} className="font-semibold underline" onClick={refreshSnapshot}>Coba lagi</button><button type="button" aria-label="Tutup pemberitahuan" onClick={() => setConnectionError('')}>×</button></div>}
-    {activeView === 'pelanggan' && isModuleEnabled('catalog') ? <CustomerApp snapshot={snapshot} initialTableId={initialTableId} initialBillId={initialBillId} onContextChange={onContextChange} onCommand={executeCommand} busy={busy} onRefresh={refreshSnapshot} onOpenStaffPortal={hasStaffModules() ? () => { void switchView('staf'); } : undefined} /> : <StaffApp snapshot={snapshot} onCommand={executeCommand} onRefresh={refreshSnapshot} lastUpdated={lastUpdated} busy={busy} initialSignedIn={false} onBackToCustomer={isModuleEnabled('catalog') ? () => { void switchView('pelanggan'); } : undefined} />}
+    {connectionError && <div className="connection-notice" role="status"><span>{connectionError}</span><button type="button" disabled={busy} className="font-semibold underline" onClick={refreshSnapshot}>{t('Coba lagi', 'Try again')}</button><button type="button" aria-label={t('Tutup pemberitahuan', 'Dismiss notification')} onClick={() => setConnectionError('')}>×</button></div>}
+    {activeView === 'pelanggan' && isModuleEnabled('catalog') ? <CustomerApp snapshot={customerSnapshot} initialTableId={initialTableId} initialBillId={initialBillId} onContextChange={onContextChange} onCommand={executeCommand} busy={busy} onRefresh={refreshSnapshot} onOpenStaffPortal={hasStaffModules() ? () => { void switchView('staf'); } : undefined} /> : <StaffApp snapshot={snapshot} onCommand={executeCommand} onRefresh={refreshSnapshot} lastUpdated={lastUpdated} busy={busy} initialSignedIn={false} onBackToCustomer={isModuleEnabled('catalog') ? () => { void switchView('pelanggan'); } : undefined} />}
   </div>;
 }

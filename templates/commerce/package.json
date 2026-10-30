@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/backend.test.mjs",
     "test:e2e": "node tests/browser.mjs",
+    "test:language": "node tests/language-browser.mjs",
     "db:local": "wrangler d1 migrations apply DB --local --persist-to .data",
     "db:remote": "wrangler d1 migrations apply DB --remote",
     "deploy": "pnpm build && wrangler deploy",

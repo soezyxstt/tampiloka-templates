@@ -1,6 +1,9 @@
-:root{--brand-canvas:#f7f5f0;--brand-surface:#fff;--brand-text:#242820;--brand-muted:#62665c;--brand-action:#344c3a;--brand-on-action:#fff;--brand-border:#dedfd5;--brand-focus:#4e6b4d;--brand-font-body:Manrope,system-ui,sans-serif;--brand-font-display:Manrope,system-ui,sans-serif;--brand-radius:4px}
-[data-palette="ink"]{--brand-canvas:#f7f7f7;--brand-surface:#fff;--brand-text:#202124;--brand-muted:#60636b;--brand-action:#202124;--brand-on-action:#fff;--brand-border:#dedfe3;--brand-focus:#4c5883}
-[data-palette="forest"]{--brand-canvas:#f1f4ef;--brand-surface:#fff;--brand-text:#1e3428;--brand-muted:#586b5d;--brand-action:#23553b;--brand-on-action:#fff;--brand-border:#d2ddd0;--brand-focus:#317b54}
+/* Palette primitives. Values mirror src/index.mjs; keep both in sync (see AGENTS.md). */
+:root{--brand-canvas:#f7f5f1;--brand-surface:#fff;--brand-text:#2a2420;--brand-muted:#6b635b;--brand-action:#2a2420;--brand-on-action:#fff;--brand-border:#e3ddd5;--brand-focus:#9a5a3a;--brand-accent:#a4492a;--brand-font-body:Manrope,system-ui,sans-serif;--brand-font-display:Manrope,system-ui,sans-serif;--brand-radius:6px}
+[data-palette="ink"]{--brand-canvas:#f6f6f6;--brand-surface:#fff;--brand-text:#1c1c1e;--brand-muted:#5e5e66;--brand-action:#1c1c1e;--brand-on-action:#fff;--brand-border:#e0e0e3;--brand-focus:#4a5578;--brand-accent:#a4492a}
+[data-palette="forest"]{--brand-canvas:#f3f6f2;--brand-surface:#fff;--brand-text:#1a2e23;--brand-muted:#55675b;--brand-action:#245a40;--brand-on-action:#fff;--brand-border:#d5dfd5;--brand-focus:#2f7a55;--brand-accent:#8a5a1f}
+/* Semantic roles shared by every package consumer. Status colors stay fixed across palettes. */
+:root{--tl-danger:#a3302a;--tl-danger-surface:#fcebe8;--tl-success:#2e6b3e;--tl-success-surface:#eaf4ec;--tl-warning:#8a5300;--tl-warning-surface:#fcf1e0;--tl-info:#2b5d78;--tl-info-surface:#e9f1f6;--tl-overlay:color-mix(in srgb,var(--brand-text) 48%,transparent)}
 [data-layout="editorial"]{--composition-gap:28px;--composition-product-ratio:4/5;--composition-columns:3}
 [data-layout="market"]{--composition-gap:16px;--composition-product-ratio:1;--composition-columns:4}
 [data-layout="atelier"]{--composition-gap:32px;--composition-product-ratio:3/4;--composition-columns:2}

@@ -108,7 +108,7 @@ async function assertLayout(page, name, { atTop = true } = {}) {
 
 try {
   for (const demo of DEMOS.filter(demo => demo.staffPath !== undefined)) {
-    const context = await browser.newContext({ viewport: { width: 1920, height: 1000 }, reducedMotion: 'reduce' });
+    const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 1920, height: 1000 }, reducedMotion: 'reduce' });
     await context.route('**/*', route => {
       if (['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) return route.continue();
       networkWrites.push({ preset: demo.id, method: route.request().method(), url: route.request().url() });

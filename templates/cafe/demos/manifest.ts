@@ -23,6 +23,23 @@ export const DEMOS: DemoPreset[] = definitions.map(([id, name, description, useC
   ...(PRESETS[id].modules.some(module => ['ordering', 'cashier', 'kitchen', 'dashboard', 'tables', 'marketing'].includes(module)) ? { staffPath: '/staff' } : {}),
 }));
 
+const english: Record<string, [string, string, string]> = {
+  catalog: ['Menu and waiter requests', 'Customers choose items and share their order with a waiter. Payment is made at the cafe.', 'For table service without a digital cashier or online payment.'],
+  'order-at-cashier': ['Order, pay at the counter', 'Customers order from their table, then pay at the counter.', 'For self-service ordering with payment on site.'],
+  'order-and-pay': ['Order and pay', 'Customers choose items, place an order and try a simulated online payment.', 'Try ordering and paying from a table.'],
+  cashier: ['Cashier', 'Staff record orders, apply discounts, accept cash and manage shifts.', 'For serving orders directly at the counter.'],
+  'cashier-kitchen': ['Cashier and kitchen', 'Orders entered at the counter reach the kitchen and bar preparation queue.', 'For cashier and kitchen teams working together.'],
+  operations: ['Cafe operations', 'Manage counter orders, monitor preparation and view reports in one staff workspace.', 'For monitoring daily work and sales.'],
+  'menu-cashier': ['Menu and cashier', 'Customers browse the menu while staff record and manage orders.', 'For a digital menu with staff-assisted ordering.'],
+  'menu-order-cashier': ['Menu, orders and cashier', 'Customers order from their table; cashiers manage bills and payments.', 'For table service with cashier-managed billing.'],
+  full: ['Full service', 'Try the customer, cashier, kitchen, table service and reporting flows in one demo.', 'See how all parts of service work together.'],
+};
+
+export function localizeDemo(demo: DemoPreset, language: 'id' | 'en'): DemoPreset {
+  const translation = language === 'en' && english[demo.id];
+  return translation ? { ...demo, name: translation[0], description: translation[1], useCase: translation[2] } : demo;
+}
+
 /** Canonical hosts select one preset; /p/<id> also supports local/Pages previews. */
 export function resolveDemo(hostname: string, pathname: string): DemoPreset | undefined {
   const fromHost = DEMOS.find(demo => hostname === `${demo.subdomain}.${DEMO_DOMAIN}`);

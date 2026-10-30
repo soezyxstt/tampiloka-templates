@@ -1,7 +1,8 @@
 import type { OrderStatus, PaymentStatus, ReturnStatus } from '../shared/contracts';
+import { currentLocale } from './language';
 export const money = (value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
-export const dateTime = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-export const shortDate = (value: string) => new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(new Date(value));
+export const dateTime = (value: string) => new Intl.DateTimeFormat(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+export const shortDate = (value: string) => new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'short' }).format(new Date(value));
 export const orderLabels: Record<OrderStatus, string> = { awaiting_payment: 'Menunggu pembayaran', confirmed: 'Siap diproses', processing: 'Sedang disiapkan', shipped: 'Dalam pengiriman', completed: 'Selesai', cancelled: 'Dibatalkan' };
 export const paymentLabels: Record<PaymentStatus, string> = { unpaid: 'Belum dibayar', pending: 'Menunggu pembayaran', pending_verification: 'Perlu dicek', paid: 'Lunas', failed: 'Pembayaran gagal', refund_due: 'Perlu pengembalian dana', refunded: 'Dana dikembalikan' };
 export const returnLabels: Record<ReturnStatus, string> = { none: '', requested: 'Retur diajukan', approved: 'Retur disetujui', rejected: 'Retur ditolak', received: 'Barang retur diterima', refunded: 'Dana dikembalikan' };

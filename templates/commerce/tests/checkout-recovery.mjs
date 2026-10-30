@@ -8,7 +8,7 @@ const browser = await chromium.launch({ headless: true });
 const results = [];
 try {
   for (const alreadySaved of [true, false]) {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ locale: 'id-ID' });
     const page = await context.newPage();
     await page.goto(base, { waitUntil: 'networkidle' });
     const data = await (await context.request.get(`${base}/api/bootstrap`)).json();

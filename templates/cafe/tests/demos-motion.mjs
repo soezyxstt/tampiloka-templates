@@ -21,7 +21,7 @@ async function ready(page,address){
  assert.equal(state?.runtime?.localOnly,true);assert.equal(state.runtime.demo,true);
 }
 async function run(id,width,reduce,fn){
- const ctx=await browser.newContext({viewport:{width,height:900},reducedMotion:reduce?'reduce':'no-preference',recordVideo:{dir:join(out,'video'),size:{width:Math.min(width,1280),height:900}}});
+ const ctx=await browser.newContext({locale:'id-ID',viewport:{width,height:900},reducedMotion:reduce?'reduce':'no-preference',recordVideo:{dir:join(out,'video'),size:{width:Math.min(width,1280),height:900}}});
  ctx.setDefaultTimeout(20000);
  await ctx.addInitScript(()=>{window.__motionEvents=[];document.addEventListener('animationstart',e=>window.__motionEvents.push({name:e.animationName,ui:e.target.getAttribute?.('data-ui'),at:performance.now()}),true);});
  await ctx.route('**/*',route=>{if(['GET','HEAD','OPTIONS'].includes(route.request().method()))return route.continue();writes.push(route.request().url());return route.abort();});

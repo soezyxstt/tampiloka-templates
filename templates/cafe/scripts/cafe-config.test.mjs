@@ -180,7 +180,7 @@ test('light brand colors get readable text ink without changing brand identity',
     const valid = validateConfig(input);
     const ink = readableAccent(valid.brand.primaryColor);
     assert.match(ink, /^#[0-9A-F]{6}$/);
-    for (const surface of ['#FFFFFF', '#F5F7FC', '#F7F5F1']) {
+    for (const surface of ['#FFFFFF', '#FBF8F3', '#F4EEE6', '#F7F5F1']) {
       const pair = [luminance(ink), luminance(surface)].sort((a, b) => a - b);
       assert.ok((pair[1] + 0.05) / (pair[0] + 0.05) >= 4.5, `${brand} → ${ink} must be readable on ${surface}`);
     }

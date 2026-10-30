@@ -64,6 +64,7 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:4174/api/health
           pnpm --filter @tampiloka/template-commerce test:e2e
+          pnpm --filter @tampiloka/template-commerce test:language
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-browser.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/checkout-recovery.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-pagination.mjs

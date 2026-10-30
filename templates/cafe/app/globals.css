@@ -3,29 +3,35 @@
 @import "../components/ui/workspace.css";
 @import "../components/ui/motion.css";
 
+/* Warm "Kopi Hangat" palette. The only place raw colors live (see AGENTS.md).
+ * Contrast: foreground 15.1:1, muted 6.0:1 on --background; border-strong 3.4:1 on white. */
 :root {
-  --background: #F5F7FC;
+  --background: #FBF8F3;
   --surface: #FFFFFF;
-  --foreground: #182334;
-  --muted-foreground: #455468;
-  --border: #C5CEDB;
-  --primary: #1746A2;
-  --primary-ink: #1746A2;
+  --foreground: #2A1F1A;
+  --muted-foreground: #6B5C52;
+  --border: #E6DCCF;
+  --primary: #A94C27;
+  --primary-ink: #A94C27;
   --primary-foreground: #FFFFFF;
   --primary-hover: color-mix(in srgb, var(--primary) 82%, black);
-  --surface-muted: #E9EEF6;
-  --border-strong: #7A899D;
-  --accent-surface: var(--brand-tint, #EAF0FC);
+  --surface-muted: #F4EEE6;
+  --border-strong: #9A877A;
+  --accent-surface: var(--brand-tint, #F8F1EE);
+  --overlay: color-mix(in srgb, var(--foreground) 45%, transparent);
+  --selection: color-mix(in srgb, var(--primary) 18%, white);
+  --shadow-soft: 0 4px 20px color-mix(in srgb, var(--foreground) 8%, transparent);
 
-  --status-success-fg: #1A5C38;
-  --status-success-bg: #EBF5EE;
+  --status-success-fg: #2E6B3E;
+  --status-success-bg: #EAF4EC;
   --status-warning-fg: #8A5300;
-  --status-warning-bg: #FDF4E7;
-  --status-danger-fg: #9E2A2B;
-  --status-danger-bg: #FDECEC;
-  --status-info-fg: #1F4E79;
-  --status-info-bg: #EBF2FA;
-
+  --status-warning-bg: #FCF1E0;
+  --status-danger-fg: #A3302A;
+  --status-danger-bg: #FCEBE8;
+  --status-danger-border: #F1C6BF;
+  --status-danger-hover: #F8DCD7;
+  --status-info-fg: #2B5D78;
+  --status-info-bg: #E9F1F6;
   --radius-control: 8px;
   --radius-panel: 12px;
   --radius-image: 14px;
@@ -57,7 +63,7 @@ h1, h2, h3, h4, .font-heading {
 
 html { scroll-behavior: smooth; }
 body { margin: 0; }
-::selection { background: #CEDCFA; color: #182334; }
+::selection { background: var(--selection); color: var(--foreground); }
 button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--primary-ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
@@ -84,7 +90,7 @@ button { cursor:pointer; }
 button:disabled { cursor:not-allowed; }
 .skip-link { position:fixed; top:8px; left:12px; z-index:100; transform:translateY(-180%); background:var(--surface); padding:12px 18px; color:var(--foreground); border:2px solid var(--primary); }
 .skip-link:focus { transform:translateY(0); }
-.connection-notice { position:fixed; z-index:80; left:50%; bottom:calc(90px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); max-width:calc(100vw - 32px); width:max-content; display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid var(--status-warning-fg); background:var(--status-warning-bg); color:var(--status-warning-fg); border-radius:var(--radius-control); box-shadow:0 4px 20px #0001; font-size:14px; }
+.connection-notice { position:fixed; z-index:80; left:50%; bottom:calc(90px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); max-width:calc(100vw - 32px); width:max-content; display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid var(--status-warning-fg); background:var(--status-warning-bg); color:var(--status-warning-fg); border-radius:var(--radius-control); box-shadow:var(--shadow-soft); font-size:14px; }
 @media print { nav,aside,button,.connection-notice { display:none!important; } main { margin:0!important; padding:0!important; } }
 
 @media (min-width:768px) and (max-width:1279px) { .staff-metrics > button { padding:14px; } .staff-metrics > button p { margin-top:8px; } .staff-metrics > button p.text-3xl { font-size:24px; line-height:28px; } }

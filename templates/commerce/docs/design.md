@@ -1,5 +1,7 @@
 # Commerce design decisions
 
+The Sand palette uses a warm canvas, charcoal action and clay price accent; Ink and Forest retain their palette IDs. Shared status and overlay tokens are defined by `@tampiloka/theme-engine`. Demo controls support Indonesian and English, with the browser language as the initial choice.
+
 Date: 29 October 2026. Fictional concept brand: Rupa. The brand name, sample catalogue, prices, addresses, bank account and business copy are demonstration content, not claims about a real merchant. Public demo UI states this explicitly. Replace the content and licensed assets when generating a client project.
 
 ## Source references used

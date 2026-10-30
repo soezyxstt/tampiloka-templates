@@ -13,8 +13,8 @@ const proxyAddress = !['localhost', '127.0.0.1', '::1'].includes(new URL(base).h
   ? (process.env.HTTPS_PROXY || process.env.HTTP_PROXY) : undefined;
 const proxyUrl = proxyAddress ? new URL(proxyAddress) : undefined;
 const proxy = proxyUrl ? { server: proxyUrl.origin, username: decodeURIComponent(proxyUrl.username), password: decodeURIComponent(proxyUrl.password) } : undefined;
-const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(proxy ? { proxy } : {}) });
-const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+const browser = await chromium.launch({ ...(process.env.COMMERCE_CHROMIUM_EXECUTABLE ? { executablePath: process.env.COMMERCE_CHROMIUM_EXECUTABLE } : {}), headless: true, args: ['--no-sandbox'], ...(proxy ? { proxy } : {}) });
+const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
 const page = await context.newPage();
 page.setDefaultTimeout(15000);
 const runtimeErrors = [];
@@ -155,7 +155,7 @@ try {
   check('Variant → cart → coupon → shipping → manual checkout uses server total and reserves stock', { orderNumber: order.number, total: order.total });
 
   step = 'cross-device-tracking';
-  const otherContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const otherContext = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   const other = await otherContext.newPage();
   await other.goto(`${base}/#/orders`, { waitUntil: 'networkidle' });
   await other.getByText('Lacak pesanan dengan kode akses', { exact: true }).click();

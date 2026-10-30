@@ -1,5 +1,7 @@
 # Cafe template design system
 
+The default cafe palette uses a warm cream canvas, white surfaces, espresso text and a terracotta action color. Status, overlay, strong-border and primary-ink roles are defined in `app/globals.css`; custom brand colors use the existing contrast helpers. Demo controls support Indonesian and English, with the browser language as the initial choice.
+
 Updated: 28 October 2026. This document records the shared design contract for the reusable cafe template and its editable Figma kit.
 
 ### Lifecycle additions in 0.3.1

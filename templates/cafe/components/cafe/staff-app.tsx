@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
+import { useCafeLanguage } from '@/lib/language';
+import { localizeSampleName } from '@/src/catalog/sample-menu';
 import Image from 'next/image';
 import { MotionPanel } from '@/components/ui/motion';
 import { motion, AnimatePresence } from 'motion/react';
@@ -124,20 +126,22 @@ const STAFF_CREDENTIALS: Record<
   },
 };
 
-function formatStationName(code: string): string {
+type Translate = (id: string, en: string) => string;
+
+function formatStationName(code: string, t: Translate): string {
   switch (code) {
     case 'BAR':
-      return 'Bar & Kopi';
+      return t('Bar & Kopi', 'Bar & Coffee');
     case 'KITCHEN':
-      return 'Dapur Utama';
+      return t('Dapur Utama', 'Main Kitchen');
     case 'PASTRY':
-      return 'Pastry & Roti';
+      return t('Pastry & Roti', 'Pastries & Bread');
     default:
       return code;
   }
 }
 
-function formatFulfillmentLabel(status: string): {
+function formatFulfillmentLabel(status: string, t: Translate): {
   label: string;
   tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral';
 } {
@@ -145,56 +149,54 @@ function formatFulfillmentLabel(status: string): {
     case 'DELIVERED':
     case 'PICKED_UP':
     case 'SERVED':
-      return { label: 'Disajikan', tone: 'success' };
+      return { label: t('Disajikan', 'Served'), tone: 'success' };
     case 'READY':
-      return { label: 'Siap Diantar', tone: 'info' };
+      return { label: t('Siap Diantar', 'Ready to serve'), tone: 'info' };
     case 'PREPARING':
-      return { label: 'Sedang Dibuat', tone: 'warning' };
+      return { label: t('Sedang Dibuat', 'Preparing'), tone: 'warning' };
     case 'QUEUED':
-      return { label: 'Antrean Baru', tone: 'neutral' };
+      return { label: t('Antrean Baru', 'New in queue'), tone: 'neutral' };
     case 'CANCELLED':
-      return { label: 'Dibatalkan', tone: 'danger' };
+      return { label: t('Dibatalkan', 'Cancelled'), tone: 'danger' };
     default:
-      return { label: 'Menunggu', tone: 'warning' };
+      return { label: t("Menunggu", "Waiting"), tone: 'warning' };
   }
 }
 
-function formatPaymentStateLabel(state: string): {
+function formatPaymentStateLabel(state: string, t: Translate): {
   label: string;
   tone: 'success' | 'warning' | 'danger' | 'info';
 } {
   switch (state) {
     case 'SETTLED':
-      return { label: 'Lunas', tone: 'success' };
+      return { label: t("Lunas", "Paid"), tone: 'success' };
     case 'PARTIALLY_PAID':
-      return { label: 'Dibayar Sebagian', tone: 'info' };
+      return { label: t('Dibayar Sebagian', 'Partially paid'), tone: 'info' };
     case 'REFUND_DUE':
-      return { label: 'Perlu Refund', tone: 'danger' };
+      return { label: t('Perlu Refund', 'Refund due'), tone: 'danger' };
     default:
-      return { label: 'Belum Dibayar', tone: 'warning' };
+      return { label: t('Belum Dibayar', 'Unpaid'), tone: 'warning' };
   }
 }
 
-function formatOutletChargePolicy(outlet: any): string {
+function formatOutletChargePolicy(outlet: any, t: Translate): string {
   const srvPct = ((outlet?.serviceChargeBps ?? 500) / 100).toFixed(0);
   const taxPct = ((outlet?.taxBps ?? 1000) / 100).toFixed(0);
   const inclusive = Boolean(outlet?.taxInclusiveDisplay);
 
   if (Number(srvPct) === 0 && Number(taxPct) === 0) {
-    return 'Harga Nett (Tanpa Pajak & Biaya Layanan Tambahan)';
+    return t('Harga Nett (Tanpa Pajak & Biaya Layanan Tambahan)', 'Net price (no additional tax or service charge)');
   }
   if (inclusive) {
-    return `Harga Sudah Termasuk Pajak ${taxPct}%${
-      Number(srvPct) > 0 ? ` & Layanan ${srvPct}%` : ''
-    }`;
+    return t(`Harga Sudah Termasuk Pajak ${taxPct}%${Number(srvPct) > 0 ? ` & Layanan ${srvPct}%` : ''}`, `Price includes ${taxPct}% tax${Number(srvPct) > 0 ? ` & ${srvPct}% service charge` : ''}`);
   }
   if (Number(srvPct) > 0 && Number(taxPct) > 0) {
-    return `Layanan ${srvPct}% + Pajak ${taxPct}%`;
+    return t(`Layanan ${srvPct}% + Pajak ${taxPct}%`, `Service ${srvPct}% + tax ${taxPct}%`);
   }
   if (Number(taxPct) > 0) {
-    return `Pajak Restoran ${taxPct}%`;
+    return t(`Pajak Restoran ${taxPct}%`, `Restaurant tax ${taxPct}%`);
   }
-  return `Biaya Layanan ${srvPct}%`;
+  return t(`Biaya Layanan ${srvPct}%`, `Service charge ${srvPct}%`);
 }
 
 export function StaffApp({
@@ -218,6 +220,20 @@ export function StaffApp({
   lastUpdated?: string;
   onBackToCustomer?: () => void;
 }) {
+  const { t, language } = useCafeLanguage();
+  const sampleName = (id: string, name: string) => localizeSampleName(id, name, language, Boolean(snapshot?.runtime?.demo));
+  const staffRoleLabel = (id: string, fallback: string) => {
+    const labels: Record<string, [string, string]> = {
+      staff_owner: ['Pemilik Outlet', 'Outlet owner'],
+      staff_manager: ['Manajer Operasional', 'Operations manager'],
+      staff_cashier: ['Kasir Utama', 'Cashier'],
+      staff_waiter: ['Pelayan Lantai', 'Floor staff'],
+      staff_bar: ['Barista & Minuman', 'Barista & beverages'],
+      staff_kitchen: ['Koki Dapur Utama', 'Head chef'],
+    };
+    const label = labels[id];
+    return label ? t(label[0], label[1]) : fallback;
+  };
   const [internalStaffId, setInternalStaffId] = useState<string>(
     activeStaffProp || 'staff_owner'
   );
@@ -297,7 +313,7 @@ export function StaffApp({
   const [newMenuPrice, setNewMenuPrice] = useState<string>('28000');
   const [newMenuDesc, setNewMenuDesc] = useState<string>('');
   const [newMenuPhotos, setNewMenuPhotos] = useState<string[]>([
-    '/images/menu/es-kopi-susu-aren.svg',
+    '/images/menu/photos/kopi-aren.jpg',
   ]);
   const [newCategoryNameInput, setNewCategoryNameInput] = useState<string>('');
 
@@ -361,7 +377,7 @@ export function StaffApp({
       });
       return res;
     } catch (err: any) {
-      setActionError(err.message || 'Gagal menjalankan perintah.');
+      setActionError(err.message || t("Gagal menjalankan perintah.", "Unable to complete the action."));
       throw err;
     }
   };
@@ -456,7 +472,7 @@ export function StaffApp({
     anchor.download = `laporan-${cafeConfig.venue.outletSlug}-${reportDate}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setActionNotice(`Laporan tagihan ${reportDate} berhasil diunduh.`);
+    setActionNotice(t(`Laporan tagihan ${reportDate} berhasil diunduh.`, `Bill report for ${reportDate} downloaded.`));
   };
 
   const handlePhotoFileSelect = (
@@ -492,7 +508,7 @@ export function StaffApp({
       setIsAuthenticated(true);
       setPinInput('');
     } else {
-      setLoginError('PIN Staf tidak sesuai. Gunakan PIN staf Anda.');
+      setLoginError(t("PIN Staf tidak sesuai. Gunakan PIN staf Anda.", "Incorrect staff PIN. Enter your staff PIN."));
     }
   };
 
@@ -513,7 +529,7 @@ export function StaffApp({
               <Lock className="w-5 h-5 text-[var(--primary-ink)]" />
               <div>
                 <h1 className="font-heading text-[18px] leading-[24px] font-bold">
-                  Ruang operasional
+                  {t("Ruang operasional", "Operations workspace")}
                 </h1>
                 <p className="text-[12px] text-[var(--muted-foreground)]">
                   {cafeConfig.brand.name}
@@ -523,14 +539,14 @@ export function StaffApp({
             {onBackToCustomer && (
               <Button variant="ghost" size="sm" onClick={onBackToCustomer}>
                 <ArrowLeft className="w-4 h-4" />
-                <span>Menu pelanggan</span>
+                <span>{t("Menu pelanggan", "Customer menu")}</span>
               </Button>
             )}
           </div>
 
           <form onSubmit={handleStaffLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="staff-login-select">Pilih akun staf</Label>
+              <Label htmlFor="staff-login-select">{t("Pilih akun staf", "Select staff account")}</Label>
               <SelectField
                 id="staff-login-select"
                 value={loginStaffId}
@@ -541,14 +557,14 @@ export function StaffApp({
               >
                 {staffList.map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    {s.userName} · {STAFF_CREDENTIALS[s.id]?.roleLabel || s.role}
+                    {s.userName} · {staffRoleLabel(s.id, s.role)}
                   </option>
                 ))}
               </SelectField>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="staff-pin-input">PIN staf (4 digit)</Label>
+              <Label htmlFor="staff-pin-input">{t("PIN staf (4 digit)", "Staff PIN (4 digits)")}</Label>
               <Input
                 id="staff-pin-input"
                 type="password"
@@ -556,7 +572,7 @@ export function StaffApp({
                 maxLength={6}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Masukkan PIN"
+                placeholder={t("Masukkan PIN", "Enter PIN")}
                 className="text-[16px] tracking-widest tabular-nums"
               />
             </div>
@@ -564,7 +580,7 @@ export function StaffApp({
             {/* Quick Role Login Presets */}
             <div className="pt-2 border-t border-[var(--border)] space-y-2">
               <p className="text-[12px] text-[var(--muted-foreground)]">
-                Akses demo
+                {t("Akses demo", "Demo access")}
               </p>
               <div className="grid grid-cols-2 gap-1.5">
                 {staffList.map((s: any) => {
@@ -586,7 +602,7 @@ export function StaffApp({
                         {s.userName}
                       </span>
                       <span className="text-[var(--muted-foreground)]">
-                        {cred?.roleLabel || s.role}
+                        {staffRoleLabel(s.id, s.role)}
                       </span>
                     </button>
                   );
@@ -597,7 +613,7 @@ export function StaffApp({
             <InlineError message={loginError} />
 
             <Button type="submit" variant="primary" size="lg" className="w-full">
-              Masuk
+              {t("Masuk", "Sign in")}
             </Button>
           </form>
         </motion.div>
@@ -615,26 +631,26 @@ export function StaffApp({
   const allNavItems: { id: StaffSection; label: string; count?: number }[] = [
     {
       id: 'kasir',
-      label: canCashier ? 'Kasir & Pesanan' : 'Pesanan masuk',
+      label: canCashier ? t('Kasir & Pesanan', 'Cashier & orders') : t('Pesanan masuk', 'Incoming orders'),
       count:
         pendingOrderRequests.length +
         activeBills.filter((b: any) => b.balanceIdr > 0).length,
     },
     {
       id: 'dapur',
-      label: 'Dapur & Bar',
+      label: t('Dapur & Bar', 'Kitchen & bar'),
       count: (snapshot?.orderUnits || []).filter((u: any) =>
         ['QUEUED', 'PREPARING', 'READY'].includes(u.fulfillmentStatus)
       ).length,
     },
     {
       id: 'meja',
-      label: 'Meja & Antrean',
+      label: t('Meja & Antrean', 'Tables & waitlist'),
       count: openWaitlistCount + openHelpCount,
     },
-    { id: 'menu', label: 'Katalog & Stok' },
-    { id: 'laporan', label: 'Laporan & Shift' },
-    { id: 'pengaturan', label: 'Pengaturan' },
+    { id: 'menu', label: t('Katalog & Stok', 'Catalogue & stock') },
+    { id: 'laporan', label: t('Laporan & Shift', 'Reports & shifts') },
+    { id: 'pengaturan', label: t('Pengaturan', 'Settings') },
   ];
   const navItems = allNavItems.filter(item => sectionEnabled(item.id));
 
@@ -654,40 +670,40 @@ export function StaffApp({
           <BrandMark />
           <div className="min-w-0"><p className="font-heading font-bold text-base leading-snug break-words">{cafeConfig.brand.name}</p></div>
         </div>
-        <p className={styles.sidebarLabel}>Operasional</p>
-        <nav aria-label="Navigasi operasional desktop" className="space-y-1.5">
+        <p className={styles.sidebarLabel}>{t("Operasional", "Operations")}</p>
+        <nav aria-label={t("Navigasi operasional desktop", "Desktop operations navigation")} className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
             return <button key={item.id} type="button" aria-current={activeSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionNotice(''); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${activeSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
-              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" /><span className="min-w-0 flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] tabular-nums">{item.count}</span>}
+              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" /><span className="min-w-0 flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[12px] tabular-nums">{item.count}</span>}
             </button>;
           })}
         </nav>
         <div className="mt-auto space-y-4 pt-6">
 
-          {onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary-ink)]">Lihat menu pelanggan<ArrowUpRight className="h-4 w-4" /></button>}
+          {onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary-ink)]">{t("Lihat menu pelanggan", "View customer menu")}<ArrowUpRight className="h-4 w-4" /></button>}
         </div>
       </aside>
       <header className="staff-header">
         <div className="staff-toolbar">
           <div className="staff-identity">
-            {onBackToCustomer && <Button variant="ghost" size="icon" onClick={onBackToCustomer} aria-label="Kembali ke menu pelanggan" className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
-            <div><p className="text-sm font-semibold">{cafeConfig.brand.name}</p><p id="active-staff-role" className="text-xs text-[var(--muted-foreground)]">{STAFF_CREDENTIALS[activeStaff]?.roleLabel || currentStaffObj.role}</p></div>
+            {onBackToCustomer && <Button variant="ghost" size="icon" onClick={onBackToCustomer} aria-label={t("Kembali ke menu pelanggan", "Back to customer menu")} className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
+            <div><p className="text-sm font-semibold">{cafeConfig.brand.name}</p><p id="active-staff-role" className="text-xs text-[var(--muted-foreground)]">{staffRoleLabel(activeStaff, currentStaffObj.role)}</p></div>
           </div>
-          <SelectField aria-label="Petugas aktif" aria-describedby="active-staff-role" value={activeStaff} onChange={(e) => handleSwitchStaff(e.target.value)} wrapperClassName="staff-account">
+          <SelectField aria-label={t("Petugas aktif", "Active staff member")} aria-describedby="active-staff-role" value={activeStaff} onChange={(e) => handleSwitchStaff(e.target.value)} wrapperClassName="staff-account">
             {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.userName}</option>)}
           </SelectField>
           <div className="staff-actions">
             {lastUpdated && <span className={styles.syncText}>{lastUpdated}</span>}
-            <Button variant="ghost" size="icon" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label="Perbarui data operasional"><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} aria-label="Keluar dari portal staf"><LogOut className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label={t("Perbarui data operasional", "Refresh operational data")}><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} aria-label={t("Keluar dari portal staf", "Sign out of staff portal")}><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
-        <div className="staff-mobile-nav"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel="Navigasi operasional kafe" layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
+        <div className="staff-mobile-nav"><AnimatedUnderlineTabs items={navItems} activeId={activeSection} onSelect={(id) => { setActiveSection(id); setActionNotice(''); setActionError(''); }} ariaLabel={t('Navigasi operasional kafe', 'Cafe operations navigation')} layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
       </header>
-      <a href="#staff-content" className="skip-link">Ke ruang kerja</a>
+      <a href="#staff-content" className="skip-link">{t("Ke ruang kerja", "Open workspace")}</a>
       <main id="staff-content" className="staff-main">
-        <PageHeader title={navItems.find(item => item.id === activeSection)?.label || 'Operasional'} actions={canCashier && activeSection === 'kasir' ? <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />Pesanan baru</Button> : undefined} />
+        <PageHeader title={navItems.find(item => item.id === activeSection)?.label || t('Operasional', 'Operations')} actions={canCashier && activeSection === 'kasir' ? <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />{t("Pesanan baru", "New orders")}</Button> : undefined} />
         <AnimatePresence>
           {(actionNotice || actionError) && (
             <motion.div
@@ -711,10 +727,10 @@ export function StaffApp({
             className="workspace-stack"
           >
             <StatStrip items={[
-              { id:'new', label:'Pesanan baru', value:pendingOrderRequests.length, icon:Receipt, onSelect:()=>document.getElementById('incoming-orders')?.scrollIntoView({ behavior:'smooth', block:'center' }) },
-              ...(canTables ? [{ id:'tables', label:'Meja terisi', value:(snapshot?.tables || []).filter((t:any)=>t.physicalState==='OCCUPIED').length, icon:LayoutGrid, onSelect:()=>{setActiveSection('meja');setFloorSubTab('DENAH');} }] : []),
-              ...(canKitchen ? [{ id:'preparing', label:'Dalam proses', value:(snapshot?.orderUnits || []).filter((u:any)=>['QUEUED','PREPARING'].includes(u.fulfillmentStatus)).length, icon:ChefHat, onSelect:()=>{setActiveSection('dapur');setKitchenStatusFilter('ACTIVE');} }] : []),
-              ...(canTables ? [{ id:'help', label:'Panggilan tamu', value:openHelpCount, icon:Bell, onSelect:()=>{setActiveSection('meja');setFloorSubTab('ANTREAN');} }] : []),
+              { id:'new', label:t("Pesanan baru", "New orders"), value:pendingOrderRequests.length, icon:Receipt, onSelect:()=>document.getElementById('incoming-orders')?.scrollIntoView({ behavior:'smooth', block:'center' }) },
+              ...(canTables ? [{ id:'tables', label:t("Meja terisi", "Occupied tables"), value:(snapshot?.tables || []).filter((t:any)=>t.physicalState==='OCCUPIED').length, icon:LayoutGrid, onSelect:()=>{setActiveSection('meja');setFloorSubTab('DENAH');} }] : []),
+              ...(canKitchen ? [{ id:'preparing', label:t("Dalam proses", "In progress"), value:(snapshot?.orderUnits || []).filter((u:any)=>['QUEUED','PREPARING'].includes(u.fulfillmentStatus)).length, icon:ChefHat, onSelect:()=>{setActiveSection('dapur');setKitchenStatusFilter('ACTIVE');} }] : []),
+              ...(canTables ? [{ id:'help', label:t("Panggilan tamu", "Guest requests"), value:openHelpCount, icon:Bell, onSelect:()=>{setActiveSection('meja');setFloorSubTab('ANTREAN');} }] : []),
             ]} />
 
             {canCashier && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
@@ -724,9 +740,9 @@ export function StaffApp({
               <Surface id="incoming-orders" variant="ruled" className="space-y-3 scroll-mt-28">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#B45309] animate-pulse" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-warning-fg)] animate-pulse" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      Pesanan baru ({pendingOrderRequests.length})
+                      {t("Pesanan baru (", "New orders (")}{pendingOrderRequests.length})
                     </h2>
                   </div>
 
@@ -751,9 +767,9 @@ export function StaffApp({
                         <div className="space-y-1 min-w-0 basis-[240px] flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-heading text-[16px] font-bold">
-                              Meja {req.tableLabel} · {req.customerName}
+                              {t("Meja", "Table")} {req.tableLabel} · {req.customerName}
                             </span>
-                            <StatusLabel label="Menunggu" tone="warning" />
+                            <StatusLabel label={t("Menunggu", "Waiting")} tone="warning" />
                           </div>
                           <div className="text-[13px] text-[var(--muted-foreground)] space-y-0.5">
                             {lines.map((ln: any, idx: number) => (
@@ -761,9 +777,9 @@ export function StaffApp({
                                 <strong className="text-[var(--foreground)]">
                                   {ln.quantity ?? ln.qty ?? 1}×
                                 </strong>{' '}
-                                {ln.itemName} ({ln.variantName})
+                                {sampleName(ln.menuItemId, ln.itemName)} ({sampleName(ln.variantId, ln.variantName)})
                                 {ln.modifiers?.length ? ` · ${ln.modifiers.join(', ')}` : ''}
-                                {ln.note ? ` · Catatan: "${ln.note}"` : ''}
+                                {ln.note ? t(` · Catatan: "${ln.note}"`, ` · Note: "${ln.note}"`) : ''}
                               </p>
                             ))}
                           </div>
@@ -771,7 +787,7 @@ export function StaffApp({
 
                         <div className="flex flex-wrap items-center gap-3 min-w-0">
                           <div className="text-right mr-2">
-                            <span className="block text-[11px] text-[var(--muted-foreground)]">
+                            <span className="block text-[12px] text-[var(--muted-foreground)]">
                               Total
                             </span>
                             <Money amount={reqTotalIdr} className="font-bold text-[16px]" />
@@ -786,12 +802,12 @@ export function StaffApp({
                                 orderRequestId: req.id,
                               });
                               setActionNotice(
-                                `Pesanan Meja ${req.tableLabel} diterima.`
+                                t(`Pesanan Meja ${req.tableLabel} diterima.`, `Order for table ${req.tableLabel} accepted.`)
                               );
                             }}
                           >
                             <Check className="w-4 h-4" />
-                            <span>Terima</span>
+                            <span>{t("Terima", "Accept")}</span>
                           </Button>
 
                           <Button
@@ -801,7 +817,7 @@ export function StaffApp({
                             onClick={() => { setRejectingRequest(req); setRejectReason(''); setModalActionError(''); }}
                           >
                             <X className="w-4 h-4" />
-                            <span>Tolak</span>
+                            <span>{t("Tolak", "Reject")}</span>
                           </Button>
                         </div>
                       </div>
@@ -819,7 +835,7 @@ export function StaffApp({
               <div className="lg:col-span-4 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="font-heading text-[17px] font-bold">
-                    Tagihan
+                    {t("Tagihan", "Bill")}
                   </h2>
                   <Button
                     variant="secondary"
@@ -827,19 +843,19 @@ export function StaffApp({
                     onClick={() => setNewOrderModalOpen(true)}
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Pesanan baru</span>
+                    <span>{t("Pesanan baru", "New orders")}</span>
                   </Button>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label="Cari tagihan berdasarkan meja atau pelanggan" placeholder="Cari meja atau pelanggan…" value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
-                  <AnimatedSegmentedControl ariaLabel="Filter pembayaran tagihan" options={[{ value: 'OPEN', label: 'Belum lunas' }, { value: 'PAID', label: 'Lunas' }, { value: 'ALL', label: 'Semua' }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
+                  <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")} placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")} value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
+                  <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
                 </div>
-                {filteredBills.length === 0 && <EmptyState title="Tidak ada tagihan" description={billSearch ? 'Coba nama pelanggan atau nomor meja lain.' : 'Tagihan yang sesuai akan tampil di sini.'} />}
+                {filteredBills.length === 0 && <EmptyState title={t("Tidak ada tagihan", "No bills")} description={billSearch ? t("Coba nama pelanggan atau nomor meja lain.", "Try another customer name or table number.") : t("Tagihan yang sesuai akan tampil di sini.", "Matching bills will appear here.")} />}
                 <div className="space-y-2">
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
-                    const payBadge = formatPaymentStateLabel(b.paymentState);
+                    const payBadge = formatPaymentStateLabel(b.paymentState, t);
                     return (
                       <button
                         key={b.id}
@@ -859,10 +875,10 @@ export function StaffApp({
                         }`}
                       >
                         <div className="space-y-1 min-w-0 w-full">
-                          <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{b.tableLabel ? `Meja ${b.tableLabel}` : 'Bawa pulang'}</p>
+                          <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{b.tableLabel ? t(`Meja ${b.tableLabel}`, `Table ${b.tableLabel}`) : t("Bawa pulang", "Takeaway")}</p>
                           <p className="text-sm break-words">{b.ownerLabel}</p>
                           <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
-                            {(b.allocatedUnits || []).length} porsi menu
+                            {(b.allocatedUnits || []).length} {t("porsi menu", "menu servings")}
                           </p>
                         </div>
                         <div className="w-full flex flex-wrap items-center justify-between gap-2">
@@ -891,15 +907,15 @@ export function StaffApp({
                       <div>
                         <div className="flex items-center gap-2.5">
                           <h2 className="font-heading text-[20px] font-bold">
-                            Meja {selectedBill.tableLabel} · {selectedBill.ownerLabel}
+                            {t("Meja", "Table")} {selectedBill.tableLabel} · {selectedBill.ownerLabel}
                           </h2>
                           <StatusLabel
-                            label={formatPaymentStateLabel(selectedBill.paymentState).label}
-                            tone={formatPaymentStateLabel(selectedBill.paymentState).tone}
+                            label={formatPaymentStateLabel(selectedBill.paymentState, t).label}
+                            tone={formatPaymentStateLabel(selectedBill.paymentState, t).tone}
                           />
                         </div>
                         <p className="text-[13px] text-[var(--muted-foreground)] mt-0.5">
-                          {(selectedBill.allocatedUnits || []).length} item tercatat pada tagihan ini
+                          {(selectedBill.allocatedUnits || []).length} {t("item tercatat pada tagihan ini", "items recorded on this bill")}
                         </p>
                       </div>
 
@@ -912,8 +928,8 @@ export function StaffApp({
                           <Split className="w-4 h-4" />
                           <span>
                             {showSplitMergePanel
-                              ? 'Tutup Pisah/Gabung'
-                              : 'Pisah / Gabung Tagihan'}
+                              ? t("Tutup Pisah/Gabung", "Close split / merge")
+                              : t("Pisah / Gabung Tagihan", "Split / merge bill")}
                           </span>
                         </Button>
                       )}
@@ -931,14 +947,13 @@ export function StaffApp({
                           <div className="p-4 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>
-                                Pisah item terpilih ({selectedUnitIdsForSplit.length} item dicentang
-                                di bawah)
+                                {t("Pisah item terpilih (", "Split selected items (")}{selectedUnitIdsForSplit.length} {t('item dicentang di bawah)', 'items selected below)')}
                               </Label>
                               <div className="flex items-center gap-2">
                                 <Input
                                   value={splitNewOwnerLabel}
                                   onChange={(e) => setSplitNewOwnerLabel(e.target.value)}
-                                  placeholder="Nama tagihan baru"
+                                  placeholder={t("Nama tagihan baru", "New bill name")}
                                 />
                                 <Button
                                   variant="secondary"
@@ -951,24 +966,24 @@ export function StaffApp({
                                       newOwnerLabel: splitNewOwnerLabel,
                                     });
                                     setSelectedUnitIdsForSplit([]);
-                                    setActionNotice('Tagihan berhasil dipisahkan.');
+                                    setActionNotice(t("Tagihan berhasil dipisahkan.", "The bill was split."));
                                   }}
                                 >
                                   <Split className="w-4 h-4" />
-                                  <span>Pisahkan</span>
+                                  <span>{t("Pisahkan", "Split")}</span>
                                 </Button>
                               </div>
                             </div>
 
                             <div className="space-y-2">
-                              <Label>Gabung ke tagihan meja lain</Label>
+                              <Label>{t("Gabung ke tagihan meja lain", "Merge into another table bill")}</Label>
                               <div className="flex items-center gap-2">
                                 <SelectField
-                                  aria-label="Tagihan tujuan penggabungan"
+                                  aria-label={t("Tagihan tujuan penggabungan", "Destination bill")}
                                   value={mergeTargetBillId}
                                   onChange={(e) => setMergeTargetBillId(e.target.value)}
                                 >
-                                  <option value="">Pilih tagihan tujuan</option>
+                                  <option value="">{t("Pilih tagihan tujuan", "Choose destination bill")}</option>
                                   {activeBills
                                     .filter(
                                       (b: any) =>
@@ -976,7 +991,7 @@ export function StaffApp({
                                     )
                                     .map((b: any) => (
                                       <option key={b.id} value={b.id}>
-                                        Meja {b.tableLabel} · {b.ownerLabel} (
+                                        {t("Meja", "Table")} {b.tableLabel} · {b.ownerLabel} (
                                         {formatIdr(b.balanceIdr)})
                                       </option>
                                     ))}
@@ -992,11 +1007,11 @@ export function StaffApp({
                                     });
                                     setSelectedBillId(mergeTargetBillId);
                                     setMergeTargetBillId('');
-                                    setActionNotice('Tagihan berhasil digabungkan.');
+                                    setActionNotice(t("Tagihan berhasil digabungkan.", "The bills were merged."));
                                   }}
                                 >
                                   <Merge className="w-4 h-4" />
-                                  <span>Gabung</span>
+                                  <span>{t("Gabung", "Merge")}</span>
                                 </Button>
                               </div>
                             </div>
@@ -1011,9 +1026,9 @@ export function StaffApp({
                         {(selectedBill.allocatedUnits || []).map((u: any) => {
                           const checked = selectedUnitIdsForSplit.includes(u.id);
                           const isCancelled = u.fulfillmentStatus === 'CANCELLED';
-                          const st = formatFulfillmentLabel(u.fulfillmentStatus);
-                          const itemName = u.itemNameSnapshot || u.itemName;
-                          const variantName = u.variantNameSnapshot || u.variantName;
+                          const st = formatFulfillmentLabel(u.fulfillmentStatus, t);
+                          const itemName = sampleName(u.menuItemId, u.itemNameSnapshot || u.itemName);
+                          const variantName = sampleName(u.variantId, u.variantNameSnapshot || u.variantName);
                           const unitPrice = u.netIdr ?? u.finalUnitTotalIdr ?? 0;
 
                           return (
@@ -1064,10 +1079,10 @@ export function StaffApp({
                                 {(!isCancelled || selectedBill.balanceIdr < 0) && (
                                   <button
                                     type="button"
-                                    onClick={() => { setCancellingUnit(u); setRefundNow(true); setModalActionError(''); setCancelReasonInput(isCancelled ? 'Pengembalian pembayaran setelah pembatalan' : 'Permintaan pelanggan / ubah pesanan'); }}
+                                    onClick={() => { setCancellingUnit(u); setRefundNow(true); setModalActionError(''); setCancelReasonInput(isCancelled ? t("Pengembalian pembayaran setelah pembatalan", "Refund after cancellation") : t("Permintaan pelanggan / ubah pesanan", "Customer request / change order")); }}
                                     className="text-[12px] font-medium text-[var(--muted-foreground)] hover:text-[var(--status-danger-fg)] transition-colors cursor-pointer px-1.5 py-1"
                                   >
-                                    {isCancelled ? 'Selesaikan pengembalian' : 'Batalkan'}
+                                    {isCancelled ? t("Selesaikan pengembalian", "Complete refund") : t("Batalkan", "Cancel")}
                                   </button>
                                 )}
                               </div>
@@ -1100,11 +1115,11 @@ export function StaffApp({
                         {selectedBill.balanceIdr > 0 ? (
                           <>
                             <div className="space-y-1.5">
-                              <Label>Pembayaran</Label>
+                              <Label>{t("Pembayaran", "Payment")}</Label>
                               <AnimatedSegmentedControl
-                                ariaLabel="Metode pembayaran kasir"
+                                ariaLabel={t("Metode pembayaran kasir", "Cashier payment method")}
                                 options={[
-                                  { value: 'CASH', label: 'Tunai' },
+                                  { value: 'CASH', label: t("Tunai", "Cash") },
                                   ...(isModuleEnabled('payments') ? [{ value: 'QRIS', label: 'QRIS demo' }, { value: 'VIRTUAL_ACCOUNT', label: 'VA demo' }] : []),
                                   { value: 'MANUAL_TRANSFER', label: 'Transfer' },
                                 ]}
@@ -1117,7 +1132,7 @@ export function StaffApp({
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div className="space-y-1.5">
                                 <Label htmlFor="cashier-tender-amount">
-                                  Jumlah bayar (Rp)
+                                  {t("Jumlah bayar (Rp)", "Amount to pay (Rp)")}
                                 </Label>
                                 <Input
                                   id="cashier-tender-amount"
@@ -1132,7 +1147,7 @@ export function StaffApp({
                               {tenderMethod === 'CASH' ? (
                                 <div className="space-y-1.5">
                                   <Label htmlFor="cashier-cash-given">
-                                    Tunai diterima (Rp)
+                                    {t("Tunai diterima (Rp)", "Cash received (Rp)")}
                                   </Label>
                                   <Input
                                     id="cashier-cash-given"
@@ -1145,13 +1160,13 @@ export function StaffApp({
                               ) : (
                                 <div className="space-y-1.5">
                                   <Label htmlFor="cashier-ref-code">
-                                    Referensi (opsional)
+                                    {t("Referensi (opsional)", "Reference (optional)")}
                                   </Label>
                                   <Input
                                     id="cashier-ref-code"
                                     value={transferRefInput}
                                     onChange={(e) => setTransferRefInput(e.target.value)}
-                                    placeholder="Ref QRIS / Bukti Transfer"
+                                    placeholder={t("Ref QRIS / Bukti Transfer", "QRIS reference / transfer proof")}
                                   />
                                 </div>
                               )}
@@ -1162,7 +1177,7 @@ export function StaffApp({
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {[
                                     {
-                                      label: 'Uang Pas',
+                                      label: t("Uang Pas", "Exact amount"),
                                       val: effectiveTenderAmount,
                                     },
                                     { label: 'Rp50.000', val: 50000 },
@@ -1180,7 +1195,7 @@ export function StaffApp({
                                   ))}
                                 </div>
                                 <div className="text-[13px]">
-                                  <span className="text-[var(--muted-foreground)]">Kembalian: </span>
+                                  <span className="text-[var(--muted-foreground)]">{t("Kembalian:", "Change:")} </span>
                                   <Money
                                     amount={cashChangePreview}
                                     className="font-bold text-[var(--primary-ink)]"
@@ -1189,7 +1204,7 @@ export function StaffApp({
                               </div>
                             )}
 
-                            {selectedBill.hasActiveExternalAttempt && <p role="status" className="text-sm text-[var(--status-warning-fg)]">Instruksi pembayaran masih aktif. Konfirmasikan hasilnya atau batalkan melalui Uji pembayaran demo sebelum mencatat pembayaran lain.</p>}
+                            {selectedBill.hasActiveExternalAttempt && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Instruksi pembayaran masih aktif. Konfirmasikan hasilnya atau batalkan melalui Uji pembayaran demo sebelum mencatat pembayaran lain.", "Payment instructions are still active. Confirm the result or cancel them in the demo payment test before recording another payment.")}</p>}
                             <Button
                               variant="primary"
                               size="lg"
@@ -1205,20 +1220,20 @@ export function StaffApp({
                                 try {
                                   const res = await runStaffCommand('RECORD_PAYMENT', { ...paymentPayload, idempotencyKey: paymentAttemptRef.current.key });
                                   const external = tenderMethod === 'QRIS' || tenderMethod === 'VIRTUAL_ACCOUNT';
-                                  setActionNotice(external ? 'Instruksi pembayaran demo dibuat. Pembayaran masih menunggu konfirmasi.' : `Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`);
+                                  setActionNotice(external ? t("Instruksi pembayaran demo dibuat. Pembayaran masih menunggu konfirmasi.", "Demo payment instructions created. Payment is awaiting confirmation.") : t(`Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`, `${tenderMethod === 'CASH' ? 'Cash' : 'Transfer'} payment of ${formatIdr(amt)} recorded.${(res?.result?.changeIdr ?? 0) > 0 ? ` Change: ${formatIdr(res.result.changeIdr)}` : ''}`));
                                   setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
                                 } catch { /* runStaffCommand displays the server's error. Keep the retry key. */ }
                                 finally { paymentSubmittingRef.current = false; setPaymentSubmitting(false); }
                               }}
                             >
                               <Receipt className="w-4 h-4" />
-                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? 'Terima tunai' : tenderMethod === 'MANUAL_TRANSFER' ? 'Catat transfer' : 'Buat instruksi demo'}</span><Money amount={effectiveTenderAmount} className="block" /></span>
+                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? t("Terima tunai", "Accept cash") : tenderMethod === 'MANUAL_TRANSFER' ? t("Catat transfer", "Record transfer") : t("Buat instruksi demo", "Create demo instructions")}</span><Money amount={effectiveTenderAmount} className="block" /></span>
                             </Button>
                           </>
                         ) : (
                           <div className="p-4 rounded-[10px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] flex items-center justify-between">
                             <div>
-                              <p className="font-semibold text-[15px]">{selectedBill.balanceIdr < 0 ? `Perlu pengembalian ${formatIdr(-selectedBill.balanceIdr)}` : 'Lunas'}</p>
+                              <p className="font-semibold text-[15px]">{selectedBill.balanceIdr < 0 ? t(`Perlu pengembalian ${formatIdr(-selectedBill.balanceIdr)}`, `Refund due ${formatIdr(-selectedBill.balanceIdr)}`) : t("Lunas", "Paid")}</p>
 
                             </div>
                             <Check className="w-5 h-5 shrink-0" />
@@ -1228,7 +1243,7 @@ export function StaffApp({
                     </div>
                   </>
                 ) : (
-                  <EmptyState title="Pilih tagihan" />
+                  <EmptyState title={t("Pilih tagihan", "Select a bill")} />
                 )}
               </div>
             </div>}
@@ -1248,12 +1263,12 @@ export function StaffApp({
               <div className="min-w-0 max-w-full flex flex-wrap items-center gap-3">
 
                 <AnimatedSegmentedControl
-                  ariaLabel="Filter stasiun kerja"
+                  ariaLabel={t('Filter stasiun kerja', 'Filter work station')}
                   options={[
-                    { value: 'ALL', label: 'Semua Stasiun' },
-                    { value: 'BAR', label: 'Bar & Kopi' },
-                    { value: 'KITCHEN', label: 'Dapur Utama' },
-                    { value: 'PASTRY', label: 'Pastry & Roti' },
+                    { value: 'ALL', label: t('Semua Stasiun', 'All stations') },
+                    { value: 'BAR', label: t('Bar & Kopi', 'Bar & Coffee') },
+                    { value: 'KITCHEN', label: t("Dapur Utama", "Main Kitchen") },
+                    { value: 'PASTRY', label: t('Pastry & Roti', 'Pastries & Bread') },
                   ]}
                   value={stationFilter}
                   onChange={setStationFilter}
@@ -1271,19 +1286,19 @@ export function StaffApp({
                 ) : (
                   <VolumeX className="w-4 h-4 text-[var(--muted-foreground)]" />
                 )}
-                <span>{soundEnabled ? 'Suara aktif' : 'Suara Mati'}</span>
+                <span>{soundEnabled ? t('Suara aktif', 'Sound on') : t('Suara Mati', 'Sound off')}</span>
               </Button>
             </div>
 
-            <ChoiceStrip ariaLabel="Status pesanan dapur" items={[['ACTIVE','Semua aktif'],['QUEUED','Antrean baru'],['PREPARING','Sedang dibuat'],['READY','Siap diantar'],['ALL','Termasuk selesai']].map(([id,label])=>({id,label}))} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
+            <ChoiceStrip ariaLabel={t('Status pesanan dapur', 'Kitchen order status')} items={[['ACTIVE',t('Semua aktif','All active')],['QUEUED',t('Antrean baru','New in queue')],['PREPARING',t('Sedang dibuat','Preparing')],['READY',t('Siap diantar','Ready to serve')],['ALL',t('Termasuk selesai','Including completed')]].map(([id,label])=>({id,label}))} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
             {kitchenUnits.length === 0 ? (
-              <EmptyState title="Tidak ada pesanan" />
+              <EmptyState title={t("Tidak ada pesanan", "No orders")} />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {kitchenUnits.map((u: any) => {
-                  const st = formatFulfillmentLabel(u.fulfillmentStatus);
-                  const itemName = u.itemNameSnapshot || u.itemName;
-                  const variantName = u.variantNameSnapshot || u.variantName;
+                  const st = formatFulfillmentLabel(u.fulfillmentStatus, t);
+                  const itemName = sampleName(u.menuItemId, u.itemNameSnapshot || u.itemName);
+                  const variantName = sampleName(u.variantId, u.variantNameSnapshot || u.variantName);
                   const tableLabel = u.tableLabelSnapshot || u.tableLabel || '-';
                   const customerName = u.customerNameSnapshot || u.customerName || 'Tamu';
                   const takeaway = (snapshot?.orders || []).find((order: any) => order.id === u.orderId)?.mode === 'TAKEAWAY';
@@ -1297,13 +1312,13 @@ export function StaffApp({
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-heading text-[17px] font-bold text-[var(--foreground)]">
-                            Meja {tableLabel}
+                            {t("Meja", "Table")} {tableLabel}
                           </span>
                           <span className="text-[13px] text-[var(--muted-foreground)]">
                             · {customerName}
                           </span>
                           <span className="text-[12px] font-medium px-2 py-0.5 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)]">
-                            {formatStationName(u.stationCode)}
+                            {formatStationName(u.stationCode, t)}
                           </span>
                           <StatusLabel label={st.label} tone={st.tone} />
                         </div>
@@ -1317,12 +1332,12 @@ export function StaffApp({
 
                         {u.modifiersSummary && (
                           <p className="text-[13px] text-[var(--muted-foreground)]">
-                            Opsi: {u.modifiersSummary}
+                            {t("Opsi:", "Options:")} {u.modifiersSummary}
                           </p>
                         )}
                         {u.note && (
                           <p className="text-[13px] font-medium text-[var(--status-warning-fg)] bg-[var(--status-warning-bg)] rounded-lg p-3 mt-3">
-                            Catatan: &ldquo;{u.note}&rdquo;
+                            {t('Catatan:', 'Note:')} &ldquo;{u.note}&rdquo;
                           </p>
                         )}
                       </div>
@@ -1340,7 +1355,7 @@ export function StaffApp({
                               })
                             }
                           >
-                            Mulai siapkan
+                            {t("Mulai siapkan", "Start preparing")}
                           </Button>
                         )}
                         {u.fulfillmentStatus === 'PREPARING' && (
@@ -1355,7 +1370,7 @@ export function StaffApp({
                               })
                             }
                           >
-                            Siap diantar
+                            {t("Siap diantar", "Ready to serve")}
                           </Button>
                         )}
                         {u.fulfillmentStatus === 'READY' && (
@@ -1371,7 +1386,7 @@ export function StaffApp({
                             }
                           >
                             <Check className="w-4 h-4" />
-                            <span>{takeaway ? 'Sudah diambil' : 'Disajikan'}</span>
+                            <span>{takeaway ? t("Sudah diambil", "Picked up") : t("Disajikan", "Served")}</span>
                           </Button>
                         )}
                       </div>
@@ -1394,12 +1409,12 @@ export function StaffApp({
             <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
 
               <AnimatedSegmentedControl
-                ariaLabel="Sub-menu operasional lantai"
+                ariaLabel={t('Sub-menu operasional lantai', 'Floor operations menu')}
                 options={[
-                  { value: 'DENAH', label: 'Denah & Kunjungan Meja' },
+                  { value: 'DENAH', label: t('Denah & Kunjungan Meja', 'Floor plan & visits') },
                   {
                     value: 'ANTREAN',
-                    label: `Panggilan & Antrean (${openWaitlistCount + openHelpCount})`,
+                    label: t(`Panggilan & Antrean (${openWaitlistCount + openHelpCount})`, `Requests & waitlist (${openWaitlistCount + openHelpCount})`),
                   },
                 ]}
                 value={floorSubTab}
@@ -1436,12 +1451,12 @@ export function StaffApp({
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      Bantuan meja
+                      {t("Bantuan meja", "Table assistance")}
                     </h2>
                   </div>
 
-                  <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"><input type="checkbox" checked={showResolvedRequests} onChange={(e) => setShowResolvedRequests(e.target.checked)} className="accent-[var(--primary-ink)]" />Tampilkan permintaan selesai</label>
-                  {!(snapshot?.serviceRequests || []).some((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED') && <EmptyState title="Semua tamu terlayani" />}
+                  <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"><input type="checkbox" checked={showResolvedRequests} onChange={(e) => setShowResolvedRequests(e.target.checked)} className="accent-[var(--primary-ink)]" />{t("Tampilkan permintaan selesai", "Show completed requests")}</label>
+                  {!(snapshot?.serviceRequests || []).some((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED') && <EmptyState title={t("Semua tamu terlayani", "All guests assisted")} />}
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {(snapshot?.serviceRequests || []).filter((sr: any) => showResolvedRequests || sr.state !== 'RESOLVED').map((sr: any) => (
                       <div
@@ -1452,15 +1467,15 @@ export function StaffApp({
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-[15px]">
-                              Meja {sr.tableLabel} · {sr.customerName}
+                              {t("Meja", "Table")} {sr.tableLabel} · {sr.customerName}
                             </span>
                             <StatusLabel
                               label={
                                 sr.state === 'RESOLVED'
-                                  ? 'Selesai'
+                                  ? t("Selesai", "Done")
                                   : sr.state === 'ACKNOWLEDGED'
-                                  ? 'Sedang Ditangani'
-                                  : 'Menunggu Staf'
+                                  ? t("Sedang Ditangani", "In progress")
+                                  : t("Menunggu Staf", "Waiting for staff")
                               }
                               tone={
                                 sr.state === 'RESOLVED'
@@ -1471,10 +1486,10 @@ export function StaffApp({
                               }
                             />
                           </div>
-                          <p className="text-sm font-medium text-[var(--primary-ink)]">{({ CALL_STAFF: 'Panggil staf', CALL_WAITER: 'Panggil pelayan', ASK_BILL: 'Minta tagihan', REQUEST_BILL: 'Minta tagihan', EXTRA_CUTLERY: 'Alat makan', CUTLERY_NAPKIN: 'Alat makan', CLEAR_TABLE: 'Bersihkan meja', PACK_LEFTOVER: 'Bungkus makanan', ISSUE_REPORT: 'Laporan kendala', ORDER_ISSUE: 'Kendala pesanan' } as Record<string, string>)[sr.requestType || sr.type] || 'Bantuan pelanggan'}</p>
+                          <p className="text-sm font-medium text-[var(--primary-ink)]">{({ CALL_STAFF: t('Panggil staf', 'Call staff'), CALL_WAITER: t('Panggil pelayan', 'Call waiter'), ASK_BILL: t('Minta tagihan', 'Request bill'), REQUEST_BILL: t('Minta tagihan', 'Request bill'), EXTRA_CUTLERY: t('Alat makan', 'Cutlery'), CUTLERY_NAPKIN: t('Alat makan', 'Cutlery'), CLEAR_TABLE: t('Bersihkan meja', 'Clean table'), PACK_LEFTOVER: t('Bungkus makanan', 'Pack food'), ISSUE_REPORT: t('Laporan kendala', 'Report an issue'), ORDER_ISSUE: t('Kendala pesanan', 'Order issue') } as Record<string, string>)[sr.requestType || sr.type] || t('Bantuan pelanggan', 'Customer assistance')}</p>
                           {sr.notes && (
                             <p className="text-[13px] text-[var(--muted-foreground)]">
-                              Permintaan: {sr.notes}
+                              {t("Permintaan:", "Request:")} {sr.notes}
                             </p>
                           )}
                         </div>
@@ -1493,7 +1508,7 @@ export function StaffApp({
                                   })
                                 }
                               >
-                                Tangani
+                                {t("Tangani", "Handle")}
                               </Button>
                             )}
                             <Button
@@ -1508,7 +1523,7 @@ export function StaffApp({
                                 })
                               }
                             >
-                              Selesai
+                              {t("Selesai", "Done")}
                             </Button>
                           </div>
                         )}
@@ -1522,7 +1537,7 @@ export function StaffApp({
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      Antrean meja
+                      {t("Antrean meja", "Table waitlist")}
                     </h2>
                   </div>
 
@@ -1542,10 +1557,10 @@ export function StaffApp({
                             <StatusLabel
                               label={
                                 w.status === 'SEATED'
-                                  ? 'Sudah Duduk'
+                                  ? t("Sudah Duduk", "Seated")
                                   : w.status === 'CALLED'
-                                  ? 'Dipanggil'
-                                  : 'Menunggu'
+                                  ? t("Dipanggil", "Called")
+                                  : t("Menunggu", "Waiting")
                               }
                               tone={
                                 w.status === 'SEATED'
@@ -1557,16 +1572,16 @@ export function StaffApp({
                             />
                           </div>
                           <p className="text-[13px] text-[var(--muted-foreground)]">
-                            {w.partySize} orang · Area {w.preferredArea}
+                            {w.partySize} {t("orang · Area", "guests · Area")} {w.preferredArea}
                             {w.heldTableLabel ? ` · Ditahan di Meja ${w.heldTableLabel}` : ''}
                           </p>
                         </div>
 
                         {['WAITING', 'CALLED'].includes(w.status) && (
                           <div className="flex flex-wrap items-center gap-2">
-                            <SelectField aria-label={`Meja untuk ${w.customerName}`} value={waitlistTables[w.id] || w.heldTableId || ''} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
-                              <option value="">Pilih meja tersedia</option>
-                              {(snapshot?.tables || []).filter((table: any) => table.active && table.capacity >= w.partySize && table.physicalState === 'AVAILABLE' && !(snapshot?.waitlistEntries || []).some((other: any) => other.id !== w.id && other.status === 'CALLED' && other.heldTableId === table.id && Date.parse(other.holdExpiresAt) > Date.parse(snapshot.serverTime))).map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} kursi</option>)}
+                            <SelectField aria-label={t(`Meja untuk ${w.customerName}`, `Table for ${w.customerName}`)} value={waitlistTables[w.id] || w.heldTableId || ''} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
+                              <option value="">{t("Pilih meja tersedia", "Choose an available table")}</option>
+                              {(snapshot?.tables || []).filter((table: any) => table.active && table.capacity >= w.partySize && table.physicalState === 'AVAILABLE' && !(snapshot?.waitlistEntries || []).some((other: any) => other.id !== w.id && other.status === 'CALLED' && other.heldTableId === table.id && Date.parse(other.holdExpiresAt) > Date.parse(snapshot.serverTime))).map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} {t("kursi", "seats")}</option>)}
                             </SelectField>
                             {w.status === 'WAITING' && (
                               <Button
@@ -1581,7 +1596,7 @@ export function StaffApp({
                                   })
                                 }
                               >
-                                Panggil tamu
+                                {t("Panggil tamu", "Call guest")}
                               </Button>
                             )}
                             <Button
@@ -1596,7 +1611,7 @@ export function StaffApp({
                                 })
                               }
                             >
-                              Tempatkan di meja
+                              {t("Tempatkan di meja", "Seat at table")}
                             </Button>
                           </div>
                         )}
@@ -1627,7 +1642,7 @@ export function StaffApp({
                   onClick={() => setShowQrPrintModal(true)}
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Cetak QR meja</span>
+                  <span>{t("Cetak QR meja", "Print table QR codes")}</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -1635,7 +1650,7 @@ export function StaffApp({
                   onClick={() => setShowCsvModal(true)}
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Impor CSV</span>
+                  <span>{t("Impor CSV", "Import CSV")}</span>
                 </Button>
                 <Button
                   variant="primary"
@@ -1643,7 +1658,7 @@ export function StaffApp({
                   onClick={() => setAddMenuModalOpen(true)}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Tambah menu</span>
+                  <span>{t("Tambah menu", "Add menu item")}</span>
                 </Button>
               </div>
             </div>
@@ -1655,18 +1670,18 @@ export function StaffApp({
                 <Input
                   value={menuSearchQuery}
                   onChange={(e) => setMenuSearchQuery(e.target.value)}
-                  placeholder="Cari nama menu atau kode..."
+                  placeholder={t("Cari nama menu atau kode...", "Search menu name or code...")}
                   className="pl-10"
                 />
               </div>
               <div className="sm:col-span-5">
                 <SelectField
-                  aria-label="Filter kategori katalog"
+                  aria-label={t("Filter kategori katalog", "Filter catalogue categories")}
                   value={menuCategoryFilter}
                   onChange={(e) => setMenuCategoryFilter(e.target.value)}
                 >
                   <option value="ALL">
-                    Semua kategori ({(snapshot?.categories || []).length})
+                    {t("Semua kategori (", "All categories (")}{(snapshot?.categories || []).length})
                   </option>
                   {(snapshot?.categories || []).map((c: any) => (
                     <option key={c.id} value={c.id}>
@@ -1710,8 +1725,8 @@ export function StaffApp({
                             referrerPolicy="no-referrer"
                           />
                         ) : null}
-                        <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded-[4px] bg-black/70 text-white text-[10px] font-semibold tabular-nums">
-                          {itemPhotos.length} foto
+                        <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded-[4px] bg-[var(--foreground)]/75 text-white text-[12px] font-semibold tabular-nums">
+                          {itemPhotos.length} {t("foto", "photos")}
                         </span>
                       </button>
 
@@ -1721,12 +1736,12 @@ export function StaffApp({
                             {item.name}
                           </p>
                           <StatusLabel
-                            label={item.manualSoldOut ? 'Habis' : 'Tersedia'}
+                            label={item.manualSoldOut ? t("Habis", "Sold out") : t("Tersedia", "Available")}
                             tone={item.manualSoldOut ? 'danger' : 'success'}
                           />
                         </div>
                         <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
-                          {formatStationName(item.stationCode)} · Mulai{' '}
+                          {formatStationName(item.stationCode, t)} {t("· Mulai", "· Starting at")}{' '}
                           <strong className="text-[var(--foreground)]">
                             {formatIdr(item.minPriceIdr)}
                           </strong>
@@ -1745,7 +1760,7 @@ export function StaffApp({
                         }}
                       >
                         <Images className="w-4 h-4" />
-                        <span>Foto ({itemPhotos.length})</span>
+                        <span>{t("Foto (", "Photos (")}{itemPhotos.length})</span>
                       </Button>
 
                       <Button
@@ -1760,7 +1775,7 @@ export function StaffApp({
                           })
                         }
                       >
-                        {item.manualSoldOut ? 'Aktifkan Kembali' : 'Tandai Habis'}
+                        {item.manualSoldOut ? t("Aktifkan Kembali", "Reactivate") : t("Tandai Habis", "Mark sold out")}
                       </Button>
                     </div>
                   </div>
@@ -1771,7 +1786,7 @@ export function StaffApp({
             {/* Finite Stock Pools Section (Clean Hairline List) */}
             <section className="pt-4 space-y-3">
               <h2 className="font-heading text-[17px] font-bold">
-                Batas stok harian
+                {t("Batas stok harian", "Daily stock limit")}
               </h2>
               <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {(snapshot?.stockPools || [])
@@ -1784,8 +1799,8 @@ export function StaffApp({
                       <div>
                         <p className="font-semibold">{p.name}</p>
                         <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
-                          Tersedia dijual: <strong>{p.availableToSell} porsi</strong> (Fisik:{' '}
-                          {p.onHand} · Dipesan: {p.reserved})
+                          {t("Tersedia dijual:", "Available to sell:")} <strong>{p.availableToSell} {t("porsi", "servings")}</strong> {t("(Fisik:", "(Physical:")}{' '}
+                          {p.onHand} {t("· Dipesan:", "· Reserved:")} {p.reserved})
                         </p>
                       </div>
 
@@ -1800,7 +1815,7 @@ export function StaffApp({
                               [p.id]: Number(e.target.value),
                             })
                           }
-                          aria-label={`Ubah jumlah stok ${p.name}`}
+                          aria-label={t(`Ubah jumlah stok ${p.name}`, `Change stock quantity for ${p.name}`)}
                           className="w-24 min-h-[36px] py-1 tabular-nums text-center"
                         />
                         <Button
@@ -1814,10 +1829,10 @@ export function StaffApp({
                               newOnHand: stockAdjustMap[p.id] ?? p.onHand,
                               reason: 'Penyesuaian stok harian',
                             });
-                            setActionNotice(`Stok ${p.name} berhasil diperbarui.`);
+                            setActionNotice(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
                           }}
                         >
-                          Perbarui stok
+                          {t("Perbarui stok", "Update stock")}
                         </Button>
                       </div>
                     </div>
@@ -1833,23 +1848,23 @@ export function StaffApp({
         {sectionEnabled('laporan') && activeSection === 'laporan' && (
           <div key="pos-laporan" className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
-              <div className="flex flex-wrap items-end gap-2"><div className="space-y-1"><Label htmlFor="report-date">Tanggal tagihan</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div><Button variant="secondary" size="sm" onClick={() => setReportDate(todayReportDate)}>Hari ini</Button></div>
-              <Button variant="secondary" size="sm" disabled={!reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />Unduh CSV</Button>
+              <div className="flex flex-wrap items-end gap-2"><div className="space-y-1"><Label htmlFor="report-date">{t("Tanggal tagihan", "Bill date")}</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div><Button variant="secondary" size="sm" onClick={() => setReportDate(todayReportDate)}>{t("Hari ini", "Today")}</Button></div>
+              <Button variant="secondary" size="sm" disabled={!reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />{t("Unduh CSV", "Download CSV")}</Button>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Tagihan</p><p className="font-heading text-3xl font-semibold mt-2 tabular-nums">{reportBills.length}</p></div>
-              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Nilai tagihan</p><Money amount={reportTotals.billed} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
-              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Diterima bersih</p><Money amount={reportTotals.received - reportTotals.refunded} className="block font-heading text-xl lg:text-2xl font-semibold mt-2 text-[var(--primary-ink)]" /></div>
-              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">Belum dibayar</p><Money amount={reportTotals.outstanding} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">{t("Tagihan", "Bills")}</p><p className="font-heading text-3xl font-semibold mt-2 tabular-nums">{reportBills.length}</p></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">{t("Nilai tagihan", "Billed amount")}</p><Money amount={reportTotals.billed} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">{t("Diterima bersih", "Net receipts")}</p><Money amount={reportTotals.received - reportTotals.refunded} className="block font-heading text-xl lg:text-2xl font-semibold mt-2 text-[var(--primary-ink)]" /></div>
+              <div className="p-5 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"><p className="text-sm text-[var(--muted-foreground)]">{t("Belum dibayar", "Unpaid")}</p><Money amount={reportTotals.outstanding} className="block font-heading text-xl lg:text-2xl font-semibold mt-2" /></div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Rincian tagihan</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
-                {[['Harga menu', reportTotals.subtotal], ['Potongan', -reportTotals.discount], ['Biaya layanan', reportTotals.service], ['Pajak', reportTotals.tax], ['Koreksi tagihan', reportTotals.corrections], ['Nilai tagihan setelah koreksi', reportTotals.billed]].map(([label, amount]) => <div key={label} className="py-3 flex justify-between gap-3"><dt>{label}</dt><dd><Money amount={Number(amount)} /></dd></div>)}
+              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Rincian tagihan", "Bill details")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
+                {[[t('Harga menu', 'Menu price'), reportTotals.subtotal], [t('Potongan', 'Discount'), -reportTotals.discount], [t('Biaya layanan', 'Service charge'), reportTotals.service], [t('Pajak', 'Tax'), reportTotals.tax], [t('Koreksi tagihan', 'Bill adjustment'), reportTotals.corrections], [t('Nilai tagihan setelah koreksi', 'Bill after adjustment'), reportTotals.billed]].map(([label, amount]) => <div key={label} className="py-3 flex justify-between gap-3"><dt>{label}</dt><dd><Money amount={Number(amount)} /></dd></div>)}
               </dl></section>
-              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Pembayaran</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>Pembayaran diterima</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>Uang dikembalikan</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>Penerimaan bersih</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">Cakupan: tagihan pada tanggal yang dipilih. Penerimaan menghitung pembayaran dan pengembalian untuk tagihan tersebut. Tagihan batal tidak dihitung. Biaya bahan, gaji, dan laba belum tercakup.</p></section>
+              <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Pembayaran", "Payment")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>{t("Pembayaran diterima", "Payments received")}</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>{t("Uang dikembalikan", "Refunds")}</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>{t("Penerimaan bersih", "Net receipts")}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">{t("Cakupan: tagihan pada tanggal yang dipilih. Penerimaan menghitung pembayaran dan pengembalian untuk tagihan tersebut. Tagihan batal tidak dihitung. Biaya bahan, gaji, dan laba belum tercakup.", "Scope: bills on the selected date. Receipts include payments and refunds for those bills. Cancelled bills are excluded. Ingredient costs, wages and profit are not included.")}</p></section>
             </div>
-            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Daftar tagihan</h2>{!reportBills.length ? <EmptyState title="Belum ada tagihan" description="Pilih tanggal lain atau buat pesanan untuk melihat laporan." /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label="Daftar tagihan tanggal terpilih" tabIndex={0}><table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{['Pemesan / meja', 'Status', 'Nilai tagihan', 'Diterima bersih', 'Sisa'].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}><th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState).label}</td><td className="px-4 py-3"><Money amount={Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0))} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody></table></div>}</section>
-            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">Catatan shift kasir</h2>{!reportShifts.length ? <p className="text-sm text-[var(--muted-foreground)]">Tidak ada shift pada tanggal ini.</p> : <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">{reportShifts.map((shift: any) => <div key={shift.id} className="py-4 flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold">{shift.drawerName}</p><p className="text-xs text-[var(--muted-foreground)] mt-1">{shift.operatorName} · {shift.state === 'OPEN' ? 'Terbuka' : 'Ditutup'}</p></div><dl className="flex flex-wrap gap-5 text-sm"><div><dt className="text-xs text-[var(--muted-foreground)]">Perkiraan laci</dt><dd className="mt-1"><Money amount={shift.expectedCashIdr} /></dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Uang terhitung</dt><dd className="mt-1">{shift.countedCashIdr == null ? 'Belum ditutup' : <Money amount={shift.countedCashIdr} />}</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">Selisih</dt><dd className="mt-1">{shift.varianceIdr == null ? 'Belum ditutup' : <Money amount={shift.varianceIdr} signed />}</dd></div></dl></div>)}</div>}</section>
+            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Daftar tagihan", "Bills")}</h2>{!reportBills.length ? <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Pilih tanggal lain atau buat pesanan untuk melihat laporan.", "Select another date or create an order to view reports.")} /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label={t("Daftar tagihan tanggal terpilih", "Bills for selected date")} tabIndex={0}><table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{[t('Pemesan / meja','Customer / table'), 'Status', t('Nilai tagihan','Billed amount'), t('Diterima bersih','Net receipts'), t('Sisa','Remaining')].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}><th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState, t).label}</td><td className="px-4 py-3"><Money amount={Math.max(0, Number(bill.originalTotalIdr || 0) + Number(bill.debitAdjustmentsIdr || 0) - Number(bill.creditAdjustmentsIdr || 0))} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody></table></div>}</section>
+            <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Catatan shift kasir", "Cashier shift notes")}</h2>{!reportShifts.length ? <p className="text-sm text-[var(--muted-foreground)]">{t("Tidak ada shift pada tanggal ini.", "No shifts on this date.")}</p> : <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">{reportShifts.map((shift: any) => <div key={shift.id} className="py-4 flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold">{shift.drawerName}</p><p className="text-xs text-[var(--muted-foreground)] mt-1">{shift.operatorName} · {shift.state === 'OPEN' ? t("Terbuka", "Open") : t("Ditutup", "Closed")}</p></div><dl className="flex flex-wrap gap-5 text-sm"><div><dt className="text-xs text-[var(--muted-foreground)]">{t("Perkiraan laci", "Expected cash")}</dt><dd className="mt-1"><Money amount={shift.expectedCashIdr} /></dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">{t("Uang terhitung", "Counted cash")}</dt><dd className="mt-1">{shift.countedCashIdr == null ? t("Belum ditutup", "Not closed") : <Money amount={shift.countedCashIdr} />}</dd></div><div><dt className="text-xs text-[var(--muted-foreground)]">{t("Selisih", "Difference")}</dt><dd className="mt-1">{shift.varianceIdr == null ? t("Belum ditutup", "Not closed") : <Money amount={shift.varianceIdr} signed />}</dd></div></dl></div>)}</div>}</section>
           </div>
         )}
 
@@ -1863,16 +1878,16 @@ export function StaffApp({
           >
 
 
-            {(canCashier || isModuleEnabled('ordering')) && <section aria-label="Alur pemesanan" className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4">
-              <div><h2 className="font-heading text-lg font-semibold">Alur pemesanan</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">Berlaku untuk pesanan yang diterima setelah pengaturan disimpan. Pesanan yang sudah diterima tetap memakai aturan semula.</p></div>
+            {(canCashier || isModuleEnabled('ordering')) && <section aria-label={t("Alur pemesanan", "Ordering flow")} className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4">
+              <div><h2 className="font-heading text-lg font-semibold">{t("Alur pemesanan", "Ordering flow")}</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{t("Berlaku untuk pesanan yang diterima setelah pengaturan disimpan. Pesanan yang sudah diterima tetap memakai aturan semula.", "Applies to orders accepted after saving. Previously accepted orders keep their original rules.")}</p></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5"><Label htmlFor="dine-payment-policy">Pembayaran makan di tempat</Label><SelectField id="dine-payment-policy" value={policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomPaymentPolicy(event.target.value); }}><option value="PREPAY">Bayar sebelum dibuat</option><option value="PAY_LATER">Bayar setelah makan</option></SelectField></div>
-                <div className="space-y-1.5"><Label htmlFor="takeaway-payment-policy">Pembayaran bawa pulang</Label><SelectField id="takeaway-payment-policy" value={policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomTakeawayPolicy(event.target.value); }}><option value="PREPAY">Bayar sebelum dibuat</option><option value="PAY_LATER">Bayar saat pengambilan</option></SelectField></div>
+                <div className="space-y-1.5"><Label htmlFor="dine-payment-policy">{t("Pembayaran makan di tempat", "Dine-in payment")}</Label><SelectField id="dine-payment-policy" value={policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomPaymentPolicy(event.target.value); }}><option value="PREPAY">{t("Bayar sebelum dibuat", "Pay before preparation")}</option><option value="PAY_LATER">{t("Bayar setelah makan", "Pay after dining")}</option></SelectField></div>
+                <div className="space-y-1.5"><Label htmlFor="takeaway-payment-policy">{t("Pembayaran bawa pulang", "Takeaway payment")}</Label><SelectField id="takeaway-payment-policy" value={policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomTakeawayPolicy(event.target.value); }}><option value="PREPAY">{t("Bayar sebelum dibuat", "Pay before preparation")}</option><option value="PAY_LATER">{t("Bayar saat pengambilan", "Pay on pickup")}</option></SelectField></div>
               </div>
-              {!canCashier && !isModuleEnabled('payments') && <p className="text-sm text-[var(--muted-foreground)]">Pembayaran ditangani kasir di luar sistem. Staf dapat mengonfirmasi penerimaan pembayaran pada tagihan pesanan.</p>}
-              <label className="flex items-center gap-3 text-sm min-h-11"><input type="checkbox" className="h-4 w-4 accent-[var(--primary-ink)]" checked={policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant)} onChange={event => { editPolicy(); setCustomAutoAccept(event.target.checked); }} />Terima otomatis pesanan tambahan tamu aktif</label>
-              <p className="text-xs text-[var(--muted-foreground)]">Pesanan pertama tetap menunggu konfirmasi staf. Tamu yang sudah diterima dapat menambah pesanan dalam kunjungan yang sama.</p>
-              <Button disabled={busy} onClick={async () => { try { await runStaffCommand('SETTINGS_PROMO_FEEDBACK_ACTION', { action: 'UPDATE_OUTLET_POLICY', paymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy, takeawayPaymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy, autoAcceptParticipant: policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant) }); setPolicyEditing(false); setActionNotice('Alur pemesanan disimpan. Pesanan berikutnya mengikuti pengaturan ini.'); } catch { /* Displayed by runStaffCommand. */ } }}>Simpan alur pemesanan</Button>
+              {!canCashier && !isModuleEnabled('payments') && <p className="text-sm text-[var(--muted-foreground)]">{t("Pembayaran ditangani kasir di luar sistem. Staf dapat mengonfirmasi penerimaan pembayaran pada tagihan pesanan.", "Payment is handled by the cashier outside the system. Staff can confirm payment on the order bill.")}</p>}
+              <label className="flex items-center gap-3 text-sm min-h-11"><input type="checkbox" className="h-4 w-4 accent-[var(--primary-ink)]" checked={policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant)} onChange={event => { editPolicy(); setCustomAutoAccept(event.target.checked); }} />{t("Terima otomatis pesanan tambahan tamu aktif", "Automatically accept additional orders from active guests")}</label>
+              <p className="text-xs text-[var(--muted-foreground)]">{t("Pesanan pertama tetap menunggu konfirmasi staf. Tamu yang sudah diterima dapat menambah pesanan dalam kunjungan yang sama.", "The first order still requires staff confirmation. Accepted guests can place additional orders during the same visit.")}</p>
+              <Button disabled={busy} onClick={async () => { try { await runStaffCommand('SETTINGS_PROMO_FEEDBACK_ACTION', { action: 'UPDATE_OUTLET_POLICY', paymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy, takeawayPaymentPolicy: !canCashier && !isModuleEnabled('payments') ? 'PAY_LATER' : policyEditing ? customTakeawayPolicy : snapshot?.outlet?.takeawayPaymentPolicy, autoAcceptParticipant: policyEditing ? customAutoAccept : Boolean(snapshot?.outlet?.autoAcceptParticipant) }); setPolicyEditing(false); setActionNotice(t("Alur pemesanan disimpan. Pesanan berikutnya mengikuti pengaturan ini.", "Ordering settings saved. Future orders will use these settings.")); } catch { /* Displayed by runStaffCommand. */ } }}>{t("Simpan alur pemesanan", "Save ordering flow")}</Button>
             </section>}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1880,12 +1895,12 @@ export function StaffApp({
               <section className="lg:col-span-6 space-y-4">
                 <div>
                   <h2 className="font-heading text-[17px] font-bold">
-                    Pajak &amp; layanan
+                    {t("Pajak & layanan", "Tax & service")}
                   </h2>
                   <p className="text-[13px] text-[var(--muted-foreground)] mt-0.5">
-                    Aktif saat ini:{' '}
+                    {t("Aktif saat ini:", "Currently active:")}{' '}
                     <strong className="text-[var(--foreground)]">
-                      {formatOutletChargePolicy(snapshot?.outlet)}
+                      {formatOutletChargePolicy(snapshot?.outlet, t)}
                     </strong>
                   </p>
                 </div>
@@ -1893,7 +1908,7 @@ export function StaffApp({
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {[
                     {
-                      label: 'Tanpa pajak & layanan',
+                      label: t("Tanpa pajak & layanan", "No tax or service charge"),
                       srv: 0,
                       tax: 0,
                       inc: true,
@@ -1911,13 +1926,13 @@ export function StaffApp({
                       inc: false,
                     },
                     {
-                      label: 'Layanan 5% + PB1 10%',
+                      label: t("Layanan 5% + PB1 10%", "Service 5% + PB1 10%"),
                       srv: 5,
                       tax: 10,
                       inc: false,
                     },
                     {
-                      label: 'Layanan 5% + PPN 11%',
+                      label: t("Layanan 5% + PPN 11%", "Service 5% + VAT 11%"),
                       srv: 5,
                       tax: 11,
                       inc: false,
@@ -1942,7 +1957,7 @@ export function StaffApp({
                             taxBps: preset.tax * 100,
                             taxInclusiveDisplay: preset.inc,
                           });
-                          setActionNotice(`Skema biaya diperbarui: ${preset.label}`);
+                          setActionNotice(t(`Skema biaya diperbarui: ${preset.label}`, `Charge scheme updated: ${preset.label}`));
                         }}
                         className={`w-full py-3 px-2 flex items-center justify-between text-left text-[14px] transition-colors cursor-pointer ${
                           isCurrent
@@ -1960,11 +1975,11 @@ export function StaffApp({
                 {/* Custom Percentage Inputs */}
                 <div className="pt-2 space-y-3">
                   <p className="text-[13px] font-semibold text-[var(--muted-foreground)]">
-                    Tarif kustom
+                    {t("Tarif kustom", "Custom rates")}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label htmlFor="custom-srv-pct">Biaya layanan (%)</Label>
+                      <Label htmlFor="custom-srv-pct">{t("Biaya layanan (%)", "Service charge (%)")}</Label>
                       <Input
                         id="custom-srv-pct"
                         type="number"
@@ -1977,7 +1992,7 @@ export function StaffApp({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="custom-tax-pct">Pajak PB1 / PPN (%)</Label>
+                      <Label htmlFor="custom-tax-pct">{t("Pajak PB1 / PPN (%)", "PB1 / VAT (%)")}</Label>
                       <Input
                         id="custom-tax-pct"
                         type="number"
@@ -2004,10 +2019,10 @@ export function StaffApp({
                         taxBps: txBps,
                         taxInclusiveDisplay: customTaxInclusive,
                       });
-                      setActionNotice('Pajak & layanan disimpan.');
+                      setActionNotice(t("Pajak & layanan disimpan.", "Tax and service settings saved."));
                     }}
                   >
-                    Simpan
+                    {t("Simpan", "Save")}
                   </Button>
                 </div>
               </section>
@@ -2017,7 +2032,7 @@ export function StaffApp({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-heading text-[17px] font-bold">
-                      Promo
+                      {t("Promo", "Promotions")}
                     </h2>
                     <Button
                       variant="secondary"
@@ -2025,7 +2040,7 @@ export function StaffApp({
                       onClick={() => setNewPromoModalOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Tambah promo</span>
+                      <span>{t("Tambah promo", "Add promotion")}</span>
                     </Button>
                   </div>
 
@@ -2040,10 +2055,10 @@ export function StaffApp({
                             {pr.code} · {pr.name}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
-                            Terpakai {pr.quotaUsed} dari {pr.quotaTotal} kuota
+                            {t("Terpakai", "Used")} {pr.quotaUsed} {t("dari", "of")} {pr.quotaTotal} {t("kuota", "quota")}
                           </p>
                         </div>
-                        <StatusLabel label="Aktif" tone="success" />
+                        <StatusLabel label={t("Aktif", "Active")} tone="success" />
                       </div>
                     ))}
                   </div>
@@ -2052,7 +2067,7 @@ export function StaffApp({
                 {/* Customer Feedback */}
                 <div className="pt-4 border-t border-[var(--border)] space-y-3">
                   <h2 className="font-heading text-[17px] font-bold">
-                    Ulasan pelanggan terbaru
+                    {t("Ulasan pelanggan terbaru", "Recent customer reviews")}
                   </h2>
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                     {(snapshot?.feedbackEntries || []).map((fb: any) => (
@@ -2072,15 +2087,15 @@ export function StaffApp({
         )}</MotionPanel></AnimatePresence>
       </main>
 
-      <DialogModal open={Boolean(rejectingRequest)} onClose={() => { if (!busy) setRejectingRequest(null); }} title="Tolak pesanan">
-        {rejectingRequest && <div className="space-y-4"><p className="text-sm">Pesanan {rejectingRequest.customerName} belum akan dibuat. Alasan ini juga terlihat oleh pelanggan.</p><div className="space-y-1.5"><Label htmlFor="order-reject-reason">Alasan penolakan</Label><Textarea id="order-reject-reason" value={rejectReason} maxLength={500} onChange={event => setRejectReason(event.target.value)} placeholder="Contoh: varian yang dipilih baru saja habis" /></div><InlineError message={modalActionError} /><div className="flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={() => setRejectingRequest(null)}>Kembali</Button><Button variant="danger" disabled={busy || rejectReason.trim().length < 3} onClick={async () => { setModalActionError(''); try { await runStaffCommand('REJECT_ORDER_REQUEST', { orderRequestId: rejectingRequest.id, reason: rejectReason.trim() }); setActionNotice(`Pesanan ${rejectingRequest.customerName} ditolak dengan alasan yang tercatat.`); setRejectingRequest(null); } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : 'Pesanan belum ditolak.'); } }}>Konfirmasi penolakan</Button></div></div>}
+      <DialogModal open={Boolean(rejectingRequest)} onClose={() => { if (!busy) setRejectingRequest(null); }} title={t("Tolak pesanan", "Reject order")}>
+        {rejectingRequest && <div className="space-y-4"><p className="text-sm">{t("Pesanan", "Order")} {rejectingRequest.customerName} {t("belum akan dibuat. Alasan ini juga terlihat oleh pelanggan.", "will not be prepared. The customer will also see this reason.")}</p><div className="space-y-1.5"><Label htmlFor="order-reject-reason">{t("Alasan penolakan", "Reason for rejection")}</Label><Textarea id="order-reject-reason" value={rejectReason} maxLength={500} onChange={event => setRejectReason(event.target.value)} placeholder={t("Contoh: varian yang dipilih baru saja habis", "Example: the selected variant has just sold out")} /></div><InlineError message={modalActionError} /><div className="flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={() => setRejectingRequest(null)}>{t("Kembali", "Back")}</Button><Button variant="danger" disabled={busy || rejectReason.trim().length < 3} onClick={async () => { setModalActionError(''); try { await runStaffCommand('REJECT_ORDER_REQUEST', { orderRequestId: rejectingRequest.id, reason: rejectReason.trim() }); setActionNotice(t(`Pesanan ${rejectingRequest.customerName} ditolak dengan alasan yang tercatat.`, `Order for ${rejectingRequest.customerName} rejected with the recorded reason.`)); setRejectingRequest(null); } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : t("Pesanan belum ditolak.", "The order was not rejected.")); } }}>{t("Konfirmasi penolakan", "Confirm rejection")}</Button></div></div>}
       </DialogModal>
 
       {/* ===================================================================== */}
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
-      <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title="Pesanan baru" maxWidth="max-w-5xl">
-        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) setSelectedBillId(billId); setNewOrderModalOpen(false); setActionNotice('Pesanan dibuat. Periksa tagihan dan status pembayarannya.'); }} />}
+      <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title={t("Pesanan baru", "New orders")} maxWidth="max-w-5xl">
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) setSelectedBillId(billId); setNewOrderModalOpen(false); setActionNotice(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}
@@ -2089,20 +2104,20 @@ export function StaffApp({
       <DialogModal
         open={Boolean(cancellingUnit)}
         onClose={() => setCancellingUnit(null)}
-        title={cancellingUnit?.fulfillmentStatus === 'CANCELLED' ? 'Selesaikan pengembalian' : 'Batalkan item'}
+        title={cancellingUnit?.fulfillmentStatus === 'CANCELLED' ? t("Selesaikan pengembalian", "Complete refund") : t("Batalkan item", "Cancel item")}
       >
         {cancellingUnit && (
           <div className="space-y-4">
             <p className="text-[14px] text-[var(--muted-foreground)]">
-              {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Selesaikan pengembalian untuk ' : 'Anda akan membatalkan '}
+              {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? t("Selesaikan pengembalian untuk ", "Complete the refund for ") : t("Anda akan membatalkan ", "You are about to cancel ")}
               <strong className="text-[var(--foreground)]">
-                1× {cancellingUnit.itemNameSnapshot || cancellingUnit.itemName}
+                1× {sampleName(cancellingUnit.menuItemId, cancellingUnit.itemNameSnapshot || cancellingUnit.itemName)}
               </strong>{' '}
-              dari tagihan ini.
+              {t("dari tagihan ini.", "from this bill.")}
             </p>
 
             <div className="space-y-1.5">
-              <Label htmlFor="modal-cancel-reason">{cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Alasan pengembalian' : 'Alasan Pembatalan'}</Label>
+              <Label htmlFor="modal-cancel-reason">{cancellingUnit.fulfillmentStatus === 'CANCELLED' ? t("Alasan pengembalian", "Reason for refund") : t("Alasan Pembatalan", "Reason for cancellation")}</Label>
               <Input
                 id="modal-cancel-reason"
                 value={cancelReasonInput}
@@ -2111,23 +2126,23 @@ export function StaffApp({
             </div>
 
             {cancellingUnit.fulfillmentStatus !== 'CANCELLED' && <div className="space-y-1.5">
-              <Label htmlFor="modal-restock-choice">Stok</Label>
+              <Label htmlFor="modal-restock-choice">{t("Stok", "Stock")}</Label>
               <SelectField
                 id="modal-restock-choice"
                 value={restockChoice}
                 onChange={(e) => setRestockChoice(e.target.value as any)}
               >
-                <option value="RESTOCK">Kembalikan ke stok (belum dimasak)</option>
-                <option value="WASTE">Catat sebagai bahan terbuang</option>
+                <option value="RESTOCK">{t("Kembalikan ke stok (belum dimasak)", "Return to stock (not prepared)")}</option>
+                <option value="WASTE">{t("Catat sebagai bahan terbuang", "Record as waste")}</option>
               </SelectField>
             </div>}
 
-            {selectedBill?.verifiedReceiptsIdr > 0 && <div className="space-y-2"><p className="text-sm text-[var(--muted-foreground)]">Koreksi mengurangi tagihan. Kelebihan pembayaran dikembalikan melalui metode pembayaran semula dan dicatat pada struk.</p>{cancellingUnit.fulfillmentStatus !== 'CANCELLED' && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={refundNow} onChange={event => setRefundNow(event.target.checked)} className="mt-1 accent-[var(--primary-ink)]" />Kembalikan kelebihan pembayaran sekarang</label>}{!refundNow && <p className="text-sm text-[var(--status-warning-fg)]">Pengembalian tetap tercatat sebagai kewajiban. Selesaikan sebelum menutup kunjungan.</p>}</div>}
-            {selectedBill?.hasActiveExternalAttempt && <p className="text-sm text-[var(--status-warning-fg)]">Selesaikan atau batalkan instruksi pembayaran aktif sebelum membatalkan item.</p>}
+            {selectedBill?.verifiedReceiptsIdr > 0 && <div className="space-y-2"><p className="text-sm text-[var(--muted-foreground)]">{t("Koreksi mengurangi tagihan. Kelebihan pembayaran dikembalikan melalui metode pembayaran semula dan dicatat pada struk.", "The adjustment reduces the bill. Excess payment is refunded via the original payment method and recorded on the receipt.")}</p>{cancellingUnit.fulfillmentStatus !== 'CANCELLED' && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={refundNow} onChange={event => setRefundNow(event.target.checked)} className="mt-1 accent-[var(--primary-ink)]" />{t("Kembalikan kelebihan pembayaran sekarang", "Refund the excess payment now")}</label>}{!refundNow && <p className="text-sm text-[var(--status-warning-fg)]">{t("Pengembalian tetap tercatat sebagai kewajiban. Selesaikan sebelum menutup kunjungan.", "The refund remains outstanding. Complete it before closing the visit.")}</p>}</div>}
+            {selectedBill?.hasActiveExternalAttempt && <p className="text-sm text-[var(--status-warning-fg)]">{t("Selesaikan atau batalkan instruksi pembayaran aktif sebelum membatalkan item.", "Complete or cancel active payment instructions before cancelling the item.")}</p>}
             <InlineError message={modalActionError} />
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button variant="secondary" disabled={busy} onClick={() => setCancellingUnit(null)}>
-                Kembali
+                {t("Kembali", "Back")}
               </Button>
               <Button
                 variant="danger"
@@ -2143,11 +2158,11 @@ export function StaffApp({
                       approverName: currentStaffObj.userName,
                     });
                     setCancellingUnit(null);
-                    setActionNotice(response?.result?.refundId ? 'Item dibatalkan dan pengembalian pembayaran tercatat.' : 'Item dibatalkan dan tagihan telah dikoreksi.');
-                  } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : 'Item belum dibatalkan.'); }
+                    setActionNotice(response?.result?.refundId ? t("Item dibatalkan dan pengembalian pembayaran tercatat.", "Item cancelled and refund recorded.") : t("Item dibatalkan dan tagihan telah dikoreksi.", "Item cancelled and bill adjusted."));
+                  } catch (caught) { setModalActionError(caught instanceof Error ? caught.message : t("Item belum dibatalkan.", "The item was not cancelled.")); }
                 }}
               >
-                {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? 'Catat pengembalian' : 'Batalkan item'}
+                {cancellingUnit.fulfillmentStatus === 'CANCELLED' ? t("Catat pengembalian", "Record refund") : t("Batalkan item", "Cancel item")}
               </Button>
             </div>
           </div>
@@ -2160,18 +2175,18 @@ export function StaffApp({
       <DialogModal
         open={addMenuModalOpen}
         onClose={() => setAddMenuModalOpen(false)}
-        title="Tambah menu"
+        title={t("Tambah menu", "Add menu item")}
       >
         <div className="space-y-5">
           {/* Quick Add Category */}
           <div className="pb-4 border-b border-[var(--border)] space-y-2">
-            <Label htmlFor="modal-new-cat">Kategori baru</Label>
+            <Label htmlFor="modal-new-cat">{t("Kategori baru", "New category")}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="modal-new-cat"
                 value={newCategoryNameInput}
                 onChange={(e) => setNewCategoryNameInput(e.target.value)}
-                placeholder="Contoh: Es Krim & Dessert"
+                placeholder={t("Contoh: Es Krim & Dessert", "Example: Ice Cream & Dessert")}
               />
               <Button
                 variant="secondary"
@@ -2183,20 +2198,20 @@ export function StaffApp({
                     newCategoryName: newCategoryNameInput,
                   });
                   setNewCategoryNameInput('');
-                  setActionNotice('Kategori baru berhasil ditambahkan.');
+                  setActionNotice(t("Kategori baru berhasil ditambahkan.", "The new category was added."));
                 }}
               >
-                + Kategori
+                {t("+ Kategori", "+ Category")}
               </Button>
             </div>
           </div>
 
           {/* Add Menu Form */}
           <div className="space-y-3">
-            <p className="font-semibold text-[15px]">Menu baru</p>
+            <p className="font-semibold text-[15px]">{t("Menu baru", "New menu item")}</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Kode</Label>
+                <Label>{t("Kode", "Code")}</Label>
                 <Input
                   value={newMenuCode}
                   onChange={(e) => setNewMenuCode(e.target.value)}
@@ -2204,18 +2219,18 @@ export function StaffApp({
                 />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label>Nama menu</Label>
+                <Label>{t("Nama menu", "Item name")}</Label>
                 <Input
                   value={newMenuName}
                   onChange={(e) => setNewMenuName(e.target.value)}
-                  placeholder="Contoh: Affogato Vanila"
+                  placeholder={t("Contoh: Affogato Vanila", "Example: Vanilla Affogato")}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Kategori</Label>
+                <Label>{t("Kategori", "Category")}</Label>
                 <SelectField
                   value={newMenuCategoryId}
                   onChange={(e) => setNewMenuCategoryId(e.target.value)}
@@ -2228,18 +2243,18 @@ export function StaffApp({
                 </SelectField>
               </div>
               <div className="space-y-1">
-                <Label>Stasiun</Label>
+                <Label>{t("Stasiun", "Station")}</Label>
                 <SelectField
                   value={newMenuStation}
                   onChange={(e) => setNewMenuStation(e.target.value)}
                 >
-                  <option value="BAR">Bar &amp; Kopi</option>
-                  <option value="KITCHEN">Dapur Utama</option>
-                  <option value="PASTRY">Pastry &amp; Roti</option>
+                  <option value="BAR">{t("Bar & Kopi", "Bar & Coffee")}</option>
+                  <option value="KITCHEN">{t("Dapur Utama", "Main Kitchen")}</option>
+                  <option value="PASTRY">{t("Pastry & Roti", "Pastries & Bread")}</option>
                 </SelectField>
               </div>
               <div className="space-y-1">
-                <Label>Harga (Rp)</Label>
+                <Label>{t("Harga (Rp)", "Price (Rp)")}</Label>
                 <Input
                   type="number"
                   value={newMenuPrice}
@@ -2250,20 +2265,20 @@ export function StaffApp({
             </div>
 
             <div className="space-y-1">
-              <Label>Deskripsi singkat</Label>
+              <Label>{t("Deskripsi singkat", "Short description")}</Label>
               <Input
                 value={newMenuDesc}
                 onChange={(e) => setNewMenuDesc(e.target.value)}
-                placeholder="Deskripsi bahan dan penyajian..."
+                placeholder={t("Deskripsi bahan dan penyajian...", "Ingredients and serving description...")}
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Foto Menu ({newMenuPhotos.length} foto)</Label>
+                <Label>{t("Foto Menu (", "Menu photos (")}{newMenuPhotos.length} {t("foto)", "photos)")}</Label>
                 <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] text-[var(--primary-ink)] font-semibold text-[12px] cursor-pointer">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Pilih foto</span>
+                  <span>{t("Pilih foto", "Choose photo")}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -2283,7 +2298,7 @@ export function StaffApp({
                     >
                       <Image
                         src={pUrl}
-                        alt={`Foto ${idx + 1}`}
+                        alt={t(`Foto ${idx + 1}`, `Photo ${idx + 1}`)}
                         fill
                         className="object-cover"
                         referrerPolicy="no-referrer"
@@ -2316,10 +2331,10 @@ export function StaffApp({
                 setNewMenuName('');
                 setNewMenuDesc('');
                 setAddMenuModalOpen(false);
-                setActionNotice('Menu baru berhasil ditambahkan ke katalog.');
+                setActionNotice(t("Menu baru berhasil ditambahkan ke katalog.", "The new item was added to the catalogue."));
               }}
             >
-              Simpan menu baru
+              {t("Simpan menu baru", "Save new menu item")}
             </Button>
           </div>
         </div>
@@ -2331,7 +2346,7 @@ export function StaffApp({
       <DialogModal
         open={Boolean(editingPhotosItem)}
         onClose={() => setEditingPhotosItem(null)}
-        title={`Galeri Foto: ${editingPhotosItem?.name || ''}`}
+        title={t(`Galeri Foto: ${editingPhotosItem?.name || ''}`, `Photo gallery: ${editingPhotosItem?.name || ''}`)}
       >
         {editingPhotosItem && (
           <div className="space-y-4">
@@ -2345,7 +2360,7 @@ export function StaffApp({
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[8px] bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold text-[13px] cursor-pointer hover:bg-[var(--primary-hover)] transition-colors">
                 <Upload className="w-4 h-4" />
-                <span>Unggah foto</span>
+                <span>{t("Unggah foto", "Upload photo")}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -2357,12 +2372,12 @@ export function StaffApp({
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-[var(--border)]">
-              <Label>URL foto</Label>
+              <Label>{t("URL foto", "Photo URL")}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   value={newPhotoUrlInput}
                   onChange={(e) => setNewPhotoUrlInput(e.target.value)}
-                  placeholder="https://... atau /images/menu/..."
+                  placeholder={t("https://... atau /images/menu/...", "https://... or /images/menu/...")}
                 />
                 <Button
                   variant="secondary"
@@ -2373,7 +2388,7 @@ export function StaffApp({
                     setNewPhotoUrlInput('');
                   }}
                 >
-                  + Tambah
+                  {t("+ Tambah", "+ Add")}
                 </Button>
               </div>
             </div>
@@ -2404,13 +2419,13 @@ export function StaffApp({
                             next.unshift(picked);
                             setPhotoDraftList(next);
                           }}
-                          className="text-[11px] font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
+                          className="text-[12px] font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
                         >
-                          Jadikan foto utama
+                          {t("Jadikan foto utama", "Set as primary photo")}
                         </button>
                       ) : (
-                        <span className="text-[11px] font-semibold text-[var(--primary-ink)]">
-                          Foto utama
+                        <span className="text-[12px] font-semibold text-[var(--primary-ink)]">
+                          {t("Foto utama", "Primary photo")}
                         </span>
                       )}
                       <button
@@ -2419,7 +2434,7 @@ export function StaffApp({
                           setPhotoDraftList(photoDraftList.filter((_, i) => i !== idx))
                         }
                         className="text-[var(--status-danger-fg)] p-1 cursor-pointer"
-                        aria-label={`Hapus foto ${idx + 1}`}
+                        aria-label={t(`Hapus foto ${idx + 1}`, `Remove photo ${idx + 1}`)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -2431,7 +2446,7 @@ export function StaffApp({
 
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
               <Button variant="secondary" onClick={() => setEditingPhotosItem(null)}>
-                Batal
+                {t("Batal", "Cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -2443,10 +2458,10 @@ export function StaffApp({
                     photos: photoDraftList,
                   });
                   setEditingPhotosItem(null);
-                  setActionNotice(`Galeri foto ${editingPhotosItem.name} berhasil disimpan.`);
+                  setActionNotice(t(`Galeri foto ${editingPhotosItem.name} berhasil disimpan.`, `Photo gallery for ${editingPhotosItem.name} saved.`));
                 }}
               >
-                Simpan galeri ({photoDraftList.length} Foto)
+                {t("Simpan galeri (", "Save gallery (")}{photoDraftList.length} {t("Foto)", "photos)")}
               </Button>
             </div>
           </div>
@@ -2459,18 +2474,18 @@ export function StaffApp({
       <DialogModal
         open={showQrPrintModal}
         onClose={() => setShowQrPrintModal(false)}
-        title="QR meja"
+        title={t("QR meja", "Table QR code")}
       >
         <div className="grid grid-cols-2 gap-3">
-          {(snapshot?.tables || []).map((t: any) => (
+          {(snapshot?.tables || []).map((table: any) => (
             <div
-              key={t.id}
+              key={table.id}
               className="p-3 border border-[var(--border)] rounded-[8px] text-center space-y-1 bg-[var(--background)]"
             >
-              <p className="font-heading font-bold text-[15px]">Meja {t.label}</p>
-              <p className="text-[12px] text-[var(--muted-foreground)]">{t.areaName}</p>
-              <p className="text-[11px] text-[var(--primary-ink)] font-mono truncate">
-                ?table={t.label}
+              <p className="font-heading font-bold text-[15px]">{t("Meja", "Table")} {table.label}</p>
+              <p className="text-[12px] text-[var(--muted-foreground)]">{table.areaName}</p>
+              <p className="text-[12px] text-[var(--primary-ink)] font-mono truncate">
+                ?table={table.label}
               </p>
             </div>
           ))}
@@ -2483,7 +2498,7 @@ export function StaffApp({
       <DialogModal
         open={showCsvModal}
         onClose={() => setShowCsvModal(false)}
-        title="Impor menu"
+        title={t("Impor menu", "Import menu")}
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -2534,7 +2549,7 @@ export function StaffApp({
                 setPreviewBatch(res?.result || res);
               }}
             >
-              Periksa CSV
+              {t("Periksa CSV", "Check CSV")}
             </Button>
 
             {previewBatch && previewBatch.errorRows === 0 && (
@@ -2549,10 +2564,10 @@ export function StaffApp({
                   });
                   setPreviewBatch(null);
                   setShowCsvModal(false);
-                  setActionNotice('Katalog CSV berhasil diimpor.');
+                  setActionNotice(t("Katalog CSV berhasil diimpor.", "The CSV catalogue was imported."));
                 }}
               >
-                Simpan ({previewBatch.validRows} Menu)
+                {t("Simpan (", "Save (")}{previewBatch.validRows} {t("Menu)", "items)")}
               </Button>
             )}
           </div>
@@ -2565,26 +2580,26 @@ export function StaffApp({
       <DialogModal
         open={newPromoModalOpen}
         onClose={() => setNewPromoModalOpen(false)}
-        title="Promo baru"
+        title={t("Promo baru", "New promotion")}
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Kode voucher</Label>
+              <Label>{t("Kode voucher", "Voucher code")}</Label>
               <Input
                 value={newPromoCode}
                 onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Nama promo</Label>
+              <Label>{t("Nama promo", "Promotion name")}</Label>
               <Input
                 value={newPromoName}
                 onChange={(e) => setNewPromoName(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Minimum belanja (Rp)</Label>
+              <Label>{t("Minimum belanja (Rp)", "Minimum spend (Rp)")}</Label>
               <Input
                 type="number"
                 value={newPromoMinSpend}
@@ -2593,7 +2608,7 @@ export function StaffApp({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Potongan (Rp)</Label>
+              <Label>{t("Potongan (Rp)", "Discount (Rp)")}</Label>
               <Input
                 type="number"
                 value={newPromoValue}
@@ -2627,10 +2642,10 @@ export function StaffApp({
                 },
               });
               setNewPromoModalOpen(false);
-              setActionNotice(`Voucher promo ${newPromoCode} berhasil diterbitkan.`);
+              setActionNotice(t(`Voucher promo ${newPromoCode} berhasil diterbitkan.`, `Promotion voucher ${newPromoCode} published.`));
             }}
           >
-            Terbitkan voucher
+            {t("Terbitkan voucher", "Publish voucher")}
           </Button>
         </div>
       </DialogModal>

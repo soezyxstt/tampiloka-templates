@@ -1,0 +1,342 @@
+{
+  "cat_kopi": {
+    "name": [
+      "Kopi Espresso & Susu",
+      "Espresso & Milk Coffee"
+    ]
+  },
+  "cat_manual_brew": {
+    "name": [
+      "Manual Brew & Single Origin",
+      "Manual Brew & Single Origin"
+    ]
+  },
+  "cat_non_kopi": {
+    "name": [
+      "Non-Kopi & Matcha",
+      "Non-Coffee & Matcha"
+    ]
+  },
+  "cat_teh": {
+    "name": [
+      "Teh & Seduhan Daun Asli",
+      "Tea & Leaf Infusions"
+    ]
+  },
+  "cat_makanan": {
+    "name": [
+      "Makanan Utama Nusantara",
+      "Indonesian Main Dishes"
+    ]
+  },
+  "cat_pastry": {
+    "name": [
+      "Pastry & Viennoiserie",
+      "Pastry & Viennoiserie"
+    ]
+  },
+  "cat_kudapan": {
+    "name": [
+      "Kudapan & Gorengan Hangat",
+      "Snacks & Fritters"
+    ]
+  },
+  "item_kopi_aren": {
+    "name": [
+      "Es Kopi Susu Gula Aren",
+      "Iced Palm Sugar Milk Coffee"
+    ],
+    "description": [
+      "Espresso double ristretto dengan susu segar dingin dan sirup gula aren organik Garut.",
+      "Double ristretto espresso with cold fresh milk and organic Garut palm sugar syrup."
+    ]
+  },
+  "modgrp_kopi_gula": {
+    "name": [
+      "Takaran Gula (Wajib)",
+      "Sugar level (required)"
+    ]
+  },
+  "modopt_gula_normal": {
+    "name": [
+      "Gula Normal (100%)",
+      "Regular sugar (100%)"
+    ]
+  },
+  "modopt_gula_less": {
+    "name": [
+      "Kurang Manis (70%)",
+      "Less sweet (70%)"
+    ]
+  },
+  "modopt_gula_zero": {
+    "name": [
+      "Tanpa Gula",
+      "No sugar"
+    ]
+  },
+  "modgrp_kopi_es": {
+    "name": [
+      "Takaran Es (Wajib)",
+      "Ice level (required)"
+    ]
+  },
+  "modopt_es_normal": {
+    "name": [
+      "Es Normal",
+      "Regular ice"
+    ]
+  },
+  "modopt_es_less": {
+    "name": [
+      "Es Sedikit",
+      "Less ice"
+    ]
+  },
+  "modgrp_kopi_addon": {
+    "name": [
+      "Tambahan Opsional",
+      "Optional extras"
+    ]
+  },
+  "modopt_addon_oat": {
+    "name": [
+      "Ganti Susu Oat",
+      "Swap to oat milk"
+    ]
+  },
+  "modopt_addon_shot": {
+    "name": [
+      "Extra Shot Espresso",
+      "Extra espresso shot"
+    ]
+  },
+  "modopt_addon_jelly": {
+    "name": [
+      "Jeli Kopi Aren",
+      "Palm sugar coffee jelly"
+    ]
+  },
+  "item_v60_garut": {
+    "name": [
+      "Manual Brew V60 Arabika Garut Kamojang Single Origin Natural",
+      "Garut Kamojang Natural Single Origin V60"
+    ],
+    "description": [
+      "Seduhan manual V60 biji kopi Arabika Kamojang Garut dengan karakter rasa buah tropis, teh hitam, dan cokelat manis.",
+      "V60-brewed Garut Kamojang Arabica with notes of tropical fruit, black tea and sweet chocolate."
+    ]
+  },
+  "var_v60_hot": {
+    "name": [
+      "Panas (Carafe)",
+      "Hot (carafe)"
+    ]
+  },
+  "var_v60_ice": {
+    "name": [
+      "Dingin (Japanese Iced)",
+      "Cold (Japanese iced)"
+    ]
+  },
+  "item_teh_melati": {
+    "name": [
+      "Teh Melati Dingin Daun Asli",
+      "Iced Jasmine Leaf Tea"
+    ],
+    "description": [
+      "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
+      "Refreshing iced Pekalongan jasmine green tea. No required options."
+    ]
+  },
+  "var_teh_std": {
+    "name": [
+      "Gelas Tinggi",
+      "Tall glass"
+    ]
+  },
+  "item_matcha_uji": {
+    "name": [
+      "Matcha Latte Uji Kyoto",
+      "Uji Kyoto Matcha Latte"
+    ],
+    "description": [
+      "Bubuk teh hijau ceremonial grade dari Uji, dikocok hangat lalu dipadukan dengan susu segar.",
+      "Ceremonial-grade Uji green tea whisked warm and mixed with fresh milk."
+    ]
+  },
+  "var_matcha_ice": {
+    "name": [
+      "Dingin",
+      "Iced"
+    ]
+  },
+  "var_matcha_hot": {
+    "name": [
+      "Panas",
+      "Hot"
+    ]
+  },
+  "modgrp_matcha_gula": {
+    "name": [
+      "Tingkat Manis (Wajib)",
+      "Sweetness (required)"
+    ]
+  },
+  "modopt_matcha_normal": {
+    "name": [
+      "Manis Standar",
+      "Regular sweetness"
+    ]
+  },
+  "modopt_matcha_less": {
+    "name": [
+      "Less Sweet",
+      "Less sweet"
+    ]
+  },
+  "item_nasi_ayam": {
+    "name": [
+      "Nasi Ayam Panggang Rempah Sambal Matah",
+      "Spiced Grilled Chicken Rice with Sambal Matah"
+    ],
+    "description": [
+      "Paha ayam panggang bumbu rempah nusantara dengan nasi putih hangat, lalapan segar, dan sambal pilihan.",
+      "Indonesian-spiced grilled chicken thigh with warm rice, fresh vegetables and a choice of sambal."
+    ]
+  },
+  "var_ayam_reg": {
+    "name": [
+      "Porsi Reguler",
+      "Regular portion"
+    ]
+  },
+  "var_ayam_jumbo": {
+    "name": [
+      "Porsi Jumbo (2 Potong Ayam)",
+      "Jumbo portion (2 pieces of chicken)"
+    ]
+  },
+  "modgrp_ayam_sambal": {
+    "name": [
+      "Pilihan Sambal (Wajib)",
+      "Sambal choice (required)"
+    ]
+  },
+  "modopt_sambal_matah": {
+    "name": [
+      "Sambal Matah Bali",
+      "Balinese sambal matah"
+    ]
+  },
+  "modopt_sambal_korek": {
+    "name": [
+      "Sambal Korek Bawang",
+      "Garlic sambal korek"
+    ]
+  },
+  "modopt_sambal_pisah": {
+    "name": [
+      "Sambal Dipisah",
+      "Sambal on the side"
+    ]
+  },
+  "modgrp_ayam_addon": {
+    "name": [
+      "Lauk Tambahan",
+      "Extra sides"
+    ]
+  },
+  "modopt_ayam_telur": {
+    "name": [
+      "Telur Ceplok Setengah Matang",
+      "Soft fried egg"
+    ]
+  },
+  "modopt_ayam_kerupuk": {
+    "name": [
+      "Kerupuk Kaleng",
+      "Crackers"
+    ]
+  },
+  "item_croissant": {
+    "name": [
+      "Croissant Mentega Prancis",
+      "French Butter Croissant"
+    ],
+    "description": [
+      "Pastry berlapis renyah dengan mentega fermentasi, dipanggang hangat setiap pagi.",
+      "Crisp, layered pastry made with cultured butter and baked fresh each morning."
+    ]
+  },
+  "var_croissant_std": {
+    "name": [
+      "Hangat Standar",
+      "Warm"
+    ]
+  },
+  "item_pisang_goreng": {
+    "name": [
+      "Pisang Goreng Keju Gula Palem",
+      "Fried Banana with Cheese and Palm Sugar"
+    ],
+    "description": [
+      "Pisang tanduk goreng tepung renyah dengan taburan keju parut dan gula palem.",
+      "Crisp battered plantain topped with grated cheese and palm sugar."
+    ]
+  },
+  "var_pisang_std": {
+    "name": [
+      "Isi 4 Potong",
+      "4 pieces"
+    ]
+  },
+  "item_cappuccino": {
+    "name": [
+      "Cappuccino",
+      "Cappuccino"
+    ],
+    "description": [
+      "Espresso dan susu kukus dengan lapisan busa lembut.",
+      "Espresso and steamed milk with a soft layer of foam."
+    ]
+  },
+  "var_cappuccino": {
+    "name": [
+      "Panas",
+      "Hot"
+    ]
+  },
+  "item_nasi_goreng": {
+    "name": [
+      "Nasi Goreng Kampung",
+      "Indonesian Fried Rice"
+    ],
+    "description": [
+      "Nasi goreng berbumbu bawang dan kecap, disajikan dengan telur ceplok dan acar.",
+      "Fried rice seasoned with onion and sweet soy sauce, served with a fried egg and pickles."
+    ]
+  },
+  "var_nasi_goreng": {
+    "name": [
+      "Porsi reguler",
+      "Regular portion"
+    ]
+  },
+  "item_pain_chocolat": {
+    "name": [
+      "Pain au Chocolat",
+      "Pain au Chocolat"
+    ],
+    "description": [
+      "Pastry mentega berlapis dengan isian cokelat, dipanggang hingga keemasan.",
+      "Layered butter pastry filled with chocolate and baked until golden."
+    ]
+  },
+  "var_pain_chocolat": {
+    "name": [
+      "Satu potong",
+      "One piece"
+    ]
+  }
+}

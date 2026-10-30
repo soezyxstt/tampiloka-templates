@@ -10,6 +10,7 @@ import '@fontsource/source-sans-3/600.css';
 import { cafeConfig, getBrandCssVariables } from '@/src/config/cafe';
 import './globals.css';
 import { MotionProvider } from '@/components/ui/motion';
+import { LanguageProvider, LanguageToggle } from '@/lib/language';
 
 const fontVariables = { '--font-brand-heading': '"Manrope"', '--font-sans': '"Source Sans 3"' };
 
@@ -23,7 +24,7 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" data-theme={cafeConfig.theme} style={{ ...getBrandCssVariables(), ...fontVariables } as CSSProperties}>
-      <body className="min-h-screen antialiased"><MotionProvider>{children}</MotionProvider></body>
+      <body className="min-h-screen antialiased"><LanguageProvider><div className="flex justify-end px-4 pt-2"><LanguageToggle /></div><MotionProvider>{children}</MotionProvider></LanguageProvider></body>
     </html>
   );
 }
