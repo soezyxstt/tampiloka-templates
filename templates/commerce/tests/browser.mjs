@@ -60,13 +60,13 @@ const checkout = async ({ payment = 'manual', pickup = false, coupon = '' } = {}
   await page.getByRole('heading', { name: 'Selesaikan pesanan' }).waitFor();
   await page.getByLabel('Nama lengkap', { exact: true }).fill('Pelanggan Uji Tampiloka');
   await page.getByLabel('Nomor WhatsApp', { exact: true }).fill('081234567890');
-  if (pickup) await page.locator('input[name="shipping"][value="pickup"]').check();
+  if (pickup) await page.getByRole('radiogroup', { name: 'Metode pengiriman' }).getByRole('radio', { name: /Ambil di toko/ }).check();
   else {
     await page.getByLabel('Alamat lengkap', { exact: true }).fill('Jalan Contoh 12, alamat simulasi');
     await page.getByLabel('Kota / kabupaten', { exact: true }).fill('Bandung');
     await page.getByLabel('Kode pos', { exact: true }).fill('40111');
   }
-  await page.locator(`input[name="payment"][value="${payment}"]`).check();
+  await page.getByRole('radiogroup', { name: 'Metode pembayaran' }).locator(`[role="radio"][value="${payment}"]`).check();
   if (coupon) {
     await page.getByLabel('Kode promo', { exact: true }).fill(coupon);
     await page.getByRole('button', { name: 'Pakai', exact: true }).click();
@@ -99,6 +99,13 @@ try {
   check('Actual Worker and D1 respond; a new visitor receives an isolated demo');
 
   step = 'search-and-product';
+  await page.getByRole('button', { name: 'Filter produk' }).click();
+  const stockFilter = page.getByRole('checkbox', { name: 'Hanya stok tersedia' });
+  await stockFilter.check();
+  assert.equal(await stockFilter.isChecked(), true);
+  await stockFilter.uncheck();
+  assert.equal(await stockFilter.isChecked(), false);
+  await page.getByRole('button', { name: 'Filter produk' }).click();
   await page.getByRole('textbox', { name: 'Cari produk', exact: true }).fill('tidak-ada-produk-ini');
   await page.getByRole('heading', { name: 'Produk belum ditemukan' }).waitFor();
   await page.getByRole('button', { name: 'Hapus filter', exact: true }).click();

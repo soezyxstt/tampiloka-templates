@@ -1,15 +1,20 @@
-import { Button as CoreButton, Dialog as CoreDialog, Input, NativeSelect as Select, Textarea } from '@tampiloka/ui-core';
+import { Button as CoreButton } from './shadcn/button';
+import { Dialog, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from './shadcn/dialog';
+import { Input } from './shadcn/input';
+import { NativeSelect as Select } from './shadcn/native-select';
+import { Textarea } from './shadcn/textarea';
 export { Input, Select, Textarea };
-import { forwardRef, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Check, LoaderCircle, Minus, Plus, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
 export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' | 'danger'; loading?: boolean; compact?: boolean }>(function Button({ variant = 'primary', loading, compact, children, className = '', disabled, ...props }, ref) {
-  return <CoreButton ref={ref} variant={variant === 'primary' ? 'solid' : variant === 'secondary' ? 'outline' : variant === 'quiet' ? 'ghost' : 'danger'} size={compact ? 'sm' : 'md'} className={`button button-${variant} ${compact ? 'button-compact' : ''} ${className}`} disabled={disabled || loading} {...props}>{loading && <LoaderCircle size={16} className="spin" aria-hidden="true" />}{children}</CoreButton>;
+  return <CoreButton ref={ref} variant={variant === 'primary' ? 'default' : variant === 'secondary' ? 'outline' : variant === 'quiet' ? 'ghost' : 'destructive'} size={compact ? 'sm' : 'default'} className={`button button-${variant} ${compact ? 'button-compact' : ''} ${className}`} disabled={disabled || loading} {...props}>{loading && <LoaderCircle size={16} className="spin" aria-hidden="true" />}{children}</CoreButton>;
 });
 export function IconButton({ label, children, className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) { return <CoreButton variant="ghost" size="icon" className={`icon-button ${className}`} {...props} aria-label={label} title={label}>{children}</CoreButton>; }
 export function Modal({ open, onClose, title, description, children, size = 'regular', className = '' }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; size?: 'regular' | 'wide' | 'drawer'; className?: string }) {
-  return <CoreDialog open={open} onOpenChange={value => !value && onClose()} title={title} description={description || title} className={`modal modal-${size} ${className} ${description ? '' : 'hide-description'}`}>{children}</CoreDialog>;
+  const opener = useRef<HTMLElement | null>(null);
+  return <Dialog open={open} onOpenChange={value => !value && onClose()}><DialogPortal><DialogOverlay className="tl-dialog-overlay" /><DialogContent className={`tl-dialog modal modal-${size} ${className} ${description ? '' : 'hide-description'}`} onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={event => { const target = opener.current; if (!target?.isConnected) return; const remaining = [...document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]')].at(-1); if (remaining && !remaining.contains(target)) return; event.preventDefault(); target.focus(); }}><header className="tl-dialog-header"><DialogTitle className="tl-dialog-title">{title}</DialogTitle><DialogDescription className="tl-dialog-description">{description || title}</DialogDescription><DialogClose className="tl-dialog-close" aria-label="Tutup dialog">×</DialogClose></header><div className="tl-dialog-body">{children}</div></DialogContent></DialogPortal></Dialog>;
 }
 export function Field({ label, help, children, className = '' }: { label: string; help?: string; children: ReactNode; className?: string }) { return <label className={`field ${className}`}><span>{label}</span>{children}{help && <small>{help}</small>}</label>; }
 export function Quantity({ value, onChange, max = 99, min = 1, label = 'Jumlah' }: { value: number; onChange: (value: number) => void; max?: number; min?: number; label?: string }) { return <div className="quantity" role="group" aria-label={label}><IconButton label={`Kurangi ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(value - 1)}><Minus size={15} /></IconButton><output aria-live="polite">{value}</output><IconButton label={`Tambah ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(value + 1)}><Plus size={15} /></IconButton></div>; }
