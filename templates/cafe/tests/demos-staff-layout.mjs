@@ -137,7 +137,7 @@ try {
       if (demo.id === 'cashier') {
         const originalPosition = await page.addStyleTag({ content: '.cafe-staff > aside {position:fixed!important;inset:0 auto 0 0!important;width:232px!important;}' });
         const negative = await geometry(page);
-        assert.ok(negative.obscured.some(entry => entry.selector === '.demo-back'), 'The regression detector failed to catch the original overlapping sidebar.');
+        assert.ok(negative.obscured.some(entry => entry.selector === '.demo-context > summary'), 'The regression detector failed to catch the original sidebar overlapping demo context.');
         await page.screenshot({ path: join(out, 'negative-control-fixed-sidebar.png'), animations: 'disabled' });
         await originalPosition.evaluate(element => element.remove());
         await settle(page);
@@ -172,7 +172,7 @@ try {
         await assertLayout(page, `${demo.id} ${width}px top`);
         if ([390, 1024, 1280, 1920].includes(width)) await page.screenshot({ path: join(out, `${demo.id}-${width}-top.png`), animations: 'disabled' });
         // Trial clicks detect overlays without navigating away or changing data.
-        await page.locator('.demo-back').click({ trial: true });
+        await page.locator('.tl-demo-brand').click({ trial: true });
         if ([1280, 1920].includes(width)) {
           await page.locator('.demo-context > summary').click();
           await page.locator('.demo-scenarios > summary').click();
