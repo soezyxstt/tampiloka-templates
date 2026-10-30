@@ -117,6 +117,13 @@ Rules:
 - State is never conveyed by color alone: pair status color with text or an icon.
 - Respect `prefers-reduced-motion` (both templates already zero out durations globally; don't bypass it with JS timers that gate content).
 
+#### Navigation cues and icon alignment
+
+- Do not append decorative arrows to every CTA or link. Use a clear label and the shared button/link treatment, including hover and focus states, to make actions clear.
+- Keep icons when they convey a function: dropdowns, disclosures, carousel direction, or a standalone external-launch control. Keep navigation as native anchors with `href`; preserve keyboard behavior, accessible names, and appropriate `target`/`rel` values. Give icon-only controls an accessible name and hide redundant SVGs from assistive technology.
+- Center icon-only controls on both axes with flex/grid and symmetric padding. Remove text-baseline offsets, using `line-height: 0` where needed. Keep targets at least 44 × 44px and SVGs `display: block` and nonshrinking (`flex-shrink: 0`). Fix the shared component rather than adding one-off position nudges at call sites.
+- Check visual centering on desktop and mobile, including menu controls in closed/open states and hover/focus states. Keep functional icons and their state cues intact when removing decorative arrows.
+
 ### 7. Verification checklist (run before handing off UI work)
 
 1. `pnpm lint:design` → must report `Design tokens OK` for files you touched (the repo-wide count must not grow).
@@ -173,6 +180,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-10-30**: Added shared rules for restrained navigation icons, clear link/button cues, and centered, accessible icon-only controls across current and future templates.
 
 - **2026-10-30**: Standardized public demo exploration around shared theme/mode selectors, customer/staff navigation, bottom-right ID/EN, Tampiloka select styling, and a runtime public catalog contract for current and future template families.
 
