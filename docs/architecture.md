@@ -29,3 +29,7 @@ Tingkat fitur commerce adalah batas server. Konfigurasi visual tidak mengubah ti
 Commerce melayani satu bisnis pemilik toko. Perbandingan dengan marketplace dipakai untuk kelengkapan alur pembeli/staf, bukan untuk mengklaim adanya multi-seller, escrow, pencairan komisi, atau integrasi kurir yang belum dibuat. Sistem mendukung pengiriman berbasis tarif yang diatur dan pencatatan resi; integrasi tarif atau pelacakan kurir perlu adaptor terpisah.
 
 Dashboard, school, dan booking mempunyai manifest rencana. CLI menolak membuatnya sampai implementasi serta tes tersedia.
+
+### Booking family
+
+`templates/booking` uses the Worker/D1 persistence pattern with typed domain adapters, database-safe interval allocations, independent feature levels, an owner content editor, private customer access, and a shared staff workspace. Generated projects own a selected business seed and a local copy of UI core. See [booking architecture](../templates/booking/docs/architecture.md) for transaction and authorization boundaries. Its demo database/session scopes never serve client production data.

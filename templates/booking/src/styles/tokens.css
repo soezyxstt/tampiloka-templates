@@ -1,0 +1,102 @@
+/* Semantic tokens. Brand, composition and capability level are independent. */
+:root {
+  --canvas: #f4f5ef;
+  --surface: #fffef9;
+  --surface-soft: #e9eee4;
+  --ink: #1d312b;
+  --muted: #4e6259;
+  --line: #cbd3c8;
+  --control-border: #7b8d80;
+  --action: #285a46;
+  --on-action: #fffefa;
+  --accent: #587345;
+  --danger: #a22e35;
+  --danger-surface: #fff0f0;
+  --success: #225b43;
+  --success-surface: #e5f2e8;
+  --warning: #805017;
+  --warning-surface: #fff1d8;
+  --info: #285379;
+  --info-surface: #e9f1fb;
+  --font-body: "Manrope", Arial, sans-serif;
+  --font-display: var(--font-body);
+  --font-serif: Georgia, "Times New Roman", serif;
+  --gutter: clamp(20px, 4.3vw, 68px);
+  --max-width: 1440px;
+  --radius: 7px;
+  --demo-height: 0px;
+  --brand-bg: var(--canvas);
+  --brand-surface: var(--surface);
+  --brand-fg: var(--ink);
+  --brand-muted: var(--muted);
+  --brand-primary: var(--action);
+  --brand-primary-fg: var(--on-action);
+  --brand-border: var(--control-border);
+  --brand-radius: var(--radius);
+  --brand-ring: var(--action);
+  --brand-danger: var(--danger);
+  --demo-chrome-bg: #233a32;
+  --demo-chrome-fg: #f8faf6;
+  --demo-chrome-muted: #dae3d9;
+  --demo-chrome-line: #53685c;
+  --demo-chrome-border: #819589;
+  --demo-chrome-hover: #3b5146;
+  --demo-panel-bg: #fffef9;
+  --demo-panel-fg: #20352c;
+  --demo-panel-border: #bbc8bd;
+  --demo-panel-control-border: #7d9283;
+  --demo-panel-hover: #edf1e9;
+}
+:root[data-palette="rose"] {
+  --canvas: #f8f1ec;
+  --surface: #fffaf6;
+  --surface-soft: #eee1dc;
+  --ink: #3e2929;
+  --muted: #70534f;
+  --line: #d9c3bd;
+  --control-border: #9b7a72;
+  --action: #803f48;
+  --on-action: #fffaf6;
+  --accent: #985d51;
+}
+:root[data-palette="slate"] {
+  --canvas: #f0f3f5;
+  --surface: #fcfcf9;
+  --surface-soft: #e3e8ed;
+  --ink: #23323c;
+  --muted: #52636e;
+  --line: #c5cfd6;
+  --control-border: #7b8d98;
+  --action: #294e69;
+  --on-action: #fbfcf9;
+  --accent: #4a6b80;
+}
+:root[data-palette="ochre"] {
+  --canvas: #f7f2e7;
+  --surface: #fffaf0;
+  --surface-soft: #ede4d0;
+  --ink: #3c3021;
+  --muted: #6c5c43;
+  --line: #d7c9ad;
+  --control-border: #948264;
+  --action: #785220;
+  --on-action: #fffaf1;
+  --accent: #89652c;
+}
+:root[data-font="serif"] {
+  --font-display: var(--font-serif);
+}
+/* Operational chrome stays neutral, regardless of the customer brand palette. */
+:root[data-view="staff"] {
+  --canvas: #f4f5f2;
+  --surface: #fdfdf9;
+  --surface-soft: #e9ece7;
+  --ink: #24332c;
+  --muted: #56635a;
+  --line: #ccd4cb;
+  --control-border: #819083;
+  --action: #315844;
+  --on-action: #fffef8;
+  --accent: #536b58;
+  --font-display: var(--font-body);
+}

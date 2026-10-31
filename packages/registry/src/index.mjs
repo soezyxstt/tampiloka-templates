@@ -40,12 +40,82 @@ export const cafePresets = Object.freeze({
   'menu-order-cashier': { name: 'Menu + pesanan + kasir', description: 'Pelanggan memesan dari meja; kasir mengelola tagihan.', url: 'https://cafe-menu-order-pos.tampiloka.site' },
   full: { name: 'Layanan lengkap', description: 'Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.', url: 'https://cafe-full.tampiloka.site' },
 });
+export const bookingLevels = Object.freeze({
+  "catalog": {
+    "name": "Catalog",
+    "description": "Informasi layanan dan CMS tanpa pemesanan.",
+    "capabilities": [
+      "catalog",
+      "cms"
+    ]
+  },
+  "whatsapp": {
+    "name": "WhatsApp",
+    "description": "Pilih layanan dan siapkan pesan permintaan janji.",
+    "capabilities": [
+      "catalog",
+      "cms",
+      "whatsapp"
+    ]
+  },
+  "booking": {
+    "name": "Booking",
+    "description": "Ketersediaan, pemesanan, jadwal staf, dan pembayaran di lokasi.",
+    "capabilities": [
+      "catalog",
+      "cms",
+      "whatsapp",
+      "booking"
+    ]
+  },
+  "full": {
+    "name": "Full",
+    "description": "Pemesanan, pembayaran terverifikasi, tiket QR, dan laporan.",
+    "capabilities": [
+      "catalog",
+      "cms",
+      "whatsapp",
+      "booking",
+      "payments",
+      "tickets",
+      "reports"
+    ]
+  }
+});
+export const bookingPresets = Object.freeze({
+  "medical": {
+    "name": "Medical",
+    "description": "Dokter, spesialisasi, lokasi, dan jadwal konsultasi.",
+    "layout": "appointment-first",
+    "palette": "sage"
+  },
+  "aesthetic": {
+    "name": "Aesthetic",
+    "description": "Perawatan, paket, terapis, dan ruang layanan.",
+    "layout": "editorial",
+    "palette": "rose"
+  },
+  "detailing": {
+    "name": "Auto detailing",
+    "description": "Kendaraan, paket, durasi, dan area kerja.",
+    "layout": "service-market",
+    "palette": "slate"
+  },
+  "consulting": {
+    "name": "Consulting",
+    "description": "Profesional, format pertemuan, dan waktu konsultasi.",
+    "layout": "minimal-professional",
+    "palette": "ochre"
+  }
+});
+export const bookingLayouts = Object.freeze(['appointment-first','editorial','service-market','minimal-professional']);
+export const bookingPalettes = Object.freeze(['sage','rose','slate','ochre']);
 export const templates = Object.freeze([
   { id: 'commerce', name: 'Commerce', description: 'Katalog brand hingga toko dengan stok, pesanan, pembayaran, dan staf.', status: 'available', directory: 'templates/commerce', presets: commercePresets, levels: commerceLevels, demoUrl: 'https://ecommerce.tampiloka.site', defaultPreset: 'editorial', defaultLevel: 'store' },
   { id: 'cafe', name: 'Cafe & resto', description: 'Menu, pesanan dari meja, kasir, dapur, dan operasional.', status: 'available', directory: 'templates/cafe', presets: cafePresets, demoUrl: 'https://cafe.tampiloka.site', defaultPreset: 'catalog' },
   { id: 'dashboard', name: 'Dashboard', description: 'Ruang kerja dan data perusahaan.', status: 'planned', directory: 'templates/dashboard', presets: {} },
   { id: 'school', name: 'School', description: 'Informasi dan operasional sekolah.', status: 'planned', directory: 'templates/school', presets: {} },
-  { id: 'booking', name: 'Booking', description: 'Jadwal, layanan, dan pemesanan.', status: 'planned', directory: 'templates/booking', presets: {} },
+  {"id":"booking","name":"Booking","description":"Layanan dan janji dengan jadwal, kapasitas, pembayaran, serta tiket.","status":"available","directory":"templates/booking","presets":bookingPresets,"levels":bookingLevels,"defaultPreset":"medical","defaultLevel":"booking"},
 ]);
 export function getTemplate(id, { availableOnly = false } = {}) {
   const template = templates.find(item => item.id === id || (id === 'ecommerce' && item.id === 'commerce'));

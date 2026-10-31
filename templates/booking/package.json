@@ -1,0 +1,44 @@
+{
+  "name": "@tampiloka/template-booking",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs --demo",
+    "dev:client": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && vite build --mode demo",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:e2e": "node tests/browser.mjs",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "pnpm build && wrangler deploy",
+    "deploy:demo": "pnpm build:demo && wrangler deploy --config wrangler.demo.jsonc"
+  },
+  "dependencies": {
+    "@tampiloka/ui-core": "workspace:*",
+    "@radix-ui/react-select": "2.4.1",
+    "@fontsource/manrope": "5.3.0",
+    "lucide-react": "0.553.0",
+    "motion": "12.43.0",
+    "qrcode": "1.5.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "jsqr": "1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/qrcode": "^1.5.5",
+    "@vitejs/plugin-react": "6.1.2",
+    "playwright": "1.56.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "wrangler": "4.154.0"
+  }
+}

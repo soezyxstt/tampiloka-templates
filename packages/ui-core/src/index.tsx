@@ -18,8 +18,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 export const NativeSelect = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function NativeSelect({ className, ...props }, ref) {
   return <select ref={ref} className={cx('tl-input', 'tl-select', className)} {...props} />;
 });
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; className?: string }
-export function Dialog({ open, onOpenChange, title, description, children, footer, className }: DialogProps) {
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; className?: string; closeLabel?: string }
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeLabel = 'Tutup dialog' }: DialogProps) {
   const descriptionId = useId();
   const opener = useRef<HTMLElement | null>(null);
   return <RadixDialog.Root open={open} onOpenChange={onOpenChange}><RadixDialog.Portal>
@@ -36,7 +36,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       }}>
       <header className="tl-dialog-header"><RadixDialog.Title className="tl-dialog-title">{title}</RadixDialog.Title>
       {description && <RadixDialog.Description id={descriptionId} className="tl-dialog-description">{description}</RadixDialog.Description>}
-      <RadixDialog.Close className="tl-dialog-close" aria-label="Tutup dialog">×</RadixDialog.Close></header>
+      <RadixDialog.Close className="tl-dialog-close" aria-label={closeLabel}>×</RadixDialog.Close></header>
       <div className="tl-dialog-body">{children}</div>{footer && <footer className="tl-dialog-footer">{footer}</footer>}
     </RadixDialog.Content>
   </RadixDialog.Portal></RadixDialog.Root>;

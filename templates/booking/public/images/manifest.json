@@ -1,0 +1,57 @@
+{
+  "license": "Unsplash License",
+  "licenseUrl": "https://unsplash.com/license",
+  "credit": "Unsplash. Photographer attribution is not verified for these image endpoints.",
+  "usage": "Illustrative demo assets only. No association, endorsement, model release or practitioner identity is implied. Replace with client-owned assets before commercial launch when additional rights are needed.",
+  "assets": [
+    {
+      "file": "medical.webp",
+      "source": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "3047a8c331a654728351ba6cc91687a5734ce71cabfb046a29bb7e146fdf39ad",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "aesthetic.webp",
+      "source": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "ab8b991d8ff3eca86e7c2c2aa06cbb84df717736514f04b2667b6cfddaa255ed",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "detailing.webp",
+      "source": "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "47712644a74109880c85a60f512e332e6a6f903be599177fae7566c45a31549e",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "consulting.webp",
+      "source": "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "525eebc1e6a48b50638ec67d6fabbdaad4df7fac44752349daf4a881489ce2c0",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "aesthetic-detail.webp",
+      "source": "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "fd53dec45c319c87d6c9474b336cb6a7a1915845e89490994214729d47ae6f07",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "medical-detail.webp",
+      "source": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "390a465365fa57cebdd429dc7e6e7c9efb0efd2726fb30c1ed3a3c47e8b295b1",
+      "width": 1400,
+      "height": 1050
+    },
+    {
+      "file": "consulting-detail.webp",
+      "source": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1400&h=1050&fit=crop&fm=webp&q=80",
+      "sha256": "00f9d47f4ad128d6fc29c96d2dafaf067facc3379779ed1b70915086d558fc1a",
+      "width": 1400,
+      "height": 1050
+    }
+  ]
+}

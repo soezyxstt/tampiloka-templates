@@ -24,7 +24,7 @@ test('every commerce preset uses valid independent appearance values',()=>{
   assert.equal(Object.keys(commerceLevels).length,4);
 });
 test('planned templates cannot be generated',()=>{
-  for(const id of ['dashboard','school','booking'])assert.throws(()=>getTemplate(id,{availableOnly:true}),/direncanakan/);
+  for(const id of ['dashboard','school'])assert.throws(()=>getTemplate(id,{availableOnly:true}),/direncanakan/);
   assert.equal(getTemplate('ecommerce',{availableOnly:true}).id,'commerce');
 });
 test('available template manifests match registry',async()=>{

@@ -169,10 +169,79 @@
     {
       "id": "booking",
       "name": "Booking",
-      "description": "Jadwal, layanan, dan pemesanan.",
-      "status": "planned",
+      "description": "Layanan dan janji dengan jadwal, kapasitas, pembayaran, serta tiket.",
+      "status": "available",
       "directory": "templates/booking",
-      "presets": {}
+      "presets": {
+        "medical": {
+          "name": "Medical",
+          "description": "Dokter, spesialisasi, lokasi, dan jadwal konsultasi.",
+          "layout": "appointment-first",
+          "palette": "sage"
+        },
+        "aesthetic": {
+          "name": "Aesthetic",
+          "description": "Perawatan, paket, terapis, dan ruang layanan.",
+          "layout": "editorial",
+          "palette": "rose"
+        },
+        "detailing": {
+          "name": "Auto detailing",
+          "description": "Kendaraan, paket, durasi, dan area kerja.",
+          "layout": "service-market",
+          "palette": "slate"
+        },
+        "consulting": {
+          "name": "Consulting",
+          "description": "Profesional, format pertemuan, dan waktu konsultasi.",
+          "layout": "minimal-professional",
+          "palette": "ochre"
+        }
+      },
+      "levels": {
+        "catalog": {
+          "name": "Catalog",
+          "description": "Informasi layanan dan CMS tanpa pemesanan.",
+          "capabilities": [
+            "catalog",
+            "cms"
+          ]
+        },
+        "whatsapp": {
+          "name": "WhatsApp",
+          "description": "Pilih layanan dan siapkan pesan permintaan janji.",
+          "capabilities": [
+            "catalog",
+            "cms",
+            "whatsapp"
+          ]
+        },
+        "booking": {
+          "name": "Booking",
+          "description": "Ketersediaan, pemesanan, jadwal staf, dan pembayaran di lokasi.",
+          "capabilities": [
+            "catalog",
+            "cms",
+            "whatsapp",
+            "booking"
+          ]
+        },
+        "full": {
+          "name": "Full",
+          "description": "Pemesanan, pembayaran terverifikasi, tiket QR, dan laporan.",
+          "capabilities": [
+            "catalog",
+            "cms",
+            "whatsapp",
+            "booking",
+            "payments",
+            "tickets",
+            "reports"
+          ]
+        }
+      },
+      "defaultPreset": "medical",
+      "defaultLevel": "booking"
     }
   ]
 }

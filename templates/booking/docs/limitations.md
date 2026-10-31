@@ -1,0 +1,18 @@
+# Scope and known limitations
+
+This template has working server-backed workflows. It is not a certification that a particular client deployment is ready to accept sensitive data or live payments.
+
+- Merchant-specific Midtrans sandbox/live processing needs credentials and successful verification. Automated provider tests use deterministic mocked HTTP responses. No real funds move in the public demo.
+- Staff authentication initially uses separate shared secrets per role, not named user accounts, MFA, SSO or fine-grained individual audit identities. Replace the adapter when those are required. Customer access uses private sessions and one-booking bearer keys, not a verified-email customer account.
+- Medical mode only schedules visits. It does not manage medical records, diagnoses, symptoms, clinical documents, insurance or prescriptions. Example names and profiles are fictional; no license verification is implied. Real businesses must supply verified public information and an appropriate privacy/retention policy.
+- A generated project serves one business and one business preset. It is not a hosted multi-tenant booking platform. Demo scopes are isolation containers, not a production tenancy design.
+- One appointment contains one service/package and one location. Packages use a combined duration. Recurring appointments, series passes, waitlists, travel routing, external calendar sync and automated video-meeting creation are outside this version. Remote meeting details are arranged by the business.
+- Schedules and service/buffer durations use five-minute increments; offered starts use fifteen-minute increments. There is no cross-midnight service booking. Service duration is bounded at eight hours and scheduling data has explicit validation limits.
+- The current refund model permits one refund request per payment, including a policy-based partial refund. It does not support several successive partial refunds of the same payment. Refund methods still depend on provider support. Offline refunds require an authorized human to return money and record a receipt.
+- QR image/manual/USB input and camera scanning use the same server validator. Physical camera availability and permissions depend on device/browser and HTTPS. A camera error must leave image/manual validation usable. Physical-device camera testing is a launch checklist item, not inferred from headless tests.
+- The site editor accepts local/HTTPS image URLs rather than uploading media. Sample images are illustrative; image licenses do not verify model, property or trademark permissions for a client's marketing use. Replace them with client-owned assets where needed.
+- Notifications are optional. The included email adapter records provider acceptance, not delivery. There is no automatic WhatsApp sending or WhatsApp confirmation ingestion. Unconfigured channels cannot be represented as sent messages.
+- Calendar rendering is bounded at 100 appointments per week; the paginated list remains available. CSV export is bounded at 10,000 rows. Higher-volume clients need range-based reporting/export and operational load tests. The single-business scope revision favors correct scheduling over maximum write throughput.
+- No legal, healthcare-compliance, tax-invoice or financial-audit certification is supplied. A payment receipt is an application ledger view, not automatically a regulated tax invoice. Decide retention, deletion, access governance, backups, monitoring and policy wording with the client before launch.
+
+Public demo readiness, a structural CLI doctor result, an automated test result, and merchant-specific payment readiness are separate checks. Report each separately.

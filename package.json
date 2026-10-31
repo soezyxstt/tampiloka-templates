@@ -21,11 +21,14 @@
     "dev:commerce": "pnpm --filter @tampiloka/template-commerce dev",
     "build:cafe": "pnpm --filter @tampiloka/template-cafe demos:build",
     "build:commerce": "pnpm --filter @tampiloka/template-commerce build",
-    "verify": "pnpm test:cli && pnpm test:registry && pnpm --filter @tampiloka/template-commerce test && pnpm typecheck && pnpm build:commerce && pnpm build:cafe"
+    "verify": "pnpm test:cli && pnpm test:registry && pnpm --filter @tampiloka/template-commerce test && pnpm typecheck && pnpm build:commerce && pnpm build:cafe",
+    "dev:booking": "pnpm --filter @tampiloka/template-booking dev",
+    "build:booking": "pnpm --filter @tampiloka/template-booking build:demo",
+    "test:booking": "pnpm --filter @tampiloka/template-booking test",
+    "test:booking:standalone": "node packages/cli/tests/booking-standalone.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.6",
     "typescript": "5.9.3"
   }
 }
-
