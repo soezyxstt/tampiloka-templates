@@ -300,7 +300,7 @@
       "id": "booking",
       "template": "booking",
       "visibility": "public",
-      "ready": false,
+      "ready": true,
       "name": {
         "id": "Janji layanan",
         "en": "Appointments"
@@ -350,7 +350,7 @@
           "id": "booking-medical",
           "preset": "medical",
           "visibility": "public",
-          "ready": false,
+          "ready": true,
           "name": {
             "id": "Klinik",
             "en": "Medical"
@@ -359,13 +359,14 @@
             "id": "Dokter, spesialisasi, dan jadwal kunjungan.",
             "en": "Practitioners, specialties, and consultation slots."
           },
-          "featured": true
+          "featured": true,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-medical.webp"
         },
         {
           "id": "booking-aesthetic",
           "preset": "aesthetic",
           "visibility": "public",
-          "ready": false,
+          "ready": true,
           "name": {
             "id": "Perawatan",
             "en": "Aesthetic"
@@ -374,13 +375,14 @@
             "id": "Perawatan wajah dan tubuh dengan terapis serta ruang.",
             "en": "Face and body treatments with therapist and room allocation."
           },
-          "featured": false
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-aesthetic.webp"
         },
         {
           "id": "booking-detailing",
           "preset": "detailing",
           "visibility": "public",
-          "ready": false,
+          "ready": true,
           "name": {
             "id": "Perawatan kendaraan",
             "en": "Auto detailing"
@@ -389,13 +391,14 @@
             "id": "Paket, jenis kendaraan, dan kapasitas area kerja.",
             "en": "Packages, vehicle types, and service bay capacity."
           },
-          "featured": false
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-detailing.webp"
         },
         {
           "id": "booking-consulting",
           "preset": "consulting",
           "visibility": "public",
-          "ready": false,
+          "ready": true,
           "name": {
             "id": "Konsultasi",
             "en": "Professional services"
@@ -404,7 +407,8 @@
             "id": "Konsultasi online atau di kantor.",
             "en": "Remote and on-site professional sessions."
           },
-          "featured": false
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-consulting.webp"
         }
       ]
     }

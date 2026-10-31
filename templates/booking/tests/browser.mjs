@@ -37,7 +37,10 @@ async function command(bin, args) {
     );
   });
 }
+const checkFilter = process.env.BOOKING_CHECK_FILTER ? new RegExp(process.env.BOOKING_CHECK_FILTER) : null;
+if (checkFilter) report.filter = process.env.BOOKING_CHECK_FILTER;
 async function check(name, fn) {
+  if (checkFilter && !checkFilter.test(name)) { report.checks.push({ name, status: "skipped" }); return; }
   try {
     await fn();
     report.checks.push({ name, status: "passed" });
@@ -600,6 +603,8 @@ try {
   }
   report.passed = report.checks.filter((x) => x.status === "passed").length;
   report.failed = report.checks.filter((x) => x.status === "failed").length;
+  report.skipped = report.checks.filter((x) => x.status === "skipped").length;
+  if (!report.passed && !report.fatal) report.fatal = "No browser checks passed; check the filter and failures.";
   await writeFile(join(out, "report.json"), JSON.stringify(report, null, 2));
   if (report.failed || report.fatal || report.errors.length)
     process.exitCode = 1;

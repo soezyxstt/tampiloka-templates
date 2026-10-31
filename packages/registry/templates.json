@@ -177,25 +177,29 @@
           "name": "Medical",
           "description": "Dokter, spesialisasi, lokasi, dan jadwal konsultasi.",
           "layout": "appointment-first",
-          "palette": "sage"
+          "palette": "sage",
+          "url": "https://booking.tampiloka.site/?preset=medical&layout=appointment-first&palette=sage&view=customer"
         },
         "aesthetic": {
           "name": "Aesthetic",
           "description": "Perawatan, paket, terapis, dan ruang layanan.",
           "layout": "editorial",
-          "palette": "rose"
+          "palette": "rose",
+          "url": "https://booking.tampiloka.site/?preset=aesthetic&layout=editorial&palette=rose&view=customer"
         },
         "detailing": {
           "name": "Auto detailing",
           "description": "Kendaraan, paket, durasi, dan area kerja.",
           "layout": "service-market",
-          "palette": "slate"
+          "palette": "slate",
+          "url": "https://booking.tampiloka.site/?preset=detailing&layout=service-market&palette=slate&view=customer"
         },
         "consulting": {
           "name": "Consulting",
           "description": "Profesional, format pertemuan, dan waktu konsultasi.",
           "layout": "minimal-professional",
-          "palette": "ochre"
+          "palette": "ochre",
+          "url": "https://booking.tampiloka.site/?preset=consulting&layout=minimal-professional&palette=ochre&view=customer"
         }
       },
       "levels": {
@@ -241,7 +245,8 @@
         }
       },
       "defaultPreset": "medical",
-      "defaultLevel": "booking"
+      "defaultLevel": "booking",
+      "demoUrl": "https://booking.tampiloka.site"
     }
   ]
 }

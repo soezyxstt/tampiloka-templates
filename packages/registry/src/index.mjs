@@ -87,25 +87,29 @@ export const bookingPresets = Object.freeze({
     "name": "Medical",
     "description": "Dokter, spesialisasi, lokasi, dan jadwal konsultasi.",
     "layout": "appointment-first",
-    "palette": "sage"
+    "palette": "sage",
+    "url": "https://booking.tampiloka.site/?preset=medical&layout=appointment-first&palette=sage&view=customer"
   },
   "aesthetic": {
     "name": "Aesthetic",
     "description": "Perawatan, paket, terapis, dan ruang layanan.",
     "layout": "editorial",
-    "palette": "rose"
+    "palette": "rose",
+    "url": "https://booking.tampiloka.site/?preset=aesthetic&layout=editorial&palette=rose&view=customer"
   },
   "detailing": {
     "name": "Auto detailing",
     "description": "Kendaraan, paket, durasi, dan area kerja.",
     "layout": "service-market",
-    "palette": "slate"
+    "palette": "slate",
+    "url": "https://booking.tampiloka.site/?preset=detailing&layout=service-market&palette=slate&view=customer"
   },
   "consulting": {
     "name": "Consulting",
     "description": "Profesional, format pertemuan, dan waktu konsultasi.",
     "layout": "minimal-professional",
-    "palette": "ochre"
+    "palette": "ochre",
+    "url": "https://booking.tampiloka.site/?preset=consulting&layout=minimal-professional&palette=ochre&view=customer"
   }
 });
 export const bookingLayouts = Object.freeze(['appointment-first','editorial','service-market','minimal-professional']);
@@ -115,7 +119,7 @@ export const templates = Object.freeze([
   { id: 'cafe', name: 'Cafe & resto', description: 'Menu, pesanan dari meja, kasir, dapur, dan operasional.', status: 'available', directory: 'templates/cafe', presets: cafePresets, demoUrl: 'https://cafe.tampiloka.site', defaultPreset: 'catalog' },
   { id: 'dashboard', name: 'Dashboard', description: 'Ruang kerja dan data perusahaan.', status: 'planned', directory: 'templates/dashboard', presets: {} },
   { id: 'school', name: 'School', description: 'Informasi dan operasional sekolah.', status: 'planned', directory: 'templates/school', presets: {} },
-  {"id":"booking","name":"Booking","description":"Layanan dan janji dengan jadwal, kapasitas, pembayaran, serta tiket.","status":"available","directory":"templates/booking","presets":bookingPresets,"levels":bookingLevels,"defaultPreset":"medical","defaultLevel":"booking"},
+  {"id":"booking","name":"Booking","description":"Layanan dan janji dengan jadwal, kapasitas, pembayaran, serta tiket.","status":"available","directory":"templates/booking","presets":bookingPresets,"levels":bookingLevels,"defaultPreset":"medical","defaultLevel":"booking","demoUrl":"https://booking.tampiloka.site"},
 ]);
 export function getTemplate(id, { availableOnly = false } = {}) {
   const template = templates.find(item => item.id === id || (id === 'ecommerce' && item.id === 'commerce'));

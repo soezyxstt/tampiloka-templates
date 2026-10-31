@@ -37,10 +37,12 @@ The output owns its configuration, source, shared UI copy, database binding, and
 
 - [Architecture and data integrity](docs/architecture.md)
 - [Feature boundaries and state transitions](docs/levels.md)
+- [Layouts, tokens and interaction rules](docs/design.md)
 - [Client setup and brand customization](docs/client-setup.md)
 - [Deployment and payment verification](docs/deployment.md)
 - [Adding presets, rules, providers and channels](docs/extensions.md)
 - [Security boundaries and known limitations](docs/limitations.md)
+- [Recorded release verification](docs/verification.md)
 - [Photo sources](public/images/manifest.json)
 
 ## Verification commands
