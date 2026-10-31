@@ -29,6 +29,10 @@ function track(page) { lastPage = page; page.on('pageerror', e => errors.push(e.
 async function ready(page) {
     await page.locator('.tl-demo-toolbar').waitFor();
     await page.locator('#main-content').waitFor();
+    const params = new URL(page.url()).searchParams;
+    const view = params.get('view') || 'visitor';
+    const role = params.get('preview') === 'true' ? 'admin' : view === 'staff' ? params.get('role') || 'admin' : view;
+    await page.locator(`.school[data-role="${role}"]`).waitFor();
     await page.evaluate(() => document.fonts.ready);
     await page.locator('img').evaluateAll(imgs => Promise.all(imgs.filter(i => i.loading !== 'lazy' || i.getBoundingClientRect().top < innerHeight).map(i => i.decode().catch(() => { }))));
     await page.waitForTimeout(300);
@@ -71,7 +75,9 @@ async function current(page, role = 'student') {
     const u = new URL(page.url());
     const r = await page.request.get(`${base}/api/bootstrap?${u.searchParams}`, { headers: { 'X-Demo-Role': role } });
     assert.equal(r.status(), 200);
-    return r.json();
+    const value = await r.json();
+    assert.equal(value.demo, true, 'Never run mutating browser fixtures against production');
+    return value;
 }
 async function navigate(page, patch) {
     const u = new URL(page.url());
@@ -135,29 +141,43 @@ try {
     // Use the actual staff actions and verify the persisted record, not only the visible badge.
     for (const preset of presets) {
         const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+        await ctx.tracing.start({ screenshots: true, snapshots: true, sources: true });
         const page = await ctx.newPage(); track(page);
         await page.goto(`${base}/?preset=${preset}&level=full&layout=course-discovery&theme=cobalt&lang=en&view=visitor`);
         await ready(page);
-        await page.locator('.tl-demo-views').getByRole('link', { name: 'Student', exact: true }).click();
+        await current(page, 'visitor');
+        await page.getByRole('link', { name: 'Apply to join', exact: true }).first().click();
         await ready(page);
-        await navigate(page, { page: 'apply' });
+        const intake = page.getByRole('combobox', { name: 'Class & intake', exact: true });
+        await intake.scrollIntoViewIfNeeded(); await intake.focus(); await page.keyboard.press('Enter');
+        await page.getByRole('listbox').waitFor(); await page.keyboard.press('Escape');
+        assert.equal(await intake.evaluate(el => el === document.activeElement), true);
+        await intake.click(); await page.getByRole('listbox').waitFor(); await page.keyboard.press('Escape');
         const s = await current(page);
         await fillRegistration(page, s);
         await page.getByRole('button', { name: 'Save draft', exact: true }).click();
         await page.getByRole('link', { name: 'Continue application', exact: true }).waitFor();
-        await page.getByRole('link', { name: 'Continue application', exact: true }).click();
+        const savedDraft = (await current(page)).enrollments.find(e => e.status === 'draft');
+        assert.ok(savedDraft, 'Draft is persisted');
+        await page.getByRole('link', { name: 'Continue application', exact: true }).click(); await ready(page);
+        for (const f of s.registrationFields.filter(f => f.required)) {
+            if (f.type === 'select') assert.equal((await page.getByRole('combobox', { name: f.label.en + ' *', exact: true }).innerText()).trim(), savedDraft.answers[f.name]);
+            else if (f.type !== 'checkbox') assert.equal(await page.getByLabel(f.label.en + ' *', { exact: true }).inputValue(), savedDraft.answers[f.name]);
+        }
         await fillRegistration(page, s);
         await capture(page, { path: `${out}/${preset}-application-mobile.png`, fullPage: true });
         await page.getByRole('button', { name: 'Submit application', exact: true }).click();
-        await page.locator('.enrollment-card .status-submitted').first().waitFor();
+        await page.locator('.enrollment-card .section-title > .status-submitted').first().waitFor();
         await overflow(page, 'student application');
         let snap = await current(page);
         const id = snap.enrollments.find(e => e.studentId === 'student-sinta').id;
+        assert.equal(id, savedDraft.id, 'Submitting keeps the draft identity');
+        assert.equal(snap.enrollments.some(e => e.id === 'application-sample'), false, 'Other students remain private');
         assert.equal(snap.enrollments.find(e => e.id === id).status, 'submitted');
         await page.locator('.tl-demo-views').getByRole('link', { name: 'Staff', exact: true }).click();
         await ready(page);
         await page.getByRole('navigation', { name: 'Staff navigation' }).getByRole('link', { name: 'Applications', exact: true }).click();
-        const row = page.getByRole('row').filter({ hasText: 'Sinta' });
+        const row = page.locator(`tr[data-enrollment-id="${id}"]`);
         await row.getByRole('button', { name: 'Review', exact: true }).click();
         await page.getByRole('button', { name: 'Start review', exact: true }).click();
         await page.getByRole('button', { name: 'Accept', exact: true }).click();
@@ -165,12 +185,17 @@ try {
         await page.keyboard.press('Escape');
         await page.locator('.tl-demo-views').getByRole('link', { name: 'Student', exact: true }).click();
         await ready(page);
-        await page.locator('.enrollment-card .status-awaiting_payment').first().waitFor();
+        await page.locator('.enrollment-card .section-title > .status-awaiting_payment').first().waitFor();
         await page.getByRole('button', { name: 'Simulate payment', exact: true }).click();
-        await page.locator('.enrollment-card .status-active').first().waitFor();
+        await page.locator('.enrollment-card .section-title > .status-active').first().waitFor();
         snap = await current(page);
         assert.equal(snap.invoices[0].status, 'paid');
         assert.equal(snap.enrollments.find(e => e.id === id).status, 'active');
+        const downloaded = page.waitForEvent('download');
+        await page.getByRole('button', { name: 'Download', exact: true }).first().click();
+        assert.equal(await (await downloaded).failure(), null, 'Authorized material download succeeds');
+        await page.reload(); await ready(page);
+        assert.equal((await current(page)).enrollments.find(e => e.id === id).status, 'active');
         await capture(page, { path: `${out}/${preset}-portal-mobile.png`, fullPage: true });
         await page.setViewportSize({ width: 1024, height: 900 });
         await navigate(page, { view: 'tutor', page: 'staff', tab: 'academic' });
@@ -185,9 +210,17 @@ try {
         await navigate(page, { level: 'full' });
         assert.equal((await current(page)).invoices[0].status, 'paid');
         await page.getByRole('button', { name: 'Cancel application', exact: true }).click();
-        await page.locator('.status-cancelled').first().waitFor();
+        await page.getByRole('dialog').waitFor();
+        assert.equal((await current(page)).enrollments.find(e => e.id === id).status, 'active', 'Opening confirmation must not cancel');
+        await page.getByRole('button', { name: 'Keep application', exact: true }).click();
+        await page.getByRole('button', { name: 'Cancel application', exact: true }).click();
+        await page.getByRole('button', { name: 'Confirm cancellation', exact: true }).click();
+        await page.locator('.enrollment-card .section-title > .status-cancelled').first().waitFor();
+        await page.reload(); await ready(page);
+        assert.equal(await page.getByRole('button', { name: 'Download', exact: true }).count(), 0, 'Cancelled students lose resource access');
         assert.equal((await current(page)).enrollments.find(e => e.id === id).status, 'cancelled');
         results.push({ preset, flow: 'apply-draft-review-accept-pay-guardian-cancel', passed: true });
+        console.log(`PASS enrollment journey: ${preset}`); await ctx.tracing.stop();
         await ctx.close();
     }
     const ctx = await browser.newContext({ viewport: { width: 1024, height: 900 } });
@@ -206,6 +239,7 @@ try {
     for (const tab of ['programs', 'teachers', 'cohorts', 'sessions', 'records', 'accounts', 'finance', 'academic', 'settings']) {
         await navigate(page, { view: 'staff', page: 'staff', tab, level: 'full' });
         await overflow(page, `staff-${tab}`);
+        assert.equal(await page.locator('h1').count(), 1, `${tab} needs one page heading`);
         await capture(page, { path: `${out}/staff-${tab}-1024.png`, fullPage: true });
     }
     results.push({ flow: 'staff-tabs-1024', passed: true });
@@ -249,6 +283,7 @@ try {
     console.log(JSON.stringify({ passed: results.length, results }, null, 2));
 } catch (error) {
     if (lastPage && !lastPage.isClosed()) {
+        await lastPage.context().tracing.stop({ path: `${out}/failure-trace.zip` }).catch(() => {});
         await lastPage.screenshot({ path: `${out}/failure.png`, fullPage: true }).catch(() => {});
         await writeFile(`${out}/failure.html`, await lastPage.content()).catch(() => {});
     }

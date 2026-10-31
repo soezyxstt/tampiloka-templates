@@ -44,7 +44,7 @@ export function Pick({ label, value, options, onChange, demo = false }: {
     demo?: boolean;
 }) {
     const id = useId();
-    return <div className={demo ? 'school-demo-pick' : 'field'}>{!demo && <label id={id}>{label}</label>}<Select.Root value={value} onValueChange={onChange}><Select.Trigger className={demo ? 'tl-demo-select' : 'school-select'} aria-label={label} aria-labelledby={demo ? undefined : id}><Select.Value /><Select.Icon><ChevronDown size={16} aria-hidden/></Select.Icon></Select.Trigger><Select.Portal><Select.Content className="tl-demo-select-menu school-select-popup" position="popper" sideOffset={6}><Select.Viewport>{options.map(x => <Select.Item className="tl-demo-select-item" value={x.value} key={x.value}><Select.ItemText>{x.label}</Select.ItemText><Select.ItemIndicator className="school-select-check"><Check size={16}/></Select.ItemIndicator></Select.Item>)}</Select.Viewport></Select.Content></Select.Portal></Select.Root></div>;
+    return <div className={demo ? 'school-demo-pick' : 'field'}>{!demo && <label id={id}>{label}</label>}<Select.Root value={value} onValueChange={onChange}><Select.Trigger type="button" className={demo ? 'tl-demo-select' : 'school-select'} aria-label={label} aria-labelledby={demo ? undefined : id}><Select.Value /><Select.Icon><ChevronDown size={16} aria-hidden/></Select.Icon></Select.Trigger><Select.Portal><Select.Content className="tl-demo-select-menu school-select-popup" position="popper" sideOffset={6}><Select.Viewport>{options.map(x => <Select.Item className="tl-demo-select-item" value={x.value} key={x.value}><Select.ItemText>{x.label}</Select.ItemText><Select.ItemIndicator className="school-select-check"><Check size={16}/></Select.ItemIndicator></Select.Item>)}</Select.Viewport></Select.Content></Select.Portal></Select.Root></div>;
 }
 export function FieldInput({ field, values, set }: {
     field: Field;
@@ -73,10 +73,11 @@ export function Status({ value }: {
 export function Empty({ children }: {
     children: ReactNode;
 }) { return <div className="empty"><p>{children}</p></div>; }
-export function SectionTitle({ title, children }: {
+export function SectionTitle({ title, children, as: Heading = 'h2' }: {
     title: string;
     children?: ReactNode;
-}) { return <div className="section-title"><h2>{title}</h2>{children}</div>; }
+    as?: 'h1' | 'h2';
+}) { return <div className="section-title"><Heading>{title}</Heading>{children}</div>; }
 export function AsyncButton({ action, children, variant = 'solid', ...rest }: {
     action: () => Promise<unknown>;
     children: ReactNode;
