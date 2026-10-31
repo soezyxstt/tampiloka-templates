@@ -183,6 +183,13 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 `templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
 
+## CI and deployment maintenance
+
+- Keep `.github/workflows/ci.yml` as the common verification workflow: run it for pull requests and pushes to `main`, including design-token lint, template builds and the existing behavioral tests. Avoid running the same full suite on both a feature-branch push and its pull request.
+- Keep commerce Worker deployment and public catalog publication in their existing workflows. The catalog has its own validation and live verification because it publishes independently. The deployment trigger owns commerce path filtering; keep it aligned with the workspace dependencies and avoid a second change-detection job. Do not add a duplicate PR build to the deployment workflow; CI already builds commerce.
+- Before adding a workflow, job, or script, identify the distinct risk it checks, its trigger and owner, and why an existing check cannot cover it. Prefer extending an existing check, reuse shared setup, and avoid duplicate installs, builds and tests. Preserve meaningful coverage and deployment validation when removing duplication.
+- Production workflows run independently of CI; configure repository branch protection or rulesets to require the `verify` CI check before merging to `main` and prevent bypasses as appropriate. Workflow YAML alone does not enforce that protection. Review required check names before renaming or removing jobs; do not require path-filtered workflows, which can leave checks pending on unrelated changes.
+
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.

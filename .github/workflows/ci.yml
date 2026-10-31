@@ -2,6 +2,7 @@ name: Verify Tampiloka templates
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -50,6 +51,8 @@ jobs:
         run: pnpm typecheck
       - name: Lint cafe
         run: pnpm --filter @tampiloka/template-cafe lint
+      - name: Check design tokens
+        run: pnpm lint:design
       - name: Build templates
         run: pnpm build && pnpm build:cafe
       - name: Install Chromium
