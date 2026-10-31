@@ -10,18 +10,20 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
+    env:
+      WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feat/booking-template
       - name: Apply checksum-pinned tested fixes
         env:
-          SOURCE_URL: 'https://sdmntprseasia.oaiusercontent.com/files/00000000-58f0-8207-b871-53765129004d/raw?se=2026-10-31T01%3A01%3A04Z&sp=r&sv=2026-02-06&sr=b&scid=0cff4e32-f45b-584b-9149-68aad84e955e&skoid=5e5afa93-cb2e-42ad-a58a-830b5b446f03&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-30T22%3A45%3A37Z&ske=2026-10-31T22%3A45%3A37Z&sks=b&skv=2026-02-06&sig=2BQbNzXV2cCuqVLwbG1GW1mBE%2B%2Bj07WFCkfLqYHRlso%3D'
+          SOURCE_URL: 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-3fb4-8211-ab32-2b34bc48cfaa/raw?se=2026-10-31T01%3A04%3A25Z&sp=r&sv=2026-02-06&sr=b&scid=436ce003-6462-5699-98ec-ab057fcd406e&skoid=5e5afa93-cb2e-42ad-a58a-830b5b446f03&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-30T23%3A27%3A33Z&ske=2026-10-31T23%3A27%3A33Z&sks=b&skv=2026-02-06&sig=UxXgLYjSE9baP2UOIzhO7w%2BKJdJLq7bRzGirV95Xpf8%3D'
         run: |
           curl --fail --silent --show-error --max-time 90 "$SOURCE_URL" -o /tmp/fixes.zip
-          echo 'e14e74d0e7f8a9334b4bebf28fbab332b99416ad93588e1537cb7b0521e70dcc  /tmp/fixes.zip' | sha256sum --check
+          echo '8a12ca452f16477f502e58694507cb6c146fd5b58f38e3a8aaf967c6b405e3a3  /tmp/fixes.zip' | sha256sum --check
           unzip -p /tmp/fixes.zip fixes.patch > /tmp/fixes.patch
           git apply --check /tmp/fixes.patch
           git apply /tmp/fixes.patch
@@ -38,7 +40,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add packages/cli templates/booking pnpm-lock.yaml
-          git commit -m 'fix(booking): harden standalone generation, accessible forms and browser validation'
+          git commit -m 'fix(booking): validate standalone generation, accessible forms and browser workflows'
           git push origin HEAD:refs/heads/feat/booking-template
       - name: Regression checks
         run: |
