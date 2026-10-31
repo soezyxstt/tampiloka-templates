@@ -1,9 +1,6 @@
 name: Booking live demo verification
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/booking-template]
-    paths: ['.github/workflows/booking-live.yml']
 permissions:
   contents: read
 concurrency:
@@ -53,21 +50,31 @@ jobs:
         run: |
           pnpm --filter @tampiloka/template-booking exec playwright install --with-deps chromium
           pnpm --filter @tampiloka/template-booking test:e2e
-      - name: Verify published preview dimensions
+      - name: Verify published preview images in the browser
         run: |
-          python3 -m pip install Pillow
-          python3 - <<'PY'
-          import json,datetime,pathlib
-          from urllib.request import urlopen
-          from PIL import Image
-          from io import BytesIO
-          results=[]
-          for preset in ['medical','aesthetic','detailing','consulting']:
-              url='https://booking.tampiloka.site/demo-previews/booking-'+preset+'.webp'
-              r=urlopen(url,timeout=20); image=Image.open(BytesIO(r.read())); assert image.size==(1280,800)
-              results.append({'url':url,'status':r.status,'dimensions':list(image.size)})
-          pathlib.Path('templates/booking/test-results/live/previews.json').write_text(json.dumps({'verifiedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'previews':results},indent=2))
-          PY
+          pnpm --filter @tampiloka/template-booking exec node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {writeFile} from 'node:fs/promises';
+          import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          try {
+            const page=await browser.newPage();
+            await page.goto(process.env.BOOKING_TEST_URL,{waitUntil:'networkidle',timeout:30000});
+            const previews=await page.evaluate(async()=>Promise.all(['medical','aesthetic','detailing','consulting'].map(async preset=>{
+              const url=location.origin+'/demo-previews/booking-'+preset+'.webp';
+              const response=await fetch(url);
+              const image=await createImageBitmap(await response.blob());
+              return {preset,url,status:response.status,contentType:response.headers.get('content-type'),dimensions:[image.width,image.height]};
+            })));
+            for(const preview of previews) {
+              assert.equal(preview.status,200);
+              assert.equal(preview.contentType,'image/webp');
+              assert.deepEqual(preview.dimensions,[1280,800]);
+            }
+            await writeFile('test-results/live/previews.json',JSON.stringify({verifiedAt:new Date().toISOString(),previews},null,2));
+            console.log(JSON.stringify(previews,null,2));
+          } finally { await browser.close(); }
+          JS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
