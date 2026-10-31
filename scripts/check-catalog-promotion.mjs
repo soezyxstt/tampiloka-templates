@@ -37,9 +37,17 @@ export async function reconcileCatalogPromotion(previous, next, verifyRelease) {
     } catch (error) {
       blocked.push({ family: family.id, reason: String(error.message ?? error) });
       if (oldFamily) {
-        families.push(oldFamily);
+        families.push({ ...oldFamily, name: family.name, description: family.description,
+          ...(oldFamily.modes ? { modes: oldFamily.modes.map(mode => {
+            const copy = family.modes?.find(item => item.id === mode.id);
+            return copy ? { ...mode, name: copy.name, description: copy.description } : mode;
+          }) } : {}),
+        });
         const proposedIds = new Set(proposed.map(entry => entry.id));
-        entries.push(...previous.entries.filter(entry => entry.family === family.id && proposedIds.has(entry.id)));
+        entries.push(...previous.entries.filter(entry => entry.family === family.id && proposedIds.has(entry.id)).map(entry => {
+          const copy = proposed.find(item => item.id === entry.id);
+          return { ...entry, name: copy.name, description: copy.description, featured: copy.featured };
+        }));
       }
     }
   }

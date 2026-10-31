@@ -1,6 +1,6 @@
 ﻿# Catalog release evidence
 
-Catalog publication compares the proposed feed with the currently hosted feed before deploying. New public entries, changed demo or image URLs, and changed source fingerprints require hosted evidence. Missing or failed evidence retains that family's existing entries while independent families and copy edits can publish. Explicit removals stay removed. A missing or invalid existing feed stops publication.
+Catalog publication compares the proposed feed with the currently hosted feed before deploying. New public entries, changed demo or image URLs, and changed source fingerprints require hosted evidence. Missing or failed evidence retains that family's verified release, routes and images while name, description, mode-label and featured-flag edits can still publish for that same family. Independent families can publish separately. Explicit removals stay removed. A missing or invalid existing feed stops publication.
 
 `release-demos.yml` owns deployments for Cafe Pages and the Commerce, School and Booking Workers. Each family job tests and builds the exact checkout, stamps its assets with the source fingerprint, commit and asset digest, deploys those files, exercises hosted customer/staff flows and verifies hosted preview bytes. Only then does it upload an immutable Actions artifact identifying the successful release. Release and catalog jobs share a queue. `school.yml` retains local quality gates; the old manual Workers workflow forwards to the release workflow.
 

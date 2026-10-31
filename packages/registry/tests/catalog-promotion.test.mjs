@@ -76,3 +76,34 @@ test('blocked promotion does not restore entries explicitly removed from publica
   const { catalog } = await reconcileCatalogPromotion(previous, next, async () => false);
   assert.equal(catalog.entries.some(e => e.id === removed.id), false);
 });
+
+test('failed release retains verified routes while publishing copy edits in the same family', async () => {
+  const next = promote();
+  const family = next.families.find(f => f.id === 'school');
+  family.name.en = 'Corrected School name';
+  family.description.en = 'Corrected family description';
+  family.modes[0].name.en = 'Corrected mode label';
+  const entry = next.entries.find(e => e.family === 'school');
+  const old = previous.entries.find(e => e.id === entry.id);
+  entry.name.en = 'Corrected entry name';
+  entry.description.en = 'Corrected entry description';
+  entry.featured = !old.featured;
+  entry.url = 'https://unverified.example.com/';
+  entry.imageUrl = 'https://unverified.example.com/image.webp';
+  entry.modeUrls = Object.fromEntries(Object.keys(entry.modeUrls).map(id => [id, `https://unverified.example.com/?level=${id}`]));
+  const { catalog, blocked } = await reconcileCatalogPromotion(previous, next, async () => false);
+  const published = catalog.entries.find(e => e.id === entry.id);
+  assert.equal(published.name.en, entry.name.en);
+  assert.equal(published.description.en, entry.description.en);
+  assert.equal(published.featured, entry.featured);
+  assert.equal(published.url, old.url);
+  assert.equal(published.imageUrl, old.imageUrl);
+  assert.deepEqual(published.modeUrls, old.modeUrls);
+  const publishedFamily = catalog.families.find(f => f.id === 'school');
+  assert.equal(publishedFamily.name.en, family.name.en);
+  assert.equal(publishedFamily.description.en, family.description.en);
+  assert.equal(publishedFamily.modes[0].name.en, family.modes[0].name.en);
+  assert.equal(publishedFamily.release, previous.families.find(f => f.id === 'school').release);
+  assert.equal(catalog.entries.some(e => e.id === 'school-new'), false);
+  assert.equal(blocked.length, 1);
+});
