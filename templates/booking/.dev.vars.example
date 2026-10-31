@@ -1,0 +1,10 @@
+# Copy to .dev.vars for local client mode. Never commit populated credentials.
+DEMO_MODE=false
+# STAFF_OWNER_PASSWORD=
+# STAFF_OPERATIONS_PASSWORD=
+# STAFF_VIEWER_PASSWORD=
+# TICKET_SECRET=
+# MIDTRANS_SERVER_KEY=
+# MIDTRANS_ENVIRONMENT=sandbox
+# NOTIFICATION_API_KEY=
+# NOTIFICATION_FROM=

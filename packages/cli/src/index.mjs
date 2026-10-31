@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { parseJsonc } from './jsonc.mjs';
 
 const VERSION = '1.0.0';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -21,12 +22,12 @@ Usage:
   tampiloka doctor [--dir <path>] [--json]  Periksa proyek yang sudah dibuat
 
 Pilihan create:
-  --template <id>  cafe, commerce, atau school
-  --preset <id>    Susunan tampilan atau paket cafe
-  --level <id>     commerce: catalog, whatsapp, store, advanced
+  --template <id>  cafe, commerce, school, atau booking
+  --preset <id>    commerce: susunan; cafe: paket; booking: medical, aesthetic, detailing, consulting
+  --level <id>     commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
   --features <ids> commerce: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers; none atau all
-  --layout <id>    commerce: editorial, market, atelier, compact
-  --theme <id>     commerce: sand, ink, forest; cafe: boxy, rounded, editorial, playful, airy
+  --layout <id>    commerce: editorial, market, atelier, compact; booking: appointment-first, editorial, service-market, minimal-professional
+  --theme <id>     booking: sage, rose, slate, ochre; commerce: sand, ink, forest; cafe: boxy, rounded, editorial, playful, airy
   --card <id>      commerce: open, framed, soft
   --button <id>    commerce: solid, outline
   --typography <id> school: editorial, modern, humanist
@@ -40,6 +41,7 @@ Pilihan create:
   --help          Bantuan
 
 Contoh:
+  tampiloka create nova-clinic --template booking --preset medical --level full --theme sage --yes
   tampiloka create kopi-senja
   tampiloka create rupa --template commerce --preset atelier --level store --features promotions,taxes --yes
   tampiloka create katalog --template commerce --level whatsapp --phone 628123456789 --yes
@@ -51,7 +53,7 @@ School: --preset exam-prep|language|skills|institution
   --layout academic-editorial|course-discovery|contemporary-learning|institutional
   --theme cobalt|forest|neutral|burgundy
   --features progress-reports,additional-branches,notifications
-Level fitur commerce dan school terpisah dari desain. Dashboard dan booking masih
+Level fitur commerce, school dan booking terpisah dari desain. Dashboard masih
 direncanakan. CLI tidak membuat proyek yang belum punya implementasi.
 `;
 
@@ -85,7 +87,7 @@ export async function findSourceRoot() {
   if(await exists(join(payload,'packages/registry/src/index.mjs')))return payload;
   throw new Error('Sumber template tidak ditemukan. Instal ulang paket CLI lengkap atau jalankan dari repo tampiloka-templates.');
 }
-const json = async path => JSON.parse(await readFile(path,'utf8'));
+const json = async path => { const source = await readFile(path, 'utf8'); return path.endsWith('.jsonc') ? parseJsonc(source) : JSON.parse(source); };
 const writeJson = async (path,value) => { await mkdir(dirname(path),{recursive:true}); await writeFile(path,`${JSON.stringify(value,null,2)}\n`); };
 function emit(options,value,message) { stdout.write(options.json?`${JSON.stringify(value,null,2)}\n`:`${message}\n`); }
 function assertChoice(value, allowed, label) { if(!allowed.includes(value))throw new Error(`${label} "${value}" tidak ada. Pilih: ${allowed.join(', ')}.`); }
@@ -116,6 +118,10 @@ async function interactive(options, registry) {
       if(!result.layout)result.layout=await choose('Layout school',registry.schoolLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
       if(!result.theme)result.theme=await choose('Palet school',registry.schoolPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
       if(!result.typography)result.typography=await choose('Tipografi school',registry.schoolTypography.map(id=>[id,id]),template.presets[result.preset].typography);
+    } else if(template.id==='booking'){
+      if(!result.level)result.level=await choose('Kelengkapan fitur booking',Object.entries(registry.bookingLevels).map(([id,item])=>[id,item.description]),template.defaultLevel);
+      if(!result.layout)result.layout=await choose('Susunan halaman',registry.bookingLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
+      if(!result.theme)result.theme=await choose('Palet contoh',registry.bookingPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
     } else if(!result.theme)result.theme=await choose('Tema cafe',[['boxy','Tegas'],['rounded','Sudut lembut'],['editorial','Tipografi editorial'],['playful','Garis dan bayangan kuat'],['airy','Ruang longgar']],'rounded');
     if(!result.name)result.name=(await prompt.question('Nama brand (Enter memakai nama proyek): ')).trim()||undefined;
     if(!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
@@ -167,6 +173,10 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
     await normalizeDependencies(dest,dependency,shared,true);
   }
   await normalizeDependencies(temp,pkg,shared);
+  const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
+  delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
+  await writeJson(join(uiPath,'package.json'),uiPackage);
+  for(const path of ['src/demo-shell.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
   const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
   const chosen=registry.commercePresets[options.preset];
   const config=await json(join(temp,'config/commerce.json'));
@@ -192,6 +202,72 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
   return config;
 }
 
+async function createBooking(sourceRoot,temp,target,options,template) {
+  const source=join(sourceRoot,template.directory),manifest=await json(join(source,'template.json'));
+  await copyTree(source,temp,{template:true});
+  const pkg=await json(join(temp,'package.json'));
+  pkg.name=target;pkg.version='1.0.0';pkg.private=true;pkg.packageManager='pnpm@10.28.2';
+  pkg.pnpm={onlyBuiltDependencies:['esbuild','workerd']};
+  pkg.scripts={...pkg.scripts,dev:'node scripts/dev.mjs',test:'node --test tests/client.test.mjs'};
+  for(const key of ['build:demo','deploy:demo','dev:client','test:e2e'])delete pkg.scripts[key];
+  delete pkg.devDependencies.playwright;
+  for(const id of manifest.sharedPackages){
+    const dest=join(temp,'packages',id);await copyTree(join(sourceRoot,'packages',id),dest);
+    const dependency=await json(join(dest,'package.json'));delete dependency.scripts;
+    await normalizeDependencies(dest,dependency,manifest.sharedPackages,true);
+  }
+  const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
+  delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
+  await writeJson(join(uiPath,'package.json'),uiPackage);
+  for(const path of ['src/demo-shell.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
+  const chosen=registry.bookingPresets[options.preset];
+  const script=`import {presetContent} from ${JSON.stringify(pathToFileURL(join(source,'content/presets.ts')).href)};console.log(JSON.stringify(presetContent(${JSON.stringify(options.preset)})));`;
+  const result=spawnSync(process.execPath,['--experimental-strip-types','--input-type=module','-e',script],{encoding:'utf8'});
+  if(result.status!==0)throw new Error('Node 22.18 atau lebih baru diperlukan untuk menyiapkan data booking. '+result.stderr);
+  const content=JSON.parse(result.stdout),config=content.config;
+  Object.assign(config,{level:options.level,layout:options.layout||chosen.layout,palette:options.theme||chosen.palette});
+  config.brand={...config.brand,name:options.name||target,whatsapp:options.phone||'',email:'',address:'',example:true};
+  content.locations=content.locations.map(location=>({...location,address:''}));
+  await writeJson(join(temp,'config/booking.json'),config);
+  await writeJson(join(temp,'content/client.json'),content);
+  await writeFile(join(temp,'content/presets.ts'),`import seed from './client.json' with {type:'json'};\nimport type {BusinessSettings,Service,Resource,Location,ServiceCategory,Preset} from '../src/domain/model.ts';\nexport interface PresetContent {config:BusinessSettings;services:Service[];resources:Resource[];locations:Location[];categories:ServiceCategory[]}\nexport function presetContent(preset:Preset):PresetContent { if(preset!==${JSON.stringify(options.preset)})throw new Error('This project is configured for one business preset.');return structuredClone(seed) as PresetContent;}\n`);
+  const imageManifest=await json(join(temp,'public/images/manifest.json'));
+  imageManifest.assets=imageManifest.assets.filter(asset=>asset.file.startsWith(options.preset+'.')||asset.file.startsWith(options.preset+'-'));
+  for(const entry of await readdir(join(temp,'public/images')))if(entry!=='manifest.json'&&!entry.startsWith(options.preset+'.')&&!entry.startsWith(options.preset+'-'))await rm(join(temp,'public/images',entry),{force:true});
+  await writeJson(join(temp,'public/images/manifest.json'),imageManifest);
+
+  await rm(join(temp,'public/demo-previews'),{recursive:true,force:true});
+  await writeFile(join(temp,'src/components/DemoToolbar.tsx'),'export function DemoToolbar(){return null;}\n');
+  await writeFile(join(temp,'worker/demo.ts'),"import {fail} from '../src/domain/validation.ts';\nexport async function demoAction(..._args:unknown[]):Promise<any>{return fail(403,'DEMO_DISABLED','Public demo controls are not part of this client project.');}\n");
+  let main=await readFile(join(temp,'src/main.tsx'),'utf8');main=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
+  if(main.includes('@tampiloka/ui-core/demo'))throw new Error('Failed to remove demo CSS from the client entry point.');await writeFile(join(temp,'src/main.tsx'),main);
+  let vite=await readFile(join(temp,'vite.config.ts'),'utf8');vite=vite.replace(/JSON\.stringify\(mode\s*===\s*['"]demo['"]\)/,'JSON.stringify(false)');
+  if(!/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/.test(vite))throw new Error('Failed to lock the generated build to client mode.');await writeFile(join(temp,'vite.config.ts'),vite);
+  let dev=await readFile(join(temp,'scripts/dev.mjs'),'utf8');dev=dev.replace(/const demo\s*=\s*process\.argv\.includes\(['"]--demo['"]\);/,'const demo = false;');
+  if(!/const demo\s*=\s*false;/.test(dev))throw new Error('Failed to lock the generated dev server to client mode.');await writeFile(join(temp,'scripts/dev.mjs'),dev);
+  if(options.level!=='full'){
+    delete pkg.dependencies.qrcode;delete pkg.dependencies.jsqr;delete pkg.devDependencies['@types/qrcode'];
+    await writeFile(join(temp,'src/components/QRCode.tsx'),'export function TicketQR(_props:{payload:string}){return null;}\n');
+    await writeFile(join(temp,'src/pages/TicketScanner.tsx'),'export function TicketScanner(){return null;}\n');
+    const disabled="import {fail} from '../../src/domain/validation.ts';\nconst disabled=async(..._args:unknown[]):Promise<any>=>fail(403,'FEATURE_DISABLED','This project does not include online payments or ticket validation.');\n";
+    await writeFile(join(temp,'worker/services/payments.ts'),disabled+'export const applyStatus=disabled,reconcilePayment=disabled,recordLocationPayment=disabled,refundPayment=disabled,simulatePayment=disabled,startPayment=disabled,webhook=disabled;\n');
+    await writeFile(join(temp,'worker/services/tickets.ts'),disabled+'export const validateTicket=disabled;\n');
+    await writeFile(join(temp,'worker/providers/payments.ts'),disabled+'export const paymentProviders={midtrans:(..._args:unknown[])=>({status:disabled})};\n');
+  }
+  if(['catalog','whatsapp'].includes(options.level)){
+    await writeFile(join(temp,'worker/services/bookings.ts'),"import {fail} from '../../src/domain/validation.ts';\nconst disabled=async(..._args:unknown[]):Promise<any>=>fail(403,'FEATURE_DISABLED','This project does not create or expose online booking records.');\nexport const accessToken=disabled,bookingAction=disabled,createBooking=disabled,listBookings=disabled,restoreAccess=disabled;\nexport const bookingDetail=async(...args:unknown[]):Promise<import('../../src/domain/model.ts').Booking>=>disabled(...args);\n");
+  }
+  await normalizeDependencies(temp,pkg,manifest.sharedPackages);
+  const wrangler=await json(join(temp,'wrangler.jsonc'));wrangler.name=target;delete wrangler.routes;delete wrangler.account_id;wrangler.vars={DEMO_MODE:'false'};wrangler.d1_databases=wrangler.d1_databases.map(db=>({...db,database_name:`${target}-db`,database_id:'00000000-0000-0000-0000-000000000000'}));await writeJson(join(temp,'wrangler.jsonc'),wrangler);
+  await rm(join(temp,'tests'),{recursive:true,force:true});await mkdir(join(temp,'tests'));
+  await writeFile(join(temp,'tests/client.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';\nconst root=new URL('../',import.meta.url);test('client deployment excludes public demo mode and workspace dependencies',()=>{const c=JSON.parse(readFileSync(new URL('wrangler.jsonc',root)));assert.equal(c.vars.DEMO_MODE,'false');const p=JSON.parse(readFileSync(new URL('package.json',root)));assert.ok(!Object.values({...p.dependencies,...p.devDependencies}).some(v=>v.startsWith('workspace:')));});\n");
+  await writeFile(join(temp,'.dev.vars.example'),'# Copy to .dev.vars. Set unique secrets; never commit this file.\nDEMO_MODE=false\n# STAFF_OWNER_PASSWORD=\n# STAFF_OPERATIONS_PASSWORD=\n# STAFF_VIEWER_PASSWORD=\n# TICKET_SECRET=\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# NOTIFICATION_API_KEY=\n# NOTIFICATION_FROM=\n');
+  await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nPreset: ${options.preset}. Level: ${options.level}. Layout: ${config.layout}. Palette: ${config.palette}.\n\nRun \`pnpm install\`, copy \`.dev.vars.example\` to \`.dev.vars\`, configure a unique staff password, then \`pnpm dev\`. Local migrations run automatically. This is client mode, not a public demo. Never set DEMO_MODE=true.\n\nThis project owns its packages, content, assets, settings, and database. Change \`config/booking.json\` and \`content/client.json\` before initializing a new database. After initialization use the authenticated staff CMS. Example services and fictional professionals remain clearly marked until you replace and verify them.\n\nSee \`docs/client-setup.md\`, \`docs/deployment.md\`, and \`docs/limitations.md\`. Cloudflare deployment requires a client-owned D1 database and secret configuration. Online payments require provider credentials and real sandbox verification; this generator does not certify live payments.\n`);
+  await writeFile(join(temp,'README.md'),`# ${options.name||target}\n\nClient-owned appointment website and staff workspace. Start with [CLIENT_SETUP.md](CLIENT_SETUP.md), then [deployment](docs/deployment.md).\n\nPreset: ${options.preset}. Level: ${options.level}. Public demo controls are excluded.\n\nRun: pnpm install, pnpm dev, pnpm typecheck, pnpm test, pnpm build.\n\nConfigure the client database, staff secrets, verified content and policy before launch. Full requires merchant-specific sandbox verification before accepting live payments.\n`);
+  return config;
+}
+
 export async function createProject(target,initial,sourceRoot,registry) {
   if(!target||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(target)||target.length>63)throw new Error('Nama proyek harus 1-63 huruf kecil/angka dengan tanda hubung, contoh kopi-senja. Gunakan --out untuk memilih folder induk.');
   if(initial.phone&&initial.whatsapp)throw new Error('Gunakan --whatsapp atau --phone, bukan keduanya.');
@@ -212,6 +288,11 @@ export async function createProject(target,initial,sourceRoot,registry) {
     if(options.button)assertChoice(options.button,['solid','outline'],'Tombol');
     if(options.color)throw new Error('--color hanya untuk cafe. Untuk commerce ubah token brand di config dan CSS proyek.');
   } else if(template.id==='school'){validateSchool(options,registry);
+  } else if(template.id==='booking'){
+    options.level=options.level||template.defaultLevel;assertChoice(options.level,Object.keys(registry.bookingLevels),'Level');
+    if(options.layout)assertChoice(options.layout,registry.bookingLayouts,'Layout');
+    if(options.theme)assertChoice(options.theme,registry.bookingPalettes,'Tema');
+    for(const key of ['card','button','features','color'])if(options[key])throw new Error(`--${key} tidak berlaku untuk booking. Ubah token merek di proyek klien.`);
   } else {
     for(const key of ['level','layout','card','button','features','typography'])if(options[key])throw new Error(`--${key} hanya berlaku untuk commerce.`);
     if(options.theme)assertChoice(options.theme,['boxy','rounded','editorial','playful','airy'],'Tema');
@@ -236,6 +317,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
       if(run.error)throw run.error;
       if(run.status!==0)throw new Error(run.stderr.trim()||'Pembuatan cafe gagal.');
     }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
+    else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
     await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
     // Reserve the destination atomically. rename alone may replace an existing empty directory.
@@ -267,6 +349,19 @@ export async function doctor(options,sourceRoot,registry) {
     emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status)process.exitCode=child.status;return result;
   }
   if(template.id==='school'){const result=await doctorSchool(directory,registry);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
+  if(template.id==='booking'){
+    const config=await json(join(directory,'config/booking.json')),pkg=await json(join(directory,'package.json')),wrangler=await json(join(directory,'wrangler.jsonc'));
+    try{assertChoice(config.level,Object.keys(registry.bookingLevels),'Level');assertChoice(config.preset,Object.keys(registry.bookingPresets),'Preset');assertChoice(config.layout,registry.bookingLayouts,'Layout');assertChoice(config.palette,registry.bookingPalettes,'Palette');new Intl.DateTimeFormat('en',{timeZone:config.timezone});checks.push({name:'Konfigurasi booking',status:'pass',detail:`${config.preset} / ${config.level} / ${config.layout} / ${config.palette}`});}catch(e){checks.push({name:'Konfigurasi booking',status:'fail',detail:e.message});}
+    const dependencies={...pkg.dependencies,...pkg.devDependencies};checks.push({name:'Proyek mandiri',status:Object.values(dependencies).some(v=>v.startsWith('workspace:'))?'fail':'pass',detail:'Paket bersama berada dalam proyek klien.'});
+    for(const [name,value]of Object.entries(dependencies))if(value.startsWith('file:'))checks.push({name,status:await exists(join(directory,value.slice(5),'package.json'))?'pass':'fail',detail:value});
+    checks.push({name:'Mode klien',status:wrangler.vars?.DEMO_MODE==='false'?'pass':'fail',detail:'DEMO_MODE harus false; tidak ada pemilih demo publik.'});
+    checks.push({name:'Database D1',status:wrangler.d1_databases?.[0]?.database_id==='00000000-0000-0000-0000-000000000000'?'warn':'pass',detail:'Gunakan database milik klien, lalu jalankan migrasi.'});
+    checks.push({name:'Konten contoh',status:config.brand.example?'warn':'pass',detail:'Ganti layanan, profil fiktif, gambar, kontak, dan kebijakan sebelum peluncuran.'});
+    if(config.level!=='catalog')checks.push({name:'WhatsApp',status:config.brand.whatsapp?'pass':'warn',detail:'Isi nomor bisnis sebelum membuka tautan WhatsApp.'});
+    if(config.level==='full')checks.push({name:'Pembayaran dan tiket',status:'warn',detail:'Pasang TICKET_SECRET dan kunci Midtrans. Verifikasi sandbox, callback, dan pengembalian dana sebelum produksi.'});
+    checks.push({name:'Akses staf',status:'warn',detail:'Pasang kata sandi unik melalui secret server. Doctor tidak membaca atau menampilkan rahasia.'});
+    const result={command:'doctor',ok:checks.every(c=>c.status!=='fail'),directory,template:'booking',checks};emit(options,result,checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;
+  }
   const config=await json(join(directory,'config/commerce.json')),pkg=await json(join(directory,'package.json'));
   try{assertChoice(config.level,Object.keys(registry.commerceLevels),'Level');assertChoice(config.preset,Object.keys(registry.commercePresets),'Preset');if(config.modules){for(const id of Object.keys(config.modules)){if(!registry.commerceFeatureIds.includes(id)||typeof config.modules[id]!=='boolean')throw new Error('Modul tidak dikenal: '+id);}if(config.modules.loyaltyPoints&&!config.modules.customerAccounts)throw new Error('Poin membutuhkan akun pelanggan.');if(config.modules.membershipTiers&&!config.modules.loyaltyPoints)throw new Error('Membership membutuhkan poin.');if(['catalog','whatsapp'].includes(config.level)&&Object.values(config.modules).some(Boolean))throw new Error('Modul checkout tidak tersedia pada level ini.');}checks.push({name:'Konfigurasi',status:'pass',detail:`${config.level} / ${config.preset}`});}catch(error){checks.push({name:'Konfigurasi',status:'fail',detail:error.message});}
   const unresolved=Object.values({...pkg.dependencies,...pkg.devDependencies}).some(v=>typeof v==='string'&&v.startsWith('workspace:'));

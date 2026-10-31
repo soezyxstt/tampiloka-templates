@@ -53,6 +53,15 @@ test('full approval creates integer invoice then payment activates exactly once'
     applyPayment(s, c, invoice.id, `demo-${invoice.id}`, invoice.totalIdr, 'demo', 'pending');
     assert.equal(s.payments[0].status, 'paid');
 });
+test('successful pending checkout after a manual payment requires review', () => {
+    const s = state(), id = submit(s);
+    accept(s, id);
+    const invoice = s.invoices[0], c = ctx(s);
+    applyPayment(s, c, invoice.id, 'provider-order', invoice.totalIdr, 'midtrans', 'pending');
+    applyPayment(s, c, invoice.id, 'manual-receipt', invoice.totalIdr, 'manual');
+    applyPayment(s, c, invoice.id, 'provider-order', invoice.totalIdr, 'midtrans', 'paid');
+    assert.equal(invoice.needsReview, true);
+});
 test('approval and payment remain separate, no enrollment activation on unapproved payment', () => {
     const s = state(), id = submit(s), e = s.enrollments.find(x => x.id === id);
     s.invoices.push({ id: 'test', enrollmentId: id, studentId: e.studentId, totalIdr: 10, lines: [{ label: 'test', amountIdr: 10 }], status: 'unpaid', issuedAt: new Date().toISOString() });

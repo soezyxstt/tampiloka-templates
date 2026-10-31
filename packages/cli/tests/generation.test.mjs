@@ -13,8 +13,8 @@ async function temporary(t){const dir=await mkdtemp(join(tmpdir(),'tampiloka-cli
 test('CLI catalog distinguishes working templates from planned systems',()=>{
   const result=run('list','--json');assert.equal(result.status,0,result.stderr);
   const entries=JSON.parse(result.stdout);
-  assert.deepEqual(entries.filter(t=>t.status==='available').map(t=>t.id).sort(),['cafe','commerce','school']);
-  assert.deepEqual(entries.filter(t=>t.status==='planned').map(t=>t.id).sort(),['booking','dashboard']);
+  assert.deepEqual(entries.filter(t=>t.status==='available').map(t=>t.id).sort(),['booking','cafe','commerce','school']);
+  assert.deepEqual(entries.filter(t=>t.status==='planned').map(t=>t.id).sort(),['dashboard']);
 });
 test('commerce generation keeps feature level independent of all four preset compositions',async t=>{
   const parent=await temporary(t);
@@ -106,3 +106,22 @@ test('optional commerce modules are independent from preset and are validated be
   }
   assert.deepEqual((await readdir(parent)).sort(),['modular-shop','simple-shop']);
 });
+
+test('booking generation supports every independent business and feature level without demo authority',async t=>{
+ const parent=await temporary(t);
+ for(const preset of ['medical','aesthetic','detailing','consulting'])for(const level of ['catalog','whatsapp','booking','full']){
+  const name=`booking-${preset}-${level}`,result=run('create',name,'--out',parent,'--template','booking','--preset',preset,'--level',level,'--layout','minimal-professional','--theme','ochre','--yes','--json');assert.equal(result.status,0,result.stderr);
+  const output=join(parent,name),cfg=await read(join(output,'config/booking.json')),pkg=await read(join(output,'package.json'));
+  assert.equal(cfg.preset,preset);assert.equal(cfg.level,level);assert.equal(cfg.layout,'minimal-professional');assert.equal(cfg.palette,'ochre');assert.equal(cfg.brand.whatsapp,'');assert.equal(cfg.brand.example,true);
+  assert.ok(!JSON.stringify(pkg).includes('workspace:'));assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
+  assert.doesNotMatch(await readFile(join(output,'src/components/DemoToolbar.tsx'),'utf8'),/DemoToolbarShell/);assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'),/ui-core\/demo/);
+  assert.doesNotMatch(await readFile(join(output,'worker/demo.ts'),'utf8'),/scopeRow|UPDATE|INSERT/);
+  assert.match(await readFile(join(output,'vite.config.ts'),'utf8'),/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/);
+  assert.match(await readFile(join(output,'scripts/dev.mjs'),'utf8'),/const demo\s*=\s*false;/);
+  assert.equal(Boolean(pkg.dependencies.qrcode),level==='full');assert.equal(Boolean(pkg.dependencies.jsqr),level==='full');assert.ok((await read(join(output,'content/client.json'))).services.every(s=>s.preset===preset));
+  for(const forbidden of ['wrangler.demo.jsonc','.dev.vars','node_modules','test-results','public/demo-previews','packages/ui-core/src/demo-shell.tsx'])await assert.rejects(lstat(join(output,forbidden)),{code:'ENOENT'});
+  const images=await read(join(output,'public/images/manifest.json'));assert.ok(images.assets.every(asset=>asset.file.startsWith(preset)));
+  assert.equal(run('doctor','--dir',output,'--json').status,0);
+ }
+});
+test('booking rejects mismatched axes before creating a client directory',async t=>{const parent=await temporary(t);for(const extra of [['--preset','salon'],['--level','store'],['--layout','market'],['--theme','forest'],['--features','loyalty'],['--color','#000000']])assert.notEqual(run('create','invalid-booking','--template','booking','--out',parent,'--yes',...extra).status,0);assert.deepEqual(await readdir(parent),[]);});

@@ -25,7 +25,11 @@
     "dev:school": "pnpm --filter @tampiloka/template-school demo",
     "build:school": "pnpm --filter @tampiloka/template-school build",
     "test:school": "pnpm --filter @tampiloka/template-school test",
-    "test:school:browser": "pnpm --filter @tampiloka/template-school test:e2e"
+    "test:school:browser": "pnpm --filter @tampiloka/template-school test:e2e",
+    "dev:booking": "pnpm --filter @tampiloka/template-booking dev",
+    "build:booking": "pnpm --filter @tampiloka/template-booking build:demo",
+    "test:booking": "pnpm --filter @tampiloka/template-booking test",
+    "test:booking:standalone": "node packages/cli/tests/booking-standalone.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.6",

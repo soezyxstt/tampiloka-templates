@@ -8,6 +8,7 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 | --- | --- |
 | `templates/cafe` | Next.js cafe ordering + staff/POS template. Tailwind v4, Radix, `motion`. |
 | `templates/commerce` | Vite + Cloudflare Worker storefront and staff workspace. Plain CSS + shadcn (Radix) wrappers. |
+| `templates/booking` | Vite + Worker/D1 appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
 | `packages/theme-engine` | Commerce palettes (`sand`, `ink`, `forest`), layouts, `brandVariables()`. |
 | `packages/ui-core` | Shared `Button`, `Input`, `NativeSelect`, `Textarea`, `Dialog`, `MotionProvider` (`.tl-*` classes). |
 | `packages/cli`, `packages/registry` | Project generator and template registry. Palette/theme IDs here are a public contract. |
@@ -21,6 +22,7 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 - Raw values are allowed **only** where a token is *defined*:
   - cafe: the `:root` block in `templates/cafe/app/globals.css`, demo chrome tokens at the top of `demos/components/demo-portal.css` / `demos/showcase.css`, and `src/config/catalog.mjs` (default brand color).
   - commerce: the `:root` token block at the top of `templates/commerce/src/styles/base.css`.
+  - booking: semantic definitions in `templates/booking/src/styles/tokens.css`; see `templates/booking/docs/design.md` for palettes, compositions and staff overrides.
   - packages: `packages/theme-engine/src/index.mjs` **and** `styles.css` (keep the two in sync); shared demo chrome tokens in `packages/ui-core/src/demo.css`.
 - `var(--token, #fallback)` fallbacks are fine; pure `#fff`/`#000` are allowed only as ink on a solid fill.
 - Need a tint, hover or overlay? Derive it: `color-mix(in srgb, var(--primary) 8%, var(--surface))`, `color-mix(in srgb, var(--foreground) 45%, transparent)`. Do not invent a new hex.
@@ -186,6 +188,7 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 Record UI-system changes here, newest first, one short entry per change.
 
 - **2026-10-31**: Added school template with independent business/layout/palette/level choices, shared demo shell, typed CMS, protected enrollment and learning-center operations. Shared dialogs accept an optional localized close label.
+- **2026-10-31**: Added booking to the shared demo contract with independent business, level, layout, palette, view, and language state. Its staff workspace uses neutral tokens, labeled schedule fields, server-backed session isolation, and verified 1280 × 800 preview captures.
 
 - **2026-10-30**: Added shared rules for restrained navigation icons, clear link/button cues, and centered, accessible icon-only controls across current and future templates.
 

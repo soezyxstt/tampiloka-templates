@@ -94,3 +94,6 @@ Capture the current public demo at a 1280 × 800 viewport and export an optimize
 ## School readiness
 
 School CLI availability does not publish its demo. The school family starts private, `ready: false`, with no public entries. Publish only after verifying the deployed Worker, independent demo data, and exact 1280×800 previews. CI evidence is not a live public URL.
+## Booking publication gate
+
+Booking metadata is registered with `ready: false` until its deployed origin and previews pass verification. Its four use-case entries use independent preset URLs, each preserving a sample layout and palette, and the shared `level` mode parameter. Register actual verified URLs in canonical `templates.json` and the runtime registry before enabling publication. Do not infer readiness from a local build or fabricated preview URL.

@@ -53,7 +53,7 @@ export function applyPayment(s: SchoolState, ctx: Context, invoiceId: string, re
             invoice.needsReview = true;
             return invoice.id;
         }
-        if (invoice.status === 'paid' && !previous) {
+        if (invoice.status === 'paid') {
             invoice.needsReview = true;
             return invoice.id;
         }

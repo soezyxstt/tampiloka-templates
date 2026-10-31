@@ -1,0 +1,61 @@
+name: Booking validation
+on:
+  push:
+    branches: [feat/booking-template]
+  pull_request:
+    paths:
+      - 'templates/booking/**'
+      - 'packages/cli/**'
+      - 'packages/registry/**'
+      - 'packages/ui-core/**'
+      - '.github/workflows/booking-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: booking-validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Design, CLI and registry
+        run: |
+          pnpm lint:design
+          pnpm test:cli
+          pnpm test:registry
+          pnpm catalog:test
+      - name: Booking domain and production build
+        run: |
+          pnpm --filter @tampiloka/template-booking typecheck
+          pnpm --filter @tampiloka/template-booking test
+          pnpm --filter @tampiloka/template-booking build
+      - name: Booking browser checks
+        run: |
+          pnpm --filter @tampiloka/template-booking exec playwright install --with-deps chromium
+          pnpm --filter @tampiloka/template-booking test:e2e
+      - name: Independent client projects
+        run: node packages/cli/tests/booking-standalone.mjs
+      - name: Source checkpoint
+        if: always()
+        run: |
+          mkdir -p templates/booking/test-results
+          git archive --format=tar.gz HEAD -o templates/booking/test-results/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: booking-verification
+          path: templates/booking/test-results
+          retention-days: 7

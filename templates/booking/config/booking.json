@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "preset": "medical",
+  "level": "booking",
+  "layout": "appointment-first",
+  "palette": "sage",
+  "language": "id",
+  "typography": "sans",
+  "timezone": "Asia/Jakarta",
+  "brand": { "name": "Nova Clinic", "whatsapp": "", "email": "" }
+}

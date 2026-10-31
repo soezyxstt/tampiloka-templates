@@ -427,6 +427,122 @@
           }
         }
       ]
+    },
+    {
+      "id": "booking",
+      "template": "booking",
+      "visibility": "public",
+      "ready": true,
+      "name": {
+        "id": "Janji layanan",
+        "en": "Appointments"
+      },
+      "description": {
+        "id": "Pilih layanan, atur jadwal, dan jelajahi ruang staf.",
+        "en": "Explore services, schedule appointments, and use the staff workspace."
+      },
+      "route": {
+        "base": "preset",
+        "presetParam": "preset",
+        "modeParam": "level"
+      },
+      "defaultMode": "full",
+      "modes": [
+        {
+          "id": "catalog",
+          "name": {
+            "id": "Katalog",
+            "en": "Catalog"
+          }
+        },
+        {
+          "id": "whatsapp",
+          "name": {
+            "id": "WhatsApp",
+            "en": "WhatsApp"
+          }
+        },
+        {
+          "id": "booking",
+          "name": {
+            "id": "Pemesanan",
+            "en": "Booking"
+          }
+        },
+        {
+          "id": "full",
+          "name": {
+            "id": "Lengkap",
+            "en": "Full"
+          }
+        }
+      ],
+      "entries": [
+        {
+          "id": "booking-medical",
+          "preset": "medical",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Klinik",
+            "en": "Medical"
+          },
+          "description": {
+            "id": "Dokter, spesialisasi, dan jadwal kunjungan.",
+            "en": "Practitioners, specialties, and consultation slots."
+          },
+          "featured": true,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-medical.webp"
+        },
+        {
+          "id": "booking-aesthetic",
+          "preset": "aesthetic",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Perawatan",
+            "en": "Aesthetic"
+          },
+          "description": {
+            "id": "Perawatan wajah dan tubuh dengan terapis serta ruang.",
+            "en": "Face and body treatments with therapist and room allocation."
+          },
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-aesthetic.webp"
+        },
+        {
+          "id": "booking-detailing",
+          "preset": "detailing",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Perawatan kendaraan",
+            "en": "Auto detailing"
+          },
+          "description": {
+            "id": "Paket, jenis kendaraan, dan kapasitas area kerja.",
+            "en": "Packages, vehicle types, and service bay capacity."
+          },
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-detailing.webp"
+        },
+        {
+          "id": "booking-consulting",
+          "preset": "consulting",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Konsultasi",
+            "en": "Professional services"
+          },
+          "description": {
+            "id": "Konsultasi online atau di kantor.",
+            "en": "Remote and on-site professional sessions."
+          },
+          "featured": false,
+          "imageUrl": "https://booking.tampiloka.site/demo-previews/booking-consulting.webp"
+        }
+      ]
     }
   ]
 }
