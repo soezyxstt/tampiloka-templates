@@ -110,7 +110,7 @@ function StaffLogin() {
   );
 }
 export function StaffWorkspace() {
-  const { data, route, t, refresh, navigate } = useBooking(),
+  const { data, route, t, refresh, navigate, loading } = useBooking(),
     [snapshot, setSnapshot] = useState<StaffSnapshot | null>(null),
     [error, setError] = useState<unknown>(null),
     [revision, setRevision] = useState(0);
@@ -126,6 +126,7 @@ export function StaffWorkspace() {
       return;
     }
     let active = true;
+    setSnapshot(null);
     setError(null);
     api<StaffSnapshot>("/api/staff/snapshot")
       .then((v) => {
@@ -244,7 +245,12 @@ export function StaffWorkspace() {
               {t("Coba lagi", "Retry")}
             </Action>
           )}
-          {!snapshot || snapshot.config.preset !== data.config.preset ? (
+          {loading || !snapshot ||
+          snapshot.config.preset !== data.config.preset ||
+          snapshot.config.level !== data.config.level ||
+          snapshot.role !== data.role ||
+          snapshot.revision !== data.revision ||
+          (data.demo && (route.role !== data.role || route.preset !== data.config.preset || route.level !== data.config.level)) ? (
             <Loading />
           ) : (
             <>

@@ -6,7 +6,8 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-// Exercises the built application and its real Worker/D1 API. No intercepted API fixtures.
+// Exercises the built application and its real Worker/D1 API. No mocked business results.
+// A latency regression holds an actual API response to verify stale permission handling.
 // A remote target is permitted only after its health endpoint confirms isolated demo mode.
 const root = fileURLToPath(new URL("../", import.meta.url));
 const out = join(root, "test-results/browser");
@@ -344,10 +345,10 @@ try {
         await page
           .getByRole("link", { name: "Site & settings", exact: true })
           .click();
-        assert.equal(
-          await page.getByLabel("Business name", { exact: true }).isDisabled(),
-          true,
-        );
+        const readOnlyName = page.getByLabel("Business name", { exact: true });
+        await readOnlyName.waitFor();
+        await page.waitForFunction(el => el.matches(':disabled'), await readOnlyName.elementHandle());
+        assert.equal(await readOnlyName.isDisabled(), true);
       } finally {
         await context.close();
       }
@@ -541,9 +542,16 @@ try {
           "Northline Browser Example",
         );
         await page.getByRole("button", { name: "Customize demo" }).click();
-        await page
-          .getByRole("button", { name: "Add sample appointments" })
-          .click();
+        // The demo creates three real appointments, not a UI fixture. Await its
+        // bounded server result before asserting the dialog's completion state.
+        const scenarioResponse = page.waitForResponse(response =>
+          new URL(response.url()).pathname === "/api/demo/scenario" && response.request().method() === "POST",
+          { timeout: 60000 });
+        await page.getByRole("button", { name: "Add sample appointments" }).click();
+        const scenario = await scenarioResponse;
+        const scenarioResult = await scenario.json();
+        assert.equal(scenario.ok(), true, JSON.stringify(scenarioResult));
+        assert.equal(scenarioResult.created, 3);
         await page.getByRole("dialog").waitFor({ state: "detached" });
         await page
           .getByRole("link", { name: "Appointments", exact: true })

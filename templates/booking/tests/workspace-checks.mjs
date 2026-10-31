@@ -37,6 +37,7 @@ export async function workspaceChecks({ browser, base, out, check, boot, geometr
           await page.getByRole('listbox').waitFor();
           await page.keyboard.press('Escape');
           await page.getByRole('listbox').waitFor({ state: 'detached' });
+          await page.waitForFunction(el => document.activeElement === el, await theme.elementHandle());
           assert.equal(await theme.evaluate(el => document.activeElement === el), true, 'Select returns keyboard focus');
           await page.screenshot({ path: join(out, `staff-${width}-${motion}.png`), fullPage: true });
           assert.deepEqual(errors, []);
@@ -46,6 +47,7 @@ export async function workspaceChecks({ browser, base, out, check, boot, geometr
       });
     }
   }
+  await (await import('./latency-checks.mjs')).latencyChecks({browser, out, check, boot});
   await check('Demo reset removes only the current session bookings', async () => {
     const first = await browser.newContext({ locale: 'en-GB' });
     const second = await browser.newContext({ locale: 'en-GB' });
