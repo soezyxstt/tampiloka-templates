@@ -1,0 +1,57 @@
+name: School quality gates
+on:
+  push:
+    branches: [main, feat/school-template]
+    paths:
+      - 'templates/school/**'
+      - 'packages/ui-core/**'
+      - 'packages/cli/**'
+      - 'packages/registry/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/school.yml'
+  pull_request:
+    paths:
+      - 'templates/school/**'
+      - 'packages/ui-core/**'
+      - 'packages/cli/**'
+      - 'packages/registry/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/school.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: school-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  school:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Server, generator, registry and catalog tests
+        run: pnpm test:school && pnpm test:cli && pnpm test:registry && pnpm catalog:test
+      - name: Design, type safety and production build
+        run: pnpm lint:design && pnpm --filter @tampiloka/template-school typecheck && pnpm build:school
+      - name: Standalone client generation
+        run: pnpm --filter @tampiloka/template-school test:standalone
+      - name: Install Chromium
+        working-directory: templates/school
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser and visual checks
+        run: pnpm test:school:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: school-visual-evidence
+          path: templates/school/test-results
+          if-no-files-found: ignore
+          retention-days: 14
