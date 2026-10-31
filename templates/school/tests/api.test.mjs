@@ -56,9 +56,11 @@ test('mutations reject cross-origin and missing CSRF header', async () => {
 test('production ignores feature/preset/role URL forgery and demo payment/reset', async () => {
     const { db, client } = await setup(false, 'profile');
     const c = client();
-    const s = (await c.call('/api/bootstrap?level=full&preset=skills', undefined, 'admin')).data;
+    const forgedPreset = config.preset === 'skills' ? 'language' : 'skills';
+    const s = (await c.call(`/api/bootstrap?level=full&preset=${forgedPreset}`, undefined, 'admin')).data;
     assert.equal(s.level, 'profile');
-    assert.equal(s.preset, 'exam-prep');
+    assert.equal(s.preset, config.preset);
+    assert.notEqual(s.preset, forgedPreset);
     assert.equal(s.actor, null);
     assert.equal(s.demo, false);
     assert.equal((await c.call('/api/auth/register', { name: 'Name', email: 'test@example.test', password: 'test-password-long', role: 'student' })).status, 403);
