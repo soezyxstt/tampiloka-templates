@@ -223,17 +223,57 @@ test('checkout reconciles ambiguous creation, retries terminal attempts and dedu
         const retry = start(); await entered; assert.equal((await start()).status, 409); release();
         assert.equal((await retry).status, 200);
         assert.equal(attempts[0], attempts[1]);
+        status = 'pending';
         assert.equal((await start()).status, 200); assert.equal(attempts.length, 2);
         status = 'deny'; assert.equal((await callback(attempts[0])).status, 200); assert.equal((await start()).status, 200); assert.equal(attempts.length, 2);
-        status = 'expire'; assert.equal((await callback(attempts[0])).status, 200); assert.equal((await callback(attempts[0])).status, 200);
+        status = 'failure'; assert.equal((await callback(attempts[0])).status, 200);
         assert.equal((await start()).status, 200); assert.notEqual(attempts[2], attempts[0]);
-        status = 'settlement'; assert.equal((await callback(attempts[2])).status, 200); assert.equal((await callback(attempts[2])).status, 200);
+        status = 'expire'; assert.equal((await callback(attempts[2])).status, 200); assert.equal((await callback(attempts[2])).status, 200);
+        assert.equal((await start()).status, 200); assert.notEqual(attempts[3], attempts[2]);
+        status = 'settlement'; assert.equal((await callback(attempts[3])).status, 200); assert.equal((await callback(attempts[3])).status, 200);
         assert.equal((await callback(attempts[0])).status, 200);
         const state = (await store.load()).state;
         assert.equal(state.invoices.find(x => x.id === 'inv-checkout').status, 'paid');
         assert.equal(state.events.filter(x => x.enrollmentId === 'enr-checkout' && x.status === 'active').length, 1);
         assert.equal(state.invoices.find(x => x.id === 'inv-checkout').needsReview, true);
     } finally { globalThis.fetch = original; db.raw.close(); }
+});
+
+test('saved checkout URLs reconcile missed terminal notifications and refresh unselected Snap pages safely', async () => {
+    for (const terminal of ['expire', 'cancel', 'failure']) {
+        const { db, env, client } = await setup(false);
+        env.CONFIG = { ...env.CONFIG, payment: { provider: 'midtrans' } }; env.MIDTRANS_SERVER_KEY = 'test-key';
+        const c = client(); await c.call('/api/auth/login', { email: env.BOOTSTRAP_ADMIN_EMAIL, password: env.BOOTSTRAP_ADMIN_PASSWORD });
+        const store = new Store(db, 'production', () => seed('exam-prep', config, false));
+        await store.mutate(s => {
+            s.enrollments.push({ id: 'enr-retry', studentId: 'student-sinta', cohortId: s.cohorts[0].id, status: 'awaiting_payment', answers: {}, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), version: 1 });
+            s.invoices.push({ id: 'inv-retry', enrollmentId: 'enr-retry', studentId: 'student-sinta', totalIdr: 1000, lines: [], status: 'unpaid', issuedAt: new Date().toISOString() });
+        });
+        const original = globalThis.fetch, attempts = [];
+        let status = 'pending';
+        globalThis.fetch = async (url, init = {}) => {
+            if (init.method === 'POST') { const order = JSON.parse(init.body).transaction_details.order_id; attempts.push(order); return Response.json({ redirect_url: `https://app.sandbox.midtrans.com/snap/${order}/${attempts.length}` }); }
+            if (status === 'missing') return new Response('{}', { status: 404 });
+            if (status === 'unavailable') return new Response('{}', { status: 503 });
+            return Response.json({ order_id: decodeURIComponent(String(url).split('/').at(-2)), gross_amount: '1000.00', transaction_status: status });
+        };
+        const start = () => c.call('/api/payments/start', { id: 'inv-retry' });
+        try {
+            const first = await start(); assert.equal(first.status, 200);
+            assert.equal((await start()).data.url, first.data.url); assert.equal(attempts.length, 1);
+            status = terminal;
+            const next = await start(); assert.equal(next.status, 200); assert.notEqual(next.data.url, first.data.url); assert.notEqual(attempts[0], attempts[1]);
+            status = 'missing';
+            const refreshed = await start(); assert.equal(refreshed.status, 200); assert.notEqual(refreshed.data.url, next.data.url); assert.equal(attempts[1], attempts[2]);
+            status = 'unavailable';
+            assert.equal((await start()).status, 502); assert.equal(attempts.length, 3);
+            status = 'settlement';
+            assert.equal((await start()).status, 409); assert.equal(attempts.length, 3);
+            const state = (await store.load()).state;
+            assert.equal(state.invoices.find(x => x.id === 'inv-retry').status, 'paid');
+            assert.equal(state.events.filter(x => x.enrollmentId === 'enr-retry' && x.status === 'active').length, 1);
+        } finally { globalThis.fetch = original; db.raw.close(); }
+    }
 });
 
 test('D1 account capacity failures return a retryable error without logging answers', async () => {

@@ -80,6 +80,11 @@ async function context(request: Request, env: Env) {
 }
 async function session(env: Env, request: Request, id: string) { const token = random(); await env.DB.prepare('INSERT INTO school_sessions(token_hash,namespace,user_id,expires_at) VALUES(?,?,?,?)').bind(await digest(token), 'production', id, Date.now() + 43200000).run(); return setCookie(request, 'school_session', token, 43200); }
 const midtransBase = (env: Env) => env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+function midtransStatus(canonical: Record<string, string>) {
+    const status = canonical.transaction_status;
+    // Snap permits successful payment after a denied attempt on the same order.
+    return status === 'settlement' || status === 'capture' && canonical.fraud_status === 'accept' ? 'paid' : status === 'expire' ? 'expired' : ['cancel', 'failure'].includes(status) ? 'failed' : ['refund', 'partial_refund'].includes(status) ? 'refunded' : 'pending';
+}
 async function callback(request: Request, env: Env) {
     check(env.DEMO_MODE !== 'true', 'demo_only', 403);
     const config = configuration(env);
@@ -100,9 +105,7 @@ async function callback(request: Request, env: Env) {
     check(canonical.order_id === order && /^\d+(\.00)?$/.test(canonical.gross_amount) && (!canonical.currency || canonical.currency === 'IDR'), 'invalid_payment');
     const amount = Number(canonical.gross_amount);
     integer(amount);
-    const status = canonical.transaction_status;
-    const paid = status === 'settlement' || status === 'capture' && canonical.fraud_status === 'accept';
-    const normalized = paid ? 'paid' : status === 'expire' ? 'expired' : status === 'cancel' ? 'failed' : ['refund', 'partial_refund'].includes(status) ? 'refunded' : 'pending';
+    const normalized = midtransStatus(canonical);
     const store = new Store(env.DB, 'production', () => seed(config.preset, config, false));
     await store.mutate(s => { const payment = s.payments.find(x => x.reference === order && x.provider === 'midtrans'); check(payment, 'not_found', 404); applyPayment(s, { actor: null, level: config.level, demo: false, now: new Date().toISOString(), id: order }, payment.invoiceId, order, amount, 'midtrans', normalized); });
     return response({ ok: true });
@@ -244,8 +247,6 @@ export async function handle(request: Request, env: Env, execution?: {
             check(invoice && invoice.status === 'unpaid', 'invoice_unavailable', 409);
             check(owns(ctx, invoice.studentId) || isStaff(ctx.actor.role), 'forbidden', 403);
             let previous = s.payments.find(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending');
-            if (previous?.checkoutUrl)
-                return response({ url: previous.checkoutUrl });
             if (previous) {
                 check((previous.startingUntil ?? 0) <= Date.now(), 'payment_start_reconcile', 409);
                 const status = await fetch(`${midtransBase(env)}/v2/${encodeURIComponent(previous.reference)}/status`, { headers: { Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, signal: AbortSignal.timeout(15000) });
@@ -253,9 +254,9 @@ export async function handle(request: Request, env: Env, execution?: {
                     check(status.ok, 'payment_start_reconcile', 502);
                     const canonical = await status.json() as Record<string, string>;
                     check(canonical.order_id === previous.reference && /^\d+(\.00)?$/.test(canonical.gross_amount) && Number(canonical.gross_amount) === invoice.totalIdr && (!canonical.currency || canonical.currency === 'IDR'), 'invalid_payment');
-                    const state = canonical.transaction_status;
-                    const normalized = state === 'settlement' || state === 'capture' && canonical.fraud_status === 'accept' ? 'paid' : state === 'expire' ? 'expired' : state === 'cancel' ? 'failed' : ['refund', 'partial_refund'].includes(state) ? 'refunded' : 'pending';
-                    await store.mutate(s => applyPayment(s, { ...ctx, actor: null }, invoice.id, previous!.reference, invoice.totalIdr, 'midtrans', normalized));
+                    const normalized = midtransStatus(canonical);
+                    const unpaid = await store.mutate(s => { applyPayment(s, { ...ctx, actor: null }, invoice.id, previous!.reference, invoice.totalIdr, 'midtrans', normalized); return s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid'; });
+                    if (normalized === 'pending' && previous.checkoutUrl) { check(unpaid, 'invoice_unavailable', 409); return response({ url: previous.checkoutUrl }); }
                     check(normalized === 'expired' || normalized === 'failed', 'payment_start_reconcile', 409);
                     previous = undefined;
                 }
@@ -264,7 +265,7 @@ export async function handle(request: Request, env: Env, execution?: {
             const startingUntil = Date.now() + 60000;
             await env.DB.prepare('INSERT OR IGNORE INTO school_payment_routes(order_id,namespace) VALUES(?,?)').bind(order, 'production').run();
             if (!previous) await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending'), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now, startingUntil }); });
-            else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && (pay.startingUntil ?? 0) <= Date.now() && !pay.checkoutUrl, 'payment_start_reconcile', 409); pay.startingUntil = startingUntil; });
+            else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && (pay.startingUntil ?? 0) <= Date.now() && pay.checkoutUrl === previous?.checkoutUrl, 'payment_start_reconcile', 409); pay.startingUntil = startingUntil; });
             const host = env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
             try {
             const res = await fetch(`${host}/snap/v1/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, body: JSON.stringify({ transaction_details: { order_id: order, gross_amount: invoice.totalIdr } }), signal: AbortSignal.timeout(15000) });
