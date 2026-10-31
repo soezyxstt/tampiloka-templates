@@ -579,6 +579,7 @@ try {
       }
     },
   );
+  await (await import("./workspace-checks.mjs")).workspaceChecks({browser, base, out, check, boot, geometry});
   assert.deepEqual(report.errors, [], "Browser runtime exceptions");
 } catch (e) {
   report.fatal = e.stack;
