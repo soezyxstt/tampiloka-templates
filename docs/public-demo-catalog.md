@@ -91,6 +91,9 @@ optional fields within v1; publish a new URL/version for breaking changes.
 
 Capture the current public demo at a 1280 × 800 viewport and export an optimized 8:5 WebP. Keep its actual theme, mode, content, and shared toolbar visible. Cafe images live in `templates/cafe/demos/public/demo-previews/` and are served at `https://cafe.tampiloka.site/demo-previews/`. Commerce images live in `templates/commerce/public/demo-previews/` and are served at `https://ecommerce.tampiloka.site/demo-previews/`. These images ship with their demo, and the catalog contains their absolute URLs. Publish the demo and image assets before marking a new entry public and ready. The marketing application does not need an asset copy or a rebuild.
 
+## School readiness
+
+School CLI availability does not publish its demo. The school family starts private, `ready: false`, with no public entries. Publish only after verifying the deployed Worker, independent demo data, and exact 1280×800 previews. CI evidence is not a live public URL.
 ## Booking publication gate
 
-Booking metadata is registered with `ready: false` until its deployed origin and previews pass verification. Its four use-case entries use independent preset URLs, each preserving a sample layout and palette, and the shared `level` mode parameter. Register actual verified URLs in canonical `templates.json` and the runtime registry before enabling publication. Do not infer readiness from a local build or fabricated preview URL.
+Booking metadata is public and ready after its deployed origin and previews passed verification. Its four use-case entries use independent preset URLs, each preserving a sample layout and palette, and the shared `level` mode parameter. Register actual verified URLs in canonical `templates.json` and the runtime registry before enabling publication. Do not infer readiness from a local build or fabricated preview URL.

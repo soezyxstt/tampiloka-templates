@@ -1,5 +1,16 @@
-/* One set of demo controls for cafe and commerce. Each app maps the same chrome tokens. */
+/* Shared demo chrome. Safe defaults keep every family readable without app-specific mappings. */
 :root {
+  --demo-chrome-bg: var(--chrome-bg, #2a2420);
+  --demo-chrome-fg: var(--chrome-fg, #f7f5f1);
+  --demo-chrome-muted: var(--chrome-muted, #cfc7be);
+  --demo-chrome-border: var(--chrome-border, #7d7167);
+  --demo-chrome-hover: var(--chrome-hover, #4a413b);
+  --demo-chrome-line: color-mix(in srgb, var(--demo-chrome-fg) 14%, transparent);
+  --demo-panel-bg: #ffffff;
+  --demo-panel-fg: #2a2420;
+  --demo-panel-border: #e3ddd5;
+  --demo-panel-control-border: #8a8178;
+  --demo-panel-hover: #f3eee8;
   --demo-control-height: 44px;
   --demo-control-radius: 8px;
   --demo-option-radius: 6px;
@@ -36,6 +47,7 @@
 .tl-demo-brand img { display: block; width: 112px; max-width: 100%; height: auto; }
 .tl-demo-brand span { margin-left: 4px; color: var(--demo-chrome-muted); font-size: 12px; font-weight: 500; letter-spacing: 0; }
 .tl-demo-controls { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(150px, 1.3fr); gap: var(--demo-gap); width: 100%; max-width: 460px; justify-self: center; }
+.tl-demo-controls:has(> :nth-child(3)) { grid-template-columns: minmax(130px,1.3fr) repeat(2,minmax(100px,1fr)); max-width: 600px; }
 .tl-demo-controls > * { min-width: 0; }
 .tl-demo-views, .tl-demo-actions { display: flex; align-items: center; gap: 4px; }
 .tl-demo-views > a, .tl-demo-views > button, .tl-demo-actions > button {
@@ -146,6 +158,7 @@
 @media(max-width:1000px) {
   .tl-demo-toolbar { grid-template-columns: minmax(0,1fr) auto auto; gap: var(--demo-gap); padding: 8px 16px; }
   .tl-demo-controls { grid-column: 1/-1; grid-row: 2; max-width: none; grid-template-columns: minmax(110px,.7fr) minmax(150px,1.3fr); }
+  .tl-demo-controls:has(> :nth-child(3)) { grid-template-columns: repeat(3,minmax(0,1fr)); max-width: none; }
   .tl-demo-views { grid-column: 2; grid-row: 1; }
   .tl-demo-actions { grid-column: 3; grid-row: 1; }
 }

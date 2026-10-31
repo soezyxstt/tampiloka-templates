@@ -297,6 +297,138 @@
       ]
     },
     {
+      "id": "school",
+      "template": "school",
+      "visibility": "public",
+      "ready": true,
+      "name": {
+        "id": "Sekolah & pusat belajar",
+        "en": "Schools & learning centers"
+      },
+      "description": {
+        "id": "Program, pendaftaran, dan ruang belajar.",
+        "en": "Programs, applications, and learning operations."
+      },
+      "route": {
+        "base": "preset",
+        "presetParam": "preset",
+        "modeParam": "level"
+      },
+      "entries": [
+        {
+          "id": "school-academic-editorial",
+          "preset": "exam-prep",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Prima Academy",
+            "en": "Prima Academy"
+          },
+          "description": {
+            "id": "Bimbel dengan tampilan editorial, program ujian, dan alur pendaftaran.",
+            "en": "An editorial tutoring center with exam programs and an enrollment journey."
+          },
+          "imageUrl": "https://school.tampiloka.site/previews/academic-editorial-preview.jpg",
+          "featured": true
+        },
+        {
+          "id": "school-course-discovery",
+          "preset": "language",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Lingua Center",
+            "en": "Lingua Center"
+          },
+          "description": {
+            "id": "Kursus bahasa dengan pencarian program, biaya, dan pilihan angkatan.",
+            "en": "A language center with course discovery, fees, and intake choices."
+          },
+          "imageUrl": "https://school.tampiloka.site/previews/course-discovery-preview.jpg",
+          "featured": false
+        },
+        {
+          "id": "school-contemporary-learning",
+          "preset": "skills",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Forma Learning",
+            "en": "Forma Learning"
+          },
+          "description": {
+            "id": "Pelatihan keahlian dengan hasil belajar, prasyarat, dan jadwal lokakarya.",
+            "en": "Professional training with learning outcomes, prerequisites, and workshop schedules."
+          },
+          "imageUrl": "https://school.tampiloka.site/previews/contemporary-learning-preview.jpg",
+          "featured": false
+        },
+        {
+          "id": "school-institutional",
+          "preset": "institution",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Sekolah Mandiri",
+            "en": "Sekolah Mandiri"
+          },
+          "description": {
+            "id": "Profil sekolah, program akademik, pengumuman, dan penerimaan siswa.",
+            "en": "A school profile with academic programs, announcements, and admissions."
+          },
+          "imageUrl": "https://school.tampiloka.site/previews/institutional-preview.jpg",
+          "featured": false
+        }
+      ],
+      "defaultMode": "full",
+      "modes": [
+        {
+          "id": "profile",
+          "name": {
+            "id": "Profil",
+            "en": "Profile"
+          },
+          "description": {
+            "id": "Profil, program, pengajar, jadwal, dan editor konten.",
+            "en": "Institution, programs, teachers, schedules, and content editing."
+          }
+        },
+        {
+          "id": "whatsapp",
+          "name": {
+            "id": "WhatsApp",
+            "en": "WhatsApp inquiry"
+          },
+          "description": {
+            "id": "Pilihan program dan ringkasan pertanyaan WhatsApp, tanpa konfirmasi pendaftaran.",
+            "en": "Choose a program and send a WhatsApp inquiry without claiming enrollment."
+          }
+        },
+        {
+          "id": "enrollment",
+          "name": {
+            "id": "Pendaftaran",
+            "en": "Enrollment"
+          },
+          "description": {
+            "id": "Pengajuan, kapasitas, tinjauan staf, daftar tunggu, dan riwayat pribadi.",
+            "en": "Applications, capacity, review, waitlists, and protected status tracking."
+          }
+        },
+        {
+          "id": "full",
+          "name": {
+            "id": "Lengkap",
+            "en": "Full learning center"
+          },
+          "description": {
+            "id": "Pendaftaran, tagihan, pembayaran, portal, kehadiran, materi, dan catatan belajar.",
+            "en": "Enrollment plus invoices, simulated payment, portals, attendance, and private resources."
+          }
+        }
+      ]
+    },
+    {
       "id": "booking",
       "template": "booking",
       "visibility": "public",

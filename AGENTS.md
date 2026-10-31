@@ -179,6 +179,10 @@ Check customer views at 360px, 390px, and a desktop width (1280 to 1440px), plus
 
 Run design-token lint, affected template typechecks, catalog validation/tests, and the existing affected browser suites. Update obsolete selectors when controls change, while retaining their behavioral assertions. Record the actual checks and any blocked checks; a build alone does not prove visual or interaction quality. Update this file and the relevant template design docs whenever the shared contract changes.
 
+## School template
+
+`templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
+
 ## CI and deployment maintenance
 
 - Keep `.github/workflows/ci.yml` as the common verification workflow: run it for pull requests and pushes to `main`, including design-token lint, template builds and the existing behavioral tests. Avoid running the same full suite on both a feature-branch push and its pull request.
@@ -190,6 +194,7 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 Record UI-system changes here, newest first, one short entry per change.
 
+- **2026-10-31**: Added school template with independent business/layout/palette/level choices, shared demo shell, typed CMS, protected enrollment and learning-center operations. Shared dialogs accept an optional localized close label.
 - **2026-10-31**: Added booking to the shared demo contract with independent business, level, layout, palette, view, and language state. Its staff workspace uses neutral tokens, labeled schedule fields, server-backed session isolation, and verified 1280 × 800 preview captures.
 
 - **2026-10-30**: Added shared rules for restrained navigation icons, clear link/button cues, and centered, accessible icon-only controls across current and future templates.

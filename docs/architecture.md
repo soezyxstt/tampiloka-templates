@@ -28,7 +28,7 @@ Tingkat fitur commerce adalah batas server. Konfigurasi visual tidak mengubah ti
 
 Commerce melayani satu bisnis pemilik toko. Perbandingan dengan marketplace dipakai untuk kelengkapan alur pembeli/staf, bukan untuk mengklaim adanya multi-seller, escrow, pencairan komisi, atau integrasi kurir yang belum dibuat. Sistem mendukung pengiriman berbasis tarif yang diatur dan pencatatan resi; integrasi tarif atau pelacakan kurir perlu adaptor terpisah.
 
-Dashboard dan school mempunyai manifest rencana. CLI menolak membuatnya sampai implementasi serta tes tersedia.
+Dashboard masih mempunyai manifest rencana. School memakai React/Vite, Worker, D1, dan CMS bertipe dengan empat level server. CLI menyalin paket UI ke proyek mandiri. Baca `templates/school/docs/architecture.md` untuk batas penyimpanan, model akses, dan pilihan CMS.
 
 ### Booking family
 

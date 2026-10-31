@@ -1,3 +1,4 @@
+import {validateSchool,createSchool,doctorSchool} from './school.mjs';
 import { readFile, writeFile, readdir, mkdir, lstat, realpath, rename, rm, rmdir, copyFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, basename, resolve, join, relative, sep } from 'node:path';
@@ -11,7 +12,7 @@ import { parseJsonc } from './jsonc.mjs';
 const VERSION = '1.0.0';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BOOL = new Set(['yes', 'json', 'dry-run', 'help', 'version']);
-const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir']);
+const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir','typography']);
 const HELP = `Tampiloka ${VERSION}
 
 Usage:
@@ -21,7 +22,7 @@ Usage:
   tampiloka doctor [--dir <path>] [--json]  Periksa proyek yang sudah dibuat
 
 Pilihan create:
-  --template <id>  cafe, commerce, atau booking
+  --template <id>  cafe, commerce, school, atau booking
   --preset <id>    commerce: susunan; cafe: paket; booking: medical, aesthetic, detailing, consulting
   --level <id>     commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
   --features <ids> commerce: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers; none atau all
@@ -29,6 +30,7 @@ Pilihan create:
   --theme <id>     booking: sage, rose, slate, ochre; commerce: sand, ink, forest; cafe: boxy, rounded, editorial, playful, airy
   --card <id>      commerce: open, framed, soft
   --button <id>    commerce: solid, outline
+  --typography <id> school: editorial, modern, humanist
   --name <text>    Nama brand
   --whatsapp <text> WhatsApp bisnis, format 628... (--phone juga diterima)
   --color <hex>    Warna brand cafe, contoh '#234C39'
@@ -46,7 +48,12 @@ Contoh:
   tampiloka create kedai --template cafe --preset full --theme editorial --yes
 
 Tanpa --yes, terminal interaktif menanyakan template, preset, dan pilihan desain.
-Level fitur commerce dan booking terpisah dari desain. Dashboard dan school masih
+School: --preset exam-prep|language|skills|institution
+  --level profile|whatsapp|enrollment|full
+  --layout academic-editorial|course-discovery|contemporary-learning|institutional
+  --theme cobalt|forest|neutral|burgundy
+  --features progress-reports,additional-branches,notifications
+Level fitur commerce, school dan booking terpisah dari desain. Dashboard masih
 direncanakan. CLI tidak membuat proyek yang belum punya implementasi.
 `;
 
@@ -106,6 +113,11 @@ async function interactive(options, registry) {
       if(!result.card)result.card=await choose('Kartu produk',[['open','Tanpa bingkai'],['framed','Garis tepi'],['soft','Permukaan lembut']],template.presets[result.preset].card);
       if(!result.button)result.button=await choose('Tombol utama',[['solid','Warna isi'],['outline','Garis tepi']],template.presets[result.preset].button);
       if(!result.features)result.features=(await prompt.question('Modul tambahan (pisahkan koma; Enter memakai bawaan level): ')).trim()||undefined;
+    } else if(template.id==='school'){
+      if(!result.level)result.level=await choose('Level school',Object.entries(registry.schoolLevels).map(([id,v])=>[id,v.description]),'profile');
+      if(!result.layout)result.layout=await choose('Layout school',registry.schoolLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
+      if(!result.theme)result.theme=await choose('Palet school',registry.schoolPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
+      if(!result.typography)result.typography=await choose('Tipografi school',registry.schoolTypography.map(id=>[id,id]),template.presets[result.preset].typography);
     } else if(template.id==='booking'){
       if(!result.level)result.level=await choose('Kelengkapan fitur booking',Object.entries(registry.bookingLevels).map(([id,item])=>[id,item.description]),template.defaultLevel);
       if(!result.layout)result.layout=await choose('Susunan halaman',registry.bookingLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
@@ -266,6 +278,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
   if(options.name&&(options.name.length>80||/[\u0000-\u001f]/.test(options.name)))throw new Error('Nama brand maksimal 80 karakter tanpa karakter kontrol.');
   if(options.phone&&!/^62\d{8,13}$/.test(options.phone))throw new Error('WhatsApp gunakan format 628..., tanpa spasi atau tanda +.');
   if(template.id==='commerce'){
+    if(options.typography)throw new Error('--typography hanya untuk school.');
     options.level=options.level||template.defaultLevel;
     assertChoice(options.level,Object.keys(registry.commerceLevels),'Level');
     registry.commerceModulesFor(options.level,options.features);
@@ -274,13 +287,14 @@ export async function createProject(target,initial,sourceRoot,registry) {
     if(options.card)assertChoice(options.card,['open','framed','soft'],'Kartu');
     if(options.button)assertChoice(options.button,['solid','outline'],'Tombol');
     if(options.color)throw new Error('--color hanya untuk cafe. Untuk commerce ubah token brand di config dan CSS proyek.');
+  } else if(template.id==='school'){validateSchool(options,registry);
   } else if(template.id==='booking'){
     options.level=options.level||template.defaultLevel;assertChoice(options.level,Object.keys(registry.bookingLevels),'Level');
     if(options.layout)assertChoice(options.layout,registry.bookingLayouts,'Layout');
     if(options.theme)assertChoice(options.theme,registry.bookingPalettes,'Tema');
     for(const key of ['card','button','features','color'])if(options[key])throw new Error(`--${key} tidak berlaku untuk booking. Ubah token merek di proyek klien.`);
   } else {
-    for(const key of ['level','layout','card','button','features'])if(options[key])throw new Error(`--${key} hanya berlaku untuk commerce.`);
+    for(const key of ['level','layout','card','button','features','typography'])if(options[key])throw new Error(`--${key} hanya berlaku untuk commerce.`);
     if(options.theme)assertChoice(options.theme,['boxy','rounded','editorial','playful','airy'],'Tema');
     if(options.color&&!/^#[\da-f]{6}$/i.test(options.color))throw new Error('Warna brand harus #RRGGBB.');
   }
@@ -290,7 +304,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
   let ancestor=parent;while(!await exists(ancestor))ancestor=dirname(ancestor);
   const canonical=join(await realpath(ancestor),relative(ancestor,parent),target),source=await realpath(sourceRoot);
   if(canonical===source||canonical.startsWith(join(source,'templates')+sep)||canonical.startsWith(join(source,'packages')+sep))throw new Error('Buat proyek klien di luar folder sumber templates/ dan packages/.');
-  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,...(options.level?{level:options.level}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),directory:destination};
+  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,...(options.level?{level:options.level}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),directory:destination};
   if(options['dry-run']){emit(options,result,`Rencana proyek ${destination}\n${template.id} / ${options.preset}${options.level?` / ${options.level}`:''}\nTidak ada file yang ditulis.`);return result;}
   await mkdir(parent,{recursive:true});
   const temp=join(parent,`.tampiloka-${target}-${randomUUID()}`);
@@ -302,17 +316,17 @@ export async function createProject(target,initial,sourceRoot,registry) {
       const run=spawnSync(process.execPath,args,{encoding:'utf8'});
       if(run.error)throw run.error;
       if(run.status!==0)throw new Error(run.stderr.trim()||'Pembuatan cafe gagal.');
-    }else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
+    }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
+    else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
-    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
-    // Reserve the destination atomically. rename alone may replace an existing empty directory.
-    await mkdir(destination);
-    reservedDestination=true;
+    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
+    // Windows rename refuses an existing directory; POSIX needs a reservation.
+    if(process.platform!=='win32'){await mkdir(destination);reservedDestination=true;}
     await rename(temp,destination);
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}
   const shellDestination = "'" + destination.replaceAll("'", "'\"'\"'") + "'";
-  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?'npm ci\n  npm run demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
+  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?'npm ci\n  npm run demo':template.id==='school'?'pnpm install\n  pnpm demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
   return result;
 }
 
@@ -333,6 +347,7 @@ export async function doctor(options,sourceRoot,registry) {
     let result;try{result=JSON.parse(child.stdout);}catch{throw new Error(child.stderr||'Pemeriksaan cafe gagal.');}
     emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status)process.exitCode=child.status;return result;
   }
+  if(template.id==='school'){const result=await doctorSchool(directory,registry);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
   if(template.id==='booking'){
     const config=await json(join(directory,'config/booking.json')),pkg=await json(join(directory,'package.json')),wrangler=await json(join(directory,'wrangler.jsonc'));
     try{assertChoice(config.level,Object.keys(registry.bookingLevels),'Level');assertChoice(config.preset,Object.keys(registry.bookingPresets),'Preset');assertChoice(config.layout,registry.bookingLayouts,'Layout');assertChoice(config.palette,registry.bookingPalettes,'Palette');new Intl.DateTimeFormat('en',{timeZone:config.timezone});checks.push({name:'Konfigurasi booking',status:'pass',detail:`${config.preset} / ${config.level} / ${config.layout} / ${config.palette}`});}catch(e){checks.push({name:'Konfigurasi booking',status:'fail',detail:e.message});}

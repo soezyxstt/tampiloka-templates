@@ -157,6 +157,17 @@ Push ke `main` memicu Pages untuk cafe jika file cafe atau konfigurasi workspace
 
 Workflow Workers membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang deploy Workers dan mengelola domain terkait. Perubahan skema D1 harus diterapkan secara terpisah sebelum deploy commerce jika diperlukan; workflow tidak menjalankan migrasi database otomatis. Deployment berjalan terpisah dari workflow verifikasi, jadi pantau hasil keduanya.
 
+## School & Learning Center
+
+`school` supports exam preparation, language courses, skills training, and institutions, from profile to Full enrollment/operations.
+
+```sh
+pnpm tampiloka create prima-academy --template school --preset exam-prep --level full --layout course-discovery --theme cobalt --yes
+pnpm dev:school
+pnpm test:school
+```
+
+Read [school setup and limits](templates/school/README.md). The standalone generator is available; the public school catalog lists the verified demo URLs and hosted previews.
 ## Appointment booking
 
 `booking` now has a server-backed implementation. Generate medical, aesthetic, detailing, or consulting projects independently from their Catalog / WhatsApp / Booking / Full level, layout and palette. Run `pnpm dev:booking` for the isolated public demonstration. See [`templates/booking/README.md`](templates/booking/README.md) for setup, architecture, verification and merchant-specific payment limitations. Public catalog readiness remains separate from template availability.
