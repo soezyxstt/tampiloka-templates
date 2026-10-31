@@ -1,0 +1,48 @@
+diff --git a/templates/booking/src/styles/staff.css b/templates/booking/src/styles/staff.css
+index d278ca5..757f907 100644
+--- a/templates/booking/src/styles/staff.css
++++ b/templates/booking/src/styles/staff.css
+@@ -334,7 +334,8 @@
+ }
+ .b-schedule-row {
+   display: grid;
+-  grid-template-columns: 90px minmax(0, 1fr);
++  grid-template-columns: minmax(105px, 0.9fr) minmax(0, 1fr) auto minmax(0, 1fr) 44px;
++  align-items: center;
+   gap: 18px;
+   padding: 15px 0;
+   border-bottom: 1px solid var(--line);
+@@ -611,9 +612,10 @@
+     align-self: flex-start;
+   }
+   .b-schedule-row {
+-    grid-template-columns: 1fr;
++    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+     gap: 9px;
+   }
++  .b-schedule-row > .b-select { grid-column: 1 / -1; }
+   .b-schedule-row > strong {
+     padding: 0;
+   }
+@@ -622,7 +624,8 @@
+     gap: 7px;
+   }
+   .b-schedule-row input {
+-    max-width: calc(50% - 15px);
++    width: 100%;
++    max-width: 100%;
+   }
+   .b-time-off-row {
+     gap: 15px;
+diff --git a/templates/booking/tests/browser.mjs b/templates/booking/tests/browser.mjs
+index 6e2c6a6..bba6c5e 100644
+--- a/templates/booking/tests/browser.mjs
++++ b/templates/booking/tests/browser.mjs
+@@ -579,6 +579,7 @@ try {
+       }
+     },
+   );
++  await (await import("./workspace-checks.mjs")).workspaceChecks({browser, base, out, check, boot, geometry});
+   assert.deepEqual(report.errors, [], "Browser runtime exceptions");
+ } catch (e) {
+   report.fatal = e.stack;
