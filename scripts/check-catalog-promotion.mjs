@@ -27,3 +27,30 @@ export async function verifyGithubRelease(family, release, { workflow, job }, re
   const jobs = await request(`/actions/runs/${run.id}/jobs?per_page=100`);
   return jobs.jobs?.some(item => item.name === job && item.status === 'completed' && item.conclusion === 'success') === true;
 }
+
+// Retain only the affected family's previous public entries when its promotion
+// cannot be verified. Explicit removals from the proposed feed remain effective.
+export async function reconcileCatalogPromotion(previous, next, verifyRelease) {
+  previous = validatePublicCatalog(previous);
+  next = validatePublicCatalog(next);
+  const blocked = [];
+  const families = [];
+  const entries = [];
+  for (const family of next.families) {
+    const proposed = next.entries.filter(entry => entry.family === family.id);
+    const oldFamily = previous.families.find(item => item.id === family.id);
+    try {
+      await checkCatalogPromotion(previous, { ...next, families: [family], entries: proposed }, verifyRelease);
+      families.push(family);
+      entries.push(...proposed);
+    } catch (error) {
+      blocked.push({ family: family.id, reason: String(error.message ?? error) });
+      if (oldFamily) {
+        families.push(oldFamily);
+        const proposedIds = new Set(proposed.map(entry => entry.id));
+        entries.push(...previous.entries.filter(entry => entry.family === family.id && proposedIds.has(entry.id)));
+      }
+    }
+  }
+  return { catalog: validatePublicCatalog({ ...next, families, entries }), blocked };
+}
