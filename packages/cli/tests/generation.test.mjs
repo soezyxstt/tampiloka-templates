@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, mkdir, rm, lstat, readdir, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..'),cli=join(root,'packages/cli/bin/tampiloka.mjs');
 const run=(...args)=>{const result=spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8'});if(result.error)throw result.error;return result;};
@@ -130,6 +130,10 @@ test('booking generation supports every independent business and feature level w
   assert.ok(!JSON.stringify(pkg).includes('workspace:'));assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
   assert.doesNotMatch(await readFile(join(output,'src/components/DemoToolbar.tsx'),'utf8'),/DemoToolbarShell/);assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'),/ui-core\/demo/);
   assert.doesNotMatch(await readFile(join(output,'worker/demo.ts'),'utf8'),/scopeRow|UPDATE|INSERT/);
+  if(['catalog','whatsapp'].includes(level)){
+    const {rawBooking}=await import(pathToFileURL(join(output,'worker/services/bookings.ts')).href);
+    await assert.rejects(rawBooking(),{code:'FEATURE_DISABLED',status:403});
+  }
   assert.match(await readFile(join(output,'vite.config.ts'),'utf8'),/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/);
   assert.match(await readFile(join(output,'scripts/dev.mjs'),'utf8'),/const demo\s*=\s*false;/);
   assert.equal(Boolean(pkg.dependencies.qrcode),level==='full');assert.equal(Boolean(pkg.dependencies.jsqr),level==='full');assert.ok((await read(join(output,'content/client.json'))).services.every(s=>s.preset===preset));
