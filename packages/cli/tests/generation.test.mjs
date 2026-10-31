@@ -33,6 +33,9 @@ test('commerce generation keeps feature level independent of all four preset com
     await assert.rejects(lstat(join(output,'node_modules')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'.dev.vars')),{code:'ENOENT'});
     await lstat(join(output,'.dev.vars.example'));
+    assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'), /ui-core\/demo/);
+    assert.doesNotMatch(await readFile(join(output,'src/App.tsx'),'utf8'), /DemoToolbar/);
+    await assert.rejects(lstat(join(output,'src/components/DemoToolbar.tsx')),{code:'ENOENT'});
     assert.match(await readFile(join(output,'.gitignore'),'utf8'),/\.dev\.vars\*/);
     const doctor=run('doctor','--dir',output,'--json');assert.equal(doctor.status,0,doctor.stderr);assert.equal(JSON.parse(doctor.stdout).ok,true);
   }
@@ -58,6 +61,17 @@ test('cafe generation preserves catalog waiter requests and full presets',async 
     await assert.rejects(lstat(join(output,'demos')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'src/demo-runtime')),{code:'ENOENT'});
   }
+});
+test('cafe read-only menu is explicit and rejects incompatible selections',async t=>{
+  const parent=await temporary(t),result=run('create','menu','--out',parent,'--template','cafe','--modules','catalog','--yes','--json');
+  assert.equal(result.status,0,result.stderr);
+  const output=join(parent,'menu');
+  assert.deepEqual((await read(join(output,'config/cafe.json'))).modules,['catalog']);
+  assert.deepEqual((await read(join(output,'tampiloka.project.json'))).modules,['catalog']);
+  assert.equal(JSON.parse(result.stdout).preset,null);
+  assert.match(await readFile(join(output,'.env.local'),'utf8'),/CAFE_DEMO_DB=0/);
+  for(const args of [['--template','cafe','--modules','catalog','--preset','catalog'],['--template','cafe','--modules','ordering'],['--template','commerce','--modules','catalog']])
+    assert.notEqual(run('create','invalid-menu','--out',parent,...args,'--yes').status,0);
 });
 test('invalid selection and path traversal write no output',async t=>{
   const parent=await temporary(t);

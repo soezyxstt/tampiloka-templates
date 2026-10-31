@@ -12,7 +12,7 @@ import { parseJsonc } from './jsonc.mjs';
 const VERSION = '1.0.0';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BOOL = new Set(['yes', 'json', 'dry-run', 'help', 'version']);
-const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir','typography']);
+const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir','typography','modules']);
 const HELP = `Tampiloka ${VERSION}
 
 Usage:
@@ -25,6 +25,7 @@ Pilihan create:
   --template <id>  cafe, commerce, school, atau booking
   --preset <id>    commerce: susunan; cafe: paket; booking: medical, aesthetic, detailing, consulting
   --level <id>     commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
+  --modules catalog Cafe: menu publik hanya-baca tanpa database
   --features <ids> commerce: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers; none atau all
   --layout <id>    commerce: editorial, market, atelier, compact; booking: appointment-first, editorial, service-market, minimal-professional
   --theme <id>     booking: sage, rose, slate, ochre; commerce: sand, ink, forest; cafe: boxy, rounded, editorial, playful, airy
@@ -105,7 +106,7 @@ async function interactive(options, registry) {
   try {
     if(!result.template)result.template=await choose('Template',registry.templates.filter(t=>t.status==='available').map(t=>[t.id,t.description]),'commerce');
     const template=registry.getTemplate(result.template,{availableOnly:true});
-    if(!result.preset)result.preset=await choose('Preset',Object.entries(template.presets).map(([id,item])=>[id,item.description]),template.defaultPreset);
+    if(!result.preset&&!(template.id==='cafe'&&result.modules))result.preset=await choose('Preset',Object.entries(template.presets).map(([id,item])=>[id,item.description]),template.defaultPreset);
     if(template.id==='commerce'){
       if(!result.level)result.level=await choose('Kelengkapan fitur',Object.entries(registry.commerceLevels).map(([id,item])=>[id,item.description]),'store');
       if(!result.layout)result.layout=await choose('Susunan halaman',[['editorial','Foto pembuka dan koleksi terbuka'],['market','Kategori dan grid padat'],['atelier','Galeri koleksi beragam'],['compact','Daftar belanja ringkas']],result.preset);
@@ -177,6 +178,12 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
   delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
   await writeJson(join(uiPath,'package.json'),uiPackage);
   for(const path of ['src/demo-shell.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  const mainPath=join(temp,'src/main.tsx'),appPath=join(temp,'src/App.tsx');
+  const main=await readFile(mainPath,'utf8'),app=await readFile(appPath,'utf8');
+  const clientMain=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
+  const clientApp=app.replace(/^import \{ DemoToolbar \} from ['"]\.\/components\/DemoToolbar['"];?\s*$/m,'').replace('<DemoToolbar />','');
+  if(clientMain===main||clientApp===app||clientApp.includes('DemoToolbar'))throw new Error('Failed to remove Commerce demo imports.');
+  await writeFile(mainPath,clientMain);await writeFile(appPath,clientApp);await rm(join(temp,'src/components/DemoToolbar.tsx'));
   const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
   const chosen=registry.commercePresets[options.preset];
   const config=await json(join(temp,'config/commerce.json'));
@@ -273,8 +280,10 @@ export async function createProject(target,initial,sourceRoot,registry) {
   if(initial.phone&&initial.whatsapp)throw new Error('Gunakan --whatsapp atau --phone, bukan keduanya.');
   const options=await interactive({...initial,phone:initial.whatsapp||initial.phone},registry);
   const template=registry.getTemplate(options.template||'commerce',{availableOnly:true});
-  options.template=template.id;options.preset=options.preset||template.defaultPreset;
-  assertChoice(options.preset,Object.keys(template.presets),'Preset');
+  if(options.modules&&(template.id!=='cafe'||options.modules!=='catalog'))throw new Error('--modules hanya mendukung catalog untuk menu Cafe hanya-baca.');
+  if(options.modules&&options.preset)throw new Error('Gunakan --preset atau --modules, bukan keduanya.');
+  options.template=template.id;options.preset=options.modules?null:(options.preset||template.defaultPreset);
+  if(options.preset)assertChoice(options.preset,Object.keys(template.presets),'Preset');
   if(options.name&&(options.name.length>80||/[\u0000-\u001f]/.test(options.name)))throw new Error('Nama brand maksimal 80 karakter tanpa karakter kontrol.');
   if(options.phone&&!/^62\d{8,13}$/.test(options.phone))throw new Error('WhatsApp gunakan format 628..., tanpa spasi atau tanda +.');
   if(template.id==='commerce'){
@@ -304,14 +313,14 @@ export async function createProject(target,initial,sourceRoot,registry) {
   let ancestor=parent;while(!await exists(ancestor))ancestor=dirname(ancestor);
   const canonical=join(await realpath(ancestor),relative(ancestor,parent),target),source=await realpath(sourceRoot);
   if(canonical===source||canonical.startsWith(join(source,'templates')+sep)||canonical.startsWith(join(source,'packages')+sep))throw new Error('Buat proyek klien di luar folder sumber templates/ dan packages/.');
-  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,...(options.level?{level:options.level}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),directory:destination};
-  if(options['dry-run']){emit(options,result,`Rencana proyek ${destination}\n${template.id} / ${options.preset}${options.level?` / ${options.level}`:''}\nTidak ada file yang ditulis.`);return result;}
+  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,...(options.level?{level:options.level}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),...(options.modules?{modules:[options.modules]}:{}),directory:destination};
+  if(options['dry-run']){emit(options,result,`Rencana proyek ${destination}\n${template.id} / ${options.modules?'modules: '+options.modules:options.preset}${options.level?` / ${options.level}`:''}\nTidak ada file yang ditulis.`);return result;}
   await mkdir(parent,{recursive:true});
   const temp=join(parent,`.tampiloka-${target}-${randomUUID()}`);
   let reservedDestination=false;
   try {
     if(template.id==='cafe'){
-      const args=[join(sourceRoot,'templates/cafe/scripts/cafe.mjs'),'init',temp,'--name',options.name||target,'--slug',target,'--preset',options.preset,'--yes','--json'];
+      const args=[join(sourceRoot,'templates/cafe/scripts/cafe.mjs'),'init',temp,'--name',options.name||target,'--slug',target,...(options.modules?['--modules',options.modules]:['--preset',options.preset]),'--yes','--json'];
       for(const key of ['theme','phone','color'])if(options[key])args.push(`--${key}`,options[key]);
       const run=spawnSync(process.execPath,args,{encoding:'utf8'});
       if(run.error)throw run.error;
@@ -319,14 +328,14 @@ export async function createProject(target,initial,sourceRoot,registry) {
     }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
-    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
+    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(options.modules?{modules:[options.modules]}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
     // Windows rename refuses an existing directory; POSIX needs a reservation.
     if(process.platform!=='win32'){await mkdir(destination);reservedDestination=true;}
     await rename(temp,destination);
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}
   const shellDestination = "'" + destination.replaceAll("'", "'\"'\"'") + "'";
-  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?'npm ci\n  npm run demo':template.id==='school'?'pnpm install\n  pnpm demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
+  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?`npm ci\n  npm run ${options.modules?'dev':'demo'}`:template.id==='school'?'pnpm install\n  pnpm demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
   return result;
 }
 

@@ -23,7 +23,8 @@ await copyFile(join(root, 'src', 'config', 'catalog.mjs'), join(fixture, 'src', 
 await writeFile(join(fixture, 'config', 'cafe.json'), JSON.stringify(DEFAULT_CONFIG));
 await writeFile(join(fixture, 'content', 'menu.json'), JSON.stringify({ schemaVersion: 1, sample: true, items: [] }));
 await writeFile(join(fixture, 'content', 'tables.json'), JSON.stringify({ schemaVersion: 1, tables: [] }));
-const showcasePackages = ['@fontsource/manrope', '@fontsource/source-sans-3', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler'];
+const fonts = ['@fontsource/manrope', '@fontsource/source-sans-3'];
+const showcasePackages = ['@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler'];
 const fixturePackage = {
   name: 'template', private: true,
   scripts: {
@@ -37,7 +38,7 @@ const fixturePackage = {
     'demos:deploy': 'wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos',
   },
   dependencies: { next: '15.5.28', react: '19.2.1' },
-  devDependencies: { typescript: '5.9.3', ...Object.fromEntries(showcasePackages.map(name => [name, '1.0.0'])) },
+  devDependencies: { typescript: '5.9.3', ...Object.fromEntries([...showcasePackages, ...fonts].map(name => [name, '1.0.0'])) },
 };
 const fixtureLock = {
   name: 'template', lockfileVersion: 3,
@@ -52,6 +53,7 @@ const fixtureLock = {
     'node_modules/optional-native': { version: '1.0.0', optional: true, os: ['darwin'] },
     'node_modules/peer-helper': { version: '1.0.0' },
     ...Object.fromEntries(showcasePackages.map(name => [`node_modules/${name}`, { version: '1.0.0', dev: true, dependencies: { shared: '1.0.0', 'showcase-private': '1.0.0' } }])),
+    ...Object.fromEntries(fonts.map(name => [`node_modules/${name}`, { version: '1.0.0', dev: true }])),
     'node_modules/showcase-private': { version: '1.0.0', dev: true },
   },
 };
@@ -235,6 +237,10 @@ test('client package and npm lock omit showcase tooling while retaining shared, 
   for (const name of showcasePackages) {
     assert.equal(pkg.devDependencies[name], undefined, name);
     assert.equal(lock.packages[`node_modules/${name}`], undefined, name);
+  }
+  for (const name of fonts) {
+    assert.equal(pkg.devDependencies[name], '1.0.0');
+    assert.deepEqual(lock.packages[`node_modules/${name}`], fixtureLock.packages[`node_modules/${name}`]);
   }
   assert.equal(lock.packages['node_modules/showcase-private'], undefined);
   for (const path of ['node_modules/next', 'node_modules/react', 'node_modules/typescript', 'node_modules/shared', 'node_modules/nested-parent', 'node_modules/nested-parent/node_modules/shared', 'node_modules/optional-native', 'node_modules/peer-helper']) {
