@@ -6,15 +6,17 @@ on:
     paths:
       - 'packages/registry/**'
       - 'scripts/*catalog*.mjs'
+      - 'scripts/*release*.mjs'
       - '.github/workflows/publish-catalog.yml'
   pull_request:
     paths:
       - 'packages/registry/**'
       - 'scripts/*catalog*.mjs'
+      - 'scripts/*release*.mjs'
       - '.github/workflows/publish-catalog.yml'
   workflow_dispatch:
   workflow_run:
-    workflows: ['School quality gates']
+    workflows: ['Release verified demos']
     types: [completed]
     branches: [main]
 
@@ -31,21 +33,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: catalog-and-school-release
+      group: catalog-and-demo-release
       queue: max
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
           ref: ${{ github.event_name == 'pull_request' && github.sha || 'main' }}
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - name: Validate publication boundaries and Worker response
-        run: node --test packages/registry/tests/public-catalog.test.mjs packages/registry/tests/catalog-promotion.test.mjs
+        run: node --test packages/registry/tests/public-catalog.test.mjs packages/registry/tests/catalog-promotion.test.mjs packages/registry/tests/release-evidence.test.mjs
       - name: Build versioned public JSON and Worker
         run: |
           SOURCE_DATE_EPOCH=$(git show -s --format=%ct) node scripts/build-public-catalog.mjs
+      - name: Verify hosted release evidence before promotion
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/verify-catalog-promotion.mjs
       - name: Verify hosted release evidence before promotion
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:

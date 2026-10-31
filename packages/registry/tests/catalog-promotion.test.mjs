@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { buildPublicCatalog } from '../src/public-catalog.mjs';
-import { checkCatalogPromotion, reconcileCatalogPromotion, verifyGithubRelease } from '../../../scripts/check-catalog-promotion.mjs';
+import { checkCatalogPromotion, reconcileCatalogPromotion } from '../../../scripts/check-catalog-promotion.mjs';
 
 const registry = JSON.parse(await readFile(new URL('../templates.json', import.meta.url)));
 const source = JSON.parse(await readFile(new URL('../public-demos.json', import.meta.url)));
@@ -29,25 +29,14 @@ test('verified exact release permits promotion; copy and unrelated changes need 
   const calls = [];
   await checkCatalogPromotion(previous, next, async (...args) => { calls.push(args); return true; });
   assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], ['school', sha, { workflow: 'school.yml', job: 'deploy-demo' }]);
+  assert.deepEqual(calls[0], ['school', sha, { workflow: 'release-demos.yml', job: 'release (school)' }]);
   const copy = structuredClone(next);
   copy.entries.find(e => e.family === 'school').name.en = 'Updated copy';
   copy.entries.find(e => e.family === 'cafe').description.en = 'Updated copy';
   await checkCatalogPromotion(next, copy, () => { throw Error('unexpected release check'); });
   copy.entries.find(e => e.family === 'cafe').url = 'https://example.com/';
-  await assert.rejects(checkCatalogPromotion(next, copy, async () => true), /No supported hosted release/);
+  await assert.rejects(checkCatalogPromotion(next, copy, async () => false), /No supported hosted release|verification failed/);
 });
-
-test('GitHub evidence requires the latest main push, exact revision and successful hosted job', async () => {
-  const run = { id: 1, head_sha: sha, status: 'completed', conclusion: 'success' };
-  const job = { name: 'deploy-demo', status: 'completed', conclusion: 'success' };
-  const verify = (r, j) => verifyGithubRelease('school', sha, { workflow: 'school.yml', job: 'deploy-demo' }, async path => path.includes('/jobs?') ? { jobs: [j] } : { workflow_runs: [r] });
-  assert.equal(await verify(run, job), true);
-  for (const patch of [{ head_sha: 'b'.repeat(40) }, { conclusion: 'failure' }, { status: 'in_progress' }]) assert.equal(await verify({ ...run, ...patch }, job), false);
-  assert.equal(await verify(run, { ...job, conclusion: 'failure' }), false);
-  assert.equal(await verify(run, { ...job, name: 'school' }), false);
-});
-
 
 test('source release is retained in the public catalog and invalid revisions are rejected', () => {
   const data = structuredClone(source);

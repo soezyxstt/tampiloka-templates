@@ -93,6 +93,8 @@ Capture the current public demo at a 1280 × 800 viewport and export an optimize
 
 ## School readiness
 
+All family promotions use [deployment-owned release evidence](catalog-release-evidence.md). The workflow injects the verified source identity automatically; readiness flags and old image URLs alone cannot certify changed code.
+
 School is available through the CLI, and its current metadata marks the family and four entries public and ready. These flags describe the intended catalog publication; they do not establish current live health. Verify the deployed Worker, isolated demo data, and 1280 x 800 previews before a release or readiness change. CI evidence is not a live public URL.
 
 ## Booking publication gate

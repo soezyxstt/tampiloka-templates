@@ -23,11 +23,13 @@ From a fresh checkout install Node.js 22.18+ and pnpm 10.28.2, then run `pnpm in
 | Family | Design and components | Local demo | Tests | Release owner / workflow |
 | --- | --- | --- | --- | --- |
 | Cafe | [Design system](templates/cafe/docs/design-system.md), `components/ui` | `pnpm dev:cafe` | `pnpm --filter @tampiloka/template-cafe test` | Cloudflare Pages `tampiloka-cafe-demos`; [guide](templates/cafe/README.md) |
-| Commerce | [Design](templates/commerce/docs/design.md), `components/shadcn` | `pnpm dev:commerce` | `pnpm --filter @tampiloka/template-commerce test` | `.github/workflows/deploy-workers.yml`; [guide](templates/commerce/README.md) |
+| Commerce | [Design](templates/commerce/docs/design.md), `components/shadcn` | `pnpm dev:commerce` | `pnpm --filter @tampiloka/template-commerce test` | `.github/workflows/release-demos.yml`; [guide](templates/commerce/README.md) |
 | Booking | [Design](templates/booking/docs/design.md), shared UI and Radix | `pnpm dev:booking` | `pnpm test:booking`, `pnpm test:booking:standalone` | Template deploy owner; `booking-validation.yml` and manual `booking-live.yml` verify; [guide](templates/booking/README.md) |
 | School | [Design](templates/school/docs/design.md), shared UI and Radix | `pnpm dev:school` | `pnpm test:school`, `pnpm --filter @tampiloka/template-school test:standalone` | Template deploy owner; `school.yml` verifies; [guide](templates/school/README.md) |
 
 School and Booking default to port 5176; run them separately. Dashboard remains planned. These commands supplement the family-specific build, typecheck, browser, and live checks; they do not replace them.
+
+All four public demos deploy through `release-demos.yml`, which records exact-build hosted evidence for [catalog promotion](docs/catalog-release-evidence.md). Local family workflows and manual live checks alone do not authorize promotion.
 
 When onboarding a family:
 
@@ -217,6 +219,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-11-01**: Shared effective School registration schemas now preserve extension-owned fields and label staff answers; Booking reschedule choices use authorized appointment availability. Catalog promotions require deployment-owned hosted evidence.
 
 - **2026-11-01**: Documented the four available families, their verification paths, and onboarding and demo readiness gates.
 

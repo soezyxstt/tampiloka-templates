@@ -13,6 +13,6 @@ tampiloka presets commerce
 tampiloka doctor --dir ./rupa
 ```
 
-Proyek yang dibuat mandiri: cafe memakai alur generator yang sudah ada; commerce mendapat salinan paket bersama dengan dependensi `file:`. CLI tidak menyalin rahasia, database lokal, `node_modules`, atau hasil build. Folder yang sudah ada tidak pernah ditimpa.
+Proyek yang dibuat mandiri: cafe memakai alur generator yang sudah ada; commerce, school, dan booking mendapat salinan paket bersama dengan dependensi `file:`. CLI tidak menyalin rahasia, database lokal, `node_modules`, atau hasil build. Folder yang sudah ada tidak pernah ditimpa.
 
 Cafe `--modules catalog` membuat menu hanya-baca dari `content/menu.json` tanpa database demo; jalankan `npm run dev`. Preset `--preset catalog` tetap menyediakan permintaan pelayan dan memakai demo transaksi. Ganti dan periksa konten contoh sebelum publikasi. Opsi `--modules` tidak dapat digabung dengan `--preset`.

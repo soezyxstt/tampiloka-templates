@@ -158,9 +158,9 @@ Jangan memindahkan aturan bisnis cafe ke paket global untuk dipakai commerce. Ba
 
 ### Deployment otomatis demo
 
-Push ke `main` memicu Pages untuk cafe jika file cafe atau konfigurasi workspace berubah. Build watch paths diatur pada project Cloudflare `tampiloka-cafe-demos`. Commerce menggunakan workflow `.github/workflows/deploy-workers.yml`. Galeri dimiliki repository marketing; katalog demo diterbitkan secara terpisah melalui `.github/workflows/publish-catalog.yml`. Workflow juga dapat dijalankan manual dari Actions untuk memulihkan deployment yang gagal.
+Perubahan sumber demo di `main` memicu `.github/workflows/release-demos.yml` untuk menguji, membangun, lalu menerbitkan Cafe Pages serta Worker commerce, school, dan booking. Setiap rilis mencatat identitas build dan bukti pengujian alur pelanggan/staf di alamat publik. Galeri dimiliki repository marketing; katalog diterbitkan terpisah melalui `.github/workflows/publish-catalog.yml` setelah [bukti rilis](docs/catalog-release-evidence.md) cocok. Workflow rilis juga dapat dijalankan manual dari `main`.
 
-Workflow Workers membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang deploy Workers dan mengelola domain terkait. Perubahan skema D1 harus diterapkan secara terpisah sebelum deploy commerce jika diperlukan; workflow tidak menjalankan migrasi database otomatis. Deployment berjalan terpisah dari workflow verifikasi, jadi pantau hasil keduanya.
+Workflow rilis membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang menerbitkan Worker dan project Pages terkait. Migrasi D1 tetap diterapkan terpisah. Kegagalan bukti rilis mempertahankan entri katalog keluarga tersebut dari rilis sebelumnya. Saat mengadopsi workflow ini, nonaktifkan deployment Git otomatis Cafe dari repository lama agar tidak menimpa build yang sudah diverifikasi.
 
 ## School & Learning Center
 

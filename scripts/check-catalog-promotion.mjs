@@ -1,7 +1,7 @@
 ﻿import { validatePublicCatalog } from '../packages/registry/src/public-catalog.mjs';
 
 // Only workflows with a hosted deployment and customer-flow check may certify a family.
-const releaseWorkflows = { school: { workflow: 'school.yml', job: 'deploy-demo' } };
+const releaseWorkflows = Object.fromEntries(['cafe', 'commerce', 'school', 'booking'].map(family => [family, { workflow: 'release-demos.yml', job: `release (${family})` }]));
 
 export async function checkCatalogPromotion(previous, next, verifyRelease) {
   previous = validatePublicCatalog(previous);
@@ -17,15 +17,6 @@ export async function checkCatalogPromotion(previous, next, verifyRelease) {
     if (!family.release || !releaseWorkflows[family.id]) throw new Error(`No supported hosted release evidence for ${family.id}`);
     if (!await verifyRelease(family.id, family.release, releaseWorkflows[family.id])) throw new Error(`Hosted release verification failed for ${family.id} at ${family.release}`);
   }
-}
-
-export async function verifyGithubRelease(family, release, { workflow, job }, request) {
-  const runs = await request(`/actions/workflows/${workflow}/runs?branch=main&event=push&per_page=100`);
-  // The newest deployment run must be complete and successful, not a prior green run.
-  const run = runs.workflow_runs?.[0];
-  if (!run || run.head_sha !== release || run.status !== 'completed' || run.conclusion !== 'success') return false;
-  const jobs = await request(`/actions/runs/${run.id}/jobs?per_page=100`);
-  return jobs.jobs?.some(item => item.name === job && item.status === 'completed' && item.conclusion === 'success') === true;
 }
 
 // Retain only the affected family's previous public entries when its promotion

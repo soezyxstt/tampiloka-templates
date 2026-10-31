@@ -1,7 +1,13 @@
 ﻿import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join, resolve, sep } from 'node:path';
 import { createCatalogWorker } from '../packages/registry/src/catalog-worker.mjs';
-import { reconcileCatalogPromotion, verifyGithubRelease } from './check-catalog-promotion.mjs';
+import { reconcileCatalogPromotion } from './check-catalog-promotion.mjs';
+import { releaseFingerprint, verifyHostedRelease, demoFamilies } from './demo-release.mjs';
+import { readReleaseEvidence } from './read-release-evidence.mjs';
 
 const url = new URL('https://catalog.tampiloka.site/catalog.v1.json');
 url.searchParams.set('check', `${Date.now()}-${process.env.GITHUB_RUN_ID ?? 'local'}`);
@@ -11,6 +17,8 @@ const response = await fetch(url, {
 if (!response.ok) throw new Error(`Cannot read previous verified catalog: HTTP ${response.status}`);
 const previous = await response.json();
 const next = JSON.parse(await readFile('packages/registry/dist/catalog.v1.json', 'utf8'));
+// Source identity changes even when the public URLs and preview filenames do not.
+for (const family of next.families) if (demoFamilies.includes(family.id)) family.release = releaseFingerprint(family.id);
 const request = async path => {
   const result = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}${path}`, {
     headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
@@ -19,7 +27,24 @@ const request = async path => {
   if (!result.ok) throw new Error(`GitHub release evidence unavailable: HTTP ${result.status}`);
   return result.json();
 };
-const { catalog, blocked } = await reconcileCatalogPromotion(previous, next, (family, release, workflow) => verifyGithubRelease(family, release, workflow, request));
+const download = async (run, family) => {
+  const directory = await mkdtemp(join(tmpdir(), 'demo-evidence-'));
+  try {
+    execFileSync('gh', ['run', 'download', String(run), '--repo', process.env.GITHUB_REPOSITORY, '--name', `demo-release-${family}`, '--dir', directory], { stdio: 'pipe', timeout: 30000 });
+    return JSON.parse(await readFile(join(directory, `demo-release-${family}.json`), 'utf8'));
+  } finally {
+    if (!resolve(directory).startsWith(resolve(tmpdir()) + sep)) throw Error('Invalid evidence cleanup path');
+    await rm(directory, { recursive: true, force: true });
+  }
+};
+const { catalog, blocked } = await reconcileCatalogPromotion(previous, next, (family, release) => {
+  const entries = next.entries.filter(entry => entry.family === family);
+  const origins = [...new Set(entries.flatMap(entry => [entry.url, entry.imageUrl, ...Object.values(entry.modeUrls ?? {})]).map(url => new URL(url).origin))];
+  return readReleaseEvidence(family, release, origins[0], {
+    request, download, fingerprint: releaseFingerprint,
+    hosted: marker => Promise.all(origins.map(origin => verifyHostedRelease(marker, origin))),
+  });
+});
 if (!catalog.entries.length) throw new Error('Refusing to publish an empty catalog.');
 const body = `${JSON.stringify(catalog, null, 2)}\n`;
 const etag = `"${createHash('sha256').update(body).digest('hex')}"`;
