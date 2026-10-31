@@ -1,0 +1,170 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -181,6 +181,8 @@
+ 
+ Record UI-system changes here, newest first, one short entry per change.
+ 
++- **2026-10-31**: Added booking to the shared demo contract with independent business, level, layout, palette, view, and language state. Its staff workspace uses neutral tokens, labeled schedule fields, server-backed session isolation, and verified 1280 × 800 preview captures.
++
+ - **2026-10-30**: Added shared rules for restrained navigation icons, clear link/button cues, and centered, accessible icon-only controls across current and future templates.
+ 
+ - **2026-10-30**: Standardized public demo exploration around shared theme/mode selectors, customer/staff navigation, bottom-right ID/EN, Tampiloka select styling, and a runtime public catalog contract for current and future template families.
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -28,7 +28,7 @@
+ 
+ Commerce melayani satu bisnis pemilik toko. Perbandingan dengan marketplace dipakai untuk kelengkapan alur pembeli/staf, bukan untuk mengklaim adanya multi-seller, escrow, pencairan komisi, atau integrasi kurir yang belum dibuat. Sistem mendukung pengiriman berbasis tarif yang diatur dan pencatatan resi; integrasi tarif atau pelacakan kurir perlu adaptor terpisah.
+ 
+-Dashboard, school, dan booking mempunyai manifest rencana. CLI menolak membuatnya sampai implementasi serta tes tersedia.
++Dashboard dan school mempunyai manifest rencana. CLI menolak membuatnya sampai implementasi serta tes tersedia.
+ 
+ ### Booking family
+ 
+--- a/templates/booking/src/pages/StaffContent.tsx
++++ b/templates/booking/src/pages/StaffContent.tsx
+@@ -112,27 +112,30 @@
+             }))}
+             onChange={(v) => update(index, { weekday: Number(v) })}
+           />
+-          <Input
+-            type="time"
+-            step={300}
+-            aria-label={`${t("Jam mulai", "Start time")} ${index + 1}`}
+-            value={timeString(rule.start)}
+-            onChange={(e) =>
+-              update(index, { start: minutesOf(e.target.value) })
+-            }
+-            required
+-          />
+-          <span>{t("sampai", "to")}</span>
+-          <Input
+-            type="time"
+-            step={300}
+-            aria-label={`${t("Jam akhir", "End time")} ${index + 1}`}
+-            value={timeString(rule.end)}
+-            onChange={(e) =>
+-              update(index, { end: minutesOf(e.target.value) || 1440 })
+-            }
+-            required
+-          />
++          <div className="b-schedule-times">
++            <label className="b-schedule-time">
++              <span>{t("Mulai", "Start")}</span>
++              <Input
++                type="time"
++                step={300}
++                aria-label={`${t("Jam mulai", "Start time")} ${index + 1}`}
++                value={timeString(rule.start)}
++                onChange={(e) => update(index, { start: minutesOf(e.target.value) })}
++                required
++              />
++            </label>
++            <label className="b-schedule-time">
++              <span>{t("Selesai", "End")}</span>
++              <Input
++                type="time"
++                step={300}
++                aria-label={`${t("Jam akhir", "End time")} ${index + 1}`}
++                value={timeString(rule.end)}
++                onChange={(e) => update(index, { end: minutesOf(e.target.value) || 1440 })}
++                required
++              />
++            </label>
++          </div>
+           <Action
+             variant="ghost"
+             size="icon"
+--- a/templates/booking/src/styles/staff.css
++++ b/templates/booking/src/styles/staff.css
+@@ -334,35 +334,33 @@
+ }
+ .b-schedule-row {
+   display: grid;
+-  grid-template-columns: minmax(105px, 0.9fr) minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+-  align-items: center;
++  grid-template-columns: minmax(130px, 0.8fr) minmax(0, 2fr) 44px;
++  align-items: end;
+   gap: 18px;
+   padding: 15px 0;
+   border-bottom: 1px solid var(--line);
+ }
+-.b-schedule-row:last-child {
+-  border-bottom: 0;
+-}
+-.b-schedule-row > strong {
+-  font-size: 13px;
+-  padding-top: 11px;
+-}
+-.b-schedule-row > div {
+-  display: flex;
+-  flex-direction: column;
++.b-schedule-row:last-child { border-bottom: 0; }
++.b-schedule-times {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 10px;
+-}
+-.b-schedule-row > div > div {
+-  display: flex;
+-  align-items: center;
+-  gap: 10px;
++  min-width: 0;
++}
++.b-schedule-time {
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  min-width: 0;
++  font-size: 12px;
+ }
+ .b-schedule-row input {
+   min-width: 0;
+-}
+-.b-schedule-row button {
+-  flex: none;
+-}
++  width: 100%;
++  padding-inline: 8px;
++  font-size: 14px;
++}
++.b-schedule-row button { flex: none; }
+ .b-faq-editor {
+   padding: 22px 0;
+   border-bottom: 1px solid var(--line);
+@@ -611,22 +609,10 @@
+   .b-calendar-event .b-status {
+     align-self: flex-start;
+   }
+-  .b-schedule-row {
+-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+-    gap: 9px;
+-  }
+-  .b-schedule-row > .b-select { grid-column: 1 / -1; }
+-  .b-schedule-row > strong {
+-    padding: 0;
+-  }
+-  .b-schedule-row > div > div {
+-    flex-wrap: wrap;
+-    gap: 7px;
+-  }
+-  .b-schedule-row input {
+-    width: 100%;
+-    max-width: 100%;
+-  }
++  .b-schedule-row { grid-template-columns: minmax(0, 1fr) 44px; gap: 12px; }
++  .b-schedule-row > .b-select { grid-column: 1; grid-row: 1; }
++  .b-schedule-row > .b-schedule-times { grid-column: 1 / -1; grid-row: 2; }
++  .b-schedule-row > button { grid-column: 2; grid-row: 1; }
+   .b-time-off-row {
+     gap: 15px;
+     align-items: start;
+--- a/templates/booking/tests/workspace-checks.mjs
++++ b/templates/booking/tests/workspace-checks.mjs
+@@ -24,6 +24,7 @@
+               await dialog.getByRole('heading', { name: 'Weekly working hours' }).waitFor();
+               const row = dialog.locator('.b-schedule-row').first();
+               await row.scrollIntoViewIfNeeded();
++              if(width<=390) for(const input of await row.locator('input[type="time"]').all()) assert.ok((await input.boundingBox()).width >= 120, 'Native time fields must fit their value and picker');
+               assert.equal(await row.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true, 'Schedule controls must fit the editor');
+               await page.screenshot({ path: join(out, `schedule-${width}-${motion}.png`), fullPage: true });
+               await page.keyboard.press('Escape');
