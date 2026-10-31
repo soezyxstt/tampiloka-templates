@@ -38,6 +38,10 @@ export function validatePublicCatalog(value) {
     ids.add(id);
     const result = { id, name: localized(item.name, `family ${id} name`) };
     if (item.description !== undefined) result.description = localized(item.description, `family ${id} description`);
+    if (item.release !== undefined) {
+      if (typeof item.release !== 'string' || !/^[a-f0-9]{40}$/.test(item.release)) fail(`invalid release in ${id}`);
+      result.release = item.release;
+    }
     if (item.modes !== undefined) {
       if (!Array.isArray(item.modes) || item.modes.length > 100) fail(`invalid modes in ${id}`);
       const modes = new Set();
@@ -100,6 +104,7 @@ export function buildPublicCatalog(registry, source, { updatedAt = new Date().to
     if (template.status !== 'available') continue;
     if (!Array.isArray(metadata.entries)) fail(`missing entries for ${metadata.id}`);
     const family = { id: metadata.id, name: metadata.name, ...(metadata.description === undefined ? {} : { description: metadata.description }) };
+    if (metadata.release !== undefined) family.release = metadata.release;
     if (metadata.modes !== undefined) family.modes = metadata.modes;
     if (metadata.defaultMode !== undefined) family.defaultMode = metadata.defaultMode;
     const route = object(metadata.route, 'route');

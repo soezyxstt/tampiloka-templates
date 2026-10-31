@@ -35,6 +35,7 @@
         "id": { "$ref": "#/$defs/id" },
         "name": { "$ref": "#/$defs/text" },
         "description": { "$ref": "#/$defs/text" },
+        "release": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
         "modes": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/mode" } },
         "defaultMode": { "$ref": "#/$defs/id" }
       }

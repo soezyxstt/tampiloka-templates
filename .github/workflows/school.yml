@@ -6,7 +6,6 @@ on:
       - 'templates/school/**'
       - 'packages/ui-core/**'
       - 'packages/cli/**'
-      - 'packages/registry/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/school.yml'
   pull_request:
@@ -82,12 +81,12 @@ jobs:
           retention-days: 14
   deploy-demo:
     needs: school
-    if: github.repository == 'soezyxstt/tampiloka-templates' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/school-template')
+    if: github.repository == 'soezyxstt/tampiloka-templates' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     concurrency:
-      group: deploy-school-demo
-      cancel-in-progress: false
+      group: catalog-and-school-release
+      queue: max
     steps:
       - uses: actions/checkout@v4
         with:
