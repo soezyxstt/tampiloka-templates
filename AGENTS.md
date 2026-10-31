@@ -8,11 +8,34 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 | --- | --- |
 | `templates/cafe` | Next.js cafe ordering + staff/POS template. Tailwind v4, Radix, `motion`. |
 | `templates/commerce` | Vite + Cloudflare Worker storefront and staff workspace. Plain CSS + shadcn (Radix) wrappers. |
+| `templates/school` | React/Vite + Worker/D1 education, admissions and learning workspace. |
+| `templates/dashboard` | Planned; not offered by the CLI. |
 | `templates/booking` | Vite + Worker/D1 appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
 | `packages/theme-engine` | Commerce palettes (`sand`, `ink`, `forest`), layouts, `brandVariables()`. |
 | `packages/ui-core` | Shared `Button`, `Input`, `NativeSelect`, `Textarea`, `Dialog`, `MotionProvider` (`.tl-*` classes). |
 | `packages/cli`, `packages/registry` | Project generator and template registry. Palette/theme IDs here are a public contract. |
 | `scripts/check-design-tokens.mjs` | Design guard: raw colors and tiny text. Run with `pnpm lint:design`. |
+
+## Family development and onboarding
+
+From a fresh checkout install Node.js 22.18+ and pnpm 10.28.2, then run `pnpm install --frozen-lockfile`. Commands below run from the repository root. For components, tokens, browser and deployment details follow each family guide and the [shared demo contract](#shared-tampiloka-demo-system).
+
+| Family | Design and components | Local demo | Tests | Release owner / workflow |
+| --- | --- | --- | --- | --- |
+| Cafe | [Design system](templates/cafe/docs/design-system.md), `components/ui` | `pnpm dev:cafe` | `pnpm --filter @tampiloka/template-cafe test` | Cloudflare Pages `tampiloka-cafe-demos`; [guide](templates/cafe/README.md) |
+| Commerce | [Design](templates/commerce/docs/design.md), `components/shadcn` | `pnpm dev:commerce` | `pnpm --filter @tampiloka/template-commerce test` | `.github/workflows/deploy-workers.yml`; [guide](templates/commerce/README.md) |
+| Booking | [Design](templates/booking/docs/design.md), shared UI and Radix | `pnpm dev:booking` | `pnpm test:booking`, `pnpm test:booking:standalone` | Template deploy owner; `booking-validation.yml` and manual `booking-live.yml` verify; [guide](templates/booking/README.md) |
+| School | [Design](templates/school/docs/design.md), shared UI and Radix | `pnpm dev:school` | `pnpm test:school`, `pnpm --filter @tampiloka/template-school test:standalone` | Template deploy owner; `school.yml` verifies; [guide](templates/school/README.md) |
+
+School and Booking default to port 5176; run them separately. Dashboard remains planned. These commands supplement the family-specific build, typecheck, browser, and live checks; they do not replace them.
+
+When onboarding a family:
+
+1. Create `templates/<id>/template.json`, implementation, design docs, tests and a standalone client setup. Keep IDs stable.
+2. Add matching entries to `packages/registry/templates.json` and its runtime `src/index.mjs`; verify registry and manifest checks. Mark `available` only when the CLI can generate a working standalone project with its core flows, builds and tests verified. Otherwise keep `planned`.
+3. Support and verify CLI `list`, `presets`, `create`, `doctor` and the packed CLI output on a machine without the checkout. Update the root and family README and verify documented commands.
+4. Follow the [public catalog guide](docs/public-demo-catalog.md) and shared demo contract for public metadata, routing, localization, previews, and publication. CLI availability alone does not make a demo ready: verify the deployed origin and actual customer/staff flows, isolated sample data and payment disclosure, and loaded 1280 x 800 previews before setting public readiness.
+5. Run `node scripts/check-docs-consistency.mjs`, `pnpm test:registry`, `pnpm test:cli`, `pnpm catalog:test`, relevant family tests, typecheck, builds and browser checks. Record the exact commands, results, release evidence and any blocked checks; verify the published feed and gallery separately after publication.
 
 ## Frontend rules
 
@@ -22,6 +45,7 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 - Raw values are allowed **only** where a token is *defined*:
   - cafe: the `:root` block in `templates/cafe/app/globals.css`, demo chrome tokens at the top of `demos/components/demo-portal.css` / `demos/showcase.css`, and `src/config/catalog.mjs` (default brand color).
   - commerce: the `:root` token block at the top of `templates/commerce/src/styles/base.css`.
+  - school: semantic definitions in `templates/school/src/styles/school.css`; see `templates/school/docs/design.md`.
   - booking: semantic definitions in `templates/booking/src/styles/tokens.css`; see `templates/booking/docs/design.md` for palettes, compositions and staff overrides.
   - packages: `packages/theme-engine/src/index.mjs` **and** `styles.css` (keep the two in sync); shared demo chrome tokens in `packages/ui-core/src/demo.css`.
 - `var(--token, #fallback)` fallbacks are fine; pure `#fff`/`#000` are allowed only as ink on a solid fill.
@@ -135,7 +159,7 @@ Rules:
 5. Update the template's design doc (`templates/cafe/docs/design-system.md`, `templates/commerce/docs/design.md`) and the tables above if tokens changed.
 6. Add a line to the change log below.
 
-Heavy work (full builds, browser suites) follows the sandbox routing rules in the user's global instructions; small checks may run locally.
+Run these checks from the repository root after installing the locked workspace. Record each command and result; if a check cannot run, record the reason and remaining verification instead of calling it passed.
 
 ## Shared Tampiloka demo system
 
@@ -193,6 +217,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-11-01**: Documented the four available families, their verification paths, and onboarding and demo readiness gates.
 
 - **2026-10-31**: Added school template with independent business/layout/palette/level choices, shared demo shell, typed CMS, protected enrollment and learning-center operations. Shared dialogs accept an optional localized close label.
 - **2026-10-31**: Added booking to the shared demo contract with independent business, level, layout, palette, view, and language state. Its staff workspace uses neutral tokens, labeled schedule fields, server-backed session isolation, and verified 1280 × 800 preview captures.

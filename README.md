@@ -1,16 +1,18 @@
 # Tampiloka Templates
 
-Satu monorepo untuk membuat proyek klien dari template yang bisa dipakai ulang. Cafe dan commerce punya alur pelanggan, ruang kerja staf, preset, konfigurasi, dan tes sendiri. CLI memilih template serta kelengkapannya, lalu membuat proyek mandiri.
+Satu monorepo untuk membuat proyek klien dari template yang bisa dipakai ulang. Cafe, commerce, school, dan booking punya alur pelanggan, ruang kerja staf, preset, konfigurasi, dan tes sendiri. CLI memilih template serta kelengkapannya, lalu membuat proyek mandiri.
 
 Demo template tersedia melalui tautan berikut.
 
-| Template | Status | Bisa dicoba |
+| Template ID | Status CLI | Entri katalog demo |
 | --- | --- | --- |
-| Commerce | Tersedia | [ecommerce.tampiloka.site](https://ecommerce.tampiloka.site) |
-| Cafe & resto | Tersedia, 9 preset | [cafe.tampiloka.site](https://cafe.tampiloka.site) |
-| Dashboard | Direncanakan | Belum masuk pilihan CLI |
-| School | Direncanakan | Belum masuk pilihan CLI |
-| Booking | Direncanakan | Belum masuk pilihan CLI |
+| `commerce` | `available` | Ada: [demo](https://ecommerce.tampiloka.site) |
+| `cafe` | `available` | Ada: [demo](https://cafe.tampiloka.site) |
+| `school` | `available` | Ada: [demo](https://school.tampiloka.site) |
+| `booking` | `available` | Ada: [demo](https://booking.tampiloka.site) |
+| `dashboard` | `planned` | Belum ada |
+
+Status CLI berasal dari registry; entri katalog menunjukkan konfigurasi publikasi, bukan jaminan kesehatan demo yang sedang berjalan. Galeri publik ada di [tampiloka.site/templates](https://tampiloka.site/templates); sumber dan aturan publikasinya dijelaskan di [panduan katalog demo](docs/public-demo-catalog.md).
 
 Demo memakai data contoh. Konfigurasi produksi punya database dan rahasia sendiri. Demo commerce menyimpan data pada server dalam sesi terpisah untuk tiap pengunjung; demo cafe mempertahankan runtime lokal browser yang sudah ada. Jangan memakai database demo untuk klien.
 
@@ -24,17 +26,18 @@ cd tampiloka-templates
 npm install --global pnpm@10.28.2
 pnpm install --frozen-lockfile
 pnpm tampiloka list
-pnpm dev
 ```
 
-Galeri lokal berjalan di `http://127.0.0.1:5175`.
+Jalankan salah satu demo keluarga dari root; tidak ada perintah galeri lokal di repo ini:
 
 ```sh
 pnpm dev:commerce
 pnpm dev:cafe
+pnpm dev:school
+pnpm dev:booking
 ```
 
-Commerce berjalan di `http://127.0.0.1:5174` dengan API lokal pada port `8787`. Perintah dev menyiapkan migrasi D1 lokal. Cafe demo berjalan di `http://127.0.0.1:4173`. Jalankan masing-masing pada terminal terpisah.
+Commerce berjalan di `http://127.0.0.1:5174` dengan API lokal pada port `8787`. Perintah dev menyiapkan migrasi D1 lokal. Cafe demo berjalan di `http://127.0.0.1:4173`. School dan booking sama-sama memakai port 5176 secara default, jadi jalankan bergantian. Lihat README masing-masing untuk konfigurasi dan batasannya.
 
 ## Satu CLI
 
@@ -66,7 +69,7 @@ pnpm cli:pack
 npm install --global ./tampiloka-cli-1.0.0.tgz
 ```
 
-Arsip membawa sumber cafe, commerce, registry, dan paket bersama yang dibutuhkan. Paket ini belum diasumsikan terbit di npm.
+Arsip membawa sumber cafe, commerce, school, booking, registry, dan paket bersama yang dibutuhkan. Paket ini belum diasumsikan terbit di npm.
 
 ## Tingkat fitur commerce
 
@@ -112,7 +115,9 @@ Empat layout commerce punya susunan yang berbeda: editorial membuka dengan foto 
 | `packages/config` | Aturan TypeScript bersama |
 | `templates/cafe` | Source cafe lengkap beserta semua tes dan demo lama |
 | `templates/commerce` | Storefront, staf, Worker, D1, dan tes commerce |
-| `templates/dashboard`, `school`, `booking` | Manifest rencana; belum ditawarkan CLI |
+| `templates/school` | Situs pendidikan, pendaftaran, dan ruang belajar |
+| `templates/booking` | Pemesanan layanan dan ruang staf |
+| `templates/dashboard` | Rencana; belum ditawarkan CLI |
 | `design-kit` | Panduan pemakaian serta rujukan design kit utama |
 
 ## Proyek klien
@@ -153,7 +158,7 @@ Jangan memindahkan aturan bisnis cafe ke paket global untuk dipakai commerce. Ba
 
 ### Deployment otomatis demo
 
-Push ke `main` memicu Pages untuk cafe jika file cafe atau konfigurasi workspace berubah. Build watch paths diatur pada project Cloudflare `tampiloka-cafe-demos`. Galeri dan commerce menggunakan workflow `.github/workflows/deploy-workers.yml`; masing-masing dideploy hanya jika direktori atau paket bersama yang dipakainya berubah. Perubahan lockfile dan konfigurasi workspace memicu keduanya. Workflow juga dapat dijalankan manual dari Actions untuk memulihkan deployment yang gagal.
+Push ke `main` memicu Pages untuk cafe jika file cafe atau konfigurasi workspace berubah. Build watch paths diatur pada project Cloudflare `tampiloka-cafe-demos`. Commerce menggunakan workflow `.github/workflows/deploy-workers.yml`. Galeri dimiliki repository marketing; katalog demo diterbitkan secara terpisah melalui `.github/workflows/publish-catalog.yml`. Workflow juga dapat dijalankan manual dari Actions untuk memulihkan deployment yang gagal.
 
 Workflow Workers membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang deploy Workers dan mengelola domain terkait. Perubahan skema D1 harus diterapkan secara terpisah sebelum deploy commerce jika diperlukan; workflow tidak menjalankan migrasi database otomatis. Deployment berjalan terpisah dari workflow verifikasi, jadi pantau hasil keduanya.
 
@@ -167,7 +172,7 @@ pnpm dev:school
 pnpm test:school
 ```
 
-Read [school setup and limits](templates/school/README.md). The standalone generator is available; the public school catalog lists the verified demo URLs and hosted previews.
+Read [school setup and limits](templates/school/README.md). The standalone generator is available; public catalog metadata contains school demo URLs and hosted previews. Check the deployed release separately.
 ## Appointment booking
 
 `booking` now has a server-backed implementation. Generate medical, aesthetic, detailing, or consulting projects independently from their Catalog / WhatsApp / Booking / Full level, layout and palette. Run `pnpm dev:booking` for the isolated public demonstration. See [`templates/booking/README.md`](templates/booking/README.md) for setup, architecture, verification and merchant-specific payment limitations. Public catalog readiness remains separate from template availability.
