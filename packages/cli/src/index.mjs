@@ -320,9 +320,8 @@ export async function createProject(target,initial,sourceRoot,registry) {
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
     await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
-    // Reserve the destination atomically. rename alone may replace an existing empty directory.
-    await mkdir(destination);
-    reservedDestination=true;
+    // Windows rename refuses an existing directory; POSIX needs a reservation.
+    if(process.platform!=='win32'){await mkdir(destination);reservedDestination=true;}
     await rename(temp,destination);
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}

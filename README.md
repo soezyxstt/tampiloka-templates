@@ -167,7 +167,7 @@ pnpm dev:school
 pnpm test:school
 ```
 
-Read [school setup and limits](templates/school/README.md). The standalone generator is available; the public school catalog stays private/not-ready until live URLs and hosted previews are verified.
+Read [school setup and limits](templates/school/README.md). The standalone generator is available; the public school catalog lists the verified demo URLs and hosted previews.
 ## Appointment booking
 
 `booking` now has a server-backed implementation. Generate medical, aesthetic, detailing, or consulting projects independently from their Catalog / WhatsApp / Booking / Full level, layout and palette. Run `pnpm dev:booking` for the isolated public demonstration. See [`templates/booking/README.md`](templates/booking/README.md) for setup, architecture, verification and merchant-specific payment limitations. Public catalog readiness remains separate from template availability.
