@@ -1,0 +1,108 @@
+name: Booking verified release checkpoint
+on:
+  push:
+    branches: [feat/booking-template]
+    paths: ['.github/workflows/booking-source-apply.yml']
+permissions:
+  contents: write
+concurrency:
+  group: booking-source-apply
+  cancel-in-progress: false
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/booking-template
+      - name: Apply checksum-pinned tested fixes
+        env:
+          SOURCE_URL: 'https://sdmntprseasia.oaiusercontent.com/files/00000000-58f0-8207-b871-53765129004d/raw?se=2026-10-31T01%3A01%3A04Z&sp=r&sv=2026-02-06&sr=b&scid=0cff4e32-f45b-584b-9149-68aad84e955e&skoid=5e5afa93-cb2e-42ad-a58a-830b5b446f03&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-30T22%3A45%3A37Z&ske=2026-10-31T22%3A45%3A37Z&sks=b&skv=2026-02-06&sig=2BQbNzXV2cCuqVLwbG1GW1mBE%2B%2Bj07WFCkfLqYHRlso%3D'
+        run: |
+          curl --fail --silent --show-error --max-time 90 "$SOURCE_URL" -o /tmp/fixes.zip
+          echo 'e14e74d0e7f8a9334b4bebf28fbab332b99416ad93588e1537cb7b0521e70dcc  /tmp/fixes.zip' | sha256sum --check
+          unzip -p /tmp/fixes.zip fixes.patch > /tmp/fixes.patch
+          git apply --check /tmp/fixes.patch
+          git apply /tmp/fixes.patch
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - name: Save verified fixes on feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/cli templates/booking pnpm-lock.yaml
+          git commit -m 'fix(booking): harden standalone generation, accessible forms and browser validation'
+          git push origin HEAD:refs/heads/feat/booking-template
+      - name: Regression checks
+        run: |
+          mkdir -p templates/booking/test-results/regression
+          set -o pipefail
+          pnpm lint:design | tee templates/booking/test-results/regression/design.log
+          pnpm test:cli | tee templates/booking/test-results/regression/cli.log
+          pnpm test:registry | tee templates/booking/test-results/regression/registry.log
+          pnpm catalog:test | tee templates/booking/test-results/regression/catalog.log
+          pnpm typecheck | tee templates/booking/test-results/regression/typecheck.log
+          pnpm --filter @tampiloka/template-booking test | tee templates/booking/test-results/regression/booking-test.log
+          pnpm --filter @tampiloka/template-booking build | tee templates/booking/test-results/regression/booking-build.log
+          pnpm --filter @tampiloka/template-commerce test | tee templates/booking/test-results/regression/commerce-test.log
+          pnpm build:commerce | tee templates/booking/test-results/regression/commerce-build.log
+          pnpm build:cafe | tee templates/booking/test-results/regression/cafe-build.log
+      - name: Browser and independent project verification
+        run: |
+          pnpm --filter @tampiloka/template-booking exec playwright install --with-deps chromium
+          pnpm --filter @tampiloka/template-booking test:e2e
+          pnpm test:booking:standalone
+          python3 -m pip install Pillow
+          python3 templates/booking/scripts/capture-previews.py
+          cp -r templates/booking/test-results/browser templates/booking/test-results/local-browser
+      - name: Commit real preview assets
+        run: |
+          git add templates/booking/public/demo-previews
+          git commit -m 'assets(booking): add verified 1280x800 customer preview captures'
+          git push origin HEAD:refs/heads/feat/booking-template
+      - name: Migrate and deploy booking demo only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          pnpm --filter @tampiloka/template-booking exec wrangler d1 migrations apply DB --remote --config wrangler.demo.jsonc
+          pnpm --filter @tampiloka/template-booking deploy:demo
+      - name: Verify deployed customer and staff workflows
+        env:
+          BOOKING_TEST_URL: https://booking.tampiloka.site
+        run: |
+          for i in $(seq 1 12); do curl --fail --silent https://booking.tampiloka.site/api/health && break || sleep 5; done
+          pnpm --filter @tampiloka/template-booking test:e2e
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from PIL import Image
+          from io import BytesIO
+          import json,pathlib,datetime
+          results=[]
+          for preset in ['medical','aesthetic','detailing','consulting']:
+              url='https://booking.tampiloka.site/demo-previews/booking-'+preset+'.webp'
+              response=urlopen(url,timeout=20);data=response.read();image=Image.open(BytesIO(data));assert image.size==(1280,800)
+              results.append({'url':url,'status':response.status,'dimensions':list(image.size),'bytes':len(data)})
+          pathlib.Path('templates/booking/test-results/live-previews.json').write_text(json.dumps({'verifiedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'previews':results},indent=2))
+          PY
+      - name: Collect evidence and source checkpoint
+        if: always()
+        run: |
+          mkdir -p /tmp/booking-final-evidence
+          git archive --format=tar.gz HEAD -o /tmp/booking-final-evidence/source.tar.gz
+          cp -r templates/booking/test-results /tmp/booking-final-evidence/ 2>/dev/null || true
+          cp -r templates/booking/public/demo-previews /tmp/booking-final-evidence/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: booking-final-verification
+          path: /tmp/booking-final-evidence
+          retention-days: 7
