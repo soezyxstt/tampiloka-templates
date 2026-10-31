@@ -24,11 +24,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(gh api repos/soezyxstt/tampiloka-templates/actions/runs/41156562018 --jq .conclusion)" = success
+          gh api repos/soezyxstt/tampiloka-templates/actions/runs/41156562018/jobs > /tmp/booking-gate.json
           gh run download 41156562018 --repo soezyxstt/tampiloka-templates --name booking-live-fixed --dir /tmp/booking-complete
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+          const job=JSON.parse(readFileSync('/tmp/booking-gate.json')).jobs.find(j=>j.name==='verify');assert.equal(job.status,'completed');
+          for(const name of ['Domain, CLI, registry, typecheck and independent clients','Browser on local Worker and real D1 SQL','Deploy isolated demo','Browser on deployed demo'])assert.equal(job.steps.find(s=>s.name===name)?.conclusion,'success',name);
           for(const folder of ['browser','local-browser']){const r=JSON.parse(readFileSync('/tmp/booking-complete/test-results/'+folder+'/report.json'));assert.equal(r.passed,46);assert.equal(r.failed,0);assert.ok(!r.fatal);assert.deepEqual(r.errors,[]);if(folder==='browser')assert.equal(r.base,'https://booking.tampiloka.site');}
+          console.log('All full-suite checks passed. The prior standalone Python preview request received HTTP 403; this release verifies assets using the actual browser before publication.');
           JS
       - name: Apply release documentation and focused verification support
         run: |
@@ -65,21 +68,20 @@ jobs:
           import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
           const r=JSON.parse(readFileSync('templates/booking/test-results/browser/report.json'));assert.equal(r.passed,5);assert.equal(r.failed,0);assert.ok(!r.fatal);assert.deepEqual(r.errors,[]);
           JS
-      - name: Check live preview images and enable canonical metadata
+      - name: Verify live preview images in the browser
         run: |
-          python3 -m pip install Pillow
-          python3 - <<'PY'
-          import json,datetime,pathlib
-          from urllib.request import urlopen
-          from PIL import Image
-          from io import BytesIO
-          results=[]
-          for preset in ['medical','aesthetic','detailing','consulting']:
-              url='https://booking.tampiloka.site/demo-previews/booking-'+preset+'.webp'
-              response=urlopen(url,timeout=20); image=Image.open(BytesIO(response.read())); assert image.size==(1280,800)
-              results.append({'url':url,'status':response.status,'dimensions':list(image.size)})
-          pathlib.Path('templates/booking/test-results/live-previews.json').write_text(json.dumps({'verifiedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'previews':results},indent=2))
-          PY
+          pnpm --filter @tampiloka/template-booking exec node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';import {writeFile} from 'node:fs/promises';import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          try{
+            const page=await browser.newPage();await page.goto('https://booking.tampiloka.site/',{waitUntil:'networkidle',timeout:30000});
+            const results=await page.evaluate(async()=>Promise.all(['medical','aesthetic','detailing','consulting'].map(async preset=>{const url=location.origin+'/demo-previews/booking-'+preset+'.webp';const r=await fetch(url);const image=await createImageBitmap(await r.blob());return {preset,url,status:r.status,contentType:r.headers.get('content-type'),dimensions:[image.width,image.height]};})));
+            for(const image of results){assert.equal(image.status,200);assert.equal(image.contentType,'image/webp');assert.deepEqual(image.dimensions,[1280,800]);}
+            await writeFile('test-results/live-previews.json',JSON.stringify({verifiedAt:new Date().toISOString(),previews:results},null,2));console.log(JSON.stringify(results,null,2));
+          }finally{await browser.close();}
+          JS
+      - name: Enable canonical metadata only after the release gates pass
+        run: |
           node --input-type=module <<'JS'
           import {readFile,writeFile} from 'node:fs/promises';import assert from 'node:assert/strict';
           const registryPath='packages/registry/templates.json',sourcePath='packages/registry/public-demos.json',modulePath='packages/registry/src/index.mjs';
@@ -91,7 +93,7 @@ jobs:
           const family=source.families.find(f=>f.id==='booking');family.ready=true;for(const entry of family.entries){entry.ready=true;entry.imageUrl=template.demoUrl+'/demo-previews/booking-'+entry.preset+'.webp';}
           await writeFile(registryPath,JSON.stringify(registry,null,2)+'\n');await writeFile(sourcePath,JSON.stringify(source,null,2)+'\n');await writeFile(modulePath,module);
           const fullRun='https://github.com/soezyxstt/tampiloka-templates/actions/runs/41156562018';const releaseRun='https://github.com/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+process.env.GITHUB_RUN_ID;
-          await writeFile('templates/booking/docs/verification.md',`# Recorded release verification\n\nDate: ${new Date().toISOString()}\n\nFull evidence: ${fullRun}\n\nHeader/catalog release evidence: ${releaseRun}\n\n## Completed checks\n\n- Booking domain/API/provider tests: 32 passed. Provider HTTP is mocked, not a merchant sandbox.\n- CLI tests: 15 passed, including all 16 preset/level combinations.\n- Registry tests: 11 passed. Public catalog tests: 5 passed.\n- Four fresh standalone projects passed installation, typecheck, build, doctor, migration and production-mode API checks.\n- Full real-Worker/D1 browser suite: 46 passed locally and 46 passed at https://booking.tampiloka.site, with no browser runtime exceptions.\n- After adding static asset security headers: 5 affected end-to-end checks passed locally and live under active CSP. The other checks were explicitly skipped in this focused rerun, not counted as passes.\n- 360, 390, 1024 and 1440 pixel layouts, reduced/normal staff motion, keyboard focus, URL axes/history, owner/viewer refresh, sample/reset isolation, payment retry, receipt, uploaded QR and check-in are covered.\n- All four public WebP preview URLs returned HTTP 200 and decoded to 1280x800 before enabling catalog readiness.\n- Booking typecheck/build, monorepo typecheck and design guard passed. Earlier affected cafe and commerce builds and commerce API tests passed in run 41153095810.\n\n## Boundaries\n\nNo real payment was processed. Client-owned secrets, merchant-specific Midtrans sandbox verification, physical camera testing, privacy/retention rules and backup recovery remain launch checks. See limitations.md and deployment.md. The branch and PR are not automatically merged. Public catalog publication from this reviewed branch requires merging the PR before future main-branch publications can retain these entries.\n`);
+          await writeFile('templates/booking/docs/verification.md',`# Recorded release verification\n\nDate: ${new Date().toISOString()}\n\nFull evidence: ${fullRun}\n\nHeader/catalog release evidence: ${releaseRun}\n\n## Completed checks\n\n- Booking domain/API/provider tests: 32 passed. Provider HTTP is mocked, not a merchant sandbox.\n- CLI tests: 15 passed, including all 16 preset/level combinations.\n- Registry tests: 11 passed. Public catalog tests: 5 passed.\n- Four fresh standalone projects passed installation, typecheck, build, doctor, migration and production-mode API checks.\n- Full real-Worker/D1 browser suite: 46 passed locally and 46 passed at https://booking.tampiloka.site, with no browser runtime exceptions.\n- After adding static asset security headers: 5 affected end-to-end checks passed locally and live under active CSP. The other checks were explicitly skipped in this focused rerun, not counted as passes.\n- 360, 390, 1024 and 1440 pixel layouts, reduced/normal staff motion, keyboard focus, URL axes/history, owner/viewer refresh, sample/reset isolation, payment retry, receipt, uploaded QR and check-in are covered.\n- All four public WebP preview URLs returned HTTP 200 in the browser and decoded to 1280x800 before enabling catalog readiness.\n- Booking typecheck/build, monorepo typecheck and design guard passed. Earlier affected cafe and commerce builds and commerce API tests passed in run 41153095810.\n\nThe full-suite workflow above has an overall failed status because its later standalone Python image request received HTTP 403. Its domain, standalone, local browser, deployment and live browser steps all succeeded. This release independently verifies all images using an actual browser; it does not count the failed Python request as a pass.\n\n## Boundaries\n\nNo real payment was processed. Client-owned secrets, merchant-specific Midtrans sandbox verification, physical camera testing, privacy/retention rules and backup recovery remain launch checks. See limitations.md and deployment.md. The branch and PR are not automatically merged. Public catalog publication from this reviewed branch requires merging the PR before future main-branch publications can retain these entries.\n`);
           JS
       - name: Validate all catalog modes and commit release metadata
         run: |
