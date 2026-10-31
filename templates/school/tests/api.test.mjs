@@ -219,6 +219,7 @@ test('checkout reconciles ambiguous creation, retries terminal attempts and dedu
     const callback = async order => { const p = { order_id: order, status_code: '200', gross_amount: '1000.00' }; p.signature_key = await digest(order + p.status_code + p.gross_amount + env.MIDTRANS_SERVER_KEY, 'SHA-512'); return handle(new Request('https://school.test/api/payments/callback', { method: 'POST', body: JSON.stringify(p) }), env); };
     try {
         assert.equal((await start()).status, 502);
+        await store.mutate(s => { s.payments.find(p => p.reference === attempts[0]).startingUntil = Date.now() - 1; });
         const retry = start(); await entered; assert.equal((await start()).status, 409); release();
         assert.equal((await retry).status, 200);
         assert.equal(attempts[0], attempts[1]);
@@ -227,8 +228,31 @@ test('checkout reconciles ambiguous creation, retries terminal attempts and dedu
         status = 'expire'; assert.equal((await callback(attempts[0])).status, 200); assert.equal((await callback(attempts[0])).status, 200);
         assert.equal((await start()).status, 200); assert.notEqual(attempts[2], attempts[0]);
         status = 'settlement'; assert.equal((await callback(attempts[2])).status, 200); assert.equal((await callback(attempts[2])).status, 200);
+        assert.equal((await callback(attempts[0])).status, 200);
         const state = (await store.load()).state;
         assert.equal(state.invoices.find(x => x.id === 'inv-checkout').status, 'paid');
         assert.equal(state.events.filter(x => x.enrollmentId === 'enr-checkout' && x.status === 'active').length, 1);
+        assert.equal(state.invoices.find(x => x.id === 'inv-checkout').needsReview, true);
     } finally { globalThis.fetch = original; db.raw.close(); }
+});
+
+test('D1 account capacity failures return a retryable error without logging answers', async () => {
+    const { db, env, client } = await setup();
+    const c = client();
+    const s = (await c.call('/api/bootstrap', undefined, 'student')).data;
+    const before = (await c.call('/api/bootstrap', undefined, 'admin')).data.enrollments.length;
+    const prepare = db.prepare.bind(db), messages = [], original = console.error;
+    db.prepare = sql => {
+        if (sql.startsWith('INSERT INTO school_limits')) throw Error("D1_ERROR: Your account has exceeded D1's free tier daily row write limit.");
+        return prepare(sql);
+    };
+    console.error = (...args) => messages.push(args);
+    try {
+        const result = await command(c, 'application.submit', { studentId: 'student-sinta', cohortId: s.cohorts[0].id, answers: { targetExam: 'UTBK', studyGoal: 'PRIVATE-ANSWER' } });
+        assert.equal(result.status, 503);
+        assert.equal(result.data.error, 'storage_capacity_exceeded');
+        assert.ok(Number(result.headers.get('retry-after')) > 0);
+        assert.doesNotMatch(JSON.stringify(messages), /PRIVATE-ANSWER|Cookie|Authorization/);
+        assert.equal((await c.call('/api/bootstrap', undefined, 'admin')).data.enrollments.length, before);
+    } finally { console.error = original; db.raw.close(); }
 });

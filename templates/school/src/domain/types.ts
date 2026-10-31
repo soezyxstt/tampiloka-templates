@@ -172,7 +172,7 @@ export interface Payment {
     status: 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
     at: string;
     checkoutUrl?: string;
-    starting?: boolean;
+    startingUntil?: number;
 }
 export interface Attendance {
     id: string;

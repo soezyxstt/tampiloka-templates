@@ -247,7 +247,7 @@ export async function handle(request: Request, env: Env, execution?: {
             if (previous?.checkoutUrl)
                 return response({ url: previous.checkoutUrl });
             if (previous) {
-                check(!previous.starting, 'payment_start_reconcile', 409);
+                check((previous.startingUntil ?? 0) <= Date.now(), 'payment_start_reconcile', 409);
                 const status = await fetch(`${midtransBase(env)}/v2/${encodeURIComponent(previous.reference)}/status`, { headers: { Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, signal: AbortSignal.timeout(15000) });
                 if (status.status !== 404) {
                     check(status.ok, 'payment_start_reconcile', 502);
@@ -261,9 +261,10 @@ export async function handle(request: Request, env: Env, execution?: {
                 }
             }
             const order = previous?.reference ?? `school-${crypto.randomUUID()}`;
+            const startingUntil = Date.now() + 60000;
             await env.DB.prepare('INSERT OR IGNORE INTO school_payment_routes(order_id,namespace) VALUES(?,?)').bind(order, 'production').run();
-            if (!previous) await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending'), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now, starting: true }); });
-            else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && !pay.starting && !pay.checkoutUrl, 'payment_start_reconcile', 409); pay.starting = true; });
+            if (!previous) await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending'), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now, startingUntil }); });
+            else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && (pay.startingUntil ?? 0) <= Date.now() && !pay.checkoutUrl, 'payment_start_reconcile', 409); pay.startingUntil = startingUntil; });
             const host = env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
             try {
             const res = await fetch(`${host}/snap/v1/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, body: JSON.stringify({ transaction_details: { order_id: order, gross_amount: invoice.totalIdr } }), signal: AbortSignal.timeout(15000) });
@@ -274,7 +275,7 @@ export async function handle(request: Request, env: Env, execution?: {
             check(typeof data.redirect_url === 'string' && new URL(data.redirect_url).origin === host, 'invalid_provider_url', 502);
             await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(pay?.status === 'pending' && s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'payment_start_reconcile', 409); pay.checkoutUrl = data.redirect_url; });
             return response({ url: data.redirect_url });
-            } finally { await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); if (pay) pay.starting = false; }); }
+            } finally { await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); if (pay?.startingUntil === startingUntil) delete pay.startingUntil; }); }
         }
         if (path === '/api/media' && request.method === 'POST') {
             check(ctx.actor && (canEdit(ctx.actor.role) || ctx.actor.role === 'tutor'), 'forbidden', 403);
@@ -334,8 +335,12 @@ export async function handle(request: Request, env: Env, execution?: {
         throw new DomainError('not_found', 404);
     }
     catch (error) {
-        const e = error instanceof DomainError ? error : new DomainError('internal_error', 500);
-        return response({ error: e.code }, e.status);
+        const capacity = error instanceof Error && /D1.*exceeded.*(?:daily|limit)|D1.*free tier.*limit/i.test(error.message);
+        if (!(error instanceof DomainError)) console.error('school_internal_error', { name: error instanceof Error ? error.name : 'UnknownError', reason: capacity ? 'd1_capacity_exceeded' : 'unexpected', frames: error instanceof Error ? error.stack?.split('\n').slice(1, 4) : [] });
+        const e = error instanceof DomainError ? error : new DomainError(capacity ? 'storage_capacity_exceeded' : 'internal_error', capacity ? 503 : 500);
+        const result = response({ error: e.code }, e.status);
+        if (capacity) result.headers.set('Retry-After', '3600');
+        return result;
     }
 }
 export async function cleanup(env: Env) { for (const table of ['school_sessions', 'school_visitors', 'school_limits', 'school_state'])
