@@ -29,6 +29,16 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Archive the exact verification source
+        run: |
+          mkdir -p verification
+          git rev-parse HEAD > verification/commit.txt
+          git archive --format=tar HEAD templates/school packages scripts docs design-kit AGENTS.md README.md package.json pnpm-lock.yaml pnpm-workspace.yaml .github/workflows/school.yml | gzip > verification/school-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: school-verification-source
+          path: verification
+          retention-days: 14
       - uses: pnpm/action-setup@v4
         with:
           version: 10.28.2
@@ -53,5 +63,14 @@ jobs:
         with:
           name: school-visual-evidence
           path: templates/school/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: school-build
+          path: |
+            templates/school/dist
+            templates/school/dist-worker
           if-no-files-found: ignore
           retention-days: 14
