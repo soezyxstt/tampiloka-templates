@@ -1,13 +1,18 @@
 import http from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve, basename } from 'node:path';
+import { resolve, basename, join } from 'node:path';
 import { createServer } from 'vite';
 import { database } from './sqlite.mjs';
 import { handle } from '../worker/api.ts';
-await mkdir('.data/files', { recursive: true });
-const db = await database('.data/school.sqlite');
-const env = { ...process.env, DB: db, DEMO_MODE: process.argv.includes('--demo') ? 'true' : 'false', MEDIA: { async put(key, bytes) { await writeFile(resolve('.data/files', basename(key)), new Uint8Array(bytes)); }, async get(key) { try {
-            const b = await readFile(resolve('.data/files', basename(key)));
+// Tests use a temporary directory; ordinary client development keeps its own .data.
+const dataDir = resolve(process.env.SCHOOL_DATA_DIR || '.data');
+const filesDir = join(dataDir, 'files');
+await mkdir(filesDir, { recursive: true });
+const db = await database(join(dataDir, 'school.sqlite'));
+// Only explicit, server-controlled configuration can enable local demo identities.
+const demo = process.argv.includes('--demo') || process.env.DEMO_MODE === 'true';
+const env = { ...process.env, DB: db, DEMO_MODE: String(demo), MEDIA: { async put(key, bytes) { await writeFile(resolve(filesDir, basename(key)), new Uint8Array(bytes)); }, async get(key) { try {
+            const b = await readFile(resolve(filesDir, basename(key)));
             return { async arrayBuffer() { return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); } };
         }
         catch {
