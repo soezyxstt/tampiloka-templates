@@ -1,0 +1,15 @@
+import { createRoot } from "react-dom/client";
+import "@fontsource/manrope/latin-400.css";
+import "@fontsource/manrope/latin-500.css";
+import "@fontsource/manrope/latin-600.css";
+import "@fontsource/manrope/latin-700.css";
+import "@tampiloka/ui-core/styles.css";
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./styles/customer.css";
+import "./styles/booking.css";
+import "./styles/staff.css";
+import "./styles/brand.css";
+import "@tampiloka/ui-core/demo.css";
+import App from "./App";
+createRoot(document.getElementById("root")!).render(<App />);
