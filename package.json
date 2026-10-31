@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "test:cli": "node --test packages/cli/tests/*.test.mjs",
     "test:registry": "node --test packages/registry/tests/*.test.mjs",
+    "test:docs": "node scripts/check-docs-consistency.mjs",
     "catalog:build": "node scripts/build-public-catalog.mjs",
     "catalog:test": "node --test packages/registry/tests/public-catalog.test.mjs",
     "lint:design": "node scripts/check-design-tokens.mjs",

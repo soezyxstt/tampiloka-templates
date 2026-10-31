@@ -42,7 +42,7 @@ jobs:
       - name: Install locked workspace
         run: pnpm install --frozen-lockfile
       - name: Test registry and standalone client generation
-        run: pnpm test:registry && pnpm test:cli
+        run: pnpm test:docs && pnpm test:registry && pnpm test:cli
       - name: Test cafe transactions and runtime
         run: pnpm --filter @tampiloka/template-cafe test && pnpm --filter @tampiloka/template-cafe test:demo-runtime
       - name: Test commerce permissions, pricing, stock and payments
