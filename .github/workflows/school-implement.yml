@@ -1,0 +1,90 @@
+name: School implementation verification
+on:
+  push:
+    branches: [feat/school-template]
+    paths: [.github/workflows/school-implement.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/school-template
+      - name: Materialize checksum-verified implementation
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, lzma, pathlib, re, subprocess, shutil
+          root=pathlib.Path.cwd()
+          if not (root/'.school-transfer').exists():
+              print('Implementation already materialized')
+              raise SystemExit(0)
+          files=sorted((root/'.school-transfer').glob('part*.b64'))
+          assert len(files)==7
+          raw=lzma.decompress(base64.b64decode(''.join(p.read_text() for p in files),validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='dfb5c79186e8cf22400536dd052689f3c1828d84c79278f4d19fcfb45a2baca5'
+          data=json.loads(raw)
+          allowed={'AGENTS.md','README.md','docs/architecture.md','docs/public-demo-catalog.md','package.json','packages/cli/scripts/build.mjs','packages/cli/src/index.mjs','packages/cli/tests/generation.test.mjs','packages/registry/public-demos.json','packages/registry/src/index.mjs','packages/registry/templates.json','packages/registry/tests/registry.test.mjs','packages/ui-core/src/index.tsx','pnpm-lock.yaml','templates/school/README.md','templates/school/template.json'}
+          for a,b in re.findall(r'^diff --git a/(\S+) b/(\S+)$',data['patch'],re.M):
+              assert a==b and a in allowed
+          patch=pathlib.Path('/tmp/school-implementation.patch');patch.write_text(data['patch'])
+          subprocess.run(['git','apply','--check',str(patch)],check=True)
+          subprocess.run(['git','apply',str(patch)],check=True)
+          for name,text in data['files'].items():
+              assert name.startswith('templates/school/') or name in {'packages/cli/src/school.mjs','packages/cli/tests/school.test.mjs','packages/registry/src/school.mjs'}
+              target=(root/name).resolve();assert target.is_relative_to(root)
+              assert not target.exists(),name
+              target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text)
+          shutil.rmtree(root/'.school-transfer')
+          print('Verified and materialized',len(data['files']),'new files')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Add educational photo assets
+        working-directory: templates/school
+        run: node scripts/assets.mjs
+      - name: Commit implementation to feature branch
+        run: |
+          git config user.name 'Tampiloka implementation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md README.md docs package.json packages pnpm-lock.yaml templates/school .school-transfer
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(school): implement learning-center CMS, enrollment, payments and operations'
+            git push origin HEAD:feat/school-template
+          fi
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - name: Frozen dependency installation
+        run: pnpm install --frozen-lockfile
+      - name: School domain and API tests
+        run: pnpm test:school
+      - name: Registry, generator and catalog regression tests
+        run: pnpm test:cli && pnpm test:registry && pnpm catalog:test
+      - name: Design tokens
+        run: pnpm lint:design
+      - name: Affected typechecks
+        run: pnpm --filter @tampiloka/template-school typecheck && pnpm --filter @tampiloka/template-commerce typecheck && pnpm --filter @tampiloka/template-cafe typecheck
+      - name: School and commerce production builds
+        run: pnpm build:school && pnpm build:commerce
+      - name: Cafe demo build regression
+        run: pnpm build:cafe
+      - name: Standalone project installation and verification
+        run: pnpm --filter @tampiloka/template-school test:standalone
+      - name: Install Chromium
+        working-directory: templates/school
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser journeys and responsive screenshots
+        run: pnpm test:school:browser
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: school-verification
+          path: templates/school/test-results
+          if-no-files-found: ignore
+          retention-days: 14
