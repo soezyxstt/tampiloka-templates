@@ -1,0 +1,53 @@
+name: Apply school verification fixes
+on:
+  push:
+    branches: [feat/school-template]
+    paths: ['.github/workflows/school-verification-repair.yml']
+permissions:
+  contents: write
+concurrency:
+  group: school-verification-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    if: github.repository == 'soezyxstt/tampiloka-templates' && github.ref == 'refs/heads/feat/school-template'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Apply exact reviewed replacements
+        run: |
+          python3 scripts/school-verification-repair.py
+          node --check templates/school/tests/browser.mjs
+          git diff --check
+          git rm scripts/school-verification-repair.py .github/workflows/school-verification-repair.yml
+          git add templates/school/src/main.tsx templates/school/src/public.tsx templates/school/src/staff.tsx templates/school/src/ui.tsx templates/school/tests/browser.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(school): confirm cancellations, repair headings and verify real enrollment journeys'
+          git push origin HEAD:feat/school-template
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:school && pnpm test:cli && pnpm test:registry && pnpm catalog:test
+      - run: pnpm lint:design && pnpm --filter @tampiloka/template-school typecheck && pnpm build:school
+      - run: pnpm --filter @tampiloka/template-school test:standalone
+      - run: pnpm --filter @tampiloka/template-school exec playwright install --with-deps chromium
+      - run: pnpm test:school:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: school-repaired-verification
+          path: |
+            templates/school/test-results
+            templates/school/dist
+            templates/school/dist-worker
+          if-no-files-found: ignore
+          retention-days: 14
