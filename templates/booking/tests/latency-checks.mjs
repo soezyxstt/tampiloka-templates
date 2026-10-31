@@ -13,6 +13,10 @@ export async function latencyChecks({ browser, out, check, boot }) {
     let held = false;
     try {
       await boot(page, { preset: 'medical', level: 'full', view: 'staff', page: 'settings' });
+      const documentResponse = await context.request.get(page.url());
+      assert.equal(documentResponse.headers()['x-content-type-options'], 'nosniff');
+      assert.equal(documentResponse.headers()['referrer-policy'], 'no-referrer');
+      assert.match(documentResponse.headers()['content-security-policy'] || '', /script-src 'self';/);
       const name = page.getByLabel('Business name', { exact: true });
       await name.waitFor();
       assert.equal(await name.isEnabled(), true);
