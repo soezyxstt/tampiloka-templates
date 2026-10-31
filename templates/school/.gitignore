@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-worker/
+.data/
+.wrangler/
+.env
+.dev.vars
+test-results/
+
+node_modules

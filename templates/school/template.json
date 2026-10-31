@@ -1,9 +1,34 @@
 {
   "schemaVersion": 1,
   "id": "school",
-  "name": "School",
-  "status": "planned",
-  "description": "Informasi dan operasional sekolah.",
-  "presets": [],
-  "sharedPackages": []
+  "name": "School & learning center",
+  "status": "available",
+  "description": "Reusable institution website and learning-center management system.",
+  "presets": [
+    "exam-prep",
+    "language",
+    "skills",
+    "institution"
+  ],
+  "levels": [
+    "profile",
+    "whatsapp",
+    "enrollment",
+    "full"
+  ],
+  "layouts": [
+    "academic-editorial",
+    "course-discovery",
+    "contemporary-learning",
+    "institutional"
+  ],
+  "palettes": [
+    "cobalt",
+    "forest",
+    "neutral",
+    "burgundy"
+  ],
+  "sharedPackages": [
+    "ui-core"
+  ]
 }

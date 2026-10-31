@@ -90,3 +90,7 @@ optional fields within v1; publish a new URL/version for breaking changes.
 ## Preview images
 
 Capture the current public demo at a 1280 × 800 viewport and export an optimized 8:5 WebP. Keep its actual theme, mode, content, and shared toolbar visible. Cafe images live in `templates/cafe/demos/public/demo-previews/` and are served at `https://cafe.tampiloka.site/demo-previews/`. Commerce images live in `templates/commerce/public/demo-previews/` and are served at `https://ecommerce.tampiloka.site/demo-previews/`. These images ship with their demo, and the catalog contains their absolute URLs. Publish the demo and image assets before marking a new entry public and ready. The marketing application does not need an asset copy or a rebuild.
+
+## School readiness
+
+School CLI availability does not publish its demo. The school family starts private, `ready: false`, with no public entries. Publish only after verifying the deployed Worker, independent demo data, and exact 1280×800 previews. CI evidence is not a live public URL.

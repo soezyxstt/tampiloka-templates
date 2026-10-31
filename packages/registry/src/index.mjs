@@ -1,3 +1,5 @@
+import { schoolTemplate } from './school.mjs';
+export * from './school.mjs';
 export const commerceLevels = Object.freeze({
   catalog: { name: 'Katalog', description: 'Tampilkan produk dan detailnya; pembeli dapat menghubungi toko untuk bertanya.', capabilities: ['catalog'] },
   whatsapp: { name: 'Keranjang + WhatsApp', description: 'Pembeli menyusun keranjang, lalu membuka daftar belanja di WhatsApp.', capabilities: ['catalog','cart','whatsapp','wishlist'] },
@@ -44,7 +46,7 @@ export const templates = Object.freeze([
   { id: 'commerce', name: 'Commerce', description: 'Katalog brand hingga toko dengan stok, pesanan, pembayaran, dan staf.', status: 'available', directory: 'templates/commerce', presets: commercePresets, levels: commerceLevels, demoUrl: 'https://ecommerce.tampiloka.site', defaultPreset: 'editorial', defaultLevel: 'store' },
   { id: 'cafe', name: 'Cafe & resto', description: 'Menu, pesanan dari meja, kasir, dapur, dan operasional.', status: 'available', directory: 'templates/cafe', presets: cafePresets, demoUrl: 'https://cafe.tampiloka.site', defaultPreset: 'catalog' },
   { id: 'dashboard', name: 'Dashboard', description: 'Ruang kerja dan data perusahaan.', status: 'planned', directory: 'templates/dashboard', presets: {} },
-  { id: 'school', name: 'School', description: 'Informasi dan operasional sekolah.', status: 'planned', directory: 'templates/school', presets: {} },
+  schoolTemplate,
   { id: 'booking', name: 'Booking', description: 'Jadwal, layanan, dan pemesanan.', status: 'planned', directory: 'templates/booking', presets: {} },
 ]);
 export function getTemplate(id, { availableOnly = false } = {}) {

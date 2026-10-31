@@ -1,0 +1,10 @@
+# Production credentials are never included. Use pnpm demo for a local simulation.
+DEMO_MODE=false
+# AUTH_SECRET: generate 32+ random characters; use wrangler secret put.
+# AUTH_SECRET=
+# BOOTSTRAP_ADMIN_EMAIL=
+# BOOTSTRAP_ADMIN_PASSWORD=
+# MIDTRANS_SERVER_KEY=
+MIDTRANS_ENVIRONMENT=sandbox
+# NOTIFICATION_URL=https://your-notification-adapter.example/events
+# NOTIFICATION_SECRET=

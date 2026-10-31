@@ -21,11 +21,14 @@
     "dev:commerce": "pnpm --filter @tampiloka/template-commerce dev",
     "build:cafe": "pnpm --filter @tampiloka/template-cafe demos:build",
     "build:commerce": "pnpm --filter @tampiloka/template-commerce build",
-    "verify": "pnpm test:cli && pnpm test:registry && pnpm --filter @tampiloka/template-commerce test && pnpm typecheck && pnpm build:commerce && pnpm build:cafe"
+    "verify": "pnpm test:cli && pnpm test:registry && pnpm --filter @tampiloka/template-commerce test && pnpm typecheck && pnpm build:commerce && pnpm build:cafe && pnpm test:school && pnpm build:school",
+    "dev:school": "pnpm --filter @tampiloka/template-school demo",
+    "build:school": "pnpm --filter @tampiloka/template-school build",
+    "test:school": "pnpm --filter @tampiloka/template-school test",
+    "test:school:browser": "pnpm --filter @tampiloka/template-school test:e2e"
   },
   "devDependencies": {
     "turbo": "^2.5.6",
     "typescript": "5.9.3"
   }
 }
-

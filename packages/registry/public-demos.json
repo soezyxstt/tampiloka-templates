@@ -295,6 +295,26 @@
           "featured": true
         }
       ]
+    },
+    {
+      "id": "school",
+      "template": "school",
+      "visibility": "private",
+      "ready": false,
+      "name": {
+        "id": "Sekolah & pusat belajar",
+        "en": "Schools & learning centers"
+      },
+      "description": {
+        "id": "Program, pendaftaran, dan ruang belajar.",
+        "en": "Programs, applications, and learning operations."
+      },
+      "route": {
+        "base": "template",
+        "presetParam": "preset",
+        "modeParam": "level"
+      },
+      "entries": []
     }
   ]
 }

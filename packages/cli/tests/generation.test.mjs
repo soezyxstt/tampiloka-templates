@@ -13,8 +13,8 @@ async function temporary(t){const dir=await mkdtemp(join(tmpdir(),'tampiloka-cli
 test('CLI catalog distinguishes working templates from planned systems',()=>{
   const result=run('list','--json');assert.equal(result.status,0,result.stderr);
   const entries=JSON.parse(result.stdout);
-  assert.deepEqual(entries.filter(t=>t.status==='available').map(t=>t.id).sort(),['cafe','commerce']);
-  assert.deepEqual(entries.filter(t=>t.status==='planned').map(t=>t.id).sort(),['booking','dashboard','school']);
+  assert.deepEqual(entries.filter(t=>t.status==='available').map(t=>t.id).sort(),['cafe','commerce','school']);
+  assert.deepEqual(entries.filter(t=>t.status==='planned').map(t=>t.id).sort(),['booking','dashboard']);
 });
 test('commerce generation keeps feature level independent of all four preset compositions',async t=>{
   const parent=await temporary(t);

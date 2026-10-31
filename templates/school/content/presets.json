@@ -1,0 +1,448 @@
+{
+  "exam-prep": {
+    "name": "Prima Academy",
+    "headline": {
+      "id": "Belajar dengan arah. Siap untuk langkah berikutnya.",
+      "en": "Study with purpose. Prepare for what comes next."
+    },
+    "intro": {
+      "id": "Kelas persiapan ujian dengan kelompok kecil, pembahasan yang jelas, dan waktu belajar yang teratur.",
+      "en": "Small-group exam preparation with clear explanations and a steady study schedule."
+    },
+    "fields": [
+      {
+        "name": "targetExam",
+        "label": {
+          "id": "Target ujian",
+          "en": "Target exam"
+        },
+        "type": "select",
+        "required": true,
+        "options": [
+          "UTBK",
+          "Ujian sekolah",
+          "Penguatan konsep"
+        ]
+      },
+      {
+        "name": "studyGoal",
+        "label": {
+          "id": "Tujuan belajar",
+          "en": "Study goal"
+        },
+        "type": "textarea",
+        "required": false
+      }
+    ],
+    "attributes": {
+      "subjects": [
+        "Penalaran",
+        "Literasi",
+        "Matematika"
+      ],
+      "package": "regular/intensive",
+      "exam": "UTBK"
+    },
+    "programs": [
+      {
+        "id": "utbk-intensive",
+        "title": {
+          "id": "Intensif UTBK",
+          "en": "UTBK Intensive"
+        },
+        "subject": "Penalaran & literasi",
+        "format": "onsite",
+        "capacity": 16,
+        "tuitionIdr": 2400000,
+        "registrationIdr": 150000,
+        "duration": {
+          "id": "12 pekan",
+          "en": "12 weeks"
+        },
+        "body": {
+          "id": "Latihan soal, analisis kesalahan, dan strategi waktu.",
+          "en": "Question practice, error analysis, and timed problem solving."
+        },
+        "kind": "intensive"
+      },
+      {
+        "id": "regular-sma",
+        "title": {
+          "id": "Pendampingan SMA",
+          "en": "High School Support"
+        },
+        "subject": "Matematika & sains",
+        "format": "hybrid",
+        "capacity": 12,
+        "tuitionIdr": 1200000,
+        "registrationIdr": 100000,
+        "duration": {
+          "id": "8 pekan",
+          "en": "8 weeks"
+        },
+        "body": {
+          "id": "Perkuat konsep dan bahas tugas sekolah bersama tutor.",
+          "en": "Strengthen concepts and work through school assignments with tutors."
+        },
+        "kind": "regular"
+      },
+      {
+        "id": "math-foundations",
+        "title": {
+          "id": "Dasar Matematika",
+          "en": "Mathematics Foundations"
+        },
+        "subject": "Matematika",
+        "format": "online",
+        "capacity": 10,
+        "tuitionIdr": 850000,
+        "registrationIdr": 50000,
+        "duration": {
+          "id": "6 pekan",
+          "en": "6 weeks"
+        },
+        "body": {
+          "id": "Aljabar, fungsi, dan penalaran dengan latihan bertahap.",
+          "en": "Algebra, functions, and reasoning through guided practice."
+        },
+        "kind": "regular"
+      }
+    ]
+  },
+  "language": {
+    "name": "Lingua Center",
+    "headline": {
+      "id": "Gunakan bahasa baru dalam hidup sehari-hari.",
+      "en": "Make a new language part of your everyday life."
+    },
+    "intro": {
+      "id": "Belajar lewat percakapan, umpan balik guru, dan kelas yang sesuai tingkat Anda. Pilih kelas daring atau tatap muka.",
+      "en": "Learn through conversation, teacher feedback, and classes matched to your level. Join online or in person."
+    },
+    "fields": [
+      {
+        "name": "currentLevel",
+        "label": {
+          "id": "Tingkat saat ini",
+          "en": "Current level"
+        },
+        "type": "select",
+        "required": true,
+        "options": [
+          "Belum tahu / Not sure",
+          "A1",
+          "A2",
+          "B1",
+          "B2"
+        ]
+      },
+      {
+        "name": "placement",
+        "label": {
+          "id": "Ingin konsultasi penempatan kelas",
+          "en": "Request a placement consultation"
+        },
+        "type": "checkbox"
+      },
+      {
+        "name": "languageGoal",
+        "label": {
+          "id": "Kebutuhan bahasa",
+          "en": "Language goal"
+        },
+        "type": "textarea",
+        "when": {
+          "field": "placement",
+          "equals": true
+        }
+      }
+    ],
+    "attributes": {
+      "language": "English",
+      "level": "A2",
+      "progression": "A1 → A2 → B1",
+      "placementAvailable": true
+    },
+    "programs": [
+      {
+        "id": "english-a2",
+        "title": {
+          "id": "English A2",
+          "en": "English A2"
+        },
+        "subject": "English · A2",
+        "format": "hybrid",
+        "capacity": 10,
+        "tuitionIdr": 1600000,
+        "registrationIdr": 100000,
+        "duration": {
+          "id": "10 pekan",
+          "en": "10 weeks"
+        },
+        "body": {
+          "id": "Berlatih percakapan untuk perjalanan, kerja, dan kegiatan harian.",
+          "en": "Practice conversations for travel, work, and everyday situations."
+        },
+        "kind": "A2"
+      },
+      {
+        "id": "japanese-a1",
+        "title": {
+          "id": "Bahasa Jepang Pemula",
+          "en": "Japanese for Beginners"
+        },
+        "subject": "Japanese · A1",
+        "format": "onsite",
+        "capacity": 12,
+        "tuitionIdr": 1800000,
+        "registrationIdr": 100000,
+        "duration": {
+          "id": "12 pekan",
+          "en": "12 weeks"
+        },
+        "body": {
+          "id": "Mulai dari bunyi, aksara dasar, dan percakapan singkat.",
+          "en": "Start with sounds, basic scripts, and short conversations."
+        },
+        "kind": "A1"
+      },
+      {
+        "id": "business-english",
+        "title": {
+          "id": "English at Work",
+          "en": "English at Work"
+        },
+        "subject": "English · B1",
+        "format": "online",
+        "capacity": 8,
+        "tuitionIdr": 2100000,
+        "registrationIdr": 100000,
+        "duration": {
+          "id": "8 pekan",
+          "en": "8 weeks"
+        },
+        "body": {
+          "id": "Latihan rapat, presentasi, dan menulis email yang jelas.",
+          "en": "Practice meetings, presentations, and clear professional emails."
+        },
+        "kind": "B1"
+      }
+    ]
+  },
+  "skills": {
+    "name": "Forma Learning",
+    "headline": {
+      "id": "Keahlian yang Anda pakai. Karya yang bisa Anda tunjukkan.",
+      "en": "Skills you can use. Work you can show."
+    },
+    "intro": {
+      "id": "Lokakarya praktis dengan proyek kecil dan ulasan pengajar. Pelajari satu keahlian, lalu terapkan dalam pekerjaan.",
+      "en": "Practical workshops with small projects and instructor feedback. Learn a skill, then apply it to your work."
+    },
+    "fields": [
+      {
+        "name": "experience",
+        "label": {
+          "id": "Pengalaman",
+          "en": "Experience"
+        },
+        "type": "select",
+        "required": true,
+        "options": [
+          "Pemula / Beginner",
+          "Pernah belajar / Some experience",
+          "Bekerja di bidang ini / Working in this field"
+        ]
+      },
+      {
+        "name": "prerequisites",
+        "label": {
+          "id": "Saya sudah membaca prasyarat kelas",
+          "en": "I have read the prerequisites"
+        },
+        "type": "checkbox",
+        "required": true
+      }
+    ],
+    "attributes": {
+      "prerequisites": "Laptop and basic computer skills",
+      "certificate": "Certificate of participation only; no accredited qualification",
+      "project": "A reviewed practical project"
+    },
+    "programs": [
+      {
+        "id": "design-practice",
+        "title": {
+          "id": "Praktik Desain Produk",
+          "en": "Product Design Practice"
+        },
+        "subject": "Desain",
+        "format": "hybrid",
+        "capacity": 14,
+        "tuitionIdr": 2800000,
+        "registrationIdr": 150000,
+        "duration": {
+          "id": "6 pekan",
+          "en": "6 weeks"
+        },
+        "body": {
+          "id": "Riset singkat, alur pengguna, prototipe, dan ulasan karya.",
+          "en": "Short research tasks, user flows, prototypes, and work reviews."
+        },
+        "kind": "portfolio"
+      },
+      {
+        "id": "data-workshop",
+        "title": {
+          "id": "Data untuk Keputusan",
+          "en": "Data for Decisions"
+        },
+        "subject": "Analisis data",
+        "format": "online",
+        "capacity": 16,
+        "tuitionIdr": 1900000,
+        "registrationIdr": 100000,
+        "duration": {
+          "id": "4 pekan",
+          "en": "4 weeks"
+        },
+        "body": {
+          "id": "Bersihkan data dan susun laporan yang bisa dipakai tim.",
+          "en": "Clean data and create reports your team can use."
+        },
+        "kind": "workshop"
+      },
+      {
+        "id": "photo-workshop",
+        "title": {
+          "id": "Foto Produk untuk Brand",
+          "en": "Product Photography"
+        },
+        "subject": "Fotografi",
+        "format": "onsite",
+        "capacity": 8,
+        "tuitionIdr": 1250000,
+        "registrationIdr": 50000,
+        "duration": {
+          "id": "2 hari",
+          "en": "2 days"
+        },
+        "body": {
+          "id": "Atur cahaya, susun produk, dan olah foto katalog.",
+          "en": "Set up lighting, arrange products, and edit catalog photos."
+        },
+        "kind": "workshop"
+      }
+    ]
+  },
+  "institution": {
+    "name": "Sekolah Mandiri",
+    "headline": {
+      "id": "Ruang belajar yang mengenal setiap siswa.",
+      "en": "A learning community that knows every student."
+    },
+    "intro": {
+      "id": "Kenali program, pengajar, dan keseharian sekolah kami. Temukan informasi penerimaan serta kalender akademik dalam satu tempat.",
+      "en": "Explore our programs, faculty, and school life. Find admissions information and the academic calendar in one place."
+    },
+    "fields": [
+      {
+        "name": "admissionYear",
+        "label": {
+          "id": "Tahun masuk",
+          "en": "Admission year"
+        },
+        "type": "select",
+        "required": true,
+        "options": [
+          "2027/2028",
+          "2028/2029"
+        ]
+      },
+      {
+        "name": "contactRelation",
+        "label": {
+          "id": "Hubungan dengan calon siswa",
+          "en": "Relationship to applicant"
+        },
+        "type": "select",
+        "required": true,
+        "options": [
+          "Orang tua / Parent",
+          "Wali / Guardian",
+          "Siswa dewasa / Adult student"
+        ]
+      }
+    ],
+    "attributes": {
+      "department": "Academic studies",
+      "admissionRoute": "Application review and family consultation",
+      "calendar": "Semester-based"
+    },
+    "programs": [
+      {
+        "id": "secondary",
+        "title": {
+          "id": "Program Menengah",
+          "en": "Secondary Program"
+        },
+        "subject": "Akademik",
+        "format": "onsite",
+        "capacity": 24,
+        "tuitionIdr": 6500000,
+        "registrationIdr": 500000,
+        "duration": {
+          "id": "1 semester",
+          "en": "1 semester"
+        },
+        "body": {
+          "id": "Pembelajaran inti, proyek lintas bidang, dan bimbingan wali kelas.",
+          "en": "Core learning, cross-subject projects, and homeroom guidance."
+        },
+        "kind": "admissions"
+      },
+      {
+        "id": "science-club",
+        "title": {
+          "id": "Klub Sains",
+          "en": "Science Club"
+        },
+        "subject": "Sains",
+        "format": "onsite",
+        "capacity": 16,
+        "tuitionIdr": 750000,
+        "registrationIdr": 50000,
+        "duration": {
+          "id": "10 pertemuan",
+          "en": "10 sessions"
+        },
+        "body": {
+          "id": "Pengamatan dan percobaan aman dengan pendampingan guru.",
+          "en": "Observation and safe experiments with teacher guidance."
+        },
+        "kind": "enrichment"
+      },
+      {
+        "id": "creative-studio",
+        "title": {
+          "id": "Studio Kreatif",
+          "en": "Creative Studio"
+        },
+        "subject": "Seni",
+        "format": "onsite",
+        "capacity": 12,
+        "tuitionIdr": 600000,
+        "registrationIdr": 50000,
+        "duration": {
+          "id": "8 pertemuan",
+          "en": "8 sessions"
+        },
+        "body": {
+          "id": "Seni rupa, dokumentasi proses, dan pameran kelas.",
+          "en": "Visual art, process journals, and a class exhibition."
+        },
+        "kind": "enrichment"
+      }
+    ]
+  }
+}

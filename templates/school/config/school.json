@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "preset": "exam-prep",
+  "level": "full",
+  "brandName": "Prima Academy",
+  "whatsapp": "",
+  "locale": "id",
+  "appearance": {
+    "layout": "academic-editorial",
+    "palette": "cobalt",
+    "typography": "editorial"
+  },
+  "modules": {
+    "progress-reports": false,
+    "additional-branches": false,
+    "notifications": false
+  },
+  "payment": {
+    "provider": "manual"
+  },
+  "registrationFields": []
+}
