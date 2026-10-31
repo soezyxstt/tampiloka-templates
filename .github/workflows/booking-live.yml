@@ -1,0 +1,76 @@
+name: Booking live demo verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/booking-template]
+    paths: ['.github/workflows/booking-live.yml']
+permissions:
+  contents: read
+concurrency:
+  group: booking-live-verification
+  cancel-in-progress: false
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BOOKING_TEST_URL: https://booking.tampiloka.site
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Read-only live readiness and routing diagnostics
+        run: |
+          mkdir -p templates/booking/test-results/live
+          node --input-type=module <<'JS'
+          import {writeFile} from 'node:fs/promises';
+          const results=[];
+          let ready=false;
+          for(let attempt=0;attempt<12;attempt++) {
+            for(const origin of [process.env.BOOKING_TEST_URL,'https://tampiloka-booking-demo.16922204.workers.dev']) {
+              try {
+                const response=await fetch(origin+'/api/health',{signal:AbortSignal.timeout(10000)});
+                const text=await response.text(); let data;try{data=JSON.parse(text);}catch{}
+                const item={at:new Date().toISOString(),origin,attempt,status:response.status,contentType:response.headers.get('content-type'),body:text.slice(0,1600)};
+                results.push(item);console.log(JSON.stringify(item));
+                if(origin===process.env.BOOKING_TEST_URL&&response.ok&&data?.ok===true&&data?.demo===true&&data?.service==='tampiloka-booking')ready=true;
+              }catch(error){results.push({origin,attempt,error:String(error),cause:String(error.cause)});console.log(JSON.stringify(results.at(-1)));}
+            }
+            await writeFile('templates/booking/test-results/live/readiness.json',JSON.stringify({ready,results},null,2));
+            if(ready)break;
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          if(!ready)throw Error('Live demo is not healthy. No test mutation was attempted. Inspect readiness.json.');
+          JS
+      - run: pnpm install --frozen-lockfile
+      - name: Exercise real deployed customer and staff workflows
+        run: |
+          pnpm --filter @tampiloka/template-booking exec playwright install --with-deps chromium
+          pnpm --filter @tampiloka/template-booking test:e2e
+      - name: Verify published preview dimensions
+        run: |
+          python3 -m pip install Pillow
+          python3 - <<'PY'
+          import json,datetime,pathlib
+          from urllib.request import urlopen
+          from PIL import Image
+          from io import BytesIO
+          results=[]
+          for preset in ['medical','aesthetic','detailing','consulting']:
+              url='https://booking.tampiloka.site/demo-previews/booking-'+preset+'.webp'
+              r=urlopen(url,timeout=20); image=Image.open(BytesIO(r.read())); assert image.size==(1280,800)
+              results.append({'url':url,'status':r.status,'dimensions':list(image.size)})
+          pathlib.Path('templates/booking/test-results/live/previews.json').write_text(json.dumps({'verifiedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'previews':results},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: booking-live-verification
+          path: templates/booking/test-results
+          retention-days: 7
