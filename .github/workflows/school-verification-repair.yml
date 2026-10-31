@@ -22,7 +22,7 @@ jobs:
           python3 scripts/school-verification-repair.py
           node --check templates/school/tests/browser.mjs
           git diff --check
-          git rm scripts/school-verification-repair.py .github/workflows/school-verification-repair.yml
+          git rm scripts/school-verification-repair.py
           git add templates/school/src/main.tsx templates/school/src/public.tsx templates/school/src/staff.tsx templates/school/src/ui.tsx templates/school/tests/browser.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
