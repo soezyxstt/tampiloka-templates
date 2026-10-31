@@ -31,6 +31,7 @@ import {
   bookingDetail,
   createBooking,
   listBookings,
+  rawBooking,
   restoreAccess,
 } from "./services/bookings.ts";
 import {
@@ -195,7 +196,7 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
     };
   }
   let match = path.match(
-    /^\/api\/(staff\/)?bookings\/([a-zA-Z0-9_-]+)(?:\/(actions|payment|reconcile|simulate|receipt|refund))?$/,
+    /^\/api\/(staff\/)?bookings\/([a-zA-Z0-9_-]+)(?:\/(actions|availability|payment|reconcile|simulate|receipt|refund))?$/,
   );
   if (match) {
     const staff = Boolean(match[1]),
@@ -207,6 +208,26 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
     }
     if (action === "actions" && method === "POST")
       return bookingAction(env, s, key, await body(request), staff);
+    if (action === "availability" && method === "POST") {
+      await rateLimit(env, "slots:" + s.principal, 600, 3600);
+      if (staff) requireStaff(s, true);
+      await expire(env, s);
+      const row = await rawBooking(env, s, key, staff),
+        input = object(await body(request)),
+        result = await availability(env, s, {
+          serviceId: row.service_id,
+          locationId: row.location_id,
+          practitionerId: row.practitioner_id,
+          options: JSON.parse(row.options_json),
+          date: input.date,
+        }, row.id);
+      return {
+        slots: result.slots.map(
+          ({ assignments, occupiedStart, occupiedEnd, ...slot }) => slot,
+        ),
+        quote: result.quote,
+      };
+    }
     if (action === "payment" && method === "POST")
       return staff
         ? recordLocationPayment(env, s, key, await body(request))

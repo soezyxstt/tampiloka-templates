@@ -81,13 +81,9 @@ export function BookingDetail({
     setTimesLoading(true);
     setStartsAt(0);
     api<{ slots: Slot[] }>(
-      "/api/availability",
+      base + "/availability",
       "POST",
       {
-        serviceId: booking.item.serviceId,
-        locationId: booking.locationId,
-        practitionerId: booking.practitionerId,
-        options: booking.options,
         date,
       },
       controller.signal,
@@ -100,7 +96,7 @@ export function BookingDetail({
         if (!controller.signal.aborted) setTimesLoading(false);
       });
     return () => controller.abort();
-  }, [reschedule, date]);
+  }, [reschedule, date, booking?.id, base]);
   async function run(path: string, payload: unknown) {
     setBusy(true);
     setError(null);

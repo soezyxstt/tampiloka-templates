@@ -50,4 +50,4 @@ Tickets contain only an opaque ticket ID, version and scope-bound HMAC. Validati
 
 ## Main API groups
 
-`/api/bootstrap`, `/api/quote`, `/api/whatsapp`, `/api/availability`; `/api/bookings`, `/api/bookings/attempt/:key`, `/api/access`, `/api/bookings/:id/actions`; payment, receipt and reconciliation subroutes; `/api/staff/login`, `/api/logout`, staff calendar/list/detail/content/settings/blackouts/report/tickets; `/api/webhooks/midtrans`; isolated `/api/demo/*` only in demo deployments.
+`/api/bootstrap`, `/api/quote`, `/api/whatsapp`, `/api/availability`; `/api/bookings`, `/api/bookings/attempt/:key`, `/api/access`, `/api/bookings/:id/actions` and authorized `/api/bookings/:id/availability` (also under `/api/staff/bookings/:id/availability`); payment, receipt and reconciliation subroutes; `/api/staff/login`, `/api/logout`, staff calendar/list/detail/content/settings/blackouts/report/tickets; `/api/webhooks/midtrans`; isolated `/api/demo/*` only in demo deployments.
