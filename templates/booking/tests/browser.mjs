@@ -203,7 +203,9 @@ try {
     true,
     "Refusing to run destructive browser scenarios against a production project",
   );
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true,
+    ...(process.env.BOOKING_CHROMIUM_EXECUTABLE ? { executablePath: process.env.BOOKING_CHROMIUM_EXECUTABLE } : {}),
+  });
   for (let n = 0; n < layouts.length; n++)
     for (const width of [360, 390, 1024, 1440])
       await check(`${layouts[n]} ${width}px reduced motion`, async () => {

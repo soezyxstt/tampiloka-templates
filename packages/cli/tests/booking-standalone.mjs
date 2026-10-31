@@ -54,7 +54,7 @@ for (const [level, preset] of [
     await run(
       process.execPath,
       [
-        join(root, "packages/cli/src/index.mjs"),
+        join(root, "packages/cli/bin/tampiloka.mjs"),
         "create",
         name,
         "--template",
@@ -96,7 +96,7 @@ for (const [level, preset] of [
       join(output, `${level}-doctor.log`),
       await run(
         process.execPath,
-        [join(root, "packages/cli/src/index.mjs"), "doctor", "--dir", dir],
+        [join(root, "packages/cli/bin/tampiloka.mjs"), "doctor", "--dir", dir],
         staging,
       ),
     );

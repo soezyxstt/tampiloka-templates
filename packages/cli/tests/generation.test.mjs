@@ -116,6 +116,8 @@ test('booking generation supports every independent business and feature level w
   assert.ok(!JSON.stringify(pkg).includes('workspace:'));assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
   assert.doesNotMatch(await readFile(join(output,'src/components/DemoToolbar.tsx'),'utf8'),/DemoToolbarShell/);assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'),/ui-core\/demo/);
   assert.doesNotMatch(await readFile(join(output,'worker/demo.ts'),'utf8'),/scopeRow|UPDATE|INSERT/);
+  assert.match(await readFile(join(output,'vite.config.ts'),'utf8'),/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/);
+  assert.match(await readFile(join(output,'scripts/dev.mjs'),'utf8'),/const demo\s*=\s*false;/);
   assert.equal(Boolean(pkg.dependencies.qrcode),level==='full');assert.equal(Boolean(pkg.dependencies.jsqr),level==='full');assert.ok((await read(join(output,'content/client.json'))).services.every(s=>s.preset===preset));
   for(const forbidden of ['wrangler.demo.jsonc','.dev.vars','node_modules','test-results','public/demo-previews','packages/ui-core/src/demo-shell.tsx'])await assert.rejects(lstat(join(output,forbidden)),{code:'ENOENT'});
   const images=await read(join(output,'public/images/manifest.json'));assert.ok(images.assets.every(asset=>asset.file.startsWith(preset)));

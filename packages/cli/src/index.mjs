@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { parseJsonc } from './jsonc.mjs';
 
 const VERSION = '1.0.0';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -79,7 +80,7 @@ export async function findSourceRoot() {
   if(await exists(join(payload,'packages/registry/src/index.mjs')))return payload;
   throw new Error('Sumber template tidak ditemukan. Instal ulang paket CLI lengkap atau jalankan dari repo tampiloka-templates.');
 }
-const json = async path => JSON.parse(await readFile(path,'utf8'));
+const json = async path => { const source = await readFile(path, 'utf8'); return path.endsWith('.jsonc') ? parseJsonc(source) : JSON.parse(source); };
 const writeJson = async (path,value) => { await mkdir(dirname(path),{recursive:true}); await writeFile(path,`${JSON.stringify(value,null,2)}\n`); };
 function emit(options,value,message) { stdout.write(options.json?`${JSON.stringify(value,null,2)}\n`:`${message}\n`); }
 function assertChoice(value, allowed, label) { if(!allowed.includes(value))throw new Error(`${label} "${value}" tidak ada. Pilih: ${allowed.join(', ')}.`); }
@@ -227,9 +228,12 @@ async function createBooking(sourceRoot,temp,target,options,template) {
   await rm(join(temp,'public/demo-previews'),{recursive:true,force:true});
   await writeFile(join(temp,'src/components/DemoToolbar.tsx'),'export function DemoToolbar(){return null;}\n');
   await writeFile(join(temp,'worker/demo.ts'),"import {fail} from '../src/domain/validation.ts';\nexport async function demoAction(..._args:unknown[]):Promise<any>{return fail(403,'DEMO_DISABLED','Public demo controls are not part of this client project.');}\n");
-  let main=await readFile(join(temp,'src/main.tsx'),'utf8');main=main.replace(/^import '@tampiloka\/ui-core\/demo.css';?\s*$/m,'');await writeFile(join(temp,'src/main.tsx'),main);
-  let vite=await readFile(join(temp,'vite.config.ts'),'utf8');vite=vite.replace("JSON.stringify(mode==='demo')",'JSON.stringify(false)');await writeFile(join(temp,'vite.config.ts'),vite);
-  let dev=await readFile(join(temp,'scripts/dev.mjs'),'utf8');dev=dev.replace("const demo=process.argv.includes('--demo');",'const demo=false;');await writeFile(join(temp,'scripts/dev.mjs'),dev);
+  let main=await readFile(join(temp,'src/main.tsx'),'utf8');main=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
+  if(main.includes('@tampiloka/ui-core/demo'))throw new Error('Failed to remove demo CSS from the client entry point.');await writeFile(join(temp,'src/main.tsx'),main);
+  let vite=await readFile(join(temp,'vite.config.ts'),'utf8');vite=vite.replace(/JSON\.stringify\(mode\s*===\s*['"]demo['"]\)/,'JSON.stringify(false)');
+  if(!/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/.test(vite))throw new Error('Failed to lock the generated build to client mode.');await writeFile(join(temp,'vite.config.ts'),vite);
+  let dev=await readFile(join(temp,'scripts/dev.mjs'),'utf8');dev=dev.replace(/const demo\s*=\s*process\.argv\.includes\(['"]--demo['"]\);/,'const demo = false;');
+  if(!/const demo\s*=\s*false;/.test(dev))throw new Error('Failed to lock the generated dev server to client mode.');await writeFile(join(temp,'scripts/dev.mjs'),dev);
   if(options.level!=='full'){
     delete pkg.dependencies.qrcode;delete pkg.dependencies.jsqr;delete pkg.devDependencies['@types/qrcode'];
     await writeFile(join(temp,'src/components/QRCode.tsx'),'export function TicketQR(_props:{payload:string}){return null;}\n');
