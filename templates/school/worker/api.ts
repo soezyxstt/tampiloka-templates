@@ -102,7 +102,7 @@ async function callback(request: Request, env: Env) {
     integer(amount);
     const status = canonical.transaction_status;
     const paid = status === 'settlement' || status === 'capture' && canonical.fraud_status === 'accept';
-    const normalized = paid ? 'paid' : status === 'expire' ? 'expired' : ['deny', 'cancel', 'failure'].includes(status) ? 'failed' : ['refund', 'partial_refund'].includes(status) ? 'refunded' : 'pending';
+    const normalized = paid ? 'paid' : status === 'expire' ? 'expired' : status === 'cancel' ? 'failed' : ['refund', 'partial_refund'].includes(status) ? 'refunded' : 'pending';
     const store = new Store(env.DB, 'production', () => seed(config.preset, config, false));
     await store.mutate(s => { const payment = s.payments.find(x => x.reference === order && x.provider === 'midtrans'); check(payment, 'not_found', 404); applyPayment(s, { actor: null, level: config.level, demo: false, now: new Date().toISOString(), id: order }, payment.invoiceId, order, amount, 'midtrans', normalized); });
     return response({ ok: true });
@@ -243,21 +243,38 @@ export async function handle(request: Request, env: Env, execution?: {
             const invoice = s.invoices.find(x => x.id === p.id);
             check(invoice && invoice.status === 'unpaid', 'invoice_unavailable', 409);
             check(owns(ctx, invoice.studentId) || isStaff(ctx.actor.role), 'forbidden', 403);
-            const order = invoice.id;
-            const previous = s.payments.find(x => x.reference === order);
+            let previous = s.payments.find(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending');
             if (previous?.checkoutUrl)
                 return response({ url: previous.checkoutUrl });
+            if (previous) {
+                check(!previous.starting, 'payment_start_reconcile', 409);
+                const status = await fetch(`${midtransBase(env)}/v2/${encodeURIComponent(previous.reference)}/status`, { headers: { Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, signal: AbortSignal.timeout(15000) });
+                if (status.status !== 404) {
+                    check(status.ok, 'payment_start_reconcile', 502);
+                    const canonical = await status.json() as Record<string, string>;
+                    check(canonical.order_id === previous.reference && /^\d+(\.00)?$/.test(canonical.gross_amount) && Number(canonical.gross_amount) === invoice.totalIdr && (!canonical.currency || canonical.currency === 'IDR'), 'invalid_payment');
+                    const state = canonical.transaction_status;
+                    const normalized = state === 'settlement' || state === 'capture' && canonical.fraud_status === 'accept' ? 'paid' : state === 'expire' ? 'expired' : state === 'cancel' ? 'failed' : ['refund', 'partial_refund'].includes(state) ? 'refunded' : 'pending';
+                    await store.mutate(s => applyPayment(s, { ...ctx, actor: null }, invoice.id, previous!.reference, invoice.totalIdr, 'midtrans', normalized));
+                    check(normalized === 'expired' || normalized === 'failed', 'payment_start_reconcile', 409);
+                    previous = undefined;
+                }
+            }
+            const order = previous?.reference ?? `school-${crypto.randomUUID()}`;
             await env.DB.prepare('INSERT OR IGNORE INTO school_payment_routes(order_id,namespace) VALUES(?,?)').bind(order, 'production').run();
-            await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.reference === order), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now }); });
+            if (!previous) await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending'), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now, starting: true }); });
+            else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && !pay.starting && !pay.checkoutUrl, 'payment_start_reconcile', 409); pay.starting = true; });
             const host = env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
+            try {
             const res = await fetch(`${host}/snap/v1/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, body: JSON.stringify({ transaction_details: { order_id: order, gross_amount: invoice.totalIdr } }), signal: AbortSignal.timeout(15000) });
             check(res.ok, 'payment_start_reconcile', 502);
             const data = await res.json() as {
                 redirect_url: string;
             };
             check(typeof data.redirect_url === 'string' && new URL(data.redirect_url).origin === host, 'invalid_provider_url', 502);
-            await store.mutate(s => { const pay = s.payments.find(x => x.reference === order)!; pay.checkoutUrl = data.redirect_url; });
+            await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(pay?.status === 'pending' && s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'payment_start_reconcile', 409); pay.checkoutUrl = data.redirect_url; });
             return response({ url: data.redirect_url });
+            } finally { await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); if (pay) pay.starting = false; }); }
         }
         if (path === '/api/media' && request.method === 'POST') {
             check(ctx.actor && (canEdit(ctx.actor.role) || ctx.actor.role === 'tutor'), 'forbidden', 403);

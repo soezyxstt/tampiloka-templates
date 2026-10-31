@@ -172,6 +172,7 @@ export interface Payment {
     status: 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
     at: string;
     checkoutUrl?: string;
+    starting?: boolean;
 }
 export interface Attendance {
     id: string;
@@ -301,5 +302,6 @@ export interface Snapshot {
     content: ContentRecord[];
     modules: Record<string, boolean>;
     registrationFields: Field[];
+    extensionRegistrationFields: string[];
     outbox: Notice[];
 }
