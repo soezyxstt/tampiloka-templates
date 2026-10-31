@@ -112,27 +112,30 @@ export function ScheduleEditor({
             }))}
             onChange={(v) => update(index, { weekday: Number(v) })}
           />
-          <Input
-            type="time"
-            step={300}
-            aria-label={`${t("Jam mulai", "Start time")} ${index + 1}`}
-            value={timeString(rule.start)}
-            onChange={(e) =>
-              update(index, { start: minutesOf(e.target.value) })
-            }
-            required
-          />
-          <span>{t("sampai", "to")}</span>
-          <Input
-            type="time"
-            step={300}
-            aria-label={`${t("Jam akhir", "End time")} ${index + 1}`}
-            value={timeString(rule.end)}
-            onChange={(e) =>
-              update(index, { end: minutesOf(e.target.value) || 1440 })
-            }
-            required
-          />
+          <div className="b-schedule-times">
+            <label className="b-schedule-time">
+              <span>{t("Mulai", "Start")}</span>
+              <Input
+                type="time"
+                step={300}
+                aria-label={`${t("Jam mulai", "Start time")} ${index + 1}`}
+                value={timeString(rule.start)}
+                onChange={(e) => update(index, { start: minutesOf(e.target.value) })}
+                required
+              />
+            </label>
+            <label className="b-schedule-time">
+              <span>{t("Selesai", "End")}</span>
+              <Input
+                type="time"
+                step={300}
+                aria-label={`${t("Jam akhir", "End time")} ${index + 1}`}
+                value={timeString(rule.end)}
+                onChange={(e) => update(index, { end: minutesOf(e.target.value) || 1440 })}
+                required
+              />
+            </label>
+          </div>
           <Action
             variant="ghost"
             size="icon"

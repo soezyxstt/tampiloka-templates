@@ -334,35 +334,33 @@
 }
 .b-schedule-row {
   display: grid;
-  grid-template-columns: minmax(105px, 0.9fr) minmax(0, 1fr) auto minmax(0, 1fr) 44px;
-  align-items: center;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(0, 2fr) 44px;
+  align-items: end;
   gap: 18px;
   padding: 15px 0;
   border-bottom: 1px solid var(--line);
 }
-.b-schedule-row:last-child {
-  border-bottom: 0;
+.b-schedule-row:last-child { border-bottom: 0; }
+.b-schedule-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
 }
-.b-schedule-row > strong {
-  font-size: 13px;
-  padding-top: 11px;
-}
-.b-schedule-row > div {
+.b-schedule-time {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-.b-schedule-row > div > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
 }
 .b-schedule-row input {
   min-width: 0;
+  width: 100%;
+  padding-inline: 8px;
+  font-size: 14px;
 }
-.b-schedule-row button {
-  flex: none;
-}
+.b-schedule-row button { flex: none; }
 .b-faq-editor {
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
@@ -611,22 +609,10 @@
   .b-calendar-event .b-status {
     align-self: flex-start;
   }
-  .b-schedule-row {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
-    gap: 9px;
-  }
-  .b-schedule-row > .b-select { grid-column: 1 / -1; }
-  .b-schedule-row > strong {
-    padding: 0;
-  }
-  .b-schedule-row > div > div {
-    flex-wrap: wrap;
-    gap: 7px;
-  }
-  .b-schedule-row input {
-    width: 100%;
-    max-width: 100%;
-  }
+  .b-schedule-row { grid-template-columns: minmax(0, 1fr) 44px; gap: 12px; }
+  .b-schedule-row > .b-select { grid-column: 1; grid-row: 1; }
+  .b-schedule-row > .b-schedule-times { grid-column: 1 / -1; grid-row: 2; }
+  .b-schedule-row > button { grid-column: 2; grid-row: 1; }
   .b-time-off-row {
     gap: 15px;
     align-items: start;

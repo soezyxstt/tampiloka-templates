@@ -24,6 +24,7 @@ export async function workspaceChecks({ browser, base, out, check, boot, geometr
               await dialog.getByRole('heading', { name: 'Weekly working hours' }).waitFor();
               const row = dialog.locator('.b-schedule-row').first();
               await row.scrollIntoViewIfNeeded();
+              if(width<=390) for(const input of await row.locator('input[type="time"]').all()) assert.ok((await input.boundingBox()).width >= 120, 'Native time fields must fit their value and picker');
               assert.equal(await row.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true, 'Schedule controls must fit the editor');
               await page.screenshot({ path: join(out, `schedule-${width}-${motion}.png`), fullPage: true });
               await page.keyboard.press('Escape');

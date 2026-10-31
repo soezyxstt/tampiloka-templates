@@ -181,6 +181,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 Record UI-system changes here, newest first, one short entry per change.
 
+- **2026-10-31**: Added booking to the shared demo contract with independent business, level, layout, palette, view, and language state. Its staff workspace uses neutral tokens, labeled schedule fields, server-backed session isolation, and verified 1280 × 800 preview captures.
+
 - **2026-10-30**: Added shared rules for restrained navigation icons, clear link/button cues, and centered, accessible icon-only controls across current and future templates.
 
 - **2026-10-30**: Standardized public demo exploration around shared theme/mode selectors, customer/staff navigation, bottom-right ID/EN, Tampiloka select styling, and a runtime public catalog contract for current and future template families.
