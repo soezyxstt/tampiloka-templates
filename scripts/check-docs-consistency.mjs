@@ -28,4 +28,3 @@ for (const template of registry.templates.filter((item) => item.status === 'avai
   assert.ok(commands.includes(`dev:${template.id}`), `README missing local demo command for ${template.id}`);
 }
 console.log('Documentation overview and first-run commands match registry, catalog metadata, and root scripts.');
-

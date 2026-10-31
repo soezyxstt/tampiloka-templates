@@ -239,7 +239,7 @@ test('checkout reconciles ambiguous creation, retries terminal attempts and dedu
     } finally { globalThis.fetch = original; db.raw.close(); }
 });
 
-test('saved checkout URLs reconcile missed terminal notifications and refresh unselected Snap pages safely', async () => {
+test('saved checkout URLs reconcile terminal notifications and preserve active unselected Snap pages', async () => {
     for (const terminal of ['expire', 'cancel', 'failure']) {
         const { db, env, client } = await setup(false);
         env.CONFIG = { ...env.CONFIG, payment: { provider: 'midtrans' } }; env.MIDTRANS_SERVER_KEY = 'test-key';
@@ -252,7 +252,7 @@ test('saved checkout URLs reconcile missed terminal notifications and refresh un
         const original = globalThis.fetch, attempts = [];
         let status = 'pending';
         globalThis.fetch = async (url, init = {}) => {
-            if (init.method === 'POST') { const order = JSON.parse(init.body).transaction_details.order_id; attempts.push(order); return Response.json({ redirect_url: `https://app.sandbox.midtrans.com/snap/${order}/${attempts.length}` }); }
+            if (init.method === 'POST') { const payload = JSON.parse(init.body); assert.deepEqual(payload.page_expiry, { duration: 24, unit: 'hours' }); const order = payload.transaction_details.order_id; attempts.push(order); return Response.json({ redirect_url: `https://app.sandbox.midtrans.com/snap/${order}/${attempts.length}` }); }
             if (status === 'missing') return new Response('{}', { status: 404 });
             if (status === 'unavailable') return new Response('{}', { status: 503 });
             return Response.json({ order_id: decodeURIComponent(String(url).split('/').at(-2)), gross_amount: '1000.00', transaction_status: status });
@@ -264,6 +264,12 @@ test('saved checkout URLs reconcile missed terminal notifications and refresh un
             status = terminal;
             const next = await start(); assert.equal(next.status, 200); assert.notEqual(next.data.url, first.data.url); assert.notEqual(attempts[0], attempts[1]);
             status = 'missing';
+            const reused = await start(); assert.equal(reused.status, 200); assert.equal(reused.data.url, next.data.url); assert.equal(attempts.length, 2);
+            const expiry = (await store.load()).state.payments.find(p => p.reference === attempts[1]).checkoutExpiresAt;
+            assert.ok(expiry > Date.now());
+            await store.mutate(s => { delete s.payments.find(p => p.reference === attempts[1]).checkoutExpiresAt; });
+            assert.equal((await start()).status, 409); assert.equal(attempts.length, 2);
+            await store.mutate(s => { s.payments.find(p => p.reference === attempts[1]).checkoutExpiresAt = Date.now() - 1; });
             const refreshed = await start(); assert.equal(refreshed.status, 200); assert.notEqual(refreshed.data.url, next.data.url); assert.equal(attempts[1], attempts[2]);
             status = 'unavailable';
             assert.equal((await start()).status, 502); assert.equal(attempts.length, 3);

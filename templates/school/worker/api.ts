@@ -250,6 +250,10 @@ export async function handle(request: Request, env: Env, execution?: {
             if (previous) {
                 check((previous.startingUntil ?? 0) <= Date.now(), 'payment_start_reconcile', 409);
                 const status = await fetch(`${midtransBase(env)}/v2/${encodeURIComponent(previous.reference)}/status`, { headers: { Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, signal: AbortSignal.timeout(15000) });
+                if (status.status === 404 && previous.checkoutUrl) {
+                    check(previous.checkoutExpiresAt, 'payment_start_reconcile', 409);
+                    if (previous.checkoutExpiresAt > Date.now()) return response({ url: previous.checkoutUrl });
+                }
                 if (status.status !== 404) {
                     check(status.ok, 'payment_start_reconcile', 502);
                     const canonical = await status.json() as Record<string, string>;
@@ -268,13 +272,14 @@ export async function handle(request: Request, env: Env, execution?: {
             else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && (pay.startingUntil ?? 0) <= Date.now() && pay.checkoutUrl === previous?.checkoutUrl, 'payment_start_reconcile', 409); pay.startingUntil = startingUntil; });
             const host = env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
             try {
-            const res = await fetch(`${host}/snap/v1/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, body: JSON.stringify({ transaction_details: { order_id: order, gross_amount: invoice.totalIdr } }), signal: AbortSignal.timeout(15000) });
+            const res = await fetch(`${host}/snap/v1/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(env.MIDTRANS_SERVER_KEY + ':')}` }, body: JSON.stringify({ transaction_details: { order_id: order, gross_amount: invoice.totalIdr }, page_expiry: { duration: 24, unit: 'hours' } }), signal: AbortSignal.timeout(15000) });
             check(res.ok, 'payment_start_reconcile', 502);
             const data = await res.json() as {
                 redirect_url: string;
             };
             check(typeof data.redirect_url === 'string' && new URL(data.redirect_url).origin === host, 'invalid_provider_url', 502);
-            await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(pay?.status === 'pending' && s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'payment_start_reconcile', 409); pay.checkoutUrl = data.redirect_url; });
+            const checkoutExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+            await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(pay?.status === 'pending' && s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'payment_start_reconcile', 409); pay.checkoutUrl = data.redirect_url; pay.checkoutExpiresAt = checkoutExpiresAt; });
             return response({ url: data.redirect_url });
             } finally { await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); if (pay?.startingUntil === startingUntil) delete pay.startingUntil; }); }
         }
