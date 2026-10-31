@@ -53,6 +53,18 @@ async function overflow(page, label) {
     assert.ok(Math.abs(measured - toolbar.height) <= 1, `${label}: toolbar height mismatch`);
 }
 async function pick(page, name, label) { await page.getByRole('combobox', { name, exact: true }).click(); await page.getByRole('option', { name: label, exact: true }).click(); }
+async function closeSelect(page, trigger) {
+    await page.keyboard.press('Escape');
+    await page.getByRole('listbox').waitFor({ state: 'hidden' });
+    // Radix restores focus after its closing/unmount lifecycle. Assert the final
+    // focused element instead of racing an immediate evaluate against that work.
+    const element = await trigger.elementHandle();
+    assert.ok(element, 'Select trigger remains mounted');
+    try {
+        await page.waitForFunction(el => document.activeElement === el, element, { timeout: 3000 });
+        assert.equal(await trigger.getAttribute('aria-expanded'), 'false');
+    } finally { await element.dispose(); }
+}
 async function chromeContrast(page) {
     return page.evaluate(() => {
         const rgb = color => (color.match(/[\d.]+/g) || []).map(Number);
@@ -119,13 +131,13 @@ try {
                     await ready(page);
                     await capture(page, { path: `${out}/${layouts[i]}-preview.jpg`, type: 'jpeg', quality: 82 });
                 }
-                await page.getByRole('combobox', { name: 'Demo theme', exact: true }).click();
+                const theme = page.getByRole('combobox', { name: 'Demo theme', exact: true });
+                await theme.click();
                 await page.getByRole('listbox').waitFor();
                 const menu = await chromeContrast(page);
                 assert.ok(menu.menuOpaque && menu.menu >= 4.5, 'opaque contrasting dropdown');
-                await page.keyboard.press('Escape');
-                assert.equal(await page.getByRole('combobox', { name: 'Demo theme', exact: true }).evaluate(el => el === document.activeElement), true);
-                await page.getByRole('combobox', { name: 'Demo theme', exact: true }).click();
+                await closeSelect(page, theme);
+                await theme.click();
                 await page.keyboard.press('ArrowDown');
                 await page.keyboard.press('Enter');
                 await page.waitForTimeout(150);
@@ -138,7 +150,7 @@ try {
                 results.push({ layout: layouts[i], preset: presets[i], width, reducedMotion, chrome, passed: true });
                 await ctx.close();
             }
-    // Use the actual staff actions and verify the persisted record, not only the visible badge.
+    // Use the actual staff actions and verify persisted records, not history badges.
     for (const preset of presets) {
         const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
         await ctx.tracing.start({ screenshots: true, snapshots: true, sources: true });
@@ -150,9 +162,8 @@ try {
         await ready(page);
         const intake = page.getByRole('combobox', { name: 'Class & intake', exact: true });
         await intake.scrollIntoViewIfNeeded(); await intake.focus(); await page.keyboard.press('Enter');
-        await page.getByRole('listbox').waitFor(); await page.keyboard.press('Escape');
-        assert.equal(await intake.evaluate(el => el === document.activeElement), true);
-        await intake.click(); await page.getByRole('listbox').waitFor(); await page.keyboard.press('Escape');
+        await page.getByRole('listbox').waitFor(); await closeSelect(page, intake);
+        await intake.click(); await page.getByRole('listbox').waitFor(); await closeSelect(page, intake);
         const s = await current(page);
         await fillRegistration(page, s);
         await page.getByRole('button', { name: 'Save draft', exact: true }).click();
