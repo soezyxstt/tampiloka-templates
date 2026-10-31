@@ -27,7 +27,7 @@ The built-in block types are text, image/text, FAQ, outcomes, facilities and fic
 
 ## Form fields
 
-Built-in types are text, email, number, select, checkbox and textarea. Fields support required, length/range bounds and conditions such as `when: {field: 'placement', equals: true}`. Invisible fields are excluded from saved answers. Use `fields.save` to edit the institution's registration schema. Extension fields append to that schema. Reject duplicate/reserved names; do not use prototype properties as field IDs.
+Built-in types are text, email, number, select, checkbox and textarea. Fields support required, length/range bounds and conditions such as `when: {field: 'placement', equals: true}`. Invisible fields are excluded from saved answers. Use `fields.save` to edit the institution's registration schema. Extension fields append to that schema and appear in the learner form and staff review. The snapshot identifies extension-owned names separately; institution settings edit only institution-owned fields. Duplicate names across either source are rejected, including collisions introduced by configuration. Do not use prototype properties as field IDs.
 
 To add a new input widget, extend the `Field` type, `FieldInput` and server `validateFields` together. A UI-only validator is insufficient. Add domain and browser tests for the new type and its keyboard behavior.
 

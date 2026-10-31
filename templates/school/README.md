@@ -64,4 +64,4 @@ A server checks every operation. Changing a URL or hiding a button cannot enable
 - [Layout and accessibility design](docs/design.md)
 - [Verification and release evidence](docs/verification.md)
 
-The advanced assignment, quiz, certificate, trial-class and recurring-billing modules are extension targets, not advertised working features. Public catalog readiness stays false until live URLs and corresponding previews pass verification.
+The advanced assignment, quiz, certificate, trial-class and recurring-billing modules are extension targets, not advertised working features. The public catalog contains four School entries. Their readiness metadata is separate from current release health; changed releases require hosted workflow evidence before catalog promotion.

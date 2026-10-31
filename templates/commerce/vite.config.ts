@@ -10,6 +10,7 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5174,
     strictPort: true,
+    watch: { ignored: ['**/.data/**', '**/.wrangler/**'] },
     proxy: { '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false } },
   },
   preview: { host: '127.0.0.1', port: 4174, strictPort: true },

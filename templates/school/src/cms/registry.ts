@@ -50,6 +50,7 @@ export const cms = {
     ]), beforeEnrollment: [] as NonNullable<Extension['beforeEnrollment']>,
 };
 export function registerExtension(extension: Extension) {
+    validateFieldDefinitions([...cms.registrationFields, ...extension.registrationFields ?? []]);
     for (const c of extension.collections ?? []) {
         check(!cms.collections.has(c.id), 'duplicate_collection');
         cms.collections.set(c.id, c);

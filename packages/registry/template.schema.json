@@ -14,8 +14,18 @@
     "defaultLevel": { "type": "string" },
     "presets": { "type": "array", "items": { "type": "string" } },
     "levels": { "type": "array", "items": { "type": "string" } },
+    "layouts": { "$ref": "#/$defs/axisIds" },
+    "palettes": { "$ref": "#/$defs/axisIds" },
     "sharedPackages": { "type": "array", "items": { "type": "string" } },
     "demoUrl": { "type": "string", "format": "uri" }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "axisIds": {
+      "description": "Unique lowercase, hyphen-separated IDs for independent appearance options.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" }
+    }
+  }
 }

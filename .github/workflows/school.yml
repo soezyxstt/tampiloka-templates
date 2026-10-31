@@ -6,7 +6,6 @@ on:
       - 'templates/school/**'
       - 'packages/ui-core/**'
       - 'packages/cli/**'
-      - 'packages/registry/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/school.yml'
   pull_request:
@@ -59,7 +58,7 @@ jobs:
         working-directory: templates/school
         run: pnpm exec playwright install --with-deps chromium
       - name: Browser and visual checks
-        run: pnpm test:school:browser
+        run: pnpm test:school:browser && pnpm --filter @tampiloka/template-school exec node tests/extension-browser.mjs
       - name: Package accurate demo previews
         run: |
           mkdir -p templates/school/dist/previews
@@ -78,92 +77,5 @@ jobs:
           path: |
             templates/school/dist
             templates/school/dist-worker
-          if-no-files-found: ignore
-          retention-days: 14
-  deploy-demo:
-    needs: school
-    if: github.repository == 'soezyxstt/tampiloka-templates' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/school-template')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    concurrency:
-      group: deploy-school-demo
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.28.2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: school-build
-          path: templates/school
-      - name: Verify the exact pre-provisioned demo schema
-        working-directory: templates/school
-        run: node scripts/check-demo-schema.mjs
-      - name: Deploy the tested demo build
-        working-directory: templates/school
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: '06d62d8a9335fed189a6a59fda0a4f48'
-        run: pnpm exec wrangler deploy --config wrangler.demo.jsonc
-      - name: Verify the deployed API and real D1/R2 isolation
-        working-directory: templates/school
-        env:
-          SCHOOL_URL: https://school.tampiloka.site
-        run: |
-          node --input-type=module <<'JS'
-          import { setTimeout } from 'node:timers/promises';
-          for(let n=0;n<30;n++) {
-            try {const r=await fetch(process.env.SCHOOL_URL+'/api/health',{signal:AbortSignal.timeout(5000)});if(r.ok)break;}catch{}
-            if(n===29)throw Error('Deployed demo did not become healthy');
-            await setTimeout(2000);
-          }
-          JS
-          node tests/live-smoke.mjs
-      - name: Install Chromium
-        working-directory: templates/school
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Exercise the deployed demo in Chromium
-        working-directory: templates/school
-        env:
-          SCHOOL_URL: https://school.tampiloka.site
-          SCHOOL_SCREENSHOTS: test-results/live-school
-        run: pnpm test:e2e
-      - name: Publish previews captured from the deployed demo
-        working-directory: templates/school
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: '06d62d8a9335fed189a6a59fda0a4f48'
-        run: |
-          cp test-results/live-school/*-preview.jpg dist/previews/
-          pnpm exec wrangler deploy --config wrangler.demo.jsonc
-      - name: Verify hosted preview bytes
-        working-directory: templates/school
-        run: |
-          node --input-type=module <<'JS'
-          import {readFile} from 'node:fs/promises';
-          import {createHash} from 'node:crypto';
-          import assert from 'node:assert/strict';
-          const hash=b=>createHash('sha256').update(b).digest('hex');
-          for(const layout of ['academic-editorial','course-discovery','contemporary-learning','institutional']) {
-            const file=layout+'-preview.jpg';
-            const r=await fetch('https://school.tampiloka.site/previews/'+file+'?verify='+Date.now(),{signal:AbortSignal.timeout(20000)});
-            assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/image\/jpeg/);
-            assert.equal(hash(Buffer.from(await r.arrayBuffer())),hash(await readFile('dist/previews/'+file)));
-            console.log('Verified hosted preview: '+file);
-          }
-          JS
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: school-live-verification
-          path: templates/school/test-results
           if-no-files-found: ignore
           retention-days: 14

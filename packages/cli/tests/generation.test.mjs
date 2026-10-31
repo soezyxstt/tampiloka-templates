@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, mkdir, rm, lstat, readdir, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..'),cli=join(root,'packages/cli/bin/tampiloka.mjs');
 const run=(...args)=>{const result=spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8'});if(result.error)throw result.error;return result;};
@@ -33,6 +33,9 @@ test('commerce generation keeps feature level independent of all four preset com
     await assert.rejects(lstat(join(output,'node_modules')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'.dev.vars')),{code:'ENOENT'});
     await lstat(join(output,'.dev.vars.example'));
+    assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'), /ui-core\/demo/);
+    assert.doesNotMatch(await readFile(join(output,'src/App.tsx'),'utf8'), /DemoToolbar/);
+    await assert.rejects(lstat(join(output,'src/components/DemoToolbar.tsx')),{code:'ENOENT'});
     assert.match(await readFile(join(output,'.gitignore'),'utf8'),/\.dev\.vars\*/);
     const doctor=run('doctor','--dir',output,'--json');assert.equal(doctor.status,0,doctor.stderr);assert.equal(JSON.parse(doctor.stdout).ok,true);
   }
@@ -58,6 +61,17 @@ test('cafe generation preserves catalog waiter requests and full presets',async 
     await assert.rejects(lstat(join(output,'demos')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'src/demo-runtime')),{code:'ENOENT'});
   }
+});
+test('cafe read-only menu is explicit and rejects incompatible selections',async t=>{
+  const parent=await temporary(t),result=run('create','menu','--out',parent,'--template','cafe','--modules','catalog','--yes','--json');
+  assert.equal(result.status,0,result.stderr);
+  const output=join(parent,'menu');
+  assert.deepEqual((await read(join(output,'config/cafe.json'))).modules,['catalog']);
+  assert.deepEqual((await read(join(output,'tampiloka.project.json'))).modules,['catalog']);
+  assert.equal(JSON.parse(result.stdout).preset,null);
+  assert.match(await readFile(join(output,'.env.local'),'utf8'),/CAFE_DEMO_DB=0/);
+  for(const args of [['--template','cafe','--modules','catalog','--preset','catalog'],['--template','cafe','--modules','ordering'],['--template','commerce','--modules','catalog']])
+    assert.notEqual(run('create','invalid-menu','--out',parent,...args,'--yes').status,0);
 });
 test('invalid selection and path traversal write no output',async t=>{
   const parent=await temporary(t);
@@ -116,6 +130,10 @@ test('booking generation supports every independent business and feature level w
   assert.ok(!JSON.stringify(pkg).includes('workspace:'));assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
   assert.doesNotMatch(await readFile(join(output,'src/components/DemoToolbar.tsx'),'utf8'),/DemoToolbarShell/);assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'),/ui-core\/demo/);
   assert.doesNotMatch(await readFile(join(output,'worker/demo.ts'),'utf8'),/scopeRow|UPDATE|INSERT/);
+  if(['catalog','whatsapp'].includes(level)){
+    const {rawBooking}=await import(pathToFileURL(join(output,'worker/services/bookings.ts')).href);
+    await assert.rejects(rawBooking(),{code:'FEATURE_DISABLED',status:403});
+  }
   assert.match(await readFile(join(output,'vite.config.ts'),'utf8'),/__PUBLIC_DEMO__:\s*JSON\.stringify\(false\)/);
   assert.match(await readFile(join(output,'scripts/dev.mjs'),'utf8'),/const demo\s*=\s*false;/);
   assert.equal(Boolean(pkg.dependencies.qrcode),level==='full');assert.equal(Boolean(pkg.dependencies.jsqr),level==='full');assert.ok((await read(join(output,'content/client.json'))).services.every(s=>s.preset===preset));

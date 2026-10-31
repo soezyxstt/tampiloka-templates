@@ -93,7 +93,10 @@ Capture the current public demo at a 1280 × 800 viewport and export an optimize
 
 ## School readiness
 
-School CLI availability does not publish its demo. The school family starts private, `ready: false`, with no public entries. Publish only after verifying the deployed Worker, independent demo data, and exact 1280×800 previews. CI evidence is not a live public URL.
+All family promotions use [deployment-owned release evidence](catalog-release-evidence.md). The workflow injects the verified source identity automatically; readiness flags and old image URLs alone cannot certify changed code.
+
+School is available through the CLI, and its current metadata marks the family and four entries public and ready. These flags describe the intended catalog publication; they do not establish current live health. Verify the deployed Worker, isolated demo data, and 1280 x 800 previews before a release or readiness change. CI evidence is not a live public URL.
+
 ## Booking publication gate
 
 Booking metadata is public and ready after its deployed origin and previews passed verification. Its four use-case entries use independent preset URLs, each preserving a sample layout and palette, and the shared `level` mode parameter. Register actual verified URLs in canonical `templates.json` and the runtime registry before enabling publication. Do not infer readiness from a local build or fabricated preview URL.

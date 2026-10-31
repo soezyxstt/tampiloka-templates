@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { defaultOptions } from "../src/domain/adapters.ts";
 
 // Exercises the built application and its real Worker/D1 API. No mocked business results.
 // A latency regression holds an actual API response to verify stale permission handling.
@@ -357,6 +358,38 @@ try {
       }
     },
   );
+  await check("Overlapping reschedule picker and Worker mutation for customer and staff", async () => {
+    const { context, page } = await newPage(390);
+    try {
+      await boot(page, { preset: "medical", level: "booking" });
+      await prepareSameDay(context);
+      const state = await call(context, "/api/bootstrap");
+      const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      const selection = { serviceId: state.services[0].id, locationId: state.locations[0].id, options: defaultOptions("medical"), date };
+      const available = await call(context, "/api/availability", "POST", selection);
+      const original = available.slots.find(slot => slot.label === "09:00") ?? available.slots[0];
+      assert.ok(original, "An appointment time is available");
+      const booking = await call(context, "/api/bookings", "POST", { ...selection, startsAt: original.startsAt, expectedTotal: available.quote.total, customer: { name: "Reschedule Example", phone: "081234567890", email: "" }, paymentMethod: "location", idempotencyKey: crypto.randomUUID() });
+      const overlap = original.startsAt + 15 * 60000;
+      assert.equal((await call(context, "/api/availability", "POST", selection)).slots.some(slot => slot.startsAt === overlap), false);
+      for (const staff of [false, true]) {
+        if (staff) await call(context, "/api/demo/role", "POST", { role: "owner" });
+        await page.setViewportSize({ width: staff ? 1024 : 390, height: 900 });
+        await boot(page, { preset: "medical", level: "booking", view: staff ? "staff" : "customer", page: staff ? "bookings" : "appointments", booking: booking.id });
+        const basePath = `/api/${staff ? "staff/" : ""}bookings/${booking.id}`;
+        const choices = page.waitForResponse(response => response.url().includes(basePath + "/availability"));
+        await page.getByRole("dialog").getByRole("button", { name: "Reschedule", exact: true }).click();
+        const offered = await (await choices).json();
+        const target = offered.slots.find(slot => slot.startsAt === (staff ? original.startsAt : overlap));
+        assert.ok(target, "Picker offers the overlapping move");
+        await page.getByRole("dialog").locator(".b-slot-grid button").filter({ hasText: target.label }).first().click();
+        const changed = page.waitForResponse(response => response.url().includes(basePath + "/actions") && response.request().method() === "POST");
+        await page.getByRole("button", { name: "Save new time", exact: true }).click();
+        assert.equal((await (await changed).json()).startsAt, target.startsAt);
+        await page.screenshot({ path: join(out, `reschedule-${staff ? "staff-1024" : "customer-390"}.png`), fullPage: true });
+      }
+    } finally { await context.close(); }
+  });
   await check(
     "Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in",
     async () => {

@@ -1,53 +1,16 @@
 name: Deploy changed Workers
-
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'templates/commerce/**'
-      - 'packages/ui-core/**'
-      - 'packages/theme-engine/**'
-      - 'packages/shared-utils/**'
-      - 'packages/config/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.github/workflows/deploy-workers.yml'
   workflow_dispatch:
-    inputs:
-      target:
-        description: Worker to deploy
-        type: choice
-        required: true
-        options: [commerce, all]
-
 permissions:
   contents: read
-
-concurrency:
-  group: deploy-workers-production
-  queue: max
-
+  actions: write
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  dispatch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          ref: main
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.28.2
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: pnpm
-      - name: Install locked workspace
-        run: pnpm install --frozen-lockfile
-      - name: Deploy commerce demo
+      - name: Start the canonical verified release
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm --filter @tampiloka/template-commerce deploy:demo
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run release-demos.yml --ref main

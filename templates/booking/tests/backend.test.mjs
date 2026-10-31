@@ -126,6 +126,55 @@ test("capacity uses two bays, then refuses the third concurrent booking", async 
   assert.equal(results.filter((r) => r.status === 200).length, 2);
   assert.equal(results.filter((r) => r.status === 409).length, 1);
 });
+test("authorized reschedule choices exclude only the original booking", async (t) => {
+  const { env, c } = fixture(t, {
+    DEMO_MODE: "false",
+    STAFF_OWNER_PASSWORD: "owner-long-password",
+    STAFF_VIEWER_PASSWORD: "viewer-long-password",
+  });
+  const input = await inputFor(c), first = await c.post("/api/bookings", input);
+  good(first);
+  const second = await c.post("/api/bookings", {
+    ...input, startsAt: input.startsAt + 60 * 60000, idempotencyKey: crypto.randomUUID(),
+  });
+  good(second);
+  const date = { date: "2026-11-02" },
+    customerPath = `/api/bookings/${first.data.id}`,
+    staffPath = `/api/staff/bookings/${first.data.id}`,
+    overlap = input.startsAt + 15 * 60000,
+    blocked = input.startsAt + 45 * 60000,
+    includes = (response, time) => response.data.slots.some((slot) => slot.startsAt === time);
+  const general = await c.post("/api/availability", { ...input, ...date });
+  good(general);
+  assert.equal(includes(general, overlap), false);
+  const choices = await c.post(customerPath + "/availability", date);
+  good(choices);
+  assert.equal(includes(choices, overlap), true);
+  assert.equal(includes(choices, blocked), false);
+  assert.equal((await c.post(customerPath + "/actions", { action: "reschedule", startsAt: blocked })).status, 409);
+  const other = client(env);
+  assert.equal((await other.post(customerPath + "/availability", date)).status, 404);
+  assert.equal((await other.post(customerPath + "/actions", { action: "reschedule", startsAt: overlap })).status, 404);
+  const tampered = await c.post(customerPath + "/availability", { ...date, bookingId: second.data.id });
+  good(tampered);
+  assert.equal(includes(tampered, blocked), false);
+  const moved = await c.post(customerPath + "/actions", { action: "reschedule", startsAt: overlap });
+  good(moved);
+  assert.equal(moved.data.startsAt, overlap);
+  const viewer = client(env);
+  good(await viewer.post("/api/staff/login", { role: "viewer", password: env.STAFF_VIEWER_PASSWORD }));
+  assert.equal((await viewer.post(staffPath + "/availability", date)).status, 403);
+  assert.equal((await viewer.post(staffPath + "/actions", { action: "reschedule", startsAt: input.startsAt })).status, 403);
+  const staff = client(env);
+  good(await staff.post("/api/staff/login", { role: "owner", password: env.STAFF_OWNER_PASSWORD }));
+  const staffChoices = await staff.post(staffPath + "/availability", date);
+  good(staffChoices);
+  assert.equal(includes(staffChoices, input.startsAt), true);
+  assert.equal(includes(staffChoices, blocked), false);
+  const returned = await staff.post(staffPath + "/actions", { action: "reschedule", startsAt: input.startsAt });
+  good(returned);
+  assert.equal(returned.data.startsAt, input.startsAt);
+});
 test("cancellation releases the entire interval, including buffers; reschedule moves it atomically", async (t) => {
   const { c } = fixture(t);
   await configure(c, { level: "booking" });

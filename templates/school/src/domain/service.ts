@@ -42,7 +42,7 @@ export function applyPayment(s: SchoolState, ctx: Context, invoiceId: string, re
     check(!previous || previous.invoiceId === invoiceId, 'payment_conflict', 409);
     if (previous?.status === 'paid' && status !== 'refunded')
         return invoice.id;
-    if (previous?.status === 'refunded')
+    if (previous?.status === 'refunded' || (status === 'pending' && (previous?.status === 'failed' || previous?.status === 'expired')))
         return invoice.id;
     if (previous)
         previous.status = status;
@@ -99,6 +99,7 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
             const values = p.answers ?? {};
             check(values && typeof values === 'object' && !Array.isArray(values), 'invalid_fields');
             const fields = [...s.registrationFields, ...cms.registrationFields];
+            validateFieldDefinitions(fields);
             const answers = validateFields(cmd.action === 'application.save' ? fields.map(f => ({ ...f, required: false })) : fields, values as Record<string, unknown>);
             for (const hook of cms.beforeEnrollment)
                 hook(s, ctx, answers);
@@ -398,7 +399,8 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
         case 'fields.save': {
             admin(ctx);
             const fields = p.fields as Field[];
-            validateFieldDefinitions(fields);
+            check(Array.isArray(fields), 'invalid_fields');
+            validateFieldDefinitions([...fields, ...cms.registrationFields]);
             s.registrationFields = fields;
             result = 'fields';
             break;
@@ -450,6 +452,8 @@ export function snapshot(s: SchoolState, ctx: Context, preset: Preset): Snapshot
     const visiblePrograms = s.programs.filter(p => editor || programIds.has(p.contentId));
     const cohortIds = new Set(s.cohorts.filter(c => visiblePrograms.some(p => p.id === c.programId)).map(c => c.id));
     const { passwordHash: _, ...actor } = ctx.actor ?? {} as NonNullable<Context['actor']>;
-    return { paymentProvider: 'manual', demo: ctx.demo, level: ctx.level, preset, actor: ctx.actor ? actor : null, institution: s.institution, capabilities: capabilities(ctx.level), branches: s.branches, programs: visiblePrograms, courses: s.courses.filter(c => visiblePrograms.some(p => p.id === c.programId)), cohorts: s.cohorts.filter(c => editor || cohortIds.has(c.id)), availability: Object.fromEntries(s.cohorts.filter(c => cohortIds.has(c.id)).map(c => [c.id, freeSeats(s, c.id)])), sessions: s.sessions.filter(c => cohortIds.has(c.cohortId) && (role !== 'tutor' || c.tutorId === ctx.actor?.tutorId)), tutors: s.tutors, students: records ? s.students.filter(x => staffAccess || studentIds.has(x.id)).map(x => role === 'tutor' ? { ...x, email: '' } : x) : [], users: (role === 'admin' || staffAccess && records) ? s.users.map(({ passwordHash, ...u }) => u) : [], enrollments, events: s.events.filter(e => ids.has(e.enrollmentId)), invoices: full && role !== 'tutor' ? s.invoices.filter(x => staffAccess || owns(ctx, x.studentId)) : [], payments: full && role !== 'tutor' ? s.payments.filter(x => s.invoices.some(i => i.id === x.invoiceId && (staffAccess || owns(ctx, i.studentId)))) : [], attendance: full ? s.attendance.filter(x => staffAccess || owns(ctx, x.studentId) || s.sessions.some(c => c.id === x.sessionId && c.tutorId === ctx.actor?.tutorId)) : [], progress: full ? s.progress.filter(x => authorized(x.studentId, x.cohortId)) : [], materials: full ? s.materials.filter(x => accessibleCohort(x.cohortId)).map(({ sampleText, ...m }) => m) : [], media: editor ? s.media : [], content, modules: s.modules, registrationFields: s.registrationFields, outbox: staffAccess ? s.outbox.map(x => ({ ...x })) : [] };
+    const registrationFields = [...s.registrationFields, ...cms.registrationFields];
+    validateFieldDefinitions(registrationFields);
+    return { paymentProvider: 'manual', demo: ctx.demo, level: ctx.level, preset, actor: ctx.actor ? actor : null, institution: s.institution, capabilities: capabilities(ctx.level), branches: s.branches, programs: visiblePrograms, courses: s.courses.filter(c => visiblePrograms.some(p => p.id === c.programId)), cohorts: s.cohorts.filter(c => editor || cohortIds.has(c.id)), availability: Object.fromEntries(s.cohorts.filter(c => cohortIds.has(c.id)).map(c => [c.id, freeSeats(s, c.id)])), sessions: s.sessions.filter(c => cohortIds.has(c.cohortId) && (role !== 'tutor' || c.tutorId === ctx.actor?.tutorId)), tutors: s.tutors, students: records ? s.students.filter(x => staffAccess || studentIds.has(x.id)).map(x => role === 'tutor' ? { ...x, email: '' } : x) : [], users: (role === 'admin' || staffAccess && records) ? s.users.map(({ passwordHash, ...u }) => u) : [], enrollments, events: s.events.filter(e => ids.has(e.enrollmentId)), invoices: full && role !== 'tutor' ? s.invoices.filter(x => staffAccess || owns(ctx, x.studentId)) : [], payments: full && role !== 'tutor' ? s.payments.filter(x => s.invoices.some(i => i.id === x.invoiceId && (staffAccess || owns(ctx, i.studentId)))) : [], attendance: full ? s.attendance.filter(x => staffAccess || owns(ctx, x.studentId) || s.sessions.some(c => c.id === x.sessionId && c.tutorId === ctx.actor?.tutorId)) : [], progress: full ? s.progress.filter(x => authorized(x.studentId, x.cohortId)) : [], materials: full ? s.materials.filter(x => accessibleCohort(x.cohortId)).map(({ sampleText, ...m }) => m) : [], media: editor ? s.media : [], content, modules: s.modules, registrationFields, extensionRegistrationFields: cms.registrationFields.map(f => f.name), outbox: staffAccess ? s.outbox.map(x => ({ ...x })) : [] };
 }
 export function canDownload(s: SchoolState, ctx: Context, materialId: string) { need(ctx.level, 'materials'); const m = s.materials.find(x => x.id === materialId); check(m, 'not_found', 404); check(isStaff(ctx.actor?.role) || mayTeach(s, ctx, m.cohortId) || s.enrollments.some(e => owns(ctx, e.studentId) && e.cohortId === m.cohortId && ['active', 'completed'].includes(e.status)), 'forbidden', 403); return m; }

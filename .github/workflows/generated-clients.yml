@@ -1,0 +1,47 @@
+name: Verify generated clients
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Pack and install CLI outside the workspace
+        run: |
+          mkdir -p "$RUNNER_TEMP/clients/cli"
+          npm pack ./packages/cli --pack-destination "$RUNNER_TEMP/clients"
+          npm install --prefix "$RUNNER_TEMP/clients/cli" "$RUNNER_TEMP/clients"/*.tgz
+      - name: Generate, install, typecheck and build Commerce
+        run: |
+          cd "$RUNNER_TEMP/clients"
+          node cli/node_modules/@tampiloka/cli/bin/tampiloka.mjs create store --template commerce --preset editorial --level store --yes
+          cd store
+          pnpm install --no-frozen-lockfile
+          pnpm typecheck
+          pnpm build
+      - name: Generate, install and build the read-only Cafe menu
+        run: |
+          cd "$RUNNER_TEMP/clients"
+          node cli/node_modules/@tampiloka/cli/bin/tampiloka.mjs create menu --template cafe --modules catalog --yes
+          cd menu
+          npm ci
+          npm run build
