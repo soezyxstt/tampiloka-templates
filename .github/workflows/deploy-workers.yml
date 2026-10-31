@@ -3,7 +3,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: write
 jobs:
-  release:
-    uses: ./.github/workflows/release-demos.yml
-    secrets: inherit
+  dispatch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Start the canonical verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run release-demos.yml --ref main

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { join } from 'node:path';
+import { resolve, sep } from 'node:path';
 import assert from 'node:assert/strict';
 import { buildPublicCatalog } from '../packages/registry/src/public-catalog.mjs';
 const [family, directory] = process.argv.slice(2);
@@ -10,7 +10,9 @@ const catalog = buildPublicCatalog(registry, source);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 for (const entry of catalog.entries.filter(entry => entry.family === family)) {
   const url = new URL(entry.imageUrl);
-  const expected = await readFile(join(directory, decodeURIComponent(url.pathname)));
+  const path = resolve(directory, '.' + decodeURIComponent(url.pathname));
+  assert.ok(path.startsWith(resolve(directory) + sep), 'Preview path must stay inside the built assets');
+  const expected = await readFile(path);
   url.searchParams.set('verify', process.env.GITHUB_SHA ?? Date.now());
   const response = await fetch(url, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000) });
   assert.equal(response.status, 200);
