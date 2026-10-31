@@ -133,6 +133,7 @@ for (const [level, preset] of [
         cwd: dir,
         env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
         stdio: ["ignore", "ignore", "pipe"],
+        detached: process.platform !== "win32",
       },
     );
     let logs = "";
@@ -275,7 +276,10 @@ for (const [level, preset] of [
     console.error(error.stack);
     process.exitCode = 1;
   } finally {
-    server?.kill("SIGTERM");
+    if (server) {
+      try { if (process.platform === "win32") server.kill("SIGTERM"); else process.kill(-server.pid,"SIGTERM"); } catch {}
+      server.stderr?.destroy(); server.unref();
+    }
     await writeFile(
       join(output, "report.json"),
       JSON.stringify(report, null, 2),

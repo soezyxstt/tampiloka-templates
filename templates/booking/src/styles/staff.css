@@ -242,6 +242,7 @@
   border-left-color: var(--control-border);
 }
 .b-table-scroll {
+  position: relative;
   overflow-x: auto;
   max-width: 100%;
   scrollbar-width: thin;

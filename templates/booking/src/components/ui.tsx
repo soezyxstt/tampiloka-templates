@@ -1,5 +1,5 @@
 import { statusLabels } from "../lib/labels";
-import { useId, type ReactNode, type ComponentProps } from "react";
+import { useId, cloneElement, isValidElement, type ReactElement, type ReactNode, type ComponentProps } from "react";
 import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 import {
@@ -44,12 +44,16 @@ export function Field({
   children: ReactNode;
   className?: string;
 }) {
+  const generatedId = useId();
+  const child = isValidElement(children) ? children as ReactElement<Record<string, unknown>> : null;
+  const controlId = String(child?.props.id || generatedId);
+  const helpId = `${controlId}-help`;
   return (
-    <label className={`b-field ${className}`}>
-      <span>{label}</span>
-      {children}
-      {help && <small>{help}</small>}
-    </label>
+    <div className={`b-field ${className}`}>
+      <label htmlFor={controlId}>{label}</label>
+      {child ? cloneElement(child, {id: controlId, ...(help ? {"aria-describedby": helpId} : {})}) : children}
+      {help && <small id={helpId}>{help}</small>}
+    </div>
   );
 }
 export function Picker({
@@ -60,6 +64,7 @@ export function Picker({
   disabled = false,
   compact = false,
   id: givenId,
+  "aria-describedby": describedBy,
 }: {
   label: string;
   value: string;
@@ -68,6 +73,7 @@ export function Picker({
   disabled?: boolean;
   compact?: boolean;
   id?: string;
+  "aria-describedby"?: string;
 }) {
   const generated = useId(),
     id = givenId || generated;
@@ -81,6 +87,7 @@ export function Picker({
         id={id}
         className={compact ? "b-select tl-demo-select" : "b-select"}
         aria-label={label}
+        aria-describedby={describedBy}
       >
         <Select.Value />
         <Select.Icon>

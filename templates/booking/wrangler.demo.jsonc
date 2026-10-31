@@ -14,10 +14,12 @@
     {
       "binding": "DB",
       "database_name": "tampiloka-booking-demo",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "c7a803d3-5f89-4091-8ae9-06bfa16ce279",
       "migrations_dir": "migrations",
     },
   ],
+  "routes": [{ "pattern": "booking.tampiloka.site", "custom_domain": true }],
+  "workers_dev": true,
   "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": true },
 }

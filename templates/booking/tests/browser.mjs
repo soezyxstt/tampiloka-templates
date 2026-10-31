@@ -94,6 +94,11 @@ async function newPage(width = 1440) {
   return { context, page };
 }
 async function geometry(page) {
+  await page.locator('.b-loading').waitFor({state:'detached'});
+  await page.evaluate(async () => { await document.fonts.ready; await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  // Trigger lazy images before checking their load state and capturing the full page.
+  await page.locator("img").evaluateAll(images => images.forEach(image => { image.loading = "eager"; }));
+  await page.waitForFunction(() => Array.from(document.images).every(image => image.complete), {timeout:15000});
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth + 1,
@@ -182,6 +187,7 @@ try {
         cwd: root,
         env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
         stdio: ["ignore", "pipe", "pipe"],
+        detached: process.platform !== "win32",
       },
     );
     processes.push(child);
@@ -431,6 +437,9 @@ try {
             mimeType: "image/png",
             buffer: image,
           });
+        await page.getByLabel("Ticket code", {exact:true}).waitFor();
+        await page.waitForFunction(() => Boolean(document.querySelector('textarea')?.value));
+        await page.getByRole("button", {name:"Verify ticket",exact:true}).click();
         await page
           .getByRole("heading", { name: "Valid ticket", exact: true })
           .waitFor();
@@ -576,7 +585,10 @@ try {
   process.exitCode = 1;
 } finally {
   if (browser) await browser.close();
-  for (const p of processes) p.kill("SIGTERM");
+  for (const p of processes) {
+    try { if (process.platform === "win32") p.kill("SIGTERM"); else process.kill(-p.pid,"SIGTERM"); } catch {}
+    p.stdout?.destroy(); p.stderr?.destroy(); p.unref();
+  }
   report.passed = report.checks.filter((x) => x.status === "passed").length;
   report.failed = report.checks.filter((x) => x.status === "failed").length;
   await writeFile(join(out, "report.json"), JSON.stringify(report, null, 2));
