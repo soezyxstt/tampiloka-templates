@@ -145,6 +145,14 @@ Rules:
 - State is never conveyed by color alone: pair status color with text or an icon.
 - Respect `prefers-reduced-motion` (both templates already zero out durations globally; don't bypass it with JS timers that gate content).
 
+#### Component and motion parity across families
+
+School and Booking follow the same accessible component contract as Cafe and Commerce. Before adding a control, inspect the accepted sibling implementation and reuse the family’s shared wrappers or extend `packages/ui-core`. Use shadcn-style composition over Radix for selects, dialogs, dropdown menus and collapsibles; native inputs and buttons belong inside consistent shared wrappers. Preserve native semantics and keyboard behavior. Do not build click-only lookalikes or scatter styling and animation at call sites.
+
+Document each family’s control inventory and motion contract in its design guide. Match feedback for hover/focus/press, selection, disclosure, dialog and view changes to the accepted demos. Motion must communicate state without delaying essential content; test interrupted open/close, focus return and live reduced-motion changes. A static screenshot or installed dependency alone does not prove parity.
+
+Verify Indonesian and English in customer and staff views, including validation, loading, empty/error states and hidden popup/dialog content. Changing language must preserve business data and current demo state. Use natural Indonesian action labels with equivalent English meaning.
+
 #### Navigation cues and icon alignment
 
 - Do not append decorative arrows to every CTA or link. Use a clear label and the shared button/link treatment, including hover and focus states, to make actions clear.
@@ -219,6 +227,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-11-01**: Made cross-family component, motion and bilingual hidden-state parity explicit; shared dialog close targets now use centered 44px controls and disabled fields share the disabled treatment.
 
 - **2026-11-01**: Shared effective School registration schemas now preserve extension-owned fields and label staff answers; Booking reschedule choices use authorized appointment availability. Catalog promotions require deployment-owned hosted evidence.
 

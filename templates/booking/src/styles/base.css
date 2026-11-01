@@ -707,3 +707,35 @@ small {
     scroll-behavior: auto !important;
   }
 }
+
+/* Shared disclosure uses Radix keyboard and expanded-state semantics. */
+.b-disclosure > .b-disclosure-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+.b-disclosure > .b-disclosure-trigger > span { display: inline-flex; align-items: center; gap: 8px; }
+.b-disclosure > .b-disclosure-trigger > svg { flex-shrink: 0; transition: transform 220ms ease; }
+.b-disclosure[data-state="open"] > .b-disclosure-trigger > svg { transform: rotate(180deg); }
+.b-disclosure-content { overflow: hidden; }
+.b-disclosure-content[data-state="open"] { animation: b-disclosure-open 220ms ease-out; }
+.b-disclosure-content[data-state="closed"] { animation: b-disclosure-close 120ms ease-in; }
+@keyframes b-disclosure-open { from { height: 0; opacity: 0; } to { height: var(--radix-collapsible-content-height); opacity: 1; } }
+@keyframes b-disclosure-close { from { height: var(--radix-collapsible-content-height); opacity: 1; } to { height: 0; opacity: 0; } }
+.b-disclosure > .b-disclosure-trigger:focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 3px; }
+.b-select-menu[data-state="closed"] { animation: b-popup-out 120ms ease-in; }
+@keyframes b-popup-out { to { opacity: 0; transform: translateY(4px); } }
+
+/* Route feedback preserves language/theme state and never delays actions. */
+.b-page-content { animation: b-page-in 180ms ease-out; }
+@keyframes b-page-in { from { opacity: .75; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

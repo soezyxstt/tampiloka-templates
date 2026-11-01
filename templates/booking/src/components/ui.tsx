@@ -1,6 +1,7 @@
 import { statusLabels } from "../lib/labels";
 import { useId, cloneElement, isValidElement, type ReactElement, type ReactNode, type ComponentProps } from "react";
 import * as Select from "@radix-ui/react-select";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 import {
   Button,
@@ -120,6 +121,12 @@ export function Picker({
       </Select.Portal>
     </Select.Root>
   );
+}
+export function Disclosure({ title, children, className = "" }: { title: ReactNode; children: ReactNode; className?: string }) {
+  return <Collapsible.Root className={`b-disclosure ${className}`}>
+    <Collapsible.Trigger className="b-disclosure-trigger"><span>{title}</span><ChevronDown size={18} aria-hidden="true" /></Collapsible.Trigger>
+    <Collapsible.Content className="b-disclosure-content">{children}</Collapsible.Content>
+  </Collapsible.Root>;
 }
 export function ErrorNote({ error }: { error: unknown }) {
   const text = useErrorText(error);

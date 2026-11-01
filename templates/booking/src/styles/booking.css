@@ -193,8 +193,8 @@
   border-block: 1px solid var(--line);
   margin-bottom: 35px;
 }
-.b-restore summary,
-.b-access summary {
+.b-restore .b-disclosure-trigger,
+.b-access .b-disclosure-trigger {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;

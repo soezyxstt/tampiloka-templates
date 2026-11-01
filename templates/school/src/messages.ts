@@ -1,4 +1,4 @@
-import type { Locale } from './domain/types.ts';
+import type { Field, Locale } from './domain/types.ts';
 const errors: Record<string, [
     string,
     string
@@ -6,6 +6,14 @@ const errors: Record<string, [
     storage_capacity_exceeded: ['Layanan sedang penuh. Coba lagi nanti atau hubungi pengelola. Periksa status pengajuan sebelum mengirim ulang dengan data yang sama.', 'The service is at capacity. Try again later or contact the center. Check your application status before retrying with the same details.'],
     feature_disabled: ['Fitur ini tidak tersedia pada level ini.', 'This feature is not enabled at this level.'], forbidden: ['Anda tidak memiliki akses ke data ini.', 'You do not have access to this record.'], login_required: ['Masuk untuk melanjutkan.', 'Sign in to continue.'], invalid_credentials: ['Email atau kata sandi tidak cocok.', 'Email or password is incorrect.'], credentials_missing: ['Pengelola belum memasang kredensial server.', 'The administrator must configure server credentials.'], window_closed: ['Masa pendaftaran sudah tutup atau belum buka.', 'The enrollment window is closed.'], capacity_full: ['Kelas sudah penuh. Pilih daftar tunggu.', 'The class is full. Use the waitlist.'], already_applied: ['Anda sudah mengajukan kelas ini. Buka portal untuk melihat status.', 'You have already applied. Check your portal for status.'], stale_record: ['Data berubah. Muat ulang sebelum menyimpan.', 'The record changed. Refresh before saving.'], invalid_transition: ['Perubahan status ini tidak diizinkan.', 'This status change is not allowed.'], rate_limited: ['Terlalu banyak permintaan. Coba lagi sebentar.', 'Too many requests. Try again shortly.'], provider_not_configured: ['Penyedia layanan belum dipasang. Hubungi pengelola.', 'The provider is not configured. Contact the center.'], storage_not_configured: ['Penyimpanan berkas belum dipasang.', 'File storage is not configured.'], password_length: ['Gunakan kata sandi sepanjang 12 sampai 128 karakter.', 'Use a password of 12 to 128 characters.'], schedule_conflict: ['Pengajar atau kelas punya jadwal yang bertabrakan.', 'The teacher or cohort has a conflicting session.'], capacity_below_reserved: ['Kapasitas tidak boleh lebih kecil dari kursi yang terisi.', 'Capacity cannot be lower than reserved seats.'], not_enrolled: ['Materi ini hanya untuk peserta aktif.', 'This resource is for active learners.'], file_type_not_allowed: ['Gunakan JPEG, PNG, WebP, PDF, atau TXT yang valid.', 'Use a valid JPEG, PNG, WebP, PDF, or TXT file.'], file_too_large: ['Batas ukuran berkas adalah 5 MB.', 'The file limit is 5 MB.'], payment_start_reconcile: ['Status penyedia belum pasti. Jangan membayar dua kali. Hubungi staf untuk pemeriksaan.', 'The provider result is uncertain. Do not pay twice. Ask staff to reconcile.'], internal_error: ['Server mengalami kendala. Coba muat ulang.', 'The server encountered a problem. Try refreshing.'], network_error: ['Koneksi terputus. Coba lagi dengan data yang sama.', 'Connection interrupted. Retry with the same data.'], center_storage_limit: ['Batas penyimpanan pusat belajar tercapai. Hubungi pengelola.', 'Center storage limit reached. Contact the administrator.'], module_not_installed: ['Modul ini belum terpasang.', 'This module is not installed.']
 };
-export function errorText(code: string, locale: Locale) { const [kind, field] = code.split(':'); if (kind === 'required')
-    return locale === 'id' ? `Lengkapi kolom ${field}.` : `Complete ${field}.`; if (kind === 'invalid')
-    return locale === 'id' ? `Periksa kolom ${field}.` : `Check ${field}.`; return errors[code]?.[locale === 'id' ? 0 : 1] ?? (locale === 'id' ? `Periksa isian (${code}).` : `Check the form (${code}).`); }
+export function errorText(code: string, locale: Locale, fields: Field[] = []) {
+    const [kind, field] = code.split(':');
+    if (kind === 'required' || kind === 'invalid') {
+        const label = fields.find(item => item.name === field)?.label[locale];
+        if (!label) return locale === 'id' ? 'Periksa dan lengkapi kolom yang wajib diisi.' : 'Check and complete the required fields.';
+        return kind === 'required'
+            ? locale === 'id' ? `Lengkapi kolom ${label}.` : `Complete ${label}.`
+            : locale === 'id' ? `Periksa kolom ${label}.` : `Check ${label}.`;
+    }
+    return errors[code]?.[locale === 'id' ? 0 : 1] ?? (locale === 'id' ? 'Periksa isian Anda dan coba lagi.' : 'Check your entries and try again.');
+}

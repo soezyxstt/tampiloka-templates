@@ -5,7 +5,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
-import { MotionProvider } from "@tampiloka/ui-core";
+import { Button, MotionProvider } from "@tampiloka/ui-core";
 import { BookingProvider, useBooking } from "./lib/store";
 import { DemoToolbar } from "./components/DemoToolbar";
 import { Action, ErrorNote, Loading } from "./components/ui";
@@ -24,7 +24,7 @@ const StaffWorkspace = lazy(() =>
     default: module.StaffWorkspace,
   })),
 );
-class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class Boundary extends Component<{ children: ReactNode; lang: string }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
@@ -33,11 +33,11 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   render() {
     return this.state.failed ? (
       <main className="b-fatal">
-        <h1>Halaman belum dapat dimuat / Unable to load page</h1>
-        <p>Muat ulang untuk mencoba lagi. / Reload to retry.</p>
-        <button type="button" onClick={() => location.reload()}>
-          Muat ulang / Reload
-        </button>
+        <h1>{this.props.lang === "id" ? "Halaman belum dapat dimuat" : "Unable to load page"}</h1>
+        <p>{this.props.lang === "id" ? "Muat ulang untuk mencoba lagi." : "Reload to retry."}</p>
+        <Button onClick={() => location.reload()}>
+          {this.props.lang === "id" ? "Muat ulang" : "Reload"}
+        </Button>
       </main>
     ) : (
       this.props.children
@@ -80,7 +80,7 @@ function Content() {
           {t("Memperbarui pilihan...", "Updating selection...")}
         </div>
       )}
-      {error && (
+      {Boolean(error) && (
         <div className="b-global-error">
           <ErrorNote error={error} />
         </div>
@@ -92,7 +92,7 @@ function Content() {
       ) : (
         <>
           <CustomerHeader />
-          <main id="main-content">
+          <main id="main-content" className="b-page-content" key={route.page}>
             <PendingAttempt
               key={`${route.page}-${route.preset}-${route.level}`}
             />
@@ -155,14 +155,18 @@ function Content() {
     </div>
   );
 }
+function LocalizedBoundary({ children }: { children: ReactNode }) {
+  const { route } = useBooking();
+  return <Boundary lang={route.lang}>{children}</Boundary>;
+}
 export default function App() {
   return (
-    <Boundary>
-      <MotionProvider>
-        <BookingProvider>
-          <Content />
-        </BookingProvider>
-      </MotionProvider>
+    <Boundary lang={new URL(location.href).searchParams.get("lang") || document.documentElement.lang}>
+    <MotionProvider>
+      <BookingProvider>
+        <LocalizedBoundary><Content /></LocalizedBoundary>
+      </BookingProvider>
+    </MotionProvider>
     </Boundary>
   );
 }

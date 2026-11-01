@@ -737,11 +737,11 @@
   max-width: 850px;
   margin-top: 30px;
 }
-.b-faq details {
+.b-faq .b-disclosure {
   border-bottom: 1px solid var(--line);
   padding: 22px 0;
 }
-.b-faq summary {
+.b-faq .b-disclosure-trigger {
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
@@ -975,11 +975,16 @@
     display: block;
   }
   .b-category-nav {
-    flex-direction: row;
-    overflow-x: auto;
+    flex-direction: column;
     border-top: 0;
     margin-bottom: 23px;
+    gap: 12px;
+  }
+  .b-category-nav nav {
+    display: flex;
     gap: 22px;
+    overflow-x: auto;
+    max-width: 100%;
     scrollbar-width: thin;
   }
   .b-category-nav button {
@@ -1132,7 +1137,7 @@
   .b-professionals-page > p {
     font-size: 14px;
   }
-  .b-faq summary {
+  .b-faq .b-disclosure-trigger {
     font-size: 15px;
   }
 }

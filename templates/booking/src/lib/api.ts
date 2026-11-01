@@ -20,6 +20,9 @@ export async function api<T>(
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     signal,
+  }).catch((cause) => {
+    if (cause instanceof Error && cause.name === "AbortError") throw cause;
+    throw new ApiError("NETWORK_ERROR", "Connection interrupted. Please retry.", 0);
   });
   const data = await response.json().catch(() => null);
   if (!response.ok)

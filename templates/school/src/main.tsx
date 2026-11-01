@@ -5,7 +5,7 @@ import { SlidersHorizontal, RotateCcw, Users, GraduationCap, BriefcaseBusiness, 
 import { Button, Dialog, MotionProvider } from '@tampiloka/ui-core';
 import { DemoToolbarShell } from '@tampiloka/ui-core/demo';
 import config from '../config/school.json';
-import type { Snapshot, Locale, Layout } from './domain/types.ts';
+import type { Snapshot, Locale, Layout, Field } from './domain/types.ts';
 import { levels, presets, layouts, palettes, typography } from './domain/capabilities.ts';
 import { App, Pick } from './ui.tsx';
 import { Public } from './public.tsx';
@@ -29,6 +29,8 @@ function School() {
     const [appearance, setAppearance] = useState(false);
     const [reset, setReset] = useState(false);
     const [failed, setFailed] = useState(false);
+    const registrationFields = useRef<Field[]>([]);
+    registrationFields.current = s?.registrationFields ?? [];
     const sequence = useRef(0);
     const keys = useRef(new Map<string, string>());
     const reduce = useReducedMotion();
@@ -46,7 +48,7 @@ function School() {
     catch {
         throw new Error(errorText('network_error', lang));
     } const json = await r.json(); if (!r.ok)
-        throw new Error(errorText(json.error ?? 'internal_error', lang)); return json as T; }, [params.get('preset'), params.get('level'), role, lang]);
+        throw new Error(errorText(json.error ?? 'internal_error', lang, registrationFields.current)); return json as T; }, [params.get('preset'), params.get('level'), role, lang]);
     const refresh = useCallback(async () => { const id = ++sequence.current; try {
         const value = await request<Snapshot>('/api/bootstrap');
         if (sequence.current === id) {

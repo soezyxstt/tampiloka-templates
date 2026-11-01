@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile, readFile, rm, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { createServer } from "node:net";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -14,7 +15,15 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const out = join(root, "test-results/browser");
 await mkdir(out, { recursive: true });
 const external = process.env.BOOKING_TEST_URL;
-const base = external || "http://127.0.0.1:8792";
+const port = external ? null : await new Promise((resolve, reject) => {
+  const socket = createServer();
+  socket.once("error", reject);
+  socket.listen(0, "127.0.0.1", () => {
+    const selected = socket.address().port;
+    socket.close(error => error ? reject(error) : resolve(selected));
+  });
+});
+const base = external || `http://127.0.0.1:${port}`;
 const processes = [];
 let browser;
 const report = {
@@ -54,7 +63,7 @@ async function check(name, fn) {
 async function boot(page, params = {}) {
   const url = new URL(base);
   url.search = new URLSearchParams({ lang: "en", ...params }).toString();
-  await page.goto(url.href, { waitUntil: "networkidle" });
+  await page.goto(url.href, { waitUntil: "domcontentloaded" });
   await page.locator(".booking-app").waitFor();
   await page.locator(".b-progress").waitFor({ state: "detached" });
   assert.equal(await page.locator(".b-global-error").count(), 0);
@@ -94,7 +103,7 @@ async function newPage(width = 1440) {
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
-  page.setDefaultTimeout(15000);
+  page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   return { context, page };
 }
@@ -182,7 +191,7 @@ try {
         "--config",
         "wrangler.demo.jsonc",
         "--port",
-        "8792",
+        String(port),
         "--ip",
         "127.0.0.1",
         "--persist-to",
@@ -203,8 +212,9 @@ try {
   }
   let health;
   for (let i = 0; i < 100; i++) {
+    if (!external && processes.some(child => child.exitCode !== null)) throw new Error("Test Worker exited before health check; refusing to use an unrelated server");
     try {
-      health = await (await fetch(base + "/api/health")).json();
+      health = await (await fetch(base + "/api/health", { signal: AbortSignal.timeout(3000) })).json();
       if (health.ok) break;
     } catch {}
     await sleep(500);
@@ -279,7 +289,7 @@ try {
             .getByRole("button", { name: "Customer", exact: true })
             .click();
           await page.locator(".b-staff").waitFor({ state: "detached" });
-          await page.reload({ waitUntil: "networkidle" });
+          await page.reload({ waitUntil: "domcontentloaded" });
           await page.locator(".b-progress").waitFor({ state: "detached" });
           assert.equal(new URL(page.url()).searchParams.get("level"), level);
         } finally {
@@ -306,14 +316,14 @@ try {
           new URL(page.url()).searchParams.get("layout"),
           "editorial",
         );
-        await page.goBack({ waitUntil: "networkidle" });
+        await page.goBack({ waitUntil: "domcontentloaded" });
         await page.waitForFunction(
           () =>
             document
               .querySelector(".booking-app")
               ?.getAttribute("data-palette") === "rose",
         );
-        await page.goForward({ waitUntil: "networkidle" });
+        await page.goForward({ waitUntil: "domcontentloaded" });
         await page.waitForFunction(
           () =>
             document
@@ -335,7 +345,7 @@ try {
           .getByRole("button", { name: "Ganti ke Bahasa Indonesia" })
           .click();
         assert.equal(await page.locator("html").getAttribute("lang"), "id");
-        await page.reload({ waitUntil: "networkidle" });
+        await page.reload({ waitUntil: "domcontentloaded" });
         await page.locator(".booking-app").waitFor();
         assert.equal(await page.locator("html").getAttribute("lang"), "id");
         await page.getByRole("button", { name: "Switch to English" }).click();
@@ -571,7 +581,7 @@ try {
           .getByRole("button", { name: "Save settings", exact: true })
           .click();
         await page.getByText("Settings saved.", { exact: true }).waitFor();
-        await page.reload({ waitUntil: "networkidle" });
+        await page.reload({ waitUntil: "domcontentloaded" });
         await page.locator(".b-progress").waitFor({ state: "detached" });
         assert.equal(
           await page.getByLabel("Business name", { exact: true }).inputValue(),

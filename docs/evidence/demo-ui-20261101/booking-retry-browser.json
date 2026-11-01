@@ -1,0 +1,201 @@
+{
+  "checkedAt": "2026-11-01T07:33:22.697Z",
+  "base": "http://127.0.0.1:36539",
+  "checks": [
+    {
+      "name": "appointment-first 360px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "appointment-first 390px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "appointment-first 1024px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "appointment-first 1440px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "editorial 360px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "editorial 390px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "editorial 1024px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "editorial 1440px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "service-market 360px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "service-market 390px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "service-market 1024px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "service-market 1440px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "minimal-professional 360px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "minimal-professional 390px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "minimal-professional 1024px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "minimal-professional 1440px reduced motion",
+      "status": "skipped"
+    },
+    {
+      "name": "medical catalog boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "medical whatsapp boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "medical booking boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "medical full boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "aesthetic catalog boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "aesthetic whatsapp boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "aesthetic booking boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "aesthetic full boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "detailing catalog boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "detailing whatsapp boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "detailing booking boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "detailing full boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "consulting catalog boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "consulting whatsapp boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "consulting booking boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "consulting full boundary and navigation",
+      "status": "skipped"
+    },
+    {
+      "name": "Independent URL axes, appearance, history, language, role and refresh",
+      "status": "passed"
+    },
+    {
+      "name": "Overlapping reschedule picker and Worker mutation for customer and staff",
+      "status": "skipped"
+    },
+    {
+      "name": "Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in",
+      "status": "skipped"
+    },
+    {
+      "name": "WhatsApp request remains unconfirmed and creates no customer record",
+      "status": "skipped"
+    },
+    {
+      "name": "Owner content persistence, staff sample scenarios, empty and error states",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 360px motion=reduce",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 360px motion=no-preference",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 390px motion=reduce",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 390px motion=no-preference",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 1024px motion=reduce",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 1024px motion=no-preference",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 1440px motion=reduce",
+      "status": "skipped"
+    },
+    {
+      "name": "Staff workspace 1440px motion=no-preference",
+      "status": "skipped"
+    },
+    {
+      "name": "Role change hides stale owner controls while the real staff snapshot is delayed",
+      "status": "skipped"
+    },
+    {
+      "name": "Demo reset removes only the current session bookings",
+      "status": "skipped"
+    }
+  ],
+  "errors": [],
+  "realPayments": false,
+  "filter": "aesthetic full boundary|Independent URL|Staff workspace 1024",
+  "persistence": "Temporary local D1 database, real SQL migrations",
+  "passed": 4,
+  "failed": 0,
+  "skipped": 43
+}

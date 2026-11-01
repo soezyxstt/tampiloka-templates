@@ -8,13 +8,13 @@ import {
   type ReactNode,
 } from "react";
 import type { Bootstrap, Language } from "../domain/model";
-import { api, ApiError, errorMessage } from "./api";
+import { api, ApiError } from "./api";
 import { readRoute, routeUrl, type RouteState } from "./navigation";
 interface Store {
   data: Bootstrap | null;
   route: RouteState;
   loading: boolean;
-  error: string;
+  error: unknown;
   notice: string;
   navigate: (patch: Partial<RouteState>) => void;
   href: (patch: Partial<RouteState>) => string;
@@ -39,7 +39,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     ),
     [data, setData] = useState<Bootstrap | null>(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState(""),
+    [error, setError] = useState<unknown>(null),
     [notice, setNotice] = useState("");
   const initialLanguage = useRef(
       (() => {
@@ -129,7 +129,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((cause) => {
-        if (ticket === sequence.current) setError(errorMessage(cause));
+        if (ticket === sequence.current) setError(cause);
       })
       .finally(() => {
         if (ticket === sequence.current) setLoading(false);
@@ -179,6 +179,7 @@ export function useBooking() {
 export function useErrorText(error: unknown) {
   const { t } = useBooking();
   const translated: Record<string, string> = {
+    NETWORK_ERROR: "Koneksi terputus. Coba lagi.",
     SLOT_UNAVAILABLE: "Jadwal ini sudah terisi. Pilih waktu lain.",
     SLOT_CONFLICT: "Jadwal berubah. Muat ulang dan pilih waktu lain.",
     CONFLICT: "Data berubah. Muat ulang sebelum melanjutkan.",
@@ -211,8 +212,8 @@ export function useErrorText(error: unknown) {
     STAFF_REQUIRED: "Masuk sebagai staf untuk melanjutkan.",
   };
   return error instanceof ApiError
-    ? t(translated[error.code] || error.message, error.message)
+    ? t(translated[error.code] || "Periksa isian Anda dan coba lagi.", error.message)
     : error
-      ? errorMessage(error)
+      ? t("Terjadi kendala. Coba lagi.", "Something went wrong. Please retry.")
       : "";
 }
