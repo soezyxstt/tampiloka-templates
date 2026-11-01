@@ -483,6 +483,15 @@ td small,th small {
   padding:12px 0;
   cursor:pointer;
 }
+.school-disclosure-content[data-state="open"] {
+  animation: school-disclosure-in .16s ease-out;
+}
+.school-disclosure-content[data-state="closed"] { animation: school-disclosure-out .12s ease-in; }
+@keyframes school-disclosure-out { from { opacity:1; } to { opacity:0; } }
+@keyframes school-disclosure-in {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
 .faq-section p {
   padding:12px 0;
   max-width:700px;
@@ -1935,3 +1944,24 @@ td small,th small {
   height:120px;
   width:100%;
 }
+
+/* A short cue makes a staff navigation change visible without delaying content. */
+.workspace-view { animation: school-view-in .18s ease-out; }
+@keyframes school-view-in {
+  from { opacity: .65; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .workspace-view { animation: none; } }
+
+.school-disclosure-trigger { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:44px; list-style:none; }
+
+.school-disclosure-trigger svg { flex:none; transition:transform .16s ease; }
+.school-disclosure-trigger[data-state="open"] svg { transform:rotate(180deg); }
+
+.school-disclosure-trigger { width:100%; padding:12px 0; border:0; background:transparent; color:inherit; font:inherit; font-size:22px; text-align:left; cursor:pointer; }
+.school-disclosure-content { overflow:hidden; }
+.school-navigation-menu { z-index:200; min-width:200px; max-width:calc(100vw - 24px); padding:6px; border:1px solid var(--brand-border); border-radius:var(--brand-radius); background:var(--brand-surface); color:var(--brand-text); box-shadow:0 12px 32px color-mix(in srgb,var(--brand-text) 16%,transparent); animation:school-disclosure-in .16s ease-out; }
+.school-navigation-menu a { display:flex; align-items:center; min-height:44px; padding:8px 12px; color:inherit; text-decoration:none; border-radius:var(--brand-radius); }
+.school-navigation-menu a[data-highlighted] { background:var(--school-soft); outline:2px solid var(--brand-focus); outline-offset:-2px; }
+
+.school-navigation-menu[data-state="closed"] { animation:school-disclosure-out .12s ease-in; }

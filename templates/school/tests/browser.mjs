@@ -25,7 +25,7 @@ let lastPage;
 const layouts = ['academic-editorial', 'course-discovery', 'contemporary-learning', 'institutional'];
 const presets = ['exam-prep', 'language', 'skills', 'institution'];
 const palettes = ['cobalt', 'forest', 'neutral', 'burgundy'];
-function track(page) { lastPage = page; page.on('pageerror', e => errors.push(e.message)); }
+function track(page) { page.setDefaultTimeout(60000); lastPage = page; page.on('pageerror', e => errors.push(e.message)); }
 async function ready(page) {
     await page.locator('.tl-demo-toolbar').waitFor();
     await page.locator('#main-content').waitFor();
@@ -106,6 +106,25 @@ async function fillRegistration(page, s) {
     await page.getByLabel('I understand this application still requires review.', { exact: true }).check();
 }
 try {
+    // Disclosures and mobile navigation retain keyboard behavior and locale state.
+    for (const reducedMotion of ['no-preference', 'reduce']) {
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion });
+        const page = await ctx.newPage(); track(page);
+        await page.goto(`${base}/?layout=academic-editorial&level=full&lang=en`); await ready(page);
+        const disclosure = page.locator('.school-disclosure-trigger').first();
+        await disclosure.focus(); await page.keyboard.press('Enter');
+        assert.equal(await disclosure.getAttribute('aria-expanded'), 'true');
+        const duration = await page.locator('.school-disclosure-content').first().evaluate(el => getComputedStyle(el).animationDuration);
+        assert.equal(duration, reducedMotion === 'reduce' ? '0s' : '0.16s');
+        await page.getByRole('button', { name: 'Switch to Indonesian' }).click();
+        assert.equal(await disclosure.getAttribute('aria-expanded'), 'true');
+        const menu = page.getByRole('button', { name: 'Buka menu' });
+        await menu.click(); await page.getByRole('menu').waitFor(); await page.keyboard.press('Escape');
+        assert.equal(await menu.evaluate(el => el === document.activeElement), true);
+        await menu.click(); await page.getByRole('menuitem').first().click();
+        await page.getByRole('menu').waitFor({ state: 'detached' });
+        await ctx.close();
+    }
     for (let i = 0; i < layouts.length; i++)
         for (const width of [360, 390, 1024, 1440])
             for (const reducedMotion of ['no-preference', 'reduce']) {

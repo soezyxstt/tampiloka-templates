@@ -26,6 +26,7 @@ import {
   Textarea,
   dateTime,
   money,
+  Disclosure,
 } from "./ui";
 import { TicketQR } from "./QRCode";
 interface Receipt {
@@ -352,13 +353,12 @@ export function BookingDetail({
               </section>
             )}
             {!staff && access && (
-              <details className="b-access">
-                <summary>
+              <Disclosure className="b-access" title={<>
                   {t(
                     "Simpan akses untuk perangkat lain",
                     "Save access for another device",
                   )}
-                </summary>
+                </>}>
                 <p>
                   {t(
                     "Simpan nomor referensi dan kunci ini. Siapa pun yang memiliki keduanya dapat melihat dan mengelola janji ini.",
@@ -376,7 +376,7 @@ export function BookingDetail({
                 >
                   {t("Salin referensi dan kunci", "Copy reference and key")}
                 </Action>
-              </details>
+              </Disclosure>
             )}
             <div className="b-actions b-detail-actions">
               {(!staff || canWrite) && reschedulable(booking.status) && (

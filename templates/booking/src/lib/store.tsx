@@ -8,13 +8,14 @@ import {
   type ReactNode,
 } from "react";
 import type { Bootstrap, Language } from "../domain/model";
-import { api, ApiError, errorMessage } from "./api";
+import { api, ApiError } from "./api";
+import { apiErrorText } from "./error-text";
 import { readRoute, routeUrl, type RouteState } from "./navigation";
 interface Store {
   data: Bootstrap | null;
   route: RouteState;
   loading: boolean;
-  error: string;
+  error: unknown;
   notice: string;
   navigate: (patch: Partial<RouteState>) => void;
   href: (patch: Partial<RouteState>) => string;
@@ -39,7 +40,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     ),
     [data, setData] = useState<Bootstrap | null>(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState(""),
+    [error, setError] = useState<unknown>(null),
     [notice, setNotice] = useState("");
   const initialLanguage = useRef(
       (() => {
@@ -129,7 +130,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((cause) => {
-        if (ticket === sequence.current) setError(errorMessage(cause));
+        if (ticket === sequence.current) setError(cause);
       })
       .finally(() => {
         if (ticket === sequence.current) setLoading(false);
@@ -177,42 +178,11 @@ export function useBooking() {
   return context;
 }
 export function useErrorText(error: unknown) {
-  const { t } = useBooking();
-  const translated: Record<string, string> = {
-    SLOT_UNAVAILABLE: "Jadwal ini sudah terisi. Pilih waktu lain.",
-    SLOT_CONFLICT: "Jadwal berubah. Muat ulang dan pilih waktu lain.",
-    CONFLICT: "Data berubah. Muat ulang sebelum melanjutkan.",
-    STALE_VERSION: "Janji ini berubah. Muat ulang detailnya.",
-    CANCELLATION_CUTOFF:
-      "Batas pembatalan online sudah lewat. Hubungi pengelola.",
-    RESCHEDULE_CUTOFF:
-      "Batas ubah jadwal online sudah lewat. Hubungi pengelola.",
-    RESERVATIONS_EXIST:
-      "Ada janji pada jadwal ini. Pindahkan atau batalkan lebih dulu.",
-    INVALID_CREDENTIALS: "Peran atau kata sandi tidak sesuai.",
-    STAFF_NOT_CONFIGURED: "Akses staf belum diatur pada server.",
-    PAYMENT_NOT_CONFIGURED: "Pembayaran online belum diatur.",
-    PROVIDER_UNAVAILABLE:
-      "Penyedia pembayaran belum merespons. Janji Anda tetap tersimpan.",
-    PAYMENT_STARTING: "Pembayaran sedang disiapkan. Coba lagi.",
-    PAYMENT_NOT_STARTED:
-      "Metode pembayaran belum dipilih di penyedia pembayaran.",
-    CHECKIN_WINDOW: "Janji belum masuk waktu check-in.",
-    INVALID_TICKET: "Tiket tidak sah atau sudah dicabut.",
-    FEATURE_DISABLED: "Fitur ini tidak tersedia pada tingkat yang dipilih.",
-    INVALID_INPUT: "Periksa data yang Anda isi.",
-    REQUIRED: "Lengkapi kolom yang wajib diisi.",
-    INVALID_PHONE: "Masukkan nomor telepon yang sah.",
-    INVALID_EMAIL: "Masukkan alamat email yang sah.",
-    INVALID_CHOICE: "Pilihan tidak tersedia.",
-    BOOKING_NOT_FOUND: "Janji atau kunci akses tidak ditemukan.",
-    PRICE_CHANGED: "Harga berubah. Periksa ringkasan sebelum memesan kembali.",
-    ROLE_FORBIDDEN: "Peran ini tidak dapat menjalankan tindakan tersebut.",
-    STAFF_REQUIRED: "Masuk sebagai staf untuk melanjutkan.",
-  };
+  const { t, route } = useBooking();
+
   return error instanceof ApiError
-    ? t(translated[error.code] || error.message, error.message)
+    ? apiErrorText(error.code, error.message, route.lang)
     : error
-      ? errorMessage(error)
+      ? t("Terjadi kendala. Coba lagi.", "Something went wrong. Please retry.")
       : "";
 }

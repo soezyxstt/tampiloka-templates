@@ -1,8 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { BookOpen, CalendarDays, MapPin, Users, Search, Clock3, GraduationCap, Menu, Mail, Download, CheckCircle2, MessageCircle, LogIn } from 'lucide-react';
+import { BookOpen, CalendarDays, MapPin, Users, Search, Clock3, GraduationCap, Mail, Download, CheckCircle2, MessageCircle, LogIn } from 'lucide-react';
 import { Button, Input, Dialog, Reveal } from '@tampiloka/ui-core';
 import type { ContentData, Program, PageBlock, Enrollment, Snapshot, Locale } from './domain/types.ts';
-import { App, useApp, useText, Link, Pick, FieldInput, SectionTitle, Empty, Status, AsyncButton, money, when, local } from './ui.tsx';
+import { App, useApp, useText, Link, Pick, Collapsible, NavigationMenu, NavigationMenuItem, FieldInput, SectionTitle, Empty, Status, AsyncButton, money, when, local } from './ui.tsx';
 export function programData(p: Program) { const { s, params } = useApp(); const c = s.content.find(c => c.id === p.contentId); return (params.get('preview') === 'true' ? c?.draft : c?.published) ?? c?.draft; }
 export const programTitle = (s: Snapshot, id: string, lang: Locale) => s.content.find(c => c.id === s.programs.find(p => p.id === id)?.contentId)?.published?.title[lang] ?? s.programs.find(p => p.id === id)?.subject ?? id;
 export function Photo({ src, alt, className }: {
@@ -10,7 +10,7 @@ export function Photo({ src, alt, className }: {
     alt: string;
     className?: string;
 }) { const { s, params } = useApp(); const url = src.startsWith('/api/media/') && s.demo ? `${src}?preset=${encodeURIComponent(params.get('preset') ?? s.preset)}` : src; return <img className={className} src={url} alt={alt} loading="lazy"/>; }
-export function PublicNav() { const { s, lang } = useApp(); const t = useText(); const [open, setOpen] = useState(false); const links = <>{s.institution.navigation.map(n => <Link key={n.page} to={{ page: n.page }}>{n.label[lang]}</Link>)}</>; return <><header className="site-nav"><Link className="institution-name" to={{ page: 'home' }}><GraduationCap aria-hidden/><span>{s.institution.name}</span></Link><nav className="desktop-nav" aria-label={t('Navigasi utama', 'Main navigation')}>{links}</nav><div className="nav-actions">{s.capabilities.includes('enrollment') ? <Link className="text-link" to={{ page: 'portal', view: 'student' }}>{t('Portal siswa', 'Student portal')}</Link> : <Link className="text-link" to={{ page: 'about' }}>{t('Hubungi kami', 'Contact')}</Link>}<Button className="mobile-menu" variant="ghost" size="icon" aria-label={t('Buka menu', 'Open menu')} onClick={() => setOpen(true)}><Menu /></Button></div></header><Dialog open={open} onOpenChange={setOpen} title={t('Menu', 'Menu')} closeLabel={t('Tutup', 'Close')}><nav className="mobile-links" onClick={() => setOpen(false)}>{links}</nav></Dialog></>; }
+export function PublicNav() { const { s, lang } = useApp(); const t = useText(); const links = s.institution.navigation.map(n => <Link key={n.page} to={{ page: n.page }}>{n.label[lang]}</Link>); return <header className="site-nav"><Link className="institution-name" to={{ page: 'home' }}><GraduationCap aria-hidden/><span>{s.institution.name}</span></Link><nav className="desktop-nav" aria-label={t('Navigasi utama', 'Main navigation')}>{links}</nav><div className="nav-actions">{s.capabilities.includes('enrollment') ? <Link className="text-link" to={{ page: 'portal', view: 'student' }}>{t('Portal siswa', 'Student portal')}</Link> : <Link className="text-link" to={{ page: 'about' }}>{t('Hubungi kami', 'Contact')}</Link>}<NavigationMenu label={t('Buka menu', 'Open menu')}>{s.institution.navigation.map(n => <NavigationMenuItem key={n.page} asChild><Link to={{ page: n.page }}>{n.label[lang]}</Link></NavigationMenuItem>)}</NavigationMenu></div></header>; }
 export function Action({ program, large = false }: {
     program?: string;
     large?: boolean;
@@ -27,7 +27,7 @@ export function Blocks({ blocks }: {
     blocks: PageBlock[];
 }) { const { lang } = useApp(); return <>{blocks.map((b, i) => { const Custom = customBlocks.get(b.type); if (Custom)
     return <section key={b.id}>{Custom(b)}</section>; if (b.type === 'faq')
-    return <section key={b.id} className="faq-section"><details><summary>{b.heading[lang]}</summary><p>{b.body[lang]}</p></details></section>; if (b.type === 'testimonial')
+    return <section key={b.id} className="faq-section"><Collapsible title={b.heading[lang]}><p>{b.body[lang]}</p></Collapsible></section>; if (b.type === 'testimonial')
     return <section className="testimonial" key={b.id}><p>{b.body[lang]}</p><small>{b.heading[lang]}</small></section>; return <Reveal key={b.id}><section className={`content-section ${i % 2 ? 'reverse' : ''}`}><div><h2>{b.heading[lang]}</h2><p>{b.body[lang]}</p></div>{b.image && <Photo src={b.image} alt={b.heading[lang]}/>}</section></Reveal>; })}</>; }
 function Announcements() { const { s, lang, params } = useApp(); const t = useText(); return <section className="announcements"><SectionTitle as={params.get('page') === 'announcements' ? 'h1' : 'h2'} title={t('Kabar & informasi', 'News & notices')}/>{s.content.filter(c => c.collection === 'announcements' && c.published).map(c => <article key={c.id}><h3>{c.published!.title[lang]}</h3><p>{c.published!.body[lang]}</p></article>)}</section>; }
 function Intakes() { const { s, lang } = useApp(); const t = useText(); return <section className="intake-list"><h2>{t('Kelas berikutnya', 'Next intakes')}</h2>{s.cohorts.map(c => <article key={c.id}><CalendarDays aria-hidden/><div><strong>{programTitle(s, c.programId, lang)}</strong><p>{when(c.startsAt, lang)}</p><small>{s.availability[c.id]} {t('kursi tersedia', 'seats available')}</small></div></article>)}</section>; }

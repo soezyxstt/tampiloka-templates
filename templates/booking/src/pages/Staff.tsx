@@ -235,7 +235,7 @@ export function StaffWorkspace() {
             </Action>
           )}
         </header>
-        <main id="main-content" className="b-staff-content">
+        <main id="main-content" className="b-staff-content b-page-content" key={route.page}>
           <ErrorNote error={error} />
           {Boolean(error) && (
             <Action

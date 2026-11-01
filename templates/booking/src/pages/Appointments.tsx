@@ -14,6 +14,7 @@ import {
   Status,
   dateTime,
   money,
+  Disclosure,
 } from "../components/ui";
 import { BookingDetail } from "../components/BookingDetail";
 import { ATTEMPT_KEY, saveAccess } from "./BookingForm";
@@ -180,14 +181,13 @@ export function Appointments() {
           {t("Perbarui", "Refresh")}
         </Action>
       </div>
-      <details className="b-restore">
-        <summary>
+      <Disclosure className="b-restore" title={<>
           <KeyRound size={18} />
           {t(
             "Buka janji dari perangkat lain",
             "Open an appointment from another device",
           )}
-        </summary>
+        </>}>
         <form onSubmit={restore} className="b-form-grid">
           <Field label={t("Nomor referensi", "Reference number")}>
             <Input
@@ -210,7 +210,7 @@ export function Appointments() {
           </Action>
           <ErrorNote error={restoreError} />
         </form>
-      </details>
+      </Disclosure>
       <ErrorNote error={error} />
       {!result && !error ? (
         <Loading />

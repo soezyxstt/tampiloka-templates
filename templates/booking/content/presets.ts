@@ -49,8 +49,8 @@ const brands = {
   detailing: {
     name: "Forma Auto",
     headline: l(
-      "Detail bersih. Jadwal jelas.",
-      "Every detail. A time that works.",
+      "Pilih perawatan kendaraan dan waktu yang sesuai.",
+      "Choose vehicle care at a time that works for you.",
     ),
     description: l(
       "Pilih paket sesuai kendaraan Anda. Lihat harga, durasi, dan ketersediaan area kerja sebelum datang.",

@@ -1,0 +1,204 @@
+{
+  "checkedAt": "2026-11-01T06:45:09.102Z",
+  "base": "http://127.0.0.1:43471",
+  "checks": [
+    {
+      "name": "appointment-first 360px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "appointment-first 390px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "appointment-first 1024px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "appointment-first 1440px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "editorial 360px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "editorial 390px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "editorial 1024px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "editorial 1440px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "service-market 360px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "service-market 390px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "service-market 1024px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "service-market 1440px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "minimal-professional 360px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "minimal-professional 390px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "minimal-professional 1024px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "minimal-professional 1440px reduced motion",
+      "status": "passed"
+    },
+    {
+      "name": "medical catalog boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "medical whatsapp boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "medical booking boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "medical full boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "aesthetic catalog boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "aesthetic whatsapp boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "aesthetic booking boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "aesthetic full boundary and navigation",
+      "status": "failed",
+      "message": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.b-progress') to be detached\u001b[22m\n\n    at /data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:293:45\n    at async check (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:55:5)\n    at async file:///data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:263:7"
+    },
+    {
+      "name": "detailing catalog boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "detailing whatsapp boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "detailing booking boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "detailing full boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "consulting catalog boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "consulting whatsapp boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "consulting booking boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "consulting full boundary and navigation",
+      "status": "passed"
+    },
+    {
+      "name": "Independent URL axes, appearance, history, language, role and refresh",
+      "status": "failed",
+      "message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:43471/?lang=en&preset=aesthetic&level=booking&layout=editorial&palette=rose\", waiting until \"networkidle\"\u001b[22m\n\n    at boot (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:66:14)\n    at /data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:304:15\n    at async check (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:55:5)\n    at async file:///data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:299:3"
+    },
+    {
+      "name": "Overlapping reschedule picker and Worker mutation for customer and staff",
+      "status": "passed"
+    },
+    {
+      "name": "Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in",
+      "status": "passed"
+    },
+    {
+      "name": "WhatsApp request remains unconfirmed and creates no customer record",
+      "status": "passed"
+    },
+    {
+      "name": "Owner content persistence, staff sample scenarios, empty and error states",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 360px motion=reduce",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 360px motion=no-preference",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 390px motion=reduce",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 390px motion=no-preference",
+      "status": "failed",
+      "message": "page.goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:43471/?lang=en&preset=consulting&level=full&view=staff&page=locations\", waiting until \"networkidle\"\u001b[22m\n\n    at boot (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:66:14)\n    at /data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/workspace-checks.mjs:16:19\n    at async check (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:55:5)\n    at async Module.workspaceChecks (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/workspace-checks.mjs:8:7)\n    at async file:///data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:636:3"
+    },
+    {
+      "name": "Staff workspace 1024px motion=reduce",
+      "status": "failed",
+      "message": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.b-staff-content h1') to be visible\u001b[22m\n\n    at /data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/workspace-checks.mjs:17:55\n    at async check (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:55:5)\n    at async Module.workspaceChecks (/data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/workspace-checks.mjs:8:7)\n    at async file:///data/home/.t3/worktrees/tampiloka-templates/t3-f2433f05/templates/booking/tests/browser.mjs:636:3"
+    },
+    {
+      "name": "Staff workspace 1024px motion=no-preference",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 1440px motion=reduce",
+      "status": "passed"
+    },
+    {
+      "name": "Staff workspace 1440px motion=no-preference",
+      "status": "passed"
+    },
+    {
+      "name": "Role change hides stale owner controls while the real staff snapshot is delayed",
+      "status": "passed"
+    },
+    {
+      "name": "Demo reset removes only the current session bookings",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "realPayments": false,
+  "persistence": "Temporary local D1 database, real SQL migrations",
+  "passed": 43,
+  "failed": 4,
+  "skipped": 0
+}

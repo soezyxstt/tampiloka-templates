@@ -1,0 +1,59 @@
+{
+  "checkedAt": "2026-11-01T06:09:55.319Z",
+  "projects": [
+    {
+      "level": "catalog",
+      "preset": "medical",
+      "status": "passed",
+      "steps": [
+        "Generated outside the monorepo",
+        "Fresh independent dependency installation",
+        "Typecheck and production build",
+        "CLI doctor",
+        "Local D1 migration",
+        "Production identity, CMS persistence and demo-route denial"
+      ]
+    },
+    {
+      "level": "whatsapp",
+      "preset": "aesthetic",
+      "status": "passed",
+      "steps": [
+        "Generated outside the monorepo",
+        "Fresh independent dependency installation",
+        "Typecheck and production build",
+        "CLI doctor",
+        "Local D1 migration",
+        "Production identity, CMS persistence and demo-route denial"
+      ]
+    },
+    {
+      "level": "booking",
+      "preset": "detailing",
+      "status": "passed",
+      "steps": [
+        "Generated outside the monorepo",
+        "Fresh independent dependency installation",
+        "Typecheck and production build",
+        "CLI doctor",
+        "Local D1 migration",
+        "Production identity, CMS persistence and demo-route denial",
+        "Customer booking, idempotent retry and staff visibility"
+      ]
+    },
+    {
+      "level": "full",
+      "preset": "consulting",
+      "status": "passed",
+      "steps": [
+        "Generated outside the monorepo",
+        "Fresh independent dependency installation",
+        "Typecheck and production build",
+        "CLI doctor",
+        "Local D1 migration",
+        "Production identity, CMS persistence and demo-route denial",
+        "Customer booking, idempotent retry and staff visibility"
+      ]
+    }
+  ]
+}

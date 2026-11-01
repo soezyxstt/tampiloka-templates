@@ -16,3 +16,11 @@ Public inputs use 16px on phones. Touch targets are at least 44px and primary ac
 The demo uses `DemoToolbarShell` and imports shared demo CSS last. It keeps preset/theme/level at the top and ID/EN bottom right. Advanced layout/type and secondary roles live in an appearance dialog. Native view links preserve query/hash state. Toolbar height comes from its real ResizeObserver measurement.
 
 Realistic stock photos are illustrative, not portraits of the fictional named educators. Avoid decorative eyebrow labels, unnecessary cards, gradient decoration, inflated performance statistics, pills and navigation arrows. Program pages and operations prioritize readable details and clear actions.
+
+## Interaction decisions
+
+School uses ui-core buttons, inputs, textareas and dialogs and Radix Select through `Pick`; the mobile navigation uses a Radix dropdown with keyboard navigation, Escape and focus return. FAQ blocks use a reusable Radix collapsible and adapt the website-design-kit MOTION-01 quiet disclosure: a 160ms opening fade and rotating state indicator, disabled by the reduced-motion rule. The MOTION-07 menu informed the compact navigation, adapted to Radix rather than native details. Required registration selects use Radix native form validation. Page and staff view transitions use 180ms, while shared reveals provide progressive entry. The established School palettes, typography and sample imagery remain the identity source; the kit guides interaction, not brand tokens.
+
+Interaction matrix: selects support keyboard selection and Escape; dialogs restore focus on close; disclosures toggle with Enter or Space; menus support arrow keys and Escape; required form fields use browser validation; asynchronous actions disable while busy and report errors; reduced motion removes transitions and animations. Language changes retain the current demo state.
+
+Local interaction evidence (2026-11-01): Playwright checked the FAQ opening duration (160 ms; 0 ms with reduced motion), mobile menu Escape/focus return and link selection, locale changes while the FAQ stays open, and page overflow at 390 and 1280 px. Local 1280 × 800 loaded captures are in `public/demo-previews`; the separate deployment workflow owns the canonical hosted `/previews/` evidence. These local checks do not establish hosted release readiness.

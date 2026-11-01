@@ -1,0 +1,517 @@
+{
+  "results": [
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 360,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 360,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 390,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 1024,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 1024,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 1440,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "academic-editorial",
+      "preset": "exam-prep",
+      "width": 1440,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 360,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 360,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 390,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 1024,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 1024,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 1440,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "course-discovery",
+      "preset": "language",
+      "width": 1440,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 360,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 360,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 390,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 1024,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 1024,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 1440,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "contemporary-learning",
+      "preset": "skills",
+      "width": 1440,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 360,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 360,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 390,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 1024,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 1024,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 1440,
+      "reducedMotion": "no-preference",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "layout": "institutional",
+      "preset": "institution",
+      "width": 1440,
+      "reducedMotion": "reduce",
+      "chrome": {
+        "opaque": true,
+        "text": 14.06035893249679,
+        "selected": 14.06035893249679,
+        "border": 3.229601088361269,
+        "menu": null,
+        "menuOpaque": null
+      },
+      "passed": true
+    },
+    {
+      "preset": "exam-prep",
+      "flow": "apply-draft-review-accept-pay-guardian-cancel",
+      "passed": true
+    },
+    {
+      "preset": "language",
+      "flow": "apply-draft-review-accept-pay-guardian-cancel",
+      "passed": true
+    },
+    {
+      "preset": "skills",
+      "flow": "apply-draft-review-accept-pay-guardian-cancel",
+      "passed": true
+    },
+    {
+      "preset": "institution",
+      "flow": "apply-draft-review-accept-pay-guardian-cancel",
+      "passed": true
+    },
+    {
+      "flow": "staff-tabs-1024",
+      "passed": true
+    },
+    {
+      "flow": "cms-publish-profile-whatsapp-deep-link",
+      "passed": true
+    },
+    {
+      "flow": "independent-appearance-typography-preset-browser-history",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

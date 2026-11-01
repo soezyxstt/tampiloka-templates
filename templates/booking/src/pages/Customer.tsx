@@ -22,6 +22,7 @@ import {
   Reveal,
   RouteLink,
   money,
+  Disclosure,
 } from "../components/ui";
 
 export function CustomerHeader() {
@@ -810,10 +811,9 @@ export function AboutPage() {
       <section className="b-faq">
         <h2>{t("Pertanyaan umum", "Common questions")}</h2>
         {data.config.brand.faqs.map((faq, i) => (
-          <details key={i}>
-            <summary>{faq.question[route.lang]}</summary>
+          <Disclosure key={i} title={faq.question[route.lang]}>
             <p>{faq.answer[route.lang]}</p>
-          </details>
+          </Disclosure>
         ))}
       </section>
     </section>

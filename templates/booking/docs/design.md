@@ -46,3 +46,20 @@ Run the design guard, typecheck, domain tests and browser suite. Check 360, 390,
 Preview files under `public/demo-previews/` are real 1280x800 browser captures. Verify live responses and dimensions before publishing catalog entries. Geometry checks do not replace visual review of native fields, image crops, spacing and hierarchy.
 
 Photo sources/checksums are in `public/images/manifest.json`. Images illustrate categories, not the identity or endorsement of fictional practitioners. Prefer client-owned photos at launch.
+
+## Interaction decisions
+
+The care-appointment reference WF-14 supports the existing service-to-booking hierarchy; the existing four compositions remain the source of layout and identity. Booking uses shared controls and a Radix Collapsible wrapper for FAQ, appointment recovery and access details. Its keyboard-operable summary uses a chevron and short entrance motion to clarify the state. Radix select provides selection, Escape and focus return, with entrance and exit feedback. Reduced-motion CSS removes these durations. Loading and validation do not wait for motion.
+
+| Interaction | Existing primitive or behavior | Motion / state |
+| --- | --- | --- |
+| Actions and busy state | Shared Button via Action; busy disables and announces work | Spinner does not gate completion |
+| Text fields and validation | Shared Input / Textarea, Field labels and help; native validation | Values remain controlled by their forms |
+| Selection | Radix Select via Picker | Popup feedback; keyboard selection, Escape and focus return |
+| Disclosure | Radix Collapsible via Disclosure | Height and opacity on open/close; trigger exposes expanded state |
+| Dialog | Shared Dialog with localized close label | Shared dialog motion and focus management |
+| Loading and errors | Localized status and alert | Immediate content, no animation dependency |
+
+The WF-14 care-appointment reference informed the disclosure and service-to-booking hierarchy. Booking retains its own configured brand, typography and four layouts; a catalog-workspace pattern was less appropriate for this focused interaction change. The reference is guidance rather than a new visual identity.
+
+Customer and staff route changes use a 180ms entrance on the main region. The route key excludes language and palette, so those choices preserve open disclosures and entered values. The global reduced-motion rule removes the movement. Bootstrap errors preserve API codes until localized rendering; unknown errors use localized recovery text.
