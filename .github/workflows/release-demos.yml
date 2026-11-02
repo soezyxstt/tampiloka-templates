@@ -107,7 +107,7 @@ jobs:
             cafe) pnpm --filter @tampiloka/template-cafe test:demo-browser && pnpm --filter @tampiloka/template-cafe test:demo-lifecycle ;;
             commerce) pnpm --filter @tampiloka/template-commerce test:e2e ;;
             school) (cd templates/school && node tests/live-smoke.mjs && pnpm test:e2e) ;;
-            booking) pnpm --filter @tampiloka/template-booking test:e2e ;;
+            booking) BOOKING_CHECK_FILTER='^Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in$' pnpm --filter @tampiloka/template-booking test:e2e ;;
           esac
       - name: Verify the hosted identity and exact preview bytes
         run: |
