@@ -39,7 +39,7 @@
     "@vitejs/plugin-react": "6.1.2",
     "esbuild": "0.28.2",
     "playwright": "1.56.1",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vite": "8.3.5",
     "wrangler": "4.154.0"
   }

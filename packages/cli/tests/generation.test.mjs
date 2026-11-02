@@ -54,7 +54,13 @@ test('cafe generation preserves catalog waiter requests and full presets',async 
     const output=join(parent,`cafe-${preset}`),config=await read(join(output,'config/cafe.json'));
     assert.equal(config.theme,'editorial');assert.ok(config.modules.includes('ordering'));
     if(preset==='catalog')assert.deepEqual(config.modules,['catalog','ordering']);else assert.ok(config.modules.includes('kitchen'));
-    await lstat(join(output,'package-lock.json'));await lstat(join(output,'components/ui/motion.tsx'));
+    const pkg=await read(join(output,'package.json')),lock=await read(join(output,'package-lock.json'));
+    assert.equal(pkg.devDependencies['@typescript/native'],'npm:typescript@7.0.2');
+    assert.equal(pkg.devDependencies.typescript,'npm:@typescript/typescript6@6.0.2');
+    assert.ok(lock.packages['node_modules/@typescript/native']);
+    assert.ok(lock.packages['node_modules/@typescript/typescript-linux-x64']);
+    assert.ok(lock.packages['node_modules/@typescript/typescript-win32-x64']);
+    await lstat(join(output,'components/ui/motion.tsx'));
     await lstat(join(output,'lib/language.tsx'));
     assert.doesNotMatch(await readFile(join(output,'components/cafe/customer-app.tsx'),'utf8'), /@\/demos\/language/);
     assert.equal((await read(join(output,'tampiloka.project.json'))).template,'cafe');

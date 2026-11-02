@@ -34,9 +34,12 @@ try {
   const failures = [];
   for (const script of ['tests/demo-navigation.test.mjs', 'tests/demos-explorer.mjs', 'tests/demos-motion.mjs', 'tests/demos-compact-ui.mjs', 'tests/demos-staff-layout.mjs', 'tests/demos-browser.mjs', 'tests/demos-lifecycle.mjs', 'tests/language-browser.mjs']) {
     if (interrupted) throw new Error('Browser verification interrupted.');
+    const started = performance.now();
+    console.log(`Starting ${script}`);
     currentTest = spawn(process.execPath, ['--experimental-strip-types', script], { cwd: root, env, stdio: 'inherit' });
     const [code, signal] = await once(currentTest, 'exit');
     currentTest = undefined;
+    console.log(`Finished ${script} in ${((performance.now() - started) / 1000).toFixed(1)}s (${signal || `exit ${code}`})`);
     if (code !== 0) failures.push(`${script} failed (${signal || code}).`);
   }
   if (failures.length) throw new Error(failures.join("\n"));

@@ -6,7 +6,9 @@ on:
       - 'templates/school/**'
       - 'packages/ui-core/**'
       - 'packages/cli/**'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/school.yml'
   pull_request:
     paths:
@@ -14,7 +16,9 @@ on:
       - 'packages/ui-core/**'
       - 'packages/cli/**'
       - 'packages/registry/**'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/school.yml'
   workflow_dispatch:
 permissions:

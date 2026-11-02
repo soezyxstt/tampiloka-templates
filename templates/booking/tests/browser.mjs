@@ -356,7 +356,9 @@ try {
           .waitFor();
         await page.getByRole("button", { name: "Customize demo" }).click();
         await picker(page, "Demo staff role", "Viewer");
+        await page.locator('[role="listbox"]').waitFor({ state: "detached" });
         await page.keyboard.press("Escape");
+        await page.getByRole("dialog", { name: "Customize demo" }).waitFor({ state: "hidden" });
         await page
           .getByRole("link", { name: "Site & settings", exact: true })
           .click();

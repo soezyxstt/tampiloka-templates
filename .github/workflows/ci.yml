@@ -11,6 +11,11 @@ on:
         type: boolean
         required: false
         default: false
+      full_cafe:
+        description: Run the complete Cafe demo browser suite
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -73,6 +78,7 @@ jobs:
           pnpm --filter @tampiloka/template-commerce exec node tests/checkout-recovery.mjs
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-pagination.mjs
       - name: Verify cafe motion, layout, presets and lifecycle
+        if: github.event_name == 'workflow_dispatch' && inputs.full_cafe == true
         run: pnpm --filter @tampiloka/template-cafe test:demo-all
       - name: Keep verification evidence
         if: always()

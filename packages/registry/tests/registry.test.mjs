@@ -4,6 +4,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { templates, commercePresets, commerceLevels, cafePresets, capabilitiesFor, getTemplate } from '../src/index.mjs';
@@ -59,7 +60,7 @@ test('all checked-in manifests satisfy the shared schema',async()=>{
 });
 test('package export map supports strict TypeScript consumers and matching runtime exports',async()=>{
   const require=createRequire(import.meta.url);
-  execFileSync(process.execPath,[require.resolve('typescript/bin/tsc'),'--noEmit','--strict','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022',fileURLToPath(new URL('./consumer.mts',import.meta.url))],{stdio:'pipe'});
+  execFileSync(process.execPath,[join(dirname(require.resolve('typescript/package.json')),'bin/tsc'),'--noEmit','--strict','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022',fileURLToPath(new URL('./consumer.mts',import.meta.url))],{stdio:'pipe'});
   const runtime=await import('@tampiloka/registry');
   const expected=['bookingLayouts','bookingLevels','bookingPalettes','bookingPresets','cafePresets','capabilitiesFor','commerceFeatureIds','commerceFeatureLabels','commerceLevels','commerceModulesFor','commercePresets','getTemplate','schoolLayouts','schoolLevels','schoolModuleIds','schoolModulesFor','schoolPalettes','schoolPresets','schoolTemplate','schoolTypography','templates'];
   assert.deepEqual(Object.keys(runtime).sort(),expected.sort());
