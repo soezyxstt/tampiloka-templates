@@ -9,7 +9,8 @@ const dir = new URL('../migrations/', import.meta.url);
 const files = (await readdir(dir)).filter(file => file.endsWith('.sql')).sort();
 assert.deepEqual(files, [...expected.keys()], 'Provision and verify Booking demo migrations before release.');
 for (const file of files) {
-  const hash = createHash('sha256').update(await readFile(new URL(file, dir))).digest('hex');
+  const content = (await readFile(new URL(file, dir), 'utf8')).replace(/\r\n/g, '\n');
+  const hash = createHash('sha256').update(content).digest('hex');
   assert.equal(hash, expected.get(file), `${file} changed; verify the remote schema before release.`);
 }
 console.log('Booking migration release record matches. Hosted flows must still verify the actual database.');

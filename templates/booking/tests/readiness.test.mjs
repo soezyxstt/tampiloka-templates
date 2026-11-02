@@ -2,6 +2,24 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './harness.mjs';
 
+test('demo seeds presets on first use and retains edits when switching back', async (t) => {
+  const { env, c } = fixture(t);
+  assert.equal((await c.get('/api/bootstrap')).status, 200);
+  const count = () => env.DB.db.prepare('SELECT count(*) AS n FROM settings').get().n;
+  assert.equal(count(), 1);
+  assert.equal((await c.post('/api/demo/config', { preset: 'aesthetic' })).status, 200);
+  assert.equal(count(), 2);
+  const original = env.DB.db.prepare("SELECT config_json FROM settings WHERE preset='aesthetic'").get().config_json;
+  const edited = JSON.parse(original);
+  edited.brand.name = 'Preserved example';
+  env.DB.db.prepare("UPDATE settings SET config_json=? WHERE preset='aesthetic'").run(JSON.stringify(edited));
+  assert.equal((await c.post('/api/demo/config', { preset: 'medical' })).status, 200);
+  const again = await c.post('/api/demo/config', { preset: 'aesthetic' });
+  assert.equal(again.status, 200);
+  assert.equal(again.data.config.brand.name, 'Preserved example');
+  assert.equal(count(), 2);
+});
+
 test('readiness detects missing session schema and fresh visitors can configure the demo', async (t) => {
   const { env, c } = fixture(t);
   assert.equal((await c.get('/api/health')).status, 200);

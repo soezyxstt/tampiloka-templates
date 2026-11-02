@@ -2,7 +2,7 @@ import { LAYOUTS, LEVELS, PALETTES, PRESETS } from "../src/domain/model.ts";
 import { defaultOptions } from "../src/domain/adapters.ts";
 import { choice, fail, object } from "../src/domain/validation.ts";
 import { localTime } from "../src/domain/time.ts";
-import { bootstrap, bumpRevision, q, scopeRow, sessionFor } from "./db.ts";
+import { bootstrap, bumpRevision, q, scopeRow, seedPreset, sessionFor } from "./db.ts";
 import { uid } from "./security.ts";
 import { now, type Env, type Session } from "./types.ts";
 import { availability } from "./services/availability.ts";
@@ -53,8 +53,15 @@ export async function demoAction(
       ["palette", PALETTES],
     ] as const)
       if (raw[key] !== undefined) state[key] = choice(raw[key], values, key);
+    const exists = await q(
+      env,
+      "SELECT 1 FROM settings WHERE scope=? AND preset=?",
+      s.scope,
+      state.preset,
+    ).first();
     await env.DB.batch([
       ...bumpRevision(env, s, scope.revision),
+      ...(exists ? [] : seedPreset(env, s.scope, state.preset)),
       q(
         env,
         "UPDATE scopes SET state_json=? WHERE id=?",
