@@ -86,12 +86,16 @@ export async function demoAction(
           options,
           date: localTime(now(env) + day * 86400000, location.timezone).date,
         });
-        if (!result.slots.length) continue;
+        // The cancelled example must be outside the configured cancellation
+        // window, including when tomorrow's first slot is less than 24h away.
+        const slot = result.slots.find((candidate) => n !== 2 ||
+          candidate.startsAt > now(env) + data.config.policy.cancellationHours * 3600000);
+        if (!slot) continue;
         const booking = await createBooking(env, s, {
           serviceId: service.id,
           locationId: location.id,
           options,
-          startsAt: result.slots[0].startsAt,
+          startsAt: slot.startsAt,
           customer: {
             name: ["Alex Example", "Mira Example", "Dian Example"][n],
             phone: "081200000000",

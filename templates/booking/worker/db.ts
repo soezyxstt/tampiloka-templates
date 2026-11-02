@@ -198,6 +198,8 @@ export async function sessionFor(
         demo,
       };
   }
+  let stage = "session_rate_limit";
+  try {
   await rateLimit(
     env,
     "session:" +
@@ -210,11 +212,13 @@ export async function sessionFor(
     scope = demo ? uid("demo_") : "business",
     principal = uid("visitor_"),
     ttl = demo ? 86400 : 30 * 86400;
+  stage = "session_scope_lookup";
   const exists = await q(
     env,
     "SELECT id FROM scopes WHERE id=?",
     scope,
   ).first();
+  stage = "session_seed_batch";
   await env.DB.batch([
     ...(exists ? [] : seed(env, scope, demo)),
     q(
@@ -234,6 +238,10 @@ export async function sessionFor(
     demo,
     cookie: cookie(request, raw, ttl),
   };
+  } catch (error) {
+    console.error(JSON.stringify({ stage, name: error instanceof Error ? error.name : "Error" }));
+    throw error;
+  }
 }
 export async function configFor(
   env: Env,
