@@ -61,6 +61,9 @@ jobs:
           pnpm test:school:browser
           mkdir -p templates/school/dist/previews
           cp templates/school/test-results/school/*-preview.jpg templates/school/dist/previews/
+      - name: Exercise Booking with local D1 before deployment
+        if: matrix.family == 'booking'
+        run: pnpm --filter @tampiloka/template-booking test:e2e
       - name: Set deployment paths
         run: |
           family='${{ matrix.family }}'
@@ -75,6 +78,10 @@ jobs:
       - name: Check the pre-provisioned School demo schema
         if: matrix.family == 'school'
         working-directory: templates/school
+        run: node scripts/check-demo-schema.mjs
+      - name: Check the pre-provisioned Booking demo schema
+        if: matrix.family == 'booking'
+        working-directory: templates/booking
         run: node scripts/check-demo-schema.mjs
       - name: Deploy the stamped build
         env:
@@ -100,7 +107,7 @@ jobs:
             cafe) pnpm --filter @tampiloka/template-cafe test:demo-browser && pnpm --filter @tampiloka/template-cafe test:demo-lifecycle ;;
             commerce) pnpm --filter @tampiloka/template-commerce test:e2e ;;
             school) (cd templates/school && node tests/live-smoke.mjs && pnpm test:e2e) ;;
-            booking) pnpm --filter @tampiloka/template-booking test:e2e ;;
+            booking) BOOKING_CHECK_FILTER='^Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in$' pnpm --filter @tampiloka/template-booking test:e2e ;;
           esac
       - name: Verify the hosted identity and exact preview bytes
         run: |

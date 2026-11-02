@@ -315,7 +315,7 @@ export async function handleRequest(
     response.headers.set("Referrer-Policy", "no-referrer");
     response.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+      "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
     );
     return response;
   }
@@ -325,7 +325,15 @@ export async function handleRequest(
     if (!env.DB)
       fail(503, "DATABASE_NOT_CONFIGURED", "Database binding is missing.");
     if (url.pathname === "/api/health" && request.method === "GET") {
-      await q(env, "SELECT id FROM scopes LIMIT 1").first();
+      // Check the tables and columns needed to create a fresh demo session.
+      // A scopes-only probe can succeed even when the deployment is incomplete.
+      await q(env, `SELECT s.id, s.demo, s.state_json, s.secret, s.revision,
+        s.created_at, s.expires_at, x.hash, x.scope, x.principal, x.role,
+        x.expires_at, r.key, r.count, r.expires_at, c.config_json,
+        e.kind, e.id, e.preset, e.data, u.resource, u.unit
+        FROM scopes s LEFT JOIN sessions x ON 0 LEFT JOIN rate_limits r ON 0
+        LEFT JOIN settings c ON 0 LEFT JOIN entities e ON 0
+        LEFT JOIN resource_units u ON 0 LIMIT 1`).first();
       return json({
         ok: true,
         service: "tampiloka-booking",

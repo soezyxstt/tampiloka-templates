@@ -47,6 +47,8 @@ jobs:
           JS
       - run: pnpm install --frozen-lockfile
       - name: Exercise real deployed customer and staff workflows
+        env:
+          BOOKING_CHECK_FILTER: '^Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in$'
         run: |
           pnpm --filter @tampiloka/template-booking exec playwright install --with-deps chromium
           pnpm --filter @tampiloka/template-booking test:e2e
@@ -59,7 +61,7 @@ jobs:
           const browser=await chromium.launch({headless:true});
           try {
             const page=await browser.newPage();
-            await page.goto(process.env.BOOKING_TEST_URL,{waitUntil:'networkidle',timeout:30000});
+            await page.goto(process.env.BOOKING_TEST_URL+'/demo-previews/booking-medical.webp',{waitUntil:'load',timeout:30000});
             const previews=await page.evaluate(async()=>Promise.all(['medical','aesthetic','detailing','consulting'].map(async preset=>{
               const url=location.origin+'/demo-previews/booking-'+preset+'.webp';
               const response=await fetch(url);

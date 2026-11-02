@@ -48,6 +48,7 @@ async function command(bin, args) {
   });
 }
 const checkFilter = process.env.BOOKING_CHECK_FILTER ? new RegExp(process.env.BOOKING_CHECK_FILTER) : null;
+if (external && !checkFilter) throw new Error("Set BOOKING_CHECK_FILTER explicitly for a hosted browser run to avoid unexpected D1 usage.");
 if (checkFilter) report.filter = process.env.BOOKING_CHECK_FILTER;
 async function check(name, fn) {
   if (checkFilter && !checkFilter.test(name)) { report.checks.push({ name, status: "skipped" }); return; }

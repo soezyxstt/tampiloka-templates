@@ -91,66 +91,70 @@ function seed(env: Env, scope: string, demo: boolean): Statement[] {
       demo ? now(env) + 86400000 : null,
     ),
   ];
-  for (const preset of demo ? PRESETS : [initial.preset]) {
-    const content = presetContent(preset),
-      cfg = preset === initial.preset ? initial : content.config;
-    statements.push(
-      q(
-        env,
-        "INSERT OR IGNORE INTO settings(scope,preset,config_json) VALUES(?,?,?)",
-        scope,
-        preset,
-        JSON.stringify(cfg),
-      ),
-    );
-    const records = [
-      ...content.services.map((data) => ({
-        kind: "service",
-        id: data.id,
-        data,
-      })),
-      ...content.resources.map((data) => ({
-        kind: "resource",
-        id: data.id,
-        data,
-      })),
-      ...content.locations.map((data) => ({
-        kind: "location",
-        id: data.id,
-        data,
-      })),
-      ...content.categories.map((data) => ({
-        kind: "category",
-        id: `${preset}-${data.id}`,
-        data,
-      })),
-    ];
-    statements.push(
-      q(
-        env,
-        "INSERT OR IGNORE INTO entities(scope,preset,kind,id,data) SELECT ?,?,json_extract(value,'$.kind'),json_extract(value,'$.id'),json_extract(value,'$.data') FROM json_each(?)",
-        scope,
-        preset,
-        JSON.stringify(records),
-      ),
-    );
-    const subjects = [
-      ...content.resources.map((r) => [r.id, r.capacity] as const),
-      ...content.locations.map((r) => [`loc:${r.id}`, r.capacity] as const),
-      ...content.services.map((r) => [`svc:${r.id}`, r.capacity] as const),
-    ];
-    const values = subjects.flatMap(([resource, capacity]) =>
-      Array.from({ length: capacity }, (_, unit) => ({ resource, unit })),
-    );
-    statements.push(
-      q(
-        env,
-        "INSERT OR IGNORE INTO resource_units(scope,resource,unit) SELECT ?,json_extract(value,'$.resource'),json_extract(value,'$.unit') FROM json_each(?)",
-        scope,
-        JSON.stringify(values),
-      ),
-    );
-  }
+  statements.push(...seedPreset(env, scope, initial.preset));
+  return statements;
+}
+export function seedPreset(env: Env, scope: string, preset: Preset): Statement[] {
+  const initial = deploymentConfig(env);
+  const content = presetContent(preset),
+    cfg = preset === initial.preset ? initial : content.config;
+  const statements: Statement[] = [];
+  statements.push(
+    q(
+      env,
+      "INSERT OR IGNORE INTO settings(scope,preset,config_json) VALUES(?,?,?)",
+      scope,
+      preset,
+      JSON.stringify(cfg),
+    ),
+  );
+  const records = [
+    ...content.services.map((data) => ({
+      kind: "service",
+      id: data.id,
+      data,
+    })),
+    ...content.resources.map((data) => ({
+      kind: "resource",
+      id: data.id,
+      data,
+    })),
+    ...content.locations.map((data) => ({
+      kind: "location",
+      id: data.id,
+      data,
+    })),
+    ...content.categories.map((data) => ({
+      kind: "category",
+      id: `${preset}-${data.id}`,
+      data,
+    })),
+  ];
+  statements.push(
+    q(
+      env,
+      "INSERT OR IGNORE INTO entities(scope,preset,kind,id,data) SELECT ?,?,json_extract(value,'$.kind'),json_extract(value,'$.id'),json_extract(value,'$.data') FROM json_each(?)",
+      scope,
+      preset,
+      JSON.stringify(records),
+    ),
+  );
+  const subjects = [
+    ...content.resources.map((r) => [r.id, r.capacity] as const),
+    ...content.locations.map((r) => [`loc:${r.id}`, r.capacity] as const),
+    ...content.services.map((r) => [`svc:${r.id}`, r.capacity] as const),
+  ];
+  const values = subjects.flatMap(([resource, capacity]) =>
+    Array.from({ length: capacity }, (_, unit) => ({ resource, unit })),
+  );
+  statements.push(
+    q(
+      env,
+      "INSERT OR IGNORE INTO resource_units(scope,resource,unit) SELECT ?,json_extract(value,'$.resource'),json_extract(value,'$.unit') FROM json_each(?)",
+      scope,
+      JSON.stringify(values),
+    ),
+  );
   return statements;
 }
 export function cookie(request: Request, token: string, maxAge: number) {
@@ -198,6 +202,8 @@ export async function sessionFor(
         demo,
       };
   }
+  let stage = "session_rate_limit";
+  try {
   await rateLimit(
     env,
     "session:" +
@@ -210,11 +216,13 @@ export async function sessionFor(
     scope = demo ? uid("demo_") : "business",
     principal = uid("visitor_"),
     ttl = demo ? 86400 : 30 * 86400;
+  stage = "session_scope_lookup";
   const exists = await q(
     env,
     "SELECT id FROM scopes WHERE id=?",
     scope,
   ).first();
+  stage = "session_seed_batch";
   await env.DB.batch([
     ...(exists ? [] : seed(env, scope, demo)),
     q(
@@ -234,6 +242,10 @@ export async function sessionFor(
     demo,
     cookie: cookie(request, raw, ttl),
   };
+  } catch (error) {
+    console.error(JSON.stringify({ stage, name: error instanceof Error ? error.name : "Error" }));
+    throw error;
+  }
 }
 export async function configFor(
   env: Env,

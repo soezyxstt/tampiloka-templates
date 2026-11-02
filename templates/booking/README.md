@@ -61,4 +61,4 @@ pnpm catalog:test
 node packages/cli/tests/booking-standalone.mjs
 ```
 
-Browser evidence goes in `test-results/`. Public catalog readiness is a separate publication gate, not a claim inferred from a successful local build. Do not set `ready: true` until the deployed origin, API flow, and all 1280×800 preview images have been checked.
+The browser suite uses a temporary local D1 database by default. A hosted run with `BOOKING_TEST_URL` requires an explicit `BOOKING_CHECK_FILTER` to prevent accidentally running the full suite against the shared live database. The release and manual live workflows select the customer booking and staff check-in scenario. Browser evidence goes in `test-results/`. Public catalog readiness is a separate publication gate, not a claim inferred from a successful local build. Do not set `ready: true` until the deployed origin, API flow, and all 1280×800 preview images have been checked.

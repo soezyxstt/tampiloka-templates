@@ -16,7 +16,7 @@ export async function latencyChecks({ browser, out, check, boot }) {
       const documentResponse = await context.request.get(page.url());
       assert.equal(documentResponse.headers()['x-content-type-options'], 'nosniff');
       assert.equal(documentResponse.headers()['referrer-policy'], 'no-referrer');
-      assert.match(documentResponse.headers()['content-security-policy'] || '', /script-src 'self';/);
+      assert.match(documentResponse.headers()['content-security-policy'] || '', /script-src 'self' https:\/\/static\.cloudflareinsights\.com;/);
       const name = page.getByLabel('Business name', { exact: true });
       await name.waitFor();
       assert.equal(await name.isEnabled(), true);
