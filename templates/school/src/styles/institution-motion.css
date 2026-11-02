@@ -1,0 +1,63 @@
+/* The first view remains readable; the imagery settles without delaying navigation. */
+.school[data-preset=institution] .school-opening-wave { fill: var(--school-institution-light); }
+.school[data-preset=institution] .school-opening-image {
+  animation-duration: 1s;
+  animation-timing-function: cubic-bezier(.19, 1, .22, 1);
+}
+.school[data-preset=institution] .school-opening-inner h1 {
+  animation: institution-headline-in .72s cubic-bezier(.19, 1, .22, 1) both;
+}
+.school[data-preset=institution] .school-journey-images::before {
+  content: '';
+  position: absolute;
+  inset: 8% 6% 5% 8%;
+  background: var(--school-institution-sky);
+  transform: rotate(-4deg);
+}
+.school[data-preset=institution] .school-journey-main { position: relative; }
+.school[data-preset=institution] .school-journey-small {
+  box-shadow: 0 16px 38px color-mix(in srgb, var(--school-institution-ink) 17%, transparent);
+}
+.school[data-preset=institution] .school-community-grid img,
+.school[data-preset=institution] .school-highlight img,
+.school[data-preset=institution] .school-activity-image img {
+  transition: transform .65s cubic-bezier(.19, 1, .22, 1), filter .35s ease;
+}
+.school[data-preset=institution] .school-community-grid article a:hover img,
+.school[data-preset=institution] .school-community-grid article a:focus-visible img,
+.school[data-preset=institution] .school-highlight:focus-visible img,
+.school[data-preset=institution] .school-highlight:hover img,
+.school[data-preset=institution] .school-activity-grid a:hover img,
+.school[data-preset=institution] .school-activity-grid a:focus-visible img { transform: scale(1.035); }
+@keyframes institution-headline-in {
+  from { opacity: .84; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .school[data-preset=institution] .school-opening-image,
+  .school[data-preset=institution] .school-opening-inner h1 { animation: none; }
+  .school[data-preset=institution] .school-community-grid img,
+  .school[data-preset=institution] .school-highlight img,
+  .school[data-preset=institution] .school-activity-image img { transition: none; }
+  .school[data-preset=institution] .school-community-grid article a:hover img,
+  .school[data-preset=institution] .school-community-grid article a:focus-visible img,
+  .school[data-preset=institution] .school-highlight:hover img,
+  .school[data-preset=institution] .school-highlight:focus-visible img,
+  .school[data-preset=institution] .school-activity-grid a:hover img,
+  .school[data-preset=institution] .school-activity-grid a:focus-visible img { transform: none; }
+}
+/* Keep recent stories visible even when their photos are already used elsewhere. */
+.school[data-preset=institution] .school-community-grid { display: block; }
+.school[data-preset=institution] .school-community-grid.has-text-stories { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: 36px; }
+.school[data-preset=institution] .school-community-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 24px; align-content: start; }
+.school[data-preset=institution] .school-community-grid article:nth-child(n) { padding: 0; }
+.school[data-preset=institution] .school-community-text article { border-top: 1px solid var(--brand-border); }
+.school[data-preset=institution] .school-community-text article a { display: grid; gap: 6px; padding: 18px 0; }
+.school[data-preset=institution] .school-community-text h3 { margin: 0; font-size: 18px; }
+.school[data-preset=institution] .school-community-text p { grid-column: 1; margin: 0; line-height: 1.5; }
+@media (max-width: 760px) {
+  .school[data-preset=institution] .school-community-grid.has-text-stories { grid-template-columns: 1fr; gap: 30px; }
+  .school[data-preset=institution] .school-community-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .school[data-preset=institution] .school-community-photos article:first-child { grid-column: auto; }
+  .school[data-preset=institution] .school-community-photos article:first-child img { aspect-ratio: 1.15; }
+}

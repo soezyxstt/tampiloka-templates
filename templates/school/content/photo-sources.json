@@ -1,9 +1,30 @@
 {
-  "notice": "Illustrative Unsplash photography. Fictional institution and people. Replace for each client and review image rights before launch.",
+  "notice": "Illustrative Unsplash/Pexels photography and an AI-generated campus scene. Fictional institution and people. Replace for each client and review image rights before launch.",
+  "generated": {
+    "institution/campus-project.webp": {
+      "tool": "Built-in image_gen",
+      "date": "2026-11-03",
+      "prompt": "Photorealistic panoramic editorial hero of six fictional Indonesian students aged 13–15 in white and navy uniforms, two girls in white hijabs, collaborating on a science project in a contemporary tropical school courtyard. Fresh cool daylight, natural expressions, group in center/right, dark architectural space left for a white heading. No text, logos or watermarks.",
+      "use": "Fictional junior-high school homepage hero; optimized to WebP."
+    }
+  },
   "files": {
     "classroom.jpg": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=82",
     "library.jpg": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=82",
     "workshop.jpg": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=82",
-    "teacher.jpg": "https://images.unsplash.com/photo-1580894908361-967195033215?auto=format&fit=crop&w=1000&q=82"
+    "teacher.jpg": "https://images.unsplash.com/photo-1580894908361-967195033215?auto=format&fit=crop&w=1000&q=82",
+    "institution/students.jpg": "https://www.pexels.com/photo/group-of-students-sitting-in-the-classroom-10638095/",
+    "institution/science.jpg": "https://www.pexels.com/photo/asian-teen-girl-writing-on-whiteboard-in-classroom-5905562/",
+    "institution/classroom.jpg": "https://unsplash.com/photos/students-are-taking-a-test-in-a-classroom-TmdrCRVDOnQ",
+    "institution/art.jpg": "https://www.pexels.com/photo/teacher-looking-at-his-students-8467265/",
+    "institution/lab.jpg": "https://www.pexels.com/photo/a-man-teaching-students-how-to-use-a-microscope-8617841/",
+    "institution/lesson.jpg": "https://www.pexels.com/photo/ethnic-teen-girl-raising-hand-during-lesson-5905569/",
+    "institution/friends-outdoors.jpg": "https://www.pexels.com/photo/girls-raising-their-hands-10646606/",
+    "institution/classmates.jpg": "https://www.pexels.com/photo/schoolgirl-and-a-schoolboy-sitting-on-a-bench-in-a-classroom-18875763/",
+    "institution/school-community.jpg": "https://www.pexels.com/photo/portrait-of-girls-in-school-uniforms-standing-in-school-corridor-10646611/",
+    "institution/team.jpg": "https://www.pexels.com/photo/photo-of-four-girls-wearing-school-uniform-doing-hand-signs-710743/",
+    "institution/school-entrance.jpg": "https://www.pexels.com/photo/girl-in-school-uniform-standing-beside-girl-in-school-uniform-8617505/",
+    "institution/teacher-class.jpg": "https://www.pexels.com/photo/student-in-yellow-shirts-studying-in-a-class-room-18506750/",
+    "institution/class-project.jpg": "https://www.pexels.com/photo/teacher-with-his-students-in-the-classroom-5212335/"
   }
 }
