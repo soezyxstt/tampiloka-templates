@@ -1,6 +1,6 @@
 import { shippingMethods } from '../content/store.ts';
 import type { Customer, Order, Quote, StoreConfig } from '../src/shared/contracts.ts';
-import type { D1Statement, Env, Row, Session } from './types.ts';
+import type { SqlStatement, Env, Row, Session } from './types.ts';
 import { all, auditStatement, bootstrap, configFor, eventStatement, orderFor, orderFrom, q, versionGuard } from './db.ts';
 import { capabilities, digest, fail, id, integer, now, requireFeature, staff, text } from './security.ts';
 
@@ -90,12 +90,12 @@ export async function createOrder(env: Env, session: Session, input: Row): Promi
   }
   const columns=['scope','id','session_id','idempotency_key','request_hash','number','tracking_code_hash','customer_json','shipping_json','subtotal','discount','shipping_fee','total','coupon_code','payment_method','status','payment_status','note','gateway_order_id','created_at','updated_at','expires_at','member_id','points_redeemed','points_discount','points_earned','shipping_base_fee','tax_amount','tax_included','service_fee','loyalty_eligible'];
   const values=[session.scope,orderId,session.tokenHash,key,requestHash,number,trackingHash,JSON.stringify(customer),JSON.stringify(quote.shippingMethod),quote.subtotal,quote.discount+quote.pointsDiscount,quote.shippingFee+quote.serviceFee+(quote.taxIncluded?0:quote.taxAmount),quote.total,quote.couponCode,payment.id,status,paymentStatus,canonical.note,payment.id==='midtrans'?orderId:null,stamp,stamp,expiresAt,memberId,quote.pointsRedeemed,quote.pointsDiscount,pointsEarned,quote.shippingFee,quote.taxAmount,Number(quote.taxIncluded),quote.serviceFee,Number(capabilities(config).loyaltyPoints)];
-  const statements: D1Statement[]=[q(env,`INSERT INTO orders(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...values)];
+  const statements: SqlStatement[]=[q(env,`INSERT INTO orders(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,...values)];
   for (const i of quote.items) statements.push(q(env,'INSERT INTO order_items(scope,order_id,variant_id,product_id,name,variant_name,image,unit_price,quantity,subtotal) VALUES(?,?,?,?,?,?,?,?,?,?)',session.scope,orderId,i.variantId,i.productId,i.name,i.variantName,i.image,i.unitPrice,i.quantity,i.subtotal));
   statements.push(eventStatement(env,session,orderId,'created','Pesanan dibuat',session.demo?'Pesanan demo. Tidak ada transaksi uang nyata.':'','customer'),auditStatement(env,{...session,role:'customer'},'order.created',orderId,number));
   try { await env.DB.batch(statements); }
   catch (error) {
-    // A retried request may reach D1 concurrently with the first request.
+    // A retried request may reach the database concurrently with the first request.
     const existing=await q(env,'SELECT * FROM orders WHERE scope=? AND session_id=? AND idempotency_key=?',session.scope,session.tokenHash,key).first<Row>();
     if (existing && existing.request_hash===requestHash) return orderFrom(env,existing);
     const message=String(error); if (/stock|CHECK|PRICE_CHANGED|UNAVAILABLE|EXPIRED|POINTS_/i.test(message)) fail(409,'CART_CHANGED','Stok, harga, atau promo berubah. Periksa keranjang dan coba lagi.'); throw error;
@@ -106,7 +106,7 @@ export async function rawOrder(env: Env,session: Session,orderId:string,internal
   const row=await q(env,`SELECT * FROM orders WHERE scope=? AND id=? ${internal?'':'AND session_id=?'}`,session.scope,orderId,...(internal?[]:[session.tokenHash])).first<Row>();
   if (!row) fail(404,'ORDER_NOT_FOUND','Pesanan tidak ditemukan.'); return row;
 }
-export async function mutateOrder(env:Env,session:Session,row:Row,changes:Row,action:string,label:string,note='',actor:string=session.role,extras:D1Statement[]=[]) {
+export async function mutateOrder(env:Env,session:Session,row:Row,changes:Row,action:string,label:string,note='',actor:string=session.role,extras:SqlStatement[]=[]) {
   const allowed=new Set(['status','payment_status','return_status','payment_reference','carrier','tracking_number','return_reason','payment_url','stock_restored','coupon_released','gateway_refund_requested','expires_at']);
   for(const key of Object.keys(changes)) if(!allowed.has(key)) throw new Error(`Unknown internal order field ${key}`);
   const keys=Object.keys(changes); const operationId=id();

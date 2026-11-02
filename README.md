@@ -37,7 +37,7 @@ pnpm dev:school
 pnpm dev:booking
 ```
 
-Commerce berjalan di `http://127.0.0.1:5174` dengan API lokal pada port `8787`. Perintah dev menyiapkan migrasi D1 lokal. Cafe demo berjalan di `http://127.0.0.1:4173`. School dan booking sama-sama memakai port 5176 secara default, jadi jalankan bergantian. Lihat README masing-masing untuk konfigurasi dan batasannya.
+Commerce berjalan di `http://127.0.0.1:5174` dengan API lokal pada port `8787`. Perintah dev menyiapkan SQLite lokal. Cafe demo berjalan di `http://127.0.0.1:4173`. School dan booking sama-sama memakai port 5176 secara default, jadi jalankan bergantian. Lihat README masing-masing untuk konfigurasi dan batasannya.
 
 ## Satu CLI
 
@@ -114,7 +114,7 @@ Empat layout commerce punya susunan yang berbeda: editorial membuka dengan foto 
 | `packages/shared-utils` | Format rupiah, slug, dan bantuan tampilan |
 | `packages/config` | Aturan TypeScript bersama |
 | `templates/cafe` | Source cafe lengkap beserta semua tes dan demo lama |
-| `templates/commerce` | Storefront, staf, Worker, D1, dan tes commerce |
+| `templates/commerce` | Storefront, staf, Worker, Turso, dan tes commerce |
 | `templates/school` | Situs pendidikan, pendaftaran, dan ruang belajar |
 | `templates/booking` | Pemesanan layanan dan ruang staf |
 | `templates/dashboard` | Rencana; belum ditawarkan CLI |
@@ -142,7 +142,7 @@ pnpm build:cafe
 
 ## Deploy
 
-Commerce memakai Cloudflare Worker dan D1. `wrangler.jsonc` adalah konfigurasi proyek baru dengan ID database kosong dan `DEMO_MODE=false`. `wrangler.demo.jsonc` khusus demo Tampiloka dan tidak ikut proyek klien. Siapkan D1, terapkan migrasi, simpan rahasia staf/gateway dengan Wrangler, lalu deploy. Perintah lengkap ada di [README commerce](templates/commerce/README.md).
+Cloudflare Workers menjalankan Commerce, School, dan Booking. Tiap demo memakai satu database Turso libSQL. Proyek klien memakai database milik klien dan `DEMO_MODE=false`. Jalankan migrasi dengan URL dan token khusus database di lingkungan server. Development lokal dan tes memakai SQLite. Lihat [panduan pemindahan data dan rilis](docs/turso-cutover.md).
 
 Cafe tetap memakai proyek Pages dan domain demo yang sudah ada. Konfigurasi build setelah migrasi harus menunjuk `templates/cafe` atau menjalankan `pnpm build:cafe` dari root. Hasilnya berada di `templates/cafe/dist-demos`.
 
@@ -160,7 +160,7 @@ Jangan memindahkan aturan bisnis cafe ke paket global untuk dipakai commerce. Ba
 
 Perubahan sumber demo di `main` memicu `.github/workflows/release-demos.yml` untuk menguji, membangun, lalu menerbitkan Cafe Pages serta Worker commerce, school, dan booking. Setiap rilis mencatat identitas build dan bukti pengujian alur pelanggan/staf di alamat publik. Galeri dimiliki repository marketing; katalog diterbitkan terpisah melalui `.github/workflows/publish-catalog.yml` setelah [bukti rilis](docs/catalog-release-evidence.md) cocok. Workflow rilis juga dapat dijalankan manual dari `main`.
 
-Workflow rilis membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang menerbitkan Worker dan project Pages terkait. Migrasi D1 tetap diterapkan terpisah. Kegagalan bukti rilis mempertahankan entri katalog keluarga tersebut dari rilis sebelumnya. Saat mengadopsi workflow ini, nonaktifkan deployment Git otomatis Cafe dari repository lama agar tidak menimpa build yang sudah diverifikasi.
+Workflow rilis membutuhkan repository secrets `CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN` yang berwenang menerbitkan Worker dan project Pages terkait. Simpan tiga token database dalam `TURSO_BOOKING_AUTH_TOKEN`, `TURSO_COMMERCE_AUTH_TOKEN`, dan `TURSO_SCHOOL_AUTH_TOKEN`. Rilis memeriksa skema Turso dan riwayat migrasi sebelum mengganti Worker. Kegagalan bukti rilis mempertahankan entri katalog keluarga tersebut dari rilis sebelumnya. Saat mengadopsi workflow ini, nonaktifkan deployment Git otomatis Cafe dari repository lama agar tidak menimpa build yang sudah diverifikasi.
 
 ## School & Learning Center
 

@@ -8,9 +8,9 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 | --- | --- |
 | `templates/cafe` | Next.js cafe ordering + staff/POS template. Tailwind v4, Radix, `motion`. |
 | `templates/commerce` | Vite + Cloudflare Worker storefront and staff workspace. Plain CSS + shadcn (Radix) wrappers. |
-| `templates/school` | React/Vite + Worker/D1 education, admissions and learning workspace. |
+| `templates/school` | React/Vite + Worker/Turso education, admissions and learning workspace. |
 | `templates/dashboard` | Planned; not offered by the CLI. |
-| `templates/booking` | Vite + Worker/D1 appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
+| `templates/booking` | Vite + Worker/Turso appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
 | `packages/theme-engine` | Commerce palettes (`sand`, `ink`, `forest`), layouts, `brandVariables()`. |
 | `packages/ui-core` | Shared `Button`, `Input`, `NativeSelect`, `Textarea`, `Dialog`, `MotionProvider` (`.tl-*` classes). |
 | `packages/cli`, `packages/registry` | Project generator and template registry. Palette/theme IDs here are a public contract. |
@@ -215,7 +215,7 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## School template
 
-`templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
+`templates/school` uses React/Vite + Worker/Turso, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
 
 ## CI and deployment maintenance
 

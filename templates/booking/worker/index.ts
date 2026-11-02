@@ -1,3 +1,4 @@
+import { createTursoDatabase } from "@tampiloka/shared-utils/turso";
 import { capabilities } from "../src/domain/model.ts";
 import { adapters } from "../src/domain/adapters.ts";
 import {
@@ -298,27 +299,31 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
     });
   return fail(404, "NOT_FOUND", "API route not found.");
 }
+type Bindings = Omit<Env, "DB"> & { TURSO_DATABASE_URL?: string; TURSO_AUTH_TOKEN?: string };
+
+export const assetHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+};
+
+async function serveAssets(request: Request, env: Pick<Env, "ASSETS">) {
+  if (!env.ASSETS)
+    return new Response(
+      "Booking API: start the frontend to open the website.",
+      { status: 404 },
+    );
+  const source = await env.ASSETS.fetch(request),
+    response = new Response(source.body, source);
+  for (const [name, value] of Object.entries(assetHeaders)) response.headers.set(name, value);
+  return response;
+}
 export async function handleRequest(
   request: Request,
   env: Env,
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (!url.pathname.startsWith("/api/")) {
-    if (!env.ASSETS)
-      return new Response(
-        "Booking API: start the frontend to open the website.",
-        { status: 404 },
-      );
-    const source = await env.ASSETS.fetch(request),
-      response = new Response(source.body, source);
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "no-referrer");
-    response.headers.set(
-      "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
-    );
-    return response;
-  }
+  if (!url.pathname.startsWith("/api/")) return serveAssets(request, env);
   const requestId = uid();
   let s: Session | undefined;
   try {
@@ -404,8 +409,13 @@ export async function cleanup(env: Env) {
   ]);
 }
 export default {
-  fetch: handleRequest,
-  async scheduled(_controller: unknown, env: Env) {
-    await cleanup(env);
+  fetch(request: Request, bindings: Bindings) {
+    if (!new URL(request.url).pathname.startsWith("/api/")) return serveAssets(request, bindings);
+    if (!bindings.TURSO_DATABASE_URL || !bindings.TURSO_AUTH_TOKEN)
+      return json({error: {code: "DATABASE_NOT_CONFIGURED", message: "Configure the Turso database credentials."}}, 503);
+    return handleRequest(request, { ...bindings, DB: createTursoDatabase(bindings) });
+  },
+  async scheduled(_controller: unknown, bindings: Bindings) {
+    await cleanup({ ...bindings, DB: createTursoDatabase(bindings) });
   },
 };

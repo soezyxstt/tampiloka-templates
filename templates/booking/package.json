@@ -14,12 +14,13 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:e2e": "node tests/browser.mjs",
-    "db:migrate": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:migrate": "node scripts/sqlite.mjs",
+    "db:migrate:remote": "tampiloka-db migrate",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:demo": "pnpm build:demo && wrangler deploy --config wrangler.demo.jsonc"
   },
   "dependencies": {
+    "@tampiloka/shared-utils": "workspace:*",
     "@fontsource/manrope": "5.3.0",
     "@radix-ui/react-collapsible": "1.2.1",
     "@radix-ui/react-select": "2.4.1",

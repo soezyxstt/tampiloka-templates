@@ -1,16 +1,64 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
+import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-process.chdir(fileURLToPath(new URL('..', import.meta.url)));
-const wrangler = fileURLToPath(new URL('./bin/wrangler.js', import.meta.resolve('wrangler/package.json')));
-const vite = fileURLToPath(new URL('./bin/vite.js', import.meta.resolve('vite/package.json')));
-const migrated = spawnSync(process.execPath, [wrangler, 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', '.data'], { stdio: 'inherit' });
-if (migrated.status !== 0) process.exit(migrated.status || 1);
-const children = [
-  spawn(process.execPath, [wrangler, 'dev', '--local', '--port', '8787', '--persist-to', '.data', '--var', 'DEMO_MODE:true'], { stdio: 'inherit' }),
-  spawn(process.execPath, [vite, '--host', '127.0.0.1', '--port', '5174'], { stdio: 'inherit' }),
-];
-let closing = false;
-function stop(code = 0) { if (closing) return; closing = true; for (const child of children) child.kill('SIGTERM'); setTimeout(() => process.exit(code), 150).unref(); }
-for (const child of children) child.on('exit', code => { if (!closing) stop(code || 0); });
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => stop());
-console.log('\nCommerce: http://127.0.0.1:5174 (API: http://127.0.0.1:8787)');
+import { LocalDatabase } from './local-database.mjs';
+import { handleRequest } from '../worker/index.ts';
+
+export async function startLocalCommerce(mode) {
+  process.chdir(fileURLToPath(new URL('..', import.meta.url)));
+  mkdirSync('.data', { recursive: true });
+  const db = new LocalDatabase('.data/commerce.sqlite');
+  if (mode === 'migrate') {
+    db.close();
+    return;
+  }
+  const env = { DB: db, DEMO_MODE: 'true' };
+  const api = createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      if (!url.pathname.startsWith('/api/')) {
+        res.writeHead(404).end();
+        return;
+      }
+      const request = new Request(url, {
+        method: req.method, headers: req.headers,
+        ...(['GET', 'HEAD'].includes(req.method) ? {} : { body: req, duplex: 'half' }),
+      });
+      const response = await handleRequest(request, env);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(Buffer.from(await response.arrayBuffer()));
+    } catch {
+      res.writeHead(500).end();
+    }
+  });
+  let web;
+  const finish = async () => {
+    await web?.close();
+    api.close(() => db.close());
+  };
+  try {
+    await new Promise((resolve, reject) => {
+      api.once('error', reject);
+      api.listen(Number(process.env.COMMERCE_API_PORT ?? (mode === 'preview' ? 0 : 8787)), '127.0.0.1', resolve);
+    });
+    const target = `http://127.0.0.1:${api.address().port}`;
+    console.log(`Commerce API: ${target}`);
+    if (mode !== 'api') {
+      const { createServer, preview } = await import('vite');
+      const proxy = { '/api': { target, changeOrigin: false } };
+      if (mode === 'preview') {
+        web = await preview({ preview: { proxy } });
+      } else {
+        web = await createServer({ server: { proxy } });
+        await web.listen();
+      }
+      web.printUrls();
+    }
+    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, finish);
+  } catch (error) {
+    await finish();
+    throw error;
+  }
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) await startLocalCommerce(process.argv[2] || 'dev');

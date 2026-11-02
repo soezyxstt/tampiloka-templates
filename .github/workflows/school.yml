@@ -5,6 +5,7 @@ on:
     paths:
       - 'templates/school/**'
       - 'packages/ui-core/**'
+      - 'packages/shared-utils/**'
       - 'packages/cli/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'templates/school/**'
       - 'packages/ui-core/**'
+      - 'packages/shared-utils/**'
       - 'packages/cli/**'
       - 'packages/registry/**'
       - 'package.json'

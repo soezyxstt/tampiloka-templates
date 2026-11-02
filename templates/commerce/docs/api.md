@@ -1,6 +1,6 @@
 # Commerce backend
 
-The commerce template uses one Cloudflare Worker and one D1 database. The Worker serves `/api/*`; static frontend assets use the `ASSETS` binding. `worker/index.ts` exports the fetch handler, scheduled cleanup handler, and `Env` type. The typed frontend contract lives in `src/shared/contracts.ts`.
+The commerce template uses one Cloudflare Worker and one Turso database. The Worker serves `/api/*`; static frontend assets use the `ASSETS` binding. `worker/index.ts` exports the fetch handler, scheduled cleanup handler, and `Env` type. The typed frontend contract lives in `src/shared/contracts.ts`.
 
 Rupa is a fictional store. The checked-in products, prices, bank details, delivery fees, and contacts are examples. The deployed demo does not accept real payments. Root configuration and client generation live outside this backend directory.
 
@@ -23,7 +23,8 @@ These are server gates, not only hidden buttons. Production reads its level from
 
 | Setting | Purpose |
 | --- | --- |
-| `DB` | Required D1 binding; apply `migrations/0001_commerce.sql` before serving the API |
+| `TURSO_DATABASE_URL` | URL of the store database |
+| `TURSO_AUTH_TOKEN` | Server-only read/write token for that database |
 | `ASSETS` | Optional static-asset fetch binding; use the built Vite assets |
 | `DEMO_MODE` | Only the exact string `true` enables isolated public demo scopes |
 | `COMMERCE_LEVEL` | Optional deployment override: `catalog`, `whatsapp`, `store`, `advanced` |
@@ -43,9 +44,9 @@ Manual transfers remain unavailable in production while the bank account is empt
 
 ## Sessions and authorization
 
-`GET /api/bootstrap` creates an opaque random session cookie when needed. The cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. Only its SHA-256 hash is stored in D1. Customer session lifetime is 30 days; isolated demo sessions last seven days. Staff login rotates the token and shortens its lifetime to eight hours.
+`GET /api/bootstrap` creates an opaque random session cookie when needed. The cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. Only its SHA-256 hash is stored in Turso. Customer session lifetime is 30 days; isolated demo sessions last seven days. Staff login rotates the token and shortens its lifetime to eight hours.
 
-Every demo visitor receives a separate D1 scope and can use its buyer and staff views. Demo staff access is intentionally open within that scope. Query parameters and caller-supplied scope headers never select another visitor's database scope. Production uses one store scope, with a separate customer session per visitor.
+Every demo visitor receives a separate store scope and can use its buyer and staff views. Demo staff access is intentionally open within that scope. Query parameters and caller-supplied scope headers never select another visitor's database scope. Production uses one store scope, with a separate customer session per visitor.
 
 Production staff roles:
 
@@ -118,7 +119,7 @@ Demo-only routes: `POST /api/demo/config { level?, preset? }`, `POST /api/demo/r
 }
 ```
 
-The quote also includes `taxAmount`, `taxIncluded`, `serviceFee`, `pointsRedeemed`, and `pointsDiscount`. New orders snapshot the same values. Tax/fees default to zero and are off unless the module is enabled. See [optional-modules.md](optional-modules.md) for tax bases, point redemption, and the additive D1 migration.
+The quote also includes `taxAmount`, `taxIncluded`, `serviceFee`, `pointsRedeemed`, and `pointsDiscount`. New orders snapshot the same values. Tax/fees default to zero and are off unless the module is enabled. See [optional-modules.md](optional-modules.md) for tax bases, point redemption, and the SQL migrations.
 
 Money uses integer IDR. The server ignores submitted prices and totals other than `expectedTotal`, which acts as a buyer acceptance check. If the computed total differs, checkout returns `409 PRICE_CHANGED`. The server combines repeated variant lines, checks stock, validates quantities, checks the coupon and shipping method, and validates required recipient data.
 
@@ -126,7 +127,7 @@ Reusing the same idempotency key with the same payload returns the original orde
 
 ## Inventory and state transitions
 
-Order creation, item snapshots, stock reservation, coupon usage, and audit records share one D1 batch transaction. SQLite triggers verify active products and current variant prices before reserving stock. Nonnegative stock and coupon-use constraints make concurrent overselling or over-redemption roll the whole batch back. Failed multi-line orders leave no partial reservation.
+Order creation, item snapshots, stock reservation, coupon usage, and audit records share one Turso transaction. SQLite triggers verify active products and current variant prices before reserving stock. Nonnegative stock and coupon-use constraints make concurrent overselling or over-redemption roll the whole batch back. Failed multi-line orders leave no partial reservation.
 
 Product edits never overwrite existing variant stock. Use the signed `delta` inventory endpoint with a reason. Variant IDs used by historical orders remain stable. Cancel or returned-stock transitions restore stock once through a database guard, even after repeated requests. Order transitions use version checks so stale concurrent updates fail instead of overwriting each other.
 
@@ -151,7 +152,7 @@ The transfer proof is a **text reference**, not a fake upload. The template does
 
 ## Cross-device tracking
 
-A newly created order returns a random 128-bit access code once. D1 stores only its SHA-256 hash. A buyer who still owns the cookie session can rotate the code; the old code stops working. Another device submits the number and code to the tracking endpoint, which returns that order only. It does not sign that device into the buyer account, reveal other orders, or grant cancellation/payment/return actions. The interface labels this read-only view.
+A newly created order returns a random 128-bit access code once. Turso stores only its SHA-256 hash. A buyer who still owns the cookie session can rotate the code; the old code stops working. Another device submits the number and code to the tracking endpoint, which returns that order only. It does not sign that device into the buyer account, reveal other orders, or grant cancellation/payment/return actions. The interface labels this read-only view.
 
 Tracking is limited to 10 requests per IP per 15 minutes. A phone number alone never authenticates order access. Treat the full code as private because order details contain recipient data.
 
@@ -165,8 +166,7 @@ Payment events are idempotent. A delayed pending event cannot regress a paid/ref
 
 Official references used for implementation:
 
-- [Cloudflare D1 transactions and batch](https://developers.cloudflare.com/d1/worker-api/d1-database/)
-- [Cloudflare prepared statements](https://developers.cloudflare.com/d1/worker-api/prepared-statements/)
+- [Turso SQL over HTTP](https://docs.turso.tech/sdk/http/reference)
 - [Midtrans backend integration](https://docs.midtrans.com/reference/backend-integration)
 - [Midtrans webhook signature and settlement rules](https://docs.midtrans.com/docs/https-notification-webhooks)
 - [Midtrans GET transaction status](https://docs.midtrans.com/reference/get-transaction-status)
@@ -188,7 +188,7 @@ Run the actual SQL/domain tests on Node 22.18+ or Node 24:
 node --experimental-strip-types --test --test-isolation=none tests/backend.test.mjs
 ```
 
-The harness implements the D1 interface over Node's SQLite engine. It executes the migration, triggers, transactions, and Worker routes. It does not replace order calculations or authorization with mock responses. The 27 tests cover scope privacy, auth and role gates, cross-origin rejection, feature gates, idempotency and attempt recovery, concurrent overselling, multi-line rollback, coupon limits, expected totals, manual/COD lifecycle, returns/refunds, gateway signatures/status/amount/replay/failure, expired-session cleanup, CSV injection, tracking-code rotation/throttling, full-store totals beyond 250 orders, changed shipping fees, and filtered archive pagination across more than 250 orders.
+The harness runs the Worker against Node’s SQLite engine. It executes the migration, triggers, transactions, and Worker routes. It does not replace order calculations or authorization with mock responses. The 27 tests cover scope privacy, auth and role gates, cross-origin rejection, feature gates, idempotency and attempt recovery, concurrent overselling, multi-line rollback, coupon limits, expected totals, manual/COD lifecycle, returns/refunds, gateway signatures/status/amount/replay/failure, expired-session cleanup, CSV injection, tracking-code rotation/throttling, full-store totals beyond 250 orders, changed shipping fees, and filtered archive pagination across more than 250 orders.
 
 Run a newly deployed **demo** through the live API:
 

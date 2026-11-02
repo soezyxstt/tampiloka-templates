@@ -10,7 +10,7 @@ A small typed content layer supplies collection-like validation, references, own
 
 ## Persistence
 
-D1/SQLite migration `0001_booking.sql` creates business scopes, settings, typed content entities, customers, bookings, booking events, resource units, allocations, blackouts, access grants, payments, payment events, refunds, tickets, notification jobs, rate limits and mutation guards. `BookingItem` is an immutable snapshot in the booking row; packages are one service with a combined duration and price, not multiple independent bookings. Categories, locations, services and practitioners/resources use validated typed records in `entities`.
+SQLite migration `0001_booking.sql` creates business scopes, settings, typed content entities, customers, bookings, booking events, resource units, allocations, blackouts, access grants, payments, payment events, refunds, tickets, notification jobs, rate limits and mutation guards. `BookingItem` is an immutable snapshot in the booking row; packages are one service with a combined duration and price, not multiple independent bookings. Categories, locations, services and practitioners/resources use validated typed records in `entities`.
 
 All queries bind values. Scopes form part of data lookups and constraints. Prices, service names, durations, customer details and cancellation rules are snapshotted at creation so a later CMS edit does not silently alter an existing commitment. UTC milliseconds persist instants; each appointment also stores its IANA timezone. Operating hours use local weekday/minutes.
 
@@ -20,13 +20,13 @@ Client settings/content seed only an empty database. Afterwards, the staff CMS o
 
 Availability is advisory until the booking transaction commits. It intersects service duration/buffers, location hours, practitioner/resource hours, time off, service capacity, location capacity and required physical resources. Medical uses a practitioner; beauty uses a therapist and room; detailing uses a bay and vehicle-adjusted duration; on-site consulting adds a room, while remote consulting does not.
 
-Every occupied five-minute interval creates allocation rows. Their primary key is `(scope, resource, unit, tick)`. A request allocates all required resources plus virtual service/location capacity in one D1 batch. Any collision aborts the batch, including the booking and customer writes. There is no process-local lock and no dependence on a particular Worker instance.
+Every occupied five-minute interval creates allocation rows. Their primary key is `(scope, resource, unit, tick)`. A request allocates all required resources plus virtual service/location capacity in one Turso transaction. Any collision aborts the batch, including the booking and customer writes. There is no process-local lock and no dependence on a particular Worker instance.
 
 A scope revision serializes new bookings/reschedules against schedule and capacity edits. Conditional updates use a SQL `CHECK` guard based on `changes()` so a lost compare-and-swap aborts the **whole** batch, including events. Booking writes have bounded retries; a slot that remains occupied returns a conflict. Rescheduling deletes old allocations and creates new ones in the same transaction: a failure leaves the old reservation intact.
 
 Terminal state triggers release allocations and revoke tickets. Expiration runs during relevant requests and the scheduled cleanup. A late verified payment does not revive an expired/cancelled appointment; it records a refund liability.
 
-D1 batch transaction semantics: https://developers.cloudflare.com/d1/worker-api/d1-database/
+The Worker sends each batch to Turso over HTTP. All statements share one transaction, so conditional writes and the following `changes()` guard see the same connection.
 
 ## Access and permissions
 

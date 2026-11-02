@@ -2,12 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { environment, client, create, orderInput, scopeFor } from './backend-harness.mjs';
-import { cleanup } from '../worker/index.ts';
+import worker, { cleanup } from '../worker/index.ts';
 import { digest } from '../worker/security.ts';
 
 function fixture(t,overrides) { const env=environment(overrides);t.after(()=>env.DB.close());return {env,c:client(env)}; }
 const action=(c,id,action,extra={})=>c.post(`/api/staff/orders/${id}/actions`,{action,...extra});
 const customerAction=(c,id,action,extra={})=>c.post(`/api/orders/${id}/actions`,{action,...extra});
+
+test('hosted Worker serves assets and rejects API calls if Turso secrets are missing', async () => {
+  const env = { ASSETS: { fetch: () => new Response('storefront') } };
+  assert.equal(await (await worker.fetch(new Request('https://commerce.test/'), env)).text(), 'storefront');
+  const response = await worker.fetch(new Request('https://commerce.test/api/health'), env);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error.code, 'DATABASE_NOT_CONFIGURED');
+});
 
 test('demo session is durable, HttpOnly, secure, isolated and cannot spoof a scope',async t=>{
   const {env,c}=fixture(t);const first=await c.get('/api/bootstrap');assert.equal(first.status,200);assert.match(first.headers.get('set-cookie'),/HttpOnly/);assert.match(first.headers.get('set-cookie'),/Secure/);assert.equal(first.data.config.brand.whatsapp,'');assert.equal(first.data.products.length,8);
@@ -34,7 +42,7 @@ test('parallel customers cannot oversell the last stock',async t=>{
 
 test('multi-line checkout rolls back earlier reservations if a later line loses stock',async t=>{
   const {env,c}=fixture(t);await c.get('/api/bootstrap');const scope=await scopeFor(env,c);
-  env.DB.beforeBatch=statements=>{if(statements.some(s=>s._sql.startsWith('INSERT INTO orders'))){env.DB.beforeBatch=null;env.DB.db.prepare('UPDATE variants SET stock=0 WHERE scope=? AND id=?').run(scope,'linen-shirt-m');}};
+  env.DB.beforeBatch=statements=>{if(statements.some(s=>s.sql.startsWith('INSERT INTO orders'))){env.DB.beforeBatch=null;env.DB.db.prepare('UPDATE variants SET stock=0 WHERE scope=? AND id=?').run(scope,'linen-shirt-m');}};
   const result=await c.post('/api/orders',orderInput({items:[{variantId:'everyday-tee-m',quantity:2},{variantId:'linen-shirt-m',quantity:1}]}));assert.equal(result.status,409);
   assert.equal(env.DB.db.prepare('SELECT stock FROM variants WHERE scope=? AND id=?').get(scope,'everyday-tee-m').stock,20);assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM orders').get().n,0);assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM inventory_movements').get().n,0);
 });

@@ -47,7 +47,7 @@ Assignments, quizzes, certificates, trial booking and recurring billing are not 
 
 ## Storage, payments and identity adapters
 
-`Store` defines atomic mutation semantics over D1. `scripts/sqlite.mjs` adapts SQLite for local tests. Replace storage only with an adapter that passes the concurrency and retry tests.
+`Store` defines atomic mutation semantics on Turso. `scripts/sqlite.mjs` adapts SQLite for local tests. Replace storage only with an adapter that passes the concurrency and retry tests.
 
 A new payment provider should create payments outside transactions, use unique order IDs, verify signatures and canonical status server-side, and call `applyPayment` inside a successful atomic mutation. Keep immutable invoices and separate payment states.
 

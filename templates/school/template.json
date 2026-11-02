@@ -29,6 +29,7 @@
     "burgundy"
   ],
   "sharedPackages": [
-    "ui-core"
+    "ui-core",
+    "shared-utils"
   ]
 }

@@ -27,6 +27,14 @@ export interface Env {
     NOTIFICATION_SECRET?: string;
     CONFIG?: SchoolConfig;
 }
+function storageLimit(error: unknown) {
+    // libSQL wraps HTTP failures in a LibsqlError and keeps the status on its cause.
+    for (let cause = error; cause instanceof Error; cause = cause.cause) {
+        if ('code' in cause && cause.code === 'SQLITE_FULL') return true;
+        if ('status' in cause && (cause.status === 429 || cause.status === 507)) return true;
+    }
+    return false;
+}
 const response = (data: unknown, status = 200, cookies: string[] = []) => { const headers = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); for (const c of cookies)
     headers.append('Set-Cookie', c); return new Response(JSON.stringify(data), { status, headers }); };
 const email = (v: unknown) => { const e = text(v, 200).toLowerCase(); check(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e), 'invalid_email'); return e; };
@@ -146,8 +154,12 @@ export async function handle(request: Request, env: Env, execution?: {
             throw new DomainError('method_not_allowed', 405);
         if (request.method === 'POST')
             csrf(request);
-        if (path === '/api/health')
+        if (path === '/api/health') {
+            await env.DB.prepare(`SELECT s.revision, s.data, u.user_id, v.token_hash, l.count, p.order_id
+                FROM school_state s LEFT JOIN school_sessions u ON 0 LEFT JOIN school_visitors v ON 0
+                LEFT JOIN school_limits l ON 0 LEFT JOIN school_payment_routes p ON 0 LIMIT 0`).first();
             return response({ ok: true, template: 'school' });
+        }
         const { store, config, preset, cookies, ctx } = await context(request, env);
         if (request.method === 'GET' && path === '/api/bootstrap')
             return response({ ...snapshot((await store.load()).state, ctx, preset), paymentProvider: config.payment.provider }, 200, cookies);
@@ -341,8 +353,8 @@ export async function handle(request: Request, env: Env, execution?: {
         throw new DomainError('not_found', 404);
     }
     catch (error) {
-        const capacity = error instanceof Error && /D1.*exceeded.*(?:daily|limit)|D1.*free tier.*limit/i.test(error.message);
-        if (!(error instanceof DomainError)) console.error('school_internal_error', { name: error instanceof Error ? error.name : 'UnknownError', reason: capacity ? 'd1_capacity_exceeded' : 'unexpected', frames: error instanceof Error ? error.stack?.split('\n').slice(1, 4) : [] });
+        const capacity = storageLimit(error);
+        if (!(error instanceof DomainError)) console.error('school_internal_error', { name: error instanceof Error ? error.name : 'UnknownError', reason: capacity ? 'storage_capacity_exceeded' : 'unexpected', frames: error instanceof Error ? error.stack?.split('\n').slice(1, 4) : [] });
         const e = error instanceof DomainError ? error : new DomainError(capacity ? 'storage_capacity_exceeded' : 'internal_error', capacity ? 503 : 500);
         const result = response({ error: e.code }, e.status);
         if (capacity) result.headers.set('Retry-After', '3600');

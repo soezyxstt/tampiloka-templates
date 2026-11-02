@@ -318,7 +318,7 @@ export async function bootstrap(
       s.demo || Boolean(env.TICKET_SECRET && env.TICKET_SECRET.length >= 32),
   };
 }
-/** Abort the whole D1 batch when a conditional mutation affected no row. */
+/** Abort the whole SQL transaction when a conditional mutation affected no row. */
 export function changedGuard(env: Env): Statement[] {
   const key = uid();
   return [

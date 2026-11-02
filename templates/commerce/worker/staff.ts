@@ -1,5 +1,5 @@
 import type { Coupon, Product, StaffSnapshot, StoreConfig } from '../src/shared/contracts.ts';
-import type { D1Statement, Env, Row, Session } from './types.ts';
+import type { SqlStatement, Env, Row, Session } from './types.ts';
 import { all, auditStatement, configFor, couponFrom, ordersFrom, productsFor, q, reviewsFor, wishlistFor } from './db.ts';
 import { capabilities, fail, featureKeys, id, integer, now, requireFeature, staff, text, validateModules } from './security.ts';
 
@@ -52,7 +52,7 @@ export async function saveProduct(env:Env,session:Session,productId:string|null,
   const compareAt=candidate.compareAtPrice==null?null:integer(candidate.compareAtPrice,'Harga pembanding',price,100_000_000);
   const variants=candidate.variants||[{id:`${pid}-default`,name:'Standar',sku:pid.toUpperCase(),price,stock:0,options:{}}];
   if(!Array.isArray(variants)||variants.length<1||variants.length>30) fail(422,'INVALID_VARIANTS','Gunakan 1 hingga 30 varian.');
-  const ids=new Set<string>(); const stmts:D1Statement[]=[];
+  const ids=new Set<string>(); const stmts:SqlStatement[]=[];
   const normalized=variants.map((v:Row)=>{
     const vid=text(v.id||`${pid}-${id().slice(0,6)}`,'ID varian',100,true);if(!/^[a-z0-9][a-z0-9_-]{0,99}$/.test(vid)||ids.has(vid)) fail(422,'INVALID_VARIANT','ID varian tidak valid atau berulang.');ids.add(vid);
     const old=existing?.variants.find(x=>x.id===vid); const stock=integer(v.stock??old?.stock??0,'Stok',0,1_000_000);
