@@ -82,6 +82,7 @@ export interface Business {
   whatsapp: string;
   heroImage: string;
   heroAlt: Localized;
+  visitPhoto?: { image: string; alt: Localized };
   address: string;
   example: boolean;
   faqs: { question: Localized; answer: Localized }[];

@@ -213,6 +213,12 @@ Check customer views at 360px, 390px, and a desktop width (1280 to 1440px), plus
 
 Run design-token lint, affected template typechecks, catalog validation/tests, and the existing affected browser suites. Update obsolete selectors when controls change, while retaining their behavioral assertions. Record the actual checks and any blocked checks; a build alone does not prove visual or interaction quality. Update this file and the relevant template design docs whenever the shared contract changes.
 
+### Photography in public demos
+
+- Choose photos that help a visitor decide. Show the treatment or service in Booking, the learning activity in School, and the actual item and its details in Commerce. Give each preset a suitable opening image that also works on a phone.
+- Keep sample media editable, document the source and license, and store optimized files with the template. Treat people in stock photos as illustrations. Preserve client-supplied images when refreshing demo content.
+- Check the opening, catalog and detail view with real images at phone and desktop widths. Refresh the 1280 × 800 gallery covers from the running demo after a visual change.
+
 ## School template
 
 `templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
@@ -229,6 +235,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-11-02**: Added service, course and product photography to Booking, School and Commerce and refreshed their public gallery covers.
 
 - **2026-11-01**: Made cross-family component, motion and bilingual hidden-state parity explicit; shared dialog close targets now use centered 44px controls and disabled fields share the disabled treatment.
 

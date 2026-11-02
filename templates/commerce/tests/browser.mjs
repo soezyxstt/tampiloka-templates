@@ -227,7 +227,7 @@ try {
 
   step = 'demo-gateway';
   await page.getByRole('button', { name: 'Pembeli', exact: true }).click();
-  await addProduct('Cangkir Pagi', 'Pasir');
+  await addProduct('Cangkir Pagi', 'Putih');
   const gatewayOrder = await checkout({ payment: 'midtrans', pickup: true });
   const paymentResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/demo/payment');
   await page.getByRole('button', { name: 'Bayar berhasil', exact: true }).click();

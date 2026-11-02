@@ -10,10 +10,10 @@ The public toolbar uses `DemoToolbarShell` and imports `@tampiloka/ui-core/demo.
 
 | Layout | Desktop | Mobile |
 | --- | --- | --- |
-| `appointment-first` | Split introduction and appointment selector, supporting practitioner directory below. Compact horizontal navigation. | Introduction and selector stack; a labeled menu replaces wide navigation. Booking remains a direct action. |
-| `editorial` | Centered wordmark/navigation, wide photography, large service titles and alternating image/text rows. | Shorter photography, stacked treatment rows and a full-width booking action. |
-| `service-market` | Search and sorting beside the title, category sidebar and a denser comparison grid. | Categories move into a horizontal strip; service rows retain duration, price and action without page overflow. |
-| `minimal-professional` | Restrained navigation, narrow business-information rail, large text and practitioner-led rows. | Information and profiles stack. Keep one clear service action rather than adding a large photographic hero. |
+| `appointment-first` | Consultation photo and appointment selector, followed by pictured services and the practitioner directory. Compact horizontal navigation. | Introduction, compact photo and selector stack; a labeled menu replaces wide navigation. Booking remains a direct action. |
+| `editorial` | Centered wordmark and navigation, split photographic opening, alternating treatment and text rows. | Shorter photography, stacked treatment rows and a full-width booking action. |
+| `service-market` | Search beside a workshop photo, then a category sidebar and service comparison grid. | Categories move into a horizontal strip; service rows retain duration, price and action without page overflow. |
+| `minimal-professional` | Narrow information rail, meeting photo beside the introduction, service index and team directory. | Introduction and service link lead, followed by the meeting photo, pictured service list and team. |
 
 Business presets do not lock layouts. Medical in Editorial retains its practitioner form and allocation rules. Aesthetic in Catalog removes online booking on the server; it does not merely hide a payment button.
 
@@ -45,7 +45,9 @@ Run the design guard, typecheck, domain tests and browser suite. Check 360, 390,
 
 Preview files under `public/demo-previews/` are real 1280x800 browser captures. Verify live responses and dimensions before publishing catalog entries. Geometry checks do not replace visual review of native fields, image crops, spacing and hierarchy.
 
-Photo sources/checksums are in `public/images/manifest.json`. Images illustrate categories, not the identity or endorsement of fictional practitioners. Prefer client-owned photos at launch.
+Each preset has six local service photographs. A service keeps the same picture in its catalogue, detail page and booking summary. The main photograph introduces the business and the location page shows the venue. Staff can edit both in Settings and replace each service photo in Content. The CLI keeps only files for the selected preset.
+
+WF-14 (Care appointment) informed the clinic’s visible appointment selector. OPEN-10 (Destination and booking overlay) informed the prominence of the setting. Keep the form separate from the photo so its contrast and controls work across crops. Show contextual stock photos of visits, work and facilities. Keep fictional staff names separate from identifiable stock portraits. Each asset has a source URL, licence and checksum in `public/images/manifest.json`.
 
 ## Interaction decisions
 

@@ -1,9 +1,188 @@
 {
-  "notice": "Illustrative Unsplash photography. Fictional institution and people. Replace for each client and review image rights before launch.",
+  "notice": "Illustrative photography of learning activities at fictional institutions. The photos do not identify named staff or students. Replace with client-approved photos when available.",
   "files": {
     "classroom.jpg": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=82",
     "library.jpg": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=82",
     "workshop.jpg": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=82",
     "teacher.jpg": "https://images.unsplash.com/photo-1580894908361-967195033215?auto=format&fit=crop&w=1000&q=82"
+  },
+  "activityLicense": "https://www.pexels.com/license/",
+  "activityPhotos": {
+    "geometry": {
+      "source": "https://www.pexels.com/photo/a-person-writing-on-the-notebook-5212343/",
+      "author": "Max Fischer",
+      "photoId": 5212343,
+      "alt": {
+        "id": "Seorang siswa menulis rumus di buku latihan.",
+        "en": "A student writes equations in an exercise book."
+      },
+      "focus": "50% 52%",
+      "height": 747
+    },
+    "study-desk": {
+      "source": "https://www.pexels.com/photo/a-student-doing-homework-8472944/",
+      "author": "MART PRODUCTION",
+      "photoId": 8472944,
+      "alt": {
+        "id": "Siswa mengerjakan soal dengan penggaris dan kalkulator.",
+        "en": "A student works through a problem with a ruler and calculator."
+      },
+      "focus": "50% 50%",
+      "height": 747
+    },
+    "study-partner": {
+      "source": "https://www.pexels.com/photo/man-and-woman-studying-while-writing-on-a-notebook-8199655/",
+      "author": "Yan Krukau",
+      "photoId": 8199655,
+      "alt": {
+        "id": "Dua siswa membahas catatan di samping laptop.",
+        "en": "Two students look over their notes beside a laptop."
+      },
+      "focus": "54% 48%",
+      "height": 1680
+    },
+    "seminar": {
+      "source": "https://www.pexels.com/photo/people-listening-while-holding-papers-and-pens-5756654/",
+      "author": "RDNE Stock project",
+      "photoId": 5756654,
+      "alt": {
+        "id": "Peserta lokakarya menyimak sambil membawa catatan.",
+        "en": "Workshop participants listen with notes in hand."
+      },
+      "focus": "42% 54%",
+      "height": 747
+    },
+    "conversation": {
+      "source": "https://www.pexels.com/photo/happy-multiethnic-students-with-workbook-talking-while-studying-5537562/",
+      "author": "Zen Chung",
+      "photoId": 5537562,
+      "alt": {
+        "id": "Dua pelajar berdiskusi sambil melihat buku latihan.",
+        "en": "Two learners discuss an exercise book together."
+      },
+      "focus": "50% 35%",
+      "height": 1680
+    },
+    "japanese-notes": {
+      "source": "https://www.pexels.com/photo/person-studying-japanese-language-text-35376343/",
+      "author": "Gu Ko",
+      "photoId": 35376343,
+      "alt": {
+        "id": "Seorang pelajar membaca dan menandai teks bahasa Jepang.",
+        "en": "A learner reads and marks up a Japanese text."
+      },
+      "focus": "50% 58%",
+      "height": 747
+    },
+    "discussion": {
+      "source": "https://www.pexels.com/photo/students-talking-inside-the-classroom-8419631/",
+      "author": "RDNE Stock project",
+      "photoId": 8419631,
+      "alt": {
+        "id": "Meja kelas dan papan tulis di samping jendela.",
+        "en": "Classroom tables and a whiteboard beside tall windows."
+      },
+      "focus": "54% 50%",
+      "height": 747
+    },
+    "team-board": {
+      "source": "https://www.pexels.com/photo/a-man-and-a-woman-standing-in-front-of-a-white-board-7710077/",
+      "author": "Alena Darmel",
+      "photoId": 7710077,
+      "alt": {
+        "id": "Dua orang membahas ide di papan yang berisi catatan tempel.",
+        "en": "Two people discuss ideas on a board covered in sticky notes."
+      },
+      "focus": "50% 48%",
+      "height": 1680
+    },
+    "design-notes": {
+      "source": "https://www.pexels.com/photo/person-writing-on-a-sticky-note-7429465/",
+      "author": "cottonbro studio",
+      "photoId": 7429465,
+      "alt": {
+        "id": "Tangan seorang peserta menyusun catatan di meja kerja.",
+        "en": "A participant arranges paper notes at a desk."
+      },
+      "focus": "52% 51%",
+      "height": 1680
+    },
+    "data-charts": {
+      "source": "https://www.pexels.com/photo/making-of-paperwork-presentation-9433152/",
+      "author": "Monstera Production",
+      "photoId": 9433152,
+      "alt": {
+        "id": "Beberapa orang membaca grafik dan anotasi di atas meja.",
+        "en": "A group reviews charts and annotations spread across a table."
+      },
+      "focus": "50% 50%",
+      "height": 747
+    },
+    "photo-studio": {
+      "source": "https://www.pexels.com/photo/people-taking-photo-of-a-product-in-the-studio-12811291/",
+      "author": "Luis Quintero",
+      "photoId": 12811291,
+      "alt": {
+        "id": "Fotografer menata produk di bawah lampu studio.",
+        "en": "A photographer arranges a product under a studio light."
+      },
+      "focus": "45% 50%",
+      "height": 747
+    },
+    "class-work": {
+      "source": "https://www.pexels.com/photo/student-writing-in-the-notebook-5212346/",
+      "author": "Max Fischer",
+      "photoId": 5212346,
+      "alt": {
+        "id": "Siswa mengerjakan tugas di kelas yang terang.",
+        "en": "Students work at their desks in a sunlit classroom."
+      },
+      "focus": "50% 43%",
+      "height": 747
+    },
+    "science-lab": {
+      "source": "https://www.pexels.com/photo/students-doing-a-science-experiment-inside-the-laboratory-8471840/",
+      "author": "MART PRODUCTION",
+      "photoId": 8471840,
+      "alt": {
+        "id": "Dua siswa mencoba mikroskop di meja praktikum.",
+        "en": "Two students try out a microscope at a laboratory table."
+      },
+      "focus": "53% 49%",
+      "height": 747
+    },
+    "painting": {
+      "source": "https://www.pexels.com/photo/students-in-an-art-class-8382377/",
+      "author": "Pavel Danilyuk",
+      "photoId": 8382377,
+      "alt": {
+        "id": "Siswa melukis di depan kanvas masing-masing di studio seni.",
+        "en": "Students paint at their easels in an art studio."
+      },
+      "focus": "50% 66%",
+      "height": 1677
+    },
+    "class-reader": {
+      "source": "https://www.pexels.com/photo/positive-asian-woman-with-notebook-studying-in-classroom-6237992/",
+      "author": "Monstera Production",
+      "photoId": 6237992,
+      "alt": {
+        "id": "Seorang pelajar membuka buku dan mencatat saat kelas berlangsung.",
+        "en": "A learner takes notes with a textbook open during class."
+      },
+      "focus": "52% 38%",
+      "height": 747
+    },
+    "english-class": {
+      "source": "https://www.pexels.com/photo/children-and-teacher-in-english-class-18506743/",
+      "author": "kimmi jun",
+      "photoId": 18506743,
+      "alt": {
+        "id": "Pengajar membahas kalimat bahasa Inggris di depan kelas.",
+        "en": "A teacher discusses English sentences at the front of a classroom."
+      },
+      "focus": "64% 47%",
+      "height": 747
+    }
   }
 }

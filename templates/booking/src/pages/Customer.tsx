@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -7,11 +7,11 @@ import {
   Menu,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { adapters } from "../domain/adapters";
-import type { Resource, Service } from "../domain/model";
+import type { Business, Language, Service } from "../domain/model";
+import { imageSrc } from "../lib/image-src";
 import { useBooking } from "../lib/store";
 import {
   Action,
@@ -132,18 +132,19 @@ function ServiceEntry({
   const { route, data, t, navigate } = useBooking();
   return (
     <article className={`b-service-entry ${large ? "b-service-large" : ""}`}>
-      <RouteLink
-        to={{ page: "services", service: service.id }}
-        className="b-service-picture"
-      >
-        {service.image && (
+      {service.image && (
+        <RouteLink
+          to={{ page: "services", service: service.id }}
+          className="b-service-picture"
+        >
           <img
-            src={service.image}
+            src={imageSrc(service.image)}
             alt={service.name[route.lang]}
             loading="lazy"
+            decoding="async"
           />
-        )}
-      </RouteLink>
+        </RouteLink>
+      )}
       <div className="b-service-copy">
         <span className="b-service-number" aria-hidden="true">
           {String(index + 1).padStart(2, "0")}
@@ -285,44 +286,87 @@ export function ProfessionalList({ compact = false }: { compact?: boolean }) {
         compact ? "b-professionals b-professionals-compact" : "b-professionals"
       }
     >
-      {people.map((r, index) => (
-        <article className="b-professional" key={r.id}>
-          <div className="b-initial-avatar" aria-hidden="true">
-            {r.profile!.initials}
-          </div>
-          <div className="b-profile-info">
-            <h3>{r.name}</h3>
-            <p className="b-specialty">{r.profile!.specialty[route.lang]}</p>
-            {!compact && <p>{r.profile!.bio[route.lang]}</p>}
-            {r.profile!.example && (
-              <small>
-                {t("Profil fiktif untuk demo", "Fictional example profile")}
-              </small>
+      {people.map((r, index) => {
+        const offered = data!.services.filter(
+          (service) => service.image && r.serviceIds.includes(service.id),
+        );
+        const example = offered[index] || offered[0];
+        return (
+          <article className="b-professional" key={r.id}>
+            {!compact && example ? (
+              <figure className="b-specialty-photo">
+                <img src={imageSrc(example.image)} alt="" loading="lazy" decoding="async" />
+                <figcaption>{example.name[route.lang]}</figcaption>
+              </figure>
+            ) : (
+              <div className="b-initial-avatar" aria-hidden="true">{r.profile!.initials}</div>
             )}
-          </div>
-          <Action
-            variant="outline"
-            onClick={() =>
-              navigate({
-                page: data!.capabilities.whatsapp ? "book" : "services",
-                practitioner: r.id,
-                service:
-                  data!.services.find((s) => r.serviceIds.includes(s.id))?.id ||
-                  "",
-              })
-            }
-          >
-            {data!.capabilities.booking
-              ? t("Lihat jadwal", "View availability")
-              : t("Lihat layanan", "View services")}
-          </Action>
-        </article>
-      ))}
+            <div className="b-profile-info">
+              <h3>{r.name}</h3>
+              <p className="b-specialty">{r.profile!.specialty[route.lang]}</p>
+              {!compact && <p>{r.profile!.bio[route.lang]}</p>}
+              {r.profile!.example && (
+                <small>
+                  {t("Profil fiktif untuk demo", "Fictional example profile")}
+                </small>
+              )}
+            </div>
+            <Action
+              variant="outline"
+              onClick={() =>
+                navigate({
+                  page: data!.capabilities.whatsapp ? "book" : "services",
+                  practitioner: r.id,
+                  service: (!compact && example?.id) || r.serviceIds.find((id) =>
+                    data!.services.some((service) => service.id === id),
+                  ) || "",
+                })
+              }
+            >
+              {data!.capabilities.booking
+                ? t("Lihat jadwal", "View availability")
+                : t("Lihat layanan", "View services")}
+            </Action>
+          </article>
+        );
+      })}
     </div>
   );
 }
+function CoverPhoto({ brand, lang }: { brand: Business; lang: Language }) {
+  if (!brand.heroImage) return null;
+  return (
+    <img
+      className="b-cover"
+      src={imageSrc(brand.heroImage)}
+      alt={brand.heroAlt[lang]}
+      fetchPriority="high"
+    />
+  );
+}
+
+function FeaturedServices({ editorial = false }: { editorial?: boolean }) {
+  const { data, t } = useBooking();
+  const services = data!.services.filter((s) => s.featured).slice(0, 3);
+  if (!services.length) return null;
+  return (
+    <section className={`b-section b-featured-services ${editorial ? "b-editorial-services" : ""}`}>
+      <div className="b-section-heading">
+        <h2>{t("Layanan pilihan", "Selected services")}</h2>
+        <RouteLink to={{ page: "services" }}>{t("Semua layanan", "All services")}</RouteLink>
+      </div>
+      <div className={editorial ? "b-editorial-rows" : "b-service-grid"}>
+        {services.map((s, index) => (
+          <Reveal key={s.id}>
+            <ServiceEntry service={s} index={index} large={editorial} />
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
 export function CustomerHome() {
-  const { data, route, t, navigate } = useBooking();
+  const { data, route, t } = useBooking();
   if (!data) return null;
   const { config } = data,
     brand = config.brand,
@@ -335,42 +379,17 @@ export function CustomerHome() {
           <div className="b-editorial-intro">
             <h1>{brand.headline[route.lang]}</h1>
             <p>{brand.description[route.lang]}</p>
-          </div>
-          <div className="b-editorial-image">
-            <img
-              src={brand.heroImage}
-              alt={brand.heroAlt[route.lang]}
-              fetchPriority="high"
-            />
-            <div className="b-editorial-book">
-              <span>
-                {t(
-                  "Ruang untuk perawatan yang terencana.",
-                  "Make room for thoughtful care.",
-                )}
-              </span>
-              <RouteLink className="b-link-button" to={{ page: "services" }}>
-                {t("Jelajahi layanan", "Explore services")}
-              </RouteLink>
-            </div>
-          </div>
-        </section>
-        <section className="b-section b-editorial-services">
-          <div className="b-section-heading">
-            <h2>{t("Layanan pilihan", "Selected services")}</h2>
-            <RouteLink to={{ page: "services" }}>
-              {t("Semua layanan", "All services")}
+            <RouteLink className="b-link-button" to={{ page: "services" }}>
+              {t("Jelajahi layanan", "Explore services")}
             </RouteLink>
           </div>
-          {data.services
-            .filter((s) => s.featured)
-            .slice(0, 3)
-            .map((s, i) => (
-              <Reveal key={s.id}>
-                <ServiceEntry service={s} index={i} large />
-              </Reveal>
-            ))}
+          {brand.heroImage && (
+            <div className="b-editorial-image">
+              <CoverPhoto brand={brand} lang={route.lang} />
+            </div>
+          )}
         </section>
+        <FeaturedServices editorial />
         <BusinessNote />
       </>
     );
@@ -388,27 +407,23 @@ export function CustomerHome() {
         <div>
           <Reveal>
             <section className="b-minimal-hero">
-              <h1>{brand.headline[route.lang]}</h1>
               <div className="b-minimal-intro">
+                <h1>{brand.headline[route.lang]}</h1>
                 <p>{brand.description[route.lang]}</p>
                 <RouteLink className="b-link-button" to={{ page: "services" }}>
                   {t("Pilih layanan", "Choose a service")}
                 </RouteLink>
               </div>
+              <CoverPhoto brand={brand} lang={route.lang} />
             </section>
           </Reveal>
+          <FeaturedServices />
           {data.resources.some((r) => r.profile) ? (
             <section className="b-section b-minimal-people">
               <h2>{t("Kenali tim Anda", "Meet your team")}</h2>
               <ProfessionalList />
             </section>
-          ) : (
-            <section className="b-section b-minimal-people">
-              {data.services.slice(0, 3).map((s, i) => (
-                <ServiceEntry key={s.id} service={s} index={i} />
-              ))}
-            </section>
-          )}
+          ) : null}
           <BusinessNote />
         </div>
       </div>
@@ -419,17 +434,11 @@ export function CustomerHome() {
         <Reveal className="b-appointment-intro">
           <h1>{brand.headline[route.lang]}</h1>
           <p>{brand.description[route.lang]}</p>
-          <div className="b-hero-photo">
-            <img
-              src={brand.heroImage}
-              alt={brand.heroAlt[route.lang]}
-              fetchPriority="high"
-            />
-            <span>
-              <MapPin size={16} />
-              {data.locations[0]?.name}
-            </span>
-          </div>
+          {brand.heroImage && (
+            <div className="b-hero-photo">
+              <CoverPhoto brand={brand} lang={route.lang} />
+            </div>
+          )}
         </Reveal>
         <QuickStart />
       </section>
@@ -447,33 +456,16 @@ export function CustomerHome() {
           {t("Lokasi mudah ditemukan", "Know where to arrive")}
         </span>
       </div>
-      <section className="b-section">
-        <div className="b-section-heading">
-          <h2>
-            {data.resources.some((r) => r.profile)
-              ? t("Tim yang siap membantu", "People ready to help")
-              : t("Pilihan layanan", "Your service options")}
-          </h2>
-          <RouteLink
-            to={{
-              page: data.resources.some((r) => r.profile)
-                ? "professionals"
-                : "services",
-            }}
-          >
-            {t("Lihat semua", "View all")}
-          </RouteLink>
-        </div>
-        {data.resources.some((r) => r.profile) ? (
-          <ProfessionalList compact />
-        ) : (
-          <div className="b-service-grid">
-            {data.services.slice(0, 3).map((s, i) => (
-              <ServiceEntry key={s.id} service={s} index={i} />
-            ))}
+      <FeaturedServices />
+      {data.resources.some((r) => r.profile) && (
+        <section className="b-section">
+          <div className="b-section-heading">
+            <h2>{t("Kenali tim Anda", "Meet your team")}</h2>
+            <RouteLink to={{ page: "professionals" }}>{t("Lihat semua", "View all")}</RouteLink>
           </div>
-        )}
-      </section>
+          <ProfessionalList compact />
+        </section>
+      )}
       <BusinessNote />
     </>
   );
@@ -496,7 +488,7 @@ function BusinessNote() {
   );
 }
 export function ServiceCatalog({ home = false }: { home?: boolean }) {
-  const { data, route, t, navigate } = useBooking(),
+  const { data, route, t } = useBooking(),
     [query, setQuery] = useState(""),
     [category, setCategory] = useState(""),
     [sort, setSort] = useState("featured");
@@ -522,7 +514,7 @@ export function ServiceCatalog({ home = false }: { home?: boolean }) {
     <section
       className={`b-section b-catalog ${data.config.layout === "service-market" ? "b-market" : ""}`}
     >
-      <div className="b-catalog-heading">
+      <div className={`b-catalog-heading ${home ? "b-market-intro" : ""}`}>
         <div>
           <h1>
             {home
@@ -538,6 +530,7 @@ export function ServiceCatalog({ home = false }: { home?: boolean }) {
                 )}
           </p>
         </div>
+        {home && <CoverPhoto brand={data.config.brand} lang={route.lang} />}
         <div className="b-search">
           <Search size={19} />
           <Input
@@ -640,7 +633,7 @@ function ServiceDetail({ service }: { service: Service }) {
         {t("Kembali ke layanan", "Back to services")}
       </RouteLink>
       <div className="b-service-detail-grid">
-        <img src={service.image} alt={service.name[route.lang]} />
+        {service.image && <img src={imageSrc(service.image)} alt="" />}
         <div>
           <h1>{service.name[route.lang]}</h1>
           <div className="b-service-meta">
@@ -739,15 +732,23 @@ export function AboutPage() {
   return (
     <section className="b-section b-about">
       <div className="b-about-intro">
-        <h1>{t("Sebelum Anda datang.", "Before you arrive.")}</h1>
-        <p>{data.config.brand.description[route.lang]}</p>
-        {data.config.brand.example && (
-          <p className="b-example-note">
-            {t(
-              "Usaha, alamat, harga, dan profil pada demo ini hanya contoh.",
-              "The business, addresses, prices, and profiles in this demo are examples.",
-            )}
-          </p>
+        <div>
+          <h1>{t("Sebelum Anda datang.", "Before you arrive.")}</h1>
+          <p>{data.config.brand.description[route.lang]}</p>
+          {data.config.brand.example && (
+            <p className="b-example-note">
+              {t(
+                "Usaha, alamat, harga, dan profil pada demo ini hanya contoh.",
+                "The business, addresses, prices, and profiles in this demo are examples.",
+              )}
+            </p>
+          )}
+        </div>
+        {data.config.brand.visitPhoto?.image && (
+          <img
+            src={imageSrc(data.config.brand.visitPhoto.image)}
+            alt={data.config.brand.visitPhoto.alt[route.lang]}
+          />
         )}
       </div>
       <div className="b-about-locations">

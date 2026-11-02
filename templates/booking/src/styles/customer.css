@@ -71,7 +71,7 @@
   position: relative;
   margin-top: 30px;
   width: 100%;
-  height: 230px;
+  height: clamp(240px, 24vw, 355px);
   overflow: hidden;
 }
 .b-hero-photo img {
@@ -79,17 +79,6 @@
   height: 100%;
   object-fit: cover;
   object-position: center 55%;
-}
-.b-hero-photo > span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: absolute;
-  bottom: 13px;
-  left: 13px;
-  background: var(--surface);
-  padding: 8px 12px;
-  font-size: 12px;
 }
 .b-quick-start {
   padding: 36px;
@@ -170,6 +159,22 @@
   font-family: var(--font-serif);
   font-size: 33px;
   flex: none;
+}
+.b-specialty-photo {
+  margin: 0;
+  width: clamp(104px, 14vw, 175px);
+  flex: none;
+}
+.b-specialty-photo img {
+  aspect-ratio: 1.65;
+  width: 100%;
+  object-fit: cover;
+}
+.b-specialty-photo figcaption {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
 }
 .b-profile-info {
   flex: 1;
@@ -298,44 +303,27 @@
 .b-editorial-hero {
   max-width: var(--max-width);
   margin: auto;
-  padding: 50px var(--gutter) 0;
-}
-.b-editorial-intro {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 70px;
-  padding-bottom: 36px;
+  display: grid;
+  grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr);
+  gap: clamp(32px, 5vw, 76px);
+  align-items: center;
+  padding: 40px var(--gutter) 0;
 }
 .b-editorial-intro h1 {
   font-family: var(--font-display);
-  font-size: clamp(42px, 5.2vw, 78px);
+  font-size: clamp(42px, 5vw, 72px);
   font-weight: 400;
-  max-width: 750px;
-  line-height: 1.02;
+  line-height: 1.03;
 }
 .b-editorial-intro p {
-  max-width: 290px;
+  max-width: 37ch;
+  margin: 24px 0;
   color: var(--muted);
-  font-size: 14px;
-  padding-bottom: 6px;
-}
-.b-editorial-image {
-  position: relative;
 }
 .b-editorial-image > img {
-  height: 440px;
   width: 100%;
+  height: clamp(340px, 34vw, 500px);
   object-fit: cover;
-}
-.b-editorial-book {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 25px;
-  padding: 23px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
 }
 .b-editorial-services {
   padding-top: 70px;
@@ -349,7 +337,7 @@
   padding-bottom: 45px;
   border-bottom: 1px solid var(--line);
 }
-.b-editorial-services > div:nth-child(odd) .b-service-picture {
+.b-editorial-rows > div:nth-child(even) .b-service-picture {
   order: 2;
 }
 .b-editorial-services .b-service-picture {
@@ -374,6 +362,25 @@
 }
 .b-editorial-services .b-service-meta {
   margin: 22px 0;
+}
+/* Catalogue opening: keep search beside the offer and a workshop scene in view. */
+.b-catalog-heading.b-market-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+  column-gap: clamp(25px, 5vw, 75px);
+  row-gap: 18px;
+}
+.b-market-intro .b-cover {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  width: 100%;
+  height: clamp(170px, 17vw, 240px);
+  object-fit: cover;
+}
+.b-market-intro .b-search {
+  align-self: start;
+  max-width: 440px;
+  width: 100%;
 }
 /* Service market: catalog occupies the first screen, filters remain adjacent to comparison. */
 .b-market {
@@ -539,7 +546,7 @@
   padding: 10px 15px;
   font-size: 13px;
 }
-/* Minimal professional: fixed-width information rail, no photography-driven hero, wide typography. */
+/* Minimal professional: information rail with a compact photo essay and service index. */
 .b-header-minimal-professional {
   border-bottom: 0;
 }
@@ -579,24 +586,29 @@
   background: var(--control-border);
   margin-top: 35px;
 }
+.b-minimal-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .87fr);
+  gap: clamp(25px, 3vw, 48px);
+  align-items: center;
+}
 .b-minimal-hero h1 {
-  font-size: clamp(44px, 5.4vw, 80px);
-  max-width: 880px;
+  font-size: clamp(38px, 3.8vw, 60px);
   line-height: 1.08;
-  letter-spacing: -0.06em;
   font-weight: 500;
 }
-.b-minimal-intro {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: 50px;
-  margin-top: 36px;
-  padding-bottom: 43px;
-}
 .b-minimal-intro p {
-  max-width: 500px;
   color: var(--muted);
+  margin: 24px 0;
+  max-width: 42ch;
+}
+.b-minimal-hero .b-cover {
+  width: 100%;
+  aspect-ratio: 1.05;
+  object-fit: cover;
+}
+.b-professional-composition .b-featured-services {
+  padding: 48px 0 20px;
 }
 .b-minimal-people {
   padding: 35px 0 55px;
@@ -750,6 +762,12 @@
   margin-top: 15px;
   color: var(--muted);
 }
+.b-editorial-hero:not(:has(.b-cover)),
+.b-minimal-hero:not(:has(.b-cover)),
+.b-about-intro:not(:has(img)),
+.b-service-detail-grid:not(:has(> img)) {
+  grid-template-columns: minmax(0, 1fr);
+}
 @media (max-width: 1100px) {
   .b-customer-header nav {
     gap: 18px;
@@ -778,9 +796,6 @@
   }
   .b-professional-composition {
     grid-template-columns: 155px minmax(0, 1fr);
-    gap: 35px;
-  }
-  .b-editorial-intro {
     gap: 35px;
   }
   .b-service-detail-grid {
@@ -845,7 +860,8 @@
     margin-top: 18px;
   }
   .b-hero-photo {
-    display: none;
+    height: clamp(150px, 45vw, 235px);
+    margin-top: 20px;
   }
   .b-quick-start {
     padding: 24px;
@@ -906,34 +922,22 @@
     padding-top: 18px;
   }
   .b-editorial-hero {
-    padding-top: 32px;
-  }
-  .b-editorial-intro {
-    display: block;
-    padding-bottom: 27px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 22px;
+    padding-top: 28px;
   }
   .b-editorial-intro h1 {
-    font-size: 43px;
-    line-height: 1.04;
+    font-size: clamp(36px, 9.5vw, 46px);
   }
   .b-editorial-intro p {
-    margin-top: 22px;
+    margin: 14px 0 18px;
     max-width: 100%;
     font-size: 14px;
   }
   .b-editorial-image > img {
-    height: 380px;
-  }
-  .b-editorial-book {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .b-editorial-book > span {
-    font-size: 13px;
-  }
-  .b-editorial-book .b-link-button {
-    width: 100%;
+    height: clamp(210px, 67vw, 320px);
   }
   .b-editorial-services .b-service-entry {
     display: flex;
@@ -942,7 +946,7 @@
     margin-top: 26px;
     padding-bottom: 32px;
   }
-  .b-editorial-services > div:nth-child(odd) .b-service-picture {
+  .b-editorial-rows > div:nth-child(even) .b-service-picture {
     order: 0;
   }
   .b-editorial-services .b-service-picture {
@@ -963,6 +967,15 @@
   .b-catalog-heading {
     display: block;
     margin-bottom: 27px;
+  }
+  .b-catalog-heading.b-market-intro {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .b-market-intro .b-cover {
+    grid-column: auto;
+    grid-row: auto;
+    height: clamp(145px, 38vw, 220px);
   }
   .b-catalog-heading h1 {
     font-size: 35px;
@@ -1064,18 +1077,18 @@
   .b-rail-rule {
     display: none;
   }
-  .b-minimal-hero h1 {
-    font-size: 43px;
-    line-height: 1.1;
-  }
-  .b-minimal-intro {
+  .b-minimal-hero {
     grid-template-columns: 1fr;
-    gap: 25px;
-    margin-top: 24px;
-    padding-bottom: 34px;
+    gap: 22px;
   }
-  .b-minimal-intro .b-link-button {
-    justify-self: start;
+  .b-minimal-hero h1 {
+    font-size: 40px;
+  }
+  .b-minimal-intro p {
+    margin: 18px 0;
+  }
+  .b-minimal-hero .b-cover {
+    aspect-ratio: 1.8;
   }
   .b-minimal-people {
     padding-top: 15px;
@@ -1085,6 +1098,12 @@
     grid-template-columns: 64px minmax(0, 1fr);
     align-items: start;
     gap: 18px;
+  }
+  .b-professional:has(.b-specialty-photo) {
+    grid-template-columns: minmax(92px, .6fr) minmax(0, 1.4fr);
+  }
+  .b-specialty-photo {
+    width: 100%;
   }
   .b-initial-avatar {
     width: 64px;

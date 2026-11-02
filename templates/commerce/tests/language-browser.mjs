@@ -17,7 +17,11 @@ try {
     const product = other === 'en' ? 'Canvas Book Pouch' : 'Pouch Kanvas Buku';
     await page.getByRole('button', { name: `${other === 'en' ? 'View' : 'Lihat'} ${product}`, exact: true }).first().click();
     const productDialog = page.getByRole('dialog', { name: product, exact: true });
-    await productDialog.getByRole('button', { name: 'Natural', exact: true }).click();
+    await productDialog.getByRole('button', { name: other === 'en' ? 'Black' : 'Hitam', exact: true }).click();
+    const alternate = productDialog.locator('.variant-field').getByRole('status');
+    assert.match(await alternate.textContent(), other === 'en' ? /photos show the Khaki finish/ : /Foto menampilkan warna Khaki/);
+    await productDialog.getByRole('button', { name: 'Khaki', exact: true }).click();
+    assert.equal(await alternate.count(), 0);
     await productDialog.getByRole('button', { name: other === 'en' ? 'Add to cart' : 'Tambah ke keranjang', exact: true }).click();
     const cart = page.getByRole('dialog', { name: other === 'en' ? /^Cart/ : /^Keranjang/ });
     await cart.waitFor();
@@ -56,7 +60,7 @@ try {
   await page.goto(`${base}/?preset=market&level=whatsapp`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'View Canvas Book Pouch', exact: true }).first().click();
   const productDialog = page.getByRole('dialog', { name: 'Canvas Book Pouch', exact: true });
-  await productDialog.getByRole('button', { name: 'Natural', exact: true }).click();
+  await productDialog.getByRole('button', { name: 'Khaki', exact: true }).click();
   await productDialog.getByRole('button', { name: 'Add to cart', exact: true }).click();
   await page.getByRole('button', { name: 'View WhatsApp message' }).click();
   const message = await page.getByRole('textbox', { name: 'Shopping message preview' }).inputValue();

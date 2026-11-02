@@ -214,3 +214,47 @@ test('registered extension commands and collections work without modifying busin
     assert.throws(() => registerExtension({ collections: [cms.collections.get('events')] }), /duplicate_collection/);
 });
 test('published custom CMS pages can be linked, unknown or draft pages cannot', () => { const s = state(), c = ctx(s, 'admin'); const base = s.content.find(x => x.id === 'home').draft; cmd(s, c, 'content.save', { id: 'admissions-guide', collection: 'pages', data: { ...structuredClone(base), title: { id: 'Panduan', en: 'Guide' } } }); const settings = { ...s.institution, navigation: [{ page: 'admissions-guide', label: { id: 'Panduan', en: 'Guide' } }] }; assert.throws(() => cmd(s, c, 'settings.save', settings), /invalid_page/); const d = s.content.find(x => x.id === 'admissions-guide'); cmd(s, c, 'content.publish', { id: d.id, version: d.version, data: d.draft }); cmd(s, c, 'settings.save', settings); assert.equal(s.institution.navigation[0].page, d.id); });
+
+test('each preset ships a distinct lead and a responsive photograph for every program', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const leads = new Set();
+    for (const preset of ['exam-prep', 'language', 'skills', 'institution']) {
+        const { content } = state(preset);
+        const lead = content.find(entry => entry.id === 'home').published.image;
+        const images = content.filter(entry => entry.collection === 'programs').map(entry => entry.published.image);
+        assert.equal(new Set([lead, ...images]).size, 1 + images.length, preset);
+        leads.add(lead);
+        for (const image of [lead, ...images]) {
+            assert.match(image, /^\/images\/[a-z-]+\.webp$/);
+            for (const path of [image, image.replace('.webp', '-480.webp')]) {
+                const bytes = await readFile(new URL(`../public${path}`, import.meta.url));
+                assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', path);
+            }
+        }
+    }
+    assert.equal(leads.size, 4);
+});
+
+test('returning demo visitors see new imagery only on untouched built-in records', () => {
+    const s = state('skills');
+    const home = s.content.find(c => c.id === 'home');
+    const photo = s.content.find(c => c.id === 'photo-workshop');
+    const edited = s.content.find(c => c.id === 'design-practice');
+    for (const field of ['draft', 'published']) {
+        home[field].image = '/images/classroom.jpg';
+        home[field].blocks.find(b => b.id === 'facilities').image = '/images/library.jpg';
+        photo[field].image = '/images/workshop.jpg';
+        edited[field].image = '/images/classroom.jpg';
+    }
+    edited.version = 2;
+    const before = structuredClone(s);
+    const view = snapshot(s, ctx(s, 'admin'), 'skills');
+    const visible = id => view.content.find(c => c.id === id).published;
+    assert.equal(visible('home').image, '/images/team-board.webp');
+    assert.equal(visible('home').blocks.find(b => b.id === 'facilities').image, '/images/discussion.webp');
+    assert.equal(visible('photo-workshop').image, '/images/photo-studio.webp');
+    assert.equal(visible('design-practice').image, '/images/classroom.jpg');
+    assert.deepEqual(s, before);
+    const client = snapshot(s, { ...ctx(s, 'admin'), demo: false }, 'skills');
+    assert.equal(client.content.find(c => c.id === 'home').published.image, '/images/classroom.jpg');
+});

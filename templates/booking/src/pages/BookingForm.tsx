@@ -11,6 +11,7 @@ import { adapters, defaultOptions } from "../domain/adapters";
 import type { Booking, BookingInput, Quote, Slot } from "../domain/model";
 import { localTime } from "../domain/time";
 import { api } from "../lib/api";
+import { imageSrc } from "../lib/image-src";
 import { useBooking } from "../lib/store";
 import {
   Action,
@@ -783,7 +784,7 @@ export function BookingForm() {
             ))}
         </div>
         <aside className="b-book-summary">
-          <img src={service.image} alt="" />
+          {service.image && <img src={imageSrc(service.image)} alt="" />}
           <div>
             <h2>{service.name[lang]}</h2>
             <p>

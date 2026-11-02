@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 const base = process.env.COMMERCE_TEST_URL || 'http://127.0.0.1:4174';
 const browser = await chromium.launch({ headless: true, ...(process.env.COMMERCE_CHROMIUM_EXECUTABLE ? { executablePath: process.env.COMMERCE_CHROMIUM_EXECUTABLE } : {}) });
 try {
+  const openings = new Set();
   for (const preset of ['editorial', 'market', 'atelier', 'compact']) {
     for (const width of [390, 1440]) {
       const page = await browser.newPage({ locale: 'id-ID', viewport: { width, height: 900 }, reducedMotion: 'reduce' });
@@ -16,15 +17,22 @@ try {
       await hero.waitFor();
       const slide = hero.locator('[aria-roledescription="slide"]');
       assert.match(await slide.getAttribute('aria-label'), /^1 dari [2-5]$/);
-      assert.equal(await hero.locator('img').evaluate(image => image.complete && image.naturalWidth > 0), true);
+      assert.equal(await hero.locator('.shop-hero-image').evaluate(image => image.complete && image.naturalWidth > 0), true);
       const first = await hero.locator('.shop-hero-product strong').textContent();
+      openings.add(first);
       await hero.getByRole('button', { name: 'Foto berikutnya' }).focus();
       await page.keyboard.press('Enter');
       assert.notEqual(await hero.locator('.shop-hero-product strong').textContent(), first);
       await hero.getByRole('button', { name: 'Foto sebelumnya' }).click();
       assert.equal(await hero.locator('.shop-hero-product strong').textContent(), first);
       await hero.getByRole('button', { name: `Lihat detail ${first}` }).click();
-      await page.getByRole('dialog', { name: first, exact: true }).waitFor();
+      const dialog = page.getByRole('dialog', { name: first, exact: true });
+      await dialog.waitFor();
+      const second = dialog.locator('.product-thumbnails button').nth(1);
+      await second.click();
+      assert.equal(await second.getAttribute('aria-pressed'), 'true');
+      await dialog.locator('.product-main-image').evaluate(image => image.decode());
+      assert.equal(await dialog.locator('.gallery-caption').isVisible(), true);
       await page.keyboard.press('Escape');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
       assert.deepEqual(errors, []);
@@ -32,6 +40,7 @@ try {
       await page.close();
     }
   }
+  assert.equal(openings.size, 4, 'All four layouts feature distinct leads from the seeded catalogue');
   for (const count of [0, 1]) {
     const context = await browser.newContext({ locale: 'id-ID' });
     const response = await context.request.get(`${base}/api/bootstrap`);

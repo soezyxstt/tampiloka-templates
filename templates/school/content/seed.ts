@@ -3,12 +3,36 @@ import type { ContentData, ContentRecord, Preset, SchoolConfig, SchoolState, Tex
 export const bi = (id: string, en: string): Text => ({ id, en });
 export const photo = { classroom: '/images/classroom.jpg', library: '/images/library.jpg', workshop: '/images/workshop.jpg', teacher: '/images/teacher.jpg' };
 export const presetContent = catalog;
+// Returning demo visitors may still have the original, shared classroom pictures.
+// Project the new sample media without writing to the CMS or replacing a saved edit.
+export function refreshDemoPhotos(record: ContentRecord, preset: Preset): ContentRecord {
+    if (record.version !== 1 || record.revisions.length || !record.published) return record;
+    const profile = catalog[preset];
+    const isHome = record.collection === 'pages' && record.id === 'home';
+    const program = record.collection === 'programs' && profile.programs.find(p => p.id === record.id);
+    if (!isHome && !program) return record;
+    const previous = record.id === 'photo-workshop' ? photo.workshop : photo.classroom;
+    if (record.published.image !== previous || record.draft.image !== previous) return record;
+
+    function refresh(data: ContentData): ContentData {
+        if (program) return { ...data, image: program.image };
+        const blocks = data.blocks.map(block => {
+            if (block.id === 'approach' && block.type === 'image-text' && block.image === photo.workshop)
+                return { ...block, ...profile.approach };
+            if (block.id === 'facilities' && block.type === 'facilities' && block.image === photo.library)
+                return { ...block, ...profile.facilities };
+            return block;
+        });
+        return { ...data, image: profile.image, blocks };
+    }
+    return { ...record, draft: refresh(record.draft), published: refresh(record.published) };
+}
 export function seed(preset: Preset, config: SchoolConfig, demo: boolean, now = new Date()): SchoolState {
     const p = catalog[preset], today = now.getTime();
     const at = (days: number, hour = 9) => { const d = new Date(today + days * 86400000); d.setUTCHours(hour - 7, 0, 0, 0); return d.toISOString(); };
-    const blocks = [{ id: 'approach', type: 'image-text', heading: bi('Belajar dengan pendampingan', 'Learning with guidance'), body: bi('Kenali konsep, coba lewat latihan, lalu tinjau hasilnya bersama pengajar. Materi dan jadwal tersedia untuk membantu Anda bersiap.', 'Understand a concept, practice it, then review the result with your teacher. Materials and schedules help you prepare.'), image: photo.workshop }, { id: 'facilities', type: 'facilities', heading: bi('Tempat untuk fokus', 'Space to focus'), body: bi('Ruang kelas terang, meja belajar yang nyaman, perpustakaan kecil, dan akses kelas daring. Kunjungi lokasi sebelum memilih program.', 'Bright classrooms, comfortable study desks, a small library, and online class access. Visit before choosing a program.'), image: photo.library }, { id: 'faq', type: 'faq', heading: bi('Bagaimana memilih kelas?', 'How do I choose a class?'), body: bi('Lihat tujuan program, jadwal, dan biaya. Hubungi tim untuk membahas kebutuhan belajar. Pengajuan tidak menjamin penerimaan.', 'Review program goals, schedules, and fees. Contact the team to discuss your learning needs. An application does not guarantee admission.') }, { id: 'testimonial', type: 'testimonial', heading: bi('Catatan peserta contoh', 'Fictional learner feedback'), body: bi('“Jadwal yang jelas membantu saya menyiapkan latihan sebelum kelas.” Sinta, peserta fiktif untuk demonstrasi.', '“A clear schedule helps me prepare before class.” Sinta, a fictional learner for this demonstration.') }];
+    const blocks = [{ id: 'approach', type: 'image-text', ...p.approach }, { id: 'facilities', type: 'facilities', ...p.facilities }, { id: 'faq', type: 'faq', heading: bi('Bagaimana memilih kelas?', 'How do I choose a class?'), body: bi('Lihat tujuan program, jadwal, dan biaya. Hubungi tim untuk membahas kebutuhan belajar. Pengajuan tidak menjamin penerimaan.', 'Review program goals, schedules, and fees. Contact the team to discuss your learning needs. An application does not guarantee admission.') }, { id: 'testimonial', type: 'testimonial', heading: bi('Catatan peserta contoh', 'Fictional learner feedback'), body: bi('“Jadwal yang jelas membantu saya menyiapkan latihan sebelum kelas.” Sinta, peserta fiktif untuk demonstrasi.', '“A clear schedule helps me prepare before class.” Sinta, a fictional learner for this demonstration.') }];
     const make = (id: string, collection: string, title: Text, body: Text, image: string, attrs: Record<string, string | boolean | string[]> = {}): ContentRecord => { const data: ContentData = { title, summary: body, body, image, seoTitle: title, seoDescription: body, blocks: [], attributes: attrs }; return { id, collection, slug: id, draft: structuredClone(data), published: structuredClone(data), version: 1, revisions: [] }; };
-    const home = make('home', 'pages', p.headline, p.intro, photo.classroom);
+    const home = make('home', 'pages', p.headline, p.intro, p.image);
     home.draft.blocks = blocks;
     home.published!.blocks = structuredClone(blocks);
     const programs = p.programs.map((x, i) => ({ id: x.id, contentId: x.id, type: preset, subject: x.subject, format: x.format as 'online' | 'onsite' | 'hybrid', duration: x.duration, tutorIds: [i % 2 === 0 ? 'tutor-ayu' : 'tutor-raka'] }));
@@ -20,6 +44,6 @@ export function seed(preset: Preset, config: SchoolConfig, demo: boolean, now = 
         students: demo ? [{ id: 'student-sinta', name: 'Sinta · Peserta fiktif', email: 'student@example.test' }, { id: 'student-other', name: 'Peserta lain · Fiktif', email: 'other@example.test' }] : [],
         enrollments: demo ? [{ id: 'application-sample', studentId: 'student-other', cohortId: cohorts[0].id, status: 'submitted', answers: {}, createdAt: at(-1), updatedAt: at(-1), version: 1 }] : [], events: demo ? [{ id: 'event-sample', enrollmentId: 'application-sample', status: 'submitted', at: at(-1), by: 'other', note: 'Sample application' }] : [], invoices: [], payments: [], attendance: [], progress: [],
         materials: cohorts.map(c => ({ id: `material-${c.id}`, cohortId: c.id, title: bi('Persiapan pertemuan pertama', 'Prepare for your first session'), description: bi('Catatan belajar dan latihan awal.', 'Study notes and introductory exercises.'), sampleText: 'Sample learning resource\n\n1. List your learning goals.\n2. Review the program outline.\n3. Bring one question to the first session.\n\nReplace with your own teaching material.' })), media: [],
-        content: [home, ...p.programs.map(x => make(x.id, 'programs', x.title, x.body, x.id.includes('photo') ? photo.workshop : photo.classroom, { ...p.attributes, kind: x.kind })), make('admissions', 'announcements', bi('Pendaftaran kelas berikutnya', 'Next intake applications'), bi('Lihat jadwal dan persyaratan sebelum mengajukan pendaftaran.', 'Check schedules and requirements before applying.'), photo.library)],
+        content: [home, ...p.programs.map(x => make(x.id, 'programs', x.title, x.body, x.image, { ...p.attributes, kind: x.kind })), make('admissions', 'announcements', bi('Pendaftaran kelas berikutnya', 'Next intake applications'), bi('Lihat jadwal dan persyaratan sebelum mengajukan pendaftaran.', 'Check schedules and requirements before applying.'), photo.library)],
         modules: { ...config.modules }, registrationFields: [...p.fields, ...config.registrationFields] as SchoolState['registrationFields'], outbox: [], idempotency: {} };
 }

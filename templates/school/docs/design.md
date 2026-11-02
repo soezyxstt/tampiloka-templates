@@ -3,8 +3,8 @@
 Four compositions share behavior, not page structure:
 
 - Academic Editorial: serif narrative hero, asymmetric photography, restrained numbered program rows and long-form sections.
-- Course Discovery: search-first opening, comparison/list patterns, an intake sidebar and fee-focused actions.
-- Contemporary Learning: large expressive type, staggered images, approach before programs, compact program rows.
+- Course Discovery: subject photograph alongside the search field, comparison rows and an intake sidebar.
+- Contemporary Learning: a photographed project and teaching session followed by a three-column workshop gallery.
 - Institutional: information utility navigation, split admissions hero, announcements and academic schedule before program discovery.
 
 Layout, sample palette, typography, business preset and level remain independent. New client branding replaces semantic tokens without renaming public IDs.
@@ -16,6 +16,12 @@ Public inputs use 16px on phones. Touch targets are at least 44px and primary ac
 The demo uses `DemoToolbarShell` and imports shared demo CSS last. It keeps preset/theme/level at the top and ID/EN bottom right. Advanced layout/type and secondary roles live in an appearance dialog. Native view links preserve query/hash state. Toolbar height comes from its real ResizeObserver measurement.
 
 Realistic stock photos are illustrative, not portraits of the fictional named educators. Avoid decorative eyebrow labels, unnecessary cards, gradient decoration, inflated performance statistics, pills and navigation arrows. Program pages and operations prioritize readable details and clear actions.
+
+## Photography
+
+The education pathway from Website Design Kit WF-13 keeps the program, fee and enrollment action together. OFFER-13 guides the searchable catalog. The workshop layout uses larger process photos so visitors can see what they would make. A carousel would hide those choices on the initial view. On phones the workshop list stacks, while the admissions layout shows the classroom above the introduction.
+
+Each business preset in `content/presets.json` provides editable lead, program, approach and facility images. The program list and detail use the same CMS image. Bundled activity photographs have 480 px and 1120 px WebP variants, a focal point, bilingual descriptions, and photographer and license details in `content/photo-sources.json`. The lead loads first. Below-the-fold images load on demand. Set a client's own photo in the CMS to replace both bundled variants. Returning demo visitors see the new images on untouched built-in records that still use the original stock files. Content edits, enrollment data and client installations keep their saved values.
 
 ## Interaction decisions
 

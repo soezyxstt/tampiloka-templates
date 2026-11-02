@@ -78,6 +78,7 @@ function seed(env: Env, scope: string, demo: boolean): Statement[] {
       level: demo ? "full" : initial.level,
       layout: initial.layout,
       palette: initial.palette,
+      ...(demo ? { photoVersion: 1 } : {}),
     };
   const statements = [
     q(
@@ -178,7 +179,7 @@ export async function sessionFor(
     const hash = await digest(token),
       row = await q(
         env,
-        "SELECT s.*,c.demo,c.expires_at AS scope_expiry FROM sessions s JOIN scopes c ON c.id=s.scope WHERE hash=?",
+        "SELECT s.*,c.demo,c.expires_at AS scope_expiry,json_extract(c.state_json,'$.photoVersion') AS photo_version FROM sessions s JOIN scopes c ON c.id=s.scope WHERE hash=?",
         hash,
       ).first<{
         scope: string;
@@ -186,6 +187,7 @@ export async function sessionFor(
         role: Session["role"];
         expires_at: number;
         scope_expiry: number | null;
+        photo_version: number | null;
         demo: number;
       }>();
     if (
@@ -193,7 +195,8 @@ export async function sessionFor(
       row.expires_at > now(env) &&
       (row.scope_expiry === null || row.scope_expiry > now(env)) &&
       Boolean(row.demo) === demo
-    )
+    ) {
+      if (demo && row.photo_version == null) await refreshDemoPhotos(env, row.scope);
       return {
         hash,
         scope: row.scope,
@@ -201,6 +204,7 @@ export async function sessionFor(
         role: row.role,
         demo,
       };
+    }
   }
   let stage = "session_rate_limit";
   try {
@@ -289,6 +293,49 @@ export async function entities<T>(
       preset,
     )
   ).map((r) => JSON.parse(r.data) as T);
+}
+// Upgrade stored fixtures once, before a returning demo visitor reads or edits
+// them. Clients and new demo sessions never enter this branch.
+async function refreshDemoPhotos(env: Env, scope: string) {
+  const previousDetail: Record<Preset, string[]> = {
+    medical: ["general", "family", "skin", "intro"],
+    aesthetic: ["scalp"],
+    detailing: [],
+    consulting: ["strategy", "portfolio", "intro"],
+  };
+  const previousAlt: Record<Preset, [string, string]> = {
+    medical: ["Ruang layanan kesehatan, foto ilustrasi", "A healthcare space, illustrative photo"],
+    aesthetic: ["Handuk dan perlengkapan perawatan", "Towels and treatment supplies"],
+    detailing: ["Perawatan kendaraan di area kerja", "Vehicle care in a service bay"],
+    consulting: ["Ruang pertemuan profesional", "A professional meeting space"],
+  };
+  const pending = "EXISTS (SELECT 1 FROM scopes WHERE id=? AND demo=1 AND json_extract(state_json,'$.photoVersion') IS NULL)";
+  const statements: Statement[] = [];
+  const rows = await all<{ preset: Preset }>(
+    env, "SELECT preset FROM settings WHERE scope=?", scope,
+  );
+  for (const { preset } of rows) {
+    const defaults = presetContent(preset);
+    const { brand } = defaults.config;
+    const oldCover = `/images/${preset}.webp`;
+    const oldDetailIds = new Set(previousDetail[preset].map((slug) => `${preset}-${slug}`));
+    for (const service of defaults.services) {
+      const oldImage = oldDetailIds.has(service.id) ? `/images/${preset}-detail.webp` : oldCover;
+      statements.push(q(env, `UPDATE entities SET data=json_set(data, '$.image', ?)
+        WHERE scope=? AND kind='service' AND id=? AND json_extract(data, '$.image')=? AND ${pending}`,
+        service.image, scope, service.id, oldImage, scope));
+    }
+    statements.push(q(env, `UPDATE settings SET config_json=json_set(
+        json_insert(config_json, '$.brand.visitPhoto', json(?)),
+        '$.brand.heroImage', ?, '$.brand.heroAlt', json(?))
+      WHERE scope=? AND preset=? AND json_extract(config_json, '$.brand.heroImage')=?
+        AND json_extract(config_json, '$.brand.heroAlt.id')=? AND json_extract(config_json, '$.brand.heroAlt.en')=?
+        AND ${pending}`, JSON.stringify(brand.visitPhoto ?? null), brand.heroImage, JSON.stringify(brand.heroAlt),
+      scope, preset, oldCover, ...previousAlt[preset], scope));
+  }
+  statements.push(q(env, `UPDATE scopes SET state_json=json_set(state_json, '$.photoVersion', 1),
+    revision=revision+1 WHERE id=? AND ${pending}`, scope, scope));
+  await env.DB.batch(statements);
 }
 export async function bootstrap(
   env: Env,

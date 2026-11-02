@@ -114,3 +114,9 @@ node tests/checkout-recovery.mjs
 
 The additional tests accept `COMMERCE_TEST_URL`; they are intended for the isolated demo. Generated clients should test against a staging deployment with appropriate fixtures. The root lifecycle suite uses its own documented `COMMERCE_BASE_URL` setting. Transient screenshots, reports and browser logs remain in ignored test-output directories; the reproducible test sources and this review record are part of the repository.
 
+
+## Product photography, 2 November 2026
+
+The product dialog adapts Website Design Kit OFFER-18. A shopper can compare the full item and a close view before choosing a variant. The gallery keeps the purchase controls and current selection in place on both desktop and mobile. Under the collection, two photographs from different active categories link back to their actual products. This uses the catalog's additional images, so a client changing a product also changes its appearance in this section.
+
+The featured carousel chooses an in-stock lead from the available featured products when possible. Editorial follows catalog order. Market leads with the widest range of available variants. Compact leads with the lowest price. Atelier selects the largest set of images, breaks ties by price and pairs the product with its second view. With one photograph it keeps the single-image layout. The rest of each carousel stays browsable.
