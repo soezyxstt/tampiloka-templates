@@ -8,6 +8,7 @@ import {
   localTime,
   scheduleContains,
 } from "../src/domain/time.ts";
+import { existsSync } from "node:fs";
 import { presetContent } from "../content/presets.ts";
 import {
   settingsInput,
@@ -48,6 +49,17 @@ test("every preset validates its seed and uses distinct domain fields and resour
     "professional",
     "room",
   ]);
+});
+test("every booking service has a distinct local photo in its standalone preset", () => {
+  for (const preset of PRESETS) {
+    const { config, services } = presetContent(preset);
+    const photos = services.map((s) => s.image);
+    assert.equal(new Set(photos).size, services.length);
+    for (const path of [...photos, config.brand.heroImage, config.brand.visitPhoto.image]) {
+      assert.ok(path.startsWith(`/images/${preset}`), path);
+      assert.ok(existsSync(new URL(`../public${path}`, import.meta.url)), path);
+    }
+  }
 });
 test("vehicle category changes duration and server price", () => {
   const s = presetContent("detailing").services[0];

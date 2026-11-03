@@ -1,7 +1,4 @@
 {
-  "license": "Unsplash License",
-  "licenseUrl": "https://unsplash.com/license",
-  "credit": "Unsplash. Photographer attribution is not verified for these image endpoints.",
   "usage": "Illustrative demo assets only. No association, endorsement, model release or practitioner identity is implied. Replace with client-owned assets before commercial launch when additional rights are needed.",
   "assets": [
     {
@@ -9,49 +6,279 @@
       "source": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "3047a8c331a654728351ba6cc91687a5734ce71cabfb046a29bb7e146fdf39ad",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "aesthetic.webp",
       "source": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "ab8b991d8ff3eca86e7c2c2aa06cbb84df717736514f04b2667b6cfddaa255ed",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "detailing.webp",
       "source": "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "47712644a74109880c85a60f512e332e6a6f903be599177fae7566c45a31549e",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "consulting.webp",
       "source": "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "525eebc1e6a48b50638ec67d6fabbdaad4df7fac44752349daf4a881489ce2c0",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "aesthetic-detail.webp",
       "source": "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "fd53dec45c319c87d6c9474b336cb6a7a1915845e89490994214729d47ae6f07",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "medical-detail.webp",
       "source": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "390a465365fa57cebdd429dc7e6e7c9efb0efd2726fb30c1ed3a3c47e8b295b1",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
     },
     {
       "file": "consulting-detail.webp",
       "source": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1400&h=1050&fit=crop&fm=webp&q=80",
       "sha256": "00f9d47f4ad128d6fc29c96d2dafaf067facc3379779ed1b70915086d558fc1a",
       "width": 1400,
-      "height": 1050
+      "height": 1050,
+      "licenseUrl": "https://unsplash.com/license",
+      "credit": "Unsplash. Photographer attribution is not verified for these image endpoints."
+    },
+    {
+      "file": "medical-welcome.webp",
+      "source": "https://www.pexels.com/photo/a-woman-talking-to-her-doctor-4266930/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "5328c3a3503b2343a96f1cae84a6c6170a09de3f6040fa915120a117184336ee",
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "file": "medical-general.webp",
+      "source": "https://www.pexels.com/photo/a-patient-having-a-consultation-with-her-doctor-5214997/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "9f1fd71175e29777a3de075903080995d13c4e90e2e44618373911710757b07d",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "medical-family.webp",
+      "source": "https://www.pexels.com/photo/a-doctor-examining-a-child-patient-5998459/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "66860d9bf4b378d7b720846d41e6211832615409c5351f7f3425510eef08c120",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "medical-dental.webp",
+      "source": "https://www.pexels.com/photo/dentists-examining-a-patient-at-a-dental-clinic-19976601/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "808993b981a5e47d7a18c3de22d304dfe6317bf6c84253ba2a7964cb4c815afa",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "medical-dental-review.webp",
+      "source": "https://www.pexels.com/photo/close-up-of-dental-instruments-4687361/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "f0e9f2688ba876692928c168c9dec7118017ffe289a8e65b8d97b864580f708b",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "medical-skin.webp",
+      "source": "https://www.pexels.com/photo/dermatologist-examining-patient-s-scalp-with-dermatoscope-40594081/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "4bba2a013f9104b9a9ee2591e3263eba1bafe3ce7b32f85a2d71b91c3ddbcbf5",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "medical-intro.webp",
+      "source": "https://www.pexels.com/photo/interior-design-of-a-clinic-5619453/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "6c7a6212a7517e150f3514fbdf0277d8d9e61de27554cb30aeda4d38637c737f",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-welcome.webp",
+      "source": "https://www.pexels.com/photo/cosmetologist-applying-essential-oil-on-client-face-5069429/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "d86c9a1b8b587e74633f9c9a94eae742d6aebe3708dd1f5a4053d26bf2f6c85e",
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "file": "aesthetic-facial.webp",
+      "source": "https://www.pexels.com/photo/woman-having-facial-care-3738349/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "8062bad59121ac5dd68da1a478e77d1fb3ecaed5625a1edd5752615b6b5a1970",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-hydration.webp",
+      "source": "https://www.pexels.com/photo/person-putting-makeup-on-womans-face-7582563/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "c75a55ba3c6fd6b062a23f39b2c417499369f1ea800b71b8b319afabc21c1854",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-massage.webp",
+      "source": "https://www.pexels.com/photo/a-person-having-a-body-massage-6628701/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "14b993539a2f296303fa83ea4c5b91aab4250c1d4678c99c50b3f6db2c8bf5f5",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-scalp.webp",
+      "source": "https://www.pexels.com/photo/a-hairdresser-massaging-woman-head-23349902/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "3a2478b7dc798b1571518a70d7a3c3e7af144978d6e797627f3d7d08c4c9cca2",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-ritual.webp",
+      "source": "https://www.pexels.com/photo/brown-bottles-and-dispensers-on-folded-towels-7795398/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "71e40dcf814a31127991082bfba1c598fce0634fef664e25606a604a3945e224",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "aesthetic-consult.webp",
+      "source": "https://www.pexels.com/photo/modern-workplace-of-cosmetology-salon-with-couch-6899538/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "7bc9b2b83fe67312752931a249ccdfc6fc5a287d0bfab7ce52916f3c4665c802",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-wash.webp",
+      "source": "https://www.pexels.com/photo/man-spraying-and-cleaning-car-20051469/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "4070906b1dd9f76c869fd1d2e65ba8fae20529484d815715db84aebe24098c88",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-interior.webp",
+      "source": "https://www.pexels.com/photo/a-person-deep-cleaning-a-car-seat-5233285/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "97f303f46fe5b21d0a6c7ee19dc61a4dfdadf9f725e0074663cd20c769b589e2",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-polish.webp",
+      "source": "https://www.pexels.com/photo/a-person-buffing-a-car-6870296/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "8513bd58b604b83c4187aa91a5334804e0cdded750497c202b989b5c5c613b06",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-glass.webp",
+      "source": "https://www.pexels.com/photo/a-person-washing-the-car-6872160/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "7fc9aa5c837beaf7bc28381fbdebc9ebed5632f48a12533fc664ad26cd92d491",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-complete.webp",
+      "source": "https://www.pexels.com/photo/a-close-up-shot-of-a-person-brushing-a-car-6873020/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "5a944b219b846e300f74c232503336ce7e93ec4407e8a9ff12aeaef728c15743",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "detailing-inspect.webp",
+      "source": "https://www.pexels.com/photo/a-woman-with-dyed-hair-wiping-a-car-6872602/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "09a53b6f20ae1b86a0b3432809174d809c8decd89c9af8e6c62798253d7f2a45",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-welcome.webp",
+      "source": "https://www.pexels.com/photo/a-group-of-people-having-a-meeting-in-the-office-7652049/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "f2a2e33024ac801d831d4bf742b02292c43e4f2a864f634436e5a0d26c725080",
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "file": "consulting-business.webp",
+      "source": "https://www.pexels.com/photo/a-person-filling-in-documents-16282318/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "4c650a9cbd5e889c81b78f5b961ed0ebb0efd34fa18f4bc9203eea6a6f3663d8",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-strategy.webp",
+      "source": "https://www.pexels.com/photo/a-woman-sticking-notes-on-the-board-7213510/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "1a57223385c3a7ac17aa0c12aab976e61cd266865676f071762318889a313864",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-career.webp",
+      "source": "https://www.pexels.com/photo/woman-holding-clipboard-3205566/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "12f18b794c9f84cad5c7f752757e0b8a4d44a95ebdc7299a989eda6d4d774f7b",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-portfolio.webp",
+      "source": "https://www.pexels.com/photo/a-fashion-designer-looking-at-fabric-samples-and-a-sketch-7761833/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "e6a982df0bba605fa4b09664e6a13c1274f473c686530f574be2259edec7ed1f",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-team.webp",
+      "source": "https://www.pexels.com/photo/colleagues-discussing-ideas-while-in-the-office-7792868/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "ebf38dc960e5bab1985bb413be6cbd294f009a0cb0837e333f2dc1efbbe4a3b5",
+      "width": 900,
+      "height": 682
+    },
+    {
+      "file": "consulting-intro.webp",
+      "source": "https://www.pexels.com/photo/man-taking-notes-while-video-calling-using-a-laptop-6937819/",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "sha256": "e923065c0633ce3819bb492f0e700c0dc40f4551fa6d007ccba7526b18181873",
+      "width": 900,
+      "height": 682
     }
   ]
 }

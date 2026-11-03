@@ -78,7 +78,28 @@ try{
   const page=await ctx.newPage();await ready(page,url('full','/?theme='+theme));
   const categories=page.getByRole('group',{name:'Kategori menu',exact:true});assert.equal(await categories.getAttribute('data-ui'),'choice-strip');
   assert.equal(await page.getByText('Menu hari ini',{exact:true}).count(),0,'No redundant hero panel.');
-  const first=await page.getByRole('list',{name:'Menu',exact:true}).getByRole('listitem').first().boundingBox();assert.ok(first.y<620,'Menu must start in the initial mobile viewport.');
+  const leadDish = page.getByRole('list', { name: 'Menu', exact: true }).getByRole('listitem').first();
+  const first = await leadDish.boundingBox();
+  assert.ok(first.y < 620, 'Menu must start in the initial mobile viewport.');
+  if (theme === 'editorial') {
+    const details = leadDish.getByRole('button', { name: /^Lihat / });
+    const name = await details.textContent();
+    const photo = leadDish.locator('img');
+    await photo.scrollIntoViewIfNeeded();
+    const box = await photo.boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3);
+    const dialog = page.getByRole('dialog', { name, exact: true });
+    await dialog.waitFor();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    const favorite = leadDish.getByRole('button', { name: /ke favorit$/ });
+    await favorite.click();
+    assert.equal(await leadDish.getByRole('button', { name: /dari favorit$/ }).getAttribute('aria-pressed'), 'true');
+    await leadDish.getByRole('button', { name: /^Tambah / }).click();
+    await dialog.waitFor();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+  }
   for(const width of [360,390,768,1280]){await resize(page,width);await geometry(page,'customer-'+theme+'-'+width);}
   await resize(page,390);await categories.getByRole('button').first().focus();await page.keyboard.press('ArrowRight');
   assert.equal(await categories.getByRole('button').nth(1).getAttribute('aria-pressed'),'true');

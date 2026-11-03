@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   CalendarDays,
+  ChevronLeft,
+  MessageCircle,
   Check,
   Clock3,
   Copy,
@@ -11,6 +13,7 @@ import { adapters, defaultOptions } from "../domain/adapters";
 import type { Booking, BookingInput, Quote, Slot } from "../domain/model";
 import { localTime } from "../domain/time";
 import { api } from "../lib/api";
+import { imageSrc } from "../lib/image-src";
 import { useBooking } from "../lib/store";
 import {
   Action,
@@ -250,14 +253,15 @@ export function BookingForm() {
   return (
     <section className="b-section b-book-page">
       <RouteLink to={{ page: "services", service: "" }} className="b-back-link">
-        {t("Kembali ke layanan", "Back to services")}
+        <ChevronLeft size={16} aria-hidden="true" />{t("Kembali ke layanan", "Back to services")}
       </RouteLink>
       <div className="b-book-heading">
         {cap.booking && (
           <RouteLink
-            className="b-back-link"
+            className="b-channel-choice"
             to={{ channel: isBooking ? "whatsapp" : "booking" }}
           >
+            {isBooking ? <MessageCircle size={17} aria-hidden="true" /> : <CalendarDays size={17} aria-hidden="true" />}
             {isBooking
               ? t(
                   "Tanya melalui WhatsApp sebagai pilihan lain",
@@ -783,7 +787,7 @@ export function BookingForm() {
             ))}
         </div>
         <aside className="b-book-summary">
-          <img src={service.image} alt="" />
+          {service.image && <img src={imageSrc(service.image)} alt="" />}
           <div>
             <h2>{service.name[lang]}</h2>
             <p>

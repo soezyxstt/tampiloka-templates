@@ -368,6 +368,8 @@ export function CustomerApp({
     setActiveQuote(null);
   };
 
+  const browsingWholeMenu = activeCategoryId === 'ALL' && !searchQuery.trim() && !onlyAvailable && !onlyFavorites;
+
   const openItemModal = (item: any) => {
     const defaultVar = item.variants?.find((v: any) => v.isDefault) || item.variants?.[0];
     setEditingLineId(null);
@@ -826,19 +828,17 @@ export function CustomerApp({
                     const photos = item.photos?.length ? item.photos : item.photoUrl ? [item.photoUrl] : [];
                     const quantity = cart.filter((line) => line.menuItemId === item.id).reduce((total, line) => total + line.quantity, 0);
                     const favorite = favoriteIds.has(item.id);
-                    return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${!item.isAvailable ? styles.soldOut : ''}`}>
+                    return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${browsingWholeMenu && itemIndex === 0 && photos[0] && item.isAvailable ? styles.openingDish : ''} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
-                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className="w-full h-full">
-                          {photos[0] ? <Image src={photos[0]} alt={item.name} width={640} height={480} unoptimized loading="lazy" /> : <Coffee className="w-12 h-12 text-[var(--primary-ink)] mx-auto" />}
-                        </button>
+                        {photos[0] ? <Image src={photos[0]} alt="" width={640} height={480} unoptimized loading={itemIndex < 2 ? 'eager' : 'lazy'} /> : <Coffee aria-hidden="true" className="w-12 h-12 text-[var(--primary-ink)] m-auto" />}
                         <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? t('Hapus', 'Remove') : t('Simpan', 'Save')} ${item.name} ${favorite ? t('dari', 'from') : t('ke', 'to')} ${t('favorit', 'favorites')}`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
                         {!item.isAvailable && <span className={styles.soldOutBadge}>{t("Habis", "Sold out")}</span>}
-                        {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} di keranjang</span>}
+                        {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} {t('di keranjang', 'in cart')}</span>}
                       </div>
                       <div className={styles.menuCardBody}>
-                        <button type="button" onClick={() => openItemModal(item)} className="text-left font-heading font-semibold text-[15px] sm:text-base leading-snug">{item.name}</button>
+                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle}>{item.name}</button>
                         <p className={styles.menuDescription}>{item.description}</p>
-                        <div className="flex items-center justify-between gap-2 mt-auto pt-2">
+                        <div className={styles.dishActions}>
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
                           {canOrder && <Button variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
                         </div>
@@ -1815,25 +1815,16 @@ export function CustomerApp({
             </span>{' '}
             · {cafeConfig.venue.address}
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setActiveScreen('wifi')}
-              className="hover:text-[var(--foreground)] hover:underline cursor-pointer"
-            >
-              {t("Info kedai", "Cafe info")}
-            </button>
-            {canUseTables && <button type="button" onClick={() => setActiveScreen('bantuan')} className="hover:text-[var(--foreground)] hover:underline cursor-pointer">{t("Panggil pelayan", "Call staff")}</button>}
-            {onOpenStaffPortal && (
-              <button
-                type="button"
-                onClick={onOpenStaffPortal}
-                className="inline-flex items-center gap-1 font-medium text-[var(--primary-ink)] hover:underline cursor-pointer"
-              >
-                <Lock className="w-3 h-3" />
-                <span>{t("Ruang staf dan kasir", "Staff and cashier")}</span>
-              </button>
-            )}
+          <div className={styles.footerTools}>
+            <Button variant="ghost" onClick={() => setActiveScreen('wifi')}>
+              <MapPin aria-hidden="true" size={16} />{t("Info kedai", "Cafe info")}
+            </Button>
+            {canUseTables && <Button variant="subtle" onClick={() => setActiveScreen('bantuan')}>
+              <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
+            </Button>}
+            {onOpenStaffPortal && <Button variant="ghost" onClick={onOpenStaffPortal}>
+              <Lock aria-hidden="true" size={16} />{t("Ruang staf dan kasir", "Staff and cashier")}
+            </Button>}
           </div>
         </footer>
       </main>

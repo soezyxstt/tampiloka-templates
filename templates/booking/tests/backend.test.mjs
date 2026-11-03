@@ -605,3 +605,42 @@ test("manual rescheduling returns to confirmation and invalidates the old ticket
   good(next);
   assert.notEqual(next.data.ticket.payload, confirmed.data.ticket.payload);
 });
+
+test("previous demo photographs update without replacing a staff photo or changing client content", async (t) => {
+  for (const demo of [true, false]) {
+    const { env, c } = fixture(t, { DEMO_MODE: String(demo) });
+    const first = await c.get("/api/bootstrap");
+    good(first);
+    env.DB.db.exec("UPDATE scopes SET state_json=json_remove(state_json, '$.photoVersion')");
+    const customPhoto = "https://example.org/our-room.webp";
+    const update = env.DB.db.prepare(
+      "UPDATE entities SET data=json_set(data, '$.image', ?) WHERE kind='service' AND id=?",
+    );
+    update.run("/images/medical-detail.webp", "medical-general");
+    update.run(customPhoto, "medical-family");
+    const second = await c.get("/api/bootstrap");
+    good(second);
+    const photos = Object.fromEntries(second.data.services.map((s) => [s.id, s.image]));
+    assert.equal(photos["medical-general"], demo ? "/images/medical-general.webp" : "/images/medical-detail.webp");
+    assert.equal(photos["medical-family"], customPhoto);
+    update.run("/images/medical-detail.webp", "medical-general");
+    const edited = (await c.get("/api/bootstrap")).data.services.find((service) => service.id === "medical-general");
+    assert.equal(edited.image, "/images/medical-detail.webp");
+
+  }
+});
+
+test("legacy detailing gains its venue photo once even though the cover stays the same", async (t) => {
+  const { c, env } = fixture(t);
+  await configure(c, { preset: "detailing" });
+  env.DB.db.exec("UPDATE scopes SET state_json=json_remove(state_json, '$.photoVersion')");
+  const clearPhoto = () => env.DB.db.exec(
+    "UPDATE settings SET config_json=json_remove(config_json, '$.brand.visitPhoto') WHERE preset='detailing'",
+  );
+  clearPhoto();
+  const updated = await c.get("/api/bootstrap");
+  good(updated);
+  assert.equal(updated.data.config.brand.visitPhoto.image, "/images/detailing.webp");
+  clearPhoto();
+  assert.equal((await c.get("/api/bootstrap")).data.config.brand.visitPhoto, undefined);
+});

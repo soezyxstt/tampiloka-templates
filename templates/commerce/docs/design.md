@@ -32,10 +32,10 @@ These are independently authored DOM/CSS adaptations. No kit screenshot is used 
 
 | Layout | Opening and navigation | Collection | Phone order |
 | --- | --- | --- | --- |
-| Editorial | Short typographic opening next to a large product photograph | Open four-column shelf, category controls above products | Title, action, image, filters, two-column products |
-| Market | Direct collection task, compact introduction | Persistent category rail and dense three-column grid | Introduction, horizontal categories, search and sorting, two-column grid |
-| Atelier | Large serif title, two differently sized photographs | Unequal image rhythm with offset product groups | Title, paired images, filters, staggered two-column collection |
-| Compact | Quick ordering introduction with current cart quantity | Product rows with price and stock | Introduction, cart shortcut, search, compact product rows |
+| Editorial | Manual product campaign with a full-width photo, product name, price and one detail action | Open shelf and filters | Photo, caption and controls share the frame |
+| Market | Photographed departments link to the matching filtered catalog | Category rail and dense product grid | Compact category mosaic followed by filters |
+| Atelier | Large product photograph and a close study of the same material, with a shared caption and detail action | Unequal image rhythm with offset product groups | Paired images, caption, price, filters |
+| Compact | Search field and three photographed picks in ascending price order | Short product rows, prices and stock | Search, small visual index, then the results |
 
 All four use the same initial catalogue and brand identity. They differ in actual DOM structure, density, reading order and media relationship. Editorial and Market are the first two credible alternatives; Atelier serves visually led collections, while Compact serves frequent assisted purchases. A single recolored hero would not meet these different tasks.
 
@@ -114,3 +114,17 @@ node tests/checkout-recovery.mjs
 
 The additional tests accept `COMMERCE_TEST_URL`; they are intended for the isolated demo. Generated clients should test against a staging deployment with appropriate fixtures. The root lifecycle suite uses its own documented `COMMERCE_BASE_URL` setting. Transient screenshots, reports and browser logs remain in ignored test-output directories; the reproducible test sources and this review record are part of the repository.
 
+
+## Product photography, 2 November 2026
+
+The product dialog adapts Website Design Kit OFFER-18. A shopper can compare the full item and a close view before choosing a variant. The gallery keeps the purchase controls and current selection in place on both desktop and mobile. Under the collection, two photographs from different active categories link back to their actual products. This uses the catalog's additional images, so a client changing a product also changes its appearance in this section.
+
+## Storefront openings and actions, 3 November 2026
+
+Editorial adapts the image-first reading order of kit OPEN-06 to the manual campaign. The photograph, item name, price and destination switch together. Market uses the actual category, image, active product count and filter behind each entrance. Up to four departments appear in the opening. The catalog includes the complete category list. Atelier adapts SB-16’s contact sheet to the object and a second photograph of its material. A single image takes the full plate when no detail exists. Compact uses SB-05’s aligned prices and WF-22’s live collection search. It keeps the catalog close to the top of the page.
+
+The LOEWE campaign connects a photographic sequence to specific articles. MUJI Life groups everyday items by use and links to the corresponding category. We used these relationships with the store’s own inventory and photographs. [LOEWE collection campaign](https://www.loewe.com/int/en/pd/stories-collection/fw26-collection-campaign.html) · [MUJI Life](https://www.muji.eu/pages/muji-life-made-for-every-home.html)
+
+Each product card has one clickable area that opens its details. Saving an item remains an independent control. A department opens filtered results and moves keyboard focus to them. The carousel changes only on request, announces the product and count, and hides its navigation for a single featured product. A catalog without usable photographs retains access to the collection.
+
+Run `node tests/hero-carousel.mjs` against the demo to check all four opening actions at 320, 390 and 1440 pixels, keyboard operation, empty and single-product inventories. Set `COMMERCE_HERO_CAPTURES` to save the rendered openings. The visual, bilingual and purchase-flow suites remain separate.

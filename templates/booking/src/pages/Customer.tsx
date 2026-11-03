@@ -1,17 +1,18 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   CalendarDays,
+  ChevronLeft,
+  ListFilter,
   Check,
   Clock3,
   MapPin,
   Menu,
   Search,
-  ShieldCheck,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { adapters } from "../domain/adapters";
-import type { Resource, Service } from "../domain/model";
+import type { Business, Language, Service } from "../domain/model";
+import { imageSrc } from "../lib/image-src";
 import { useBooking } from "../lib/store";
 import {
   Action,
@@ -129,28 +130,23 @@ function ServiceEntry({
   index?: number;
   large?: boolean;
 }) {
-  const { route, data, t, navigate } = useBooking();
+  const { route, data, t } = useBooking();
   return (
     <article className={`b-service-entry ${large ? "b-service-large" : ""}`}>
-      <RouteLink
-        to={{ page: "services", service: service.id }}
-        className="b-service-picture"
-      >
-        {service.image && (
-          <img
-            src={service.image}
-            alt={service.name[route.lang]}
-            loading="lazy"
-          />
-        )}
-      </RouteLink>
+      {service.image && (
+        <div className="b-service-picture">
+          <img src={imageSrc(service.image)} alt="" loading="lazy" decoding="async" />
+        </div>
+      )}
       <div className="b-service-copy">
         <span className="b-service-number" aria-hidden="true">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <RouteLink to={{ page: "services", service: service.id }}>
-          <h3>{service.name[route.lang]}</h3>
-        </RouteLink>
+        <h3>
+          <RouteLink className="b-service-title" to={{ page: "services", service: service.id }}>
+            {service.name[route.lang]}
+          </RouteLink>
+        </h3>
         <p>{service.description[route.lang]}</p>
         <div className="b-service-meta">
           <span>
@@ -159,22 +155,12 @@ function ServiceEntry({
           </span>
           <Price service={service} />
         </div>
-        <Action
-          variant={large ? "solid" : "outline"}
-          onClick={() =>
-            navigate({
-              page: data!.capabilities.whatsapp ? "book" : "services",
-              service: service.id,
-              practitioner: "",
-            })
-          }
-        >
-          {data!.capabilities.booking
-            ? t("Pilih waktu", "Find a time")
-            : data!.capabilities.whatsapp
-              ? t("Tanya jadwal", "Ask about a time")
-              : t("Detail layanan", "Service details")}
-        </Action>
+        {data!.capabilities.whatsapp && (
+          <RouteLink className="b-service-book" to={{ page: "book", service: service.id, practitioner: "" }}>
+            <CalendarDays size={17} aria-hidden="true" />
+            {data!.capabilities.booking ? t("Pilih waktu", "Find a time") : t("Tanya jadwal", "Ask about a time")}
+          </RouteLink>
+        )}
       </div>
     </article>
   );
@@ -200,17 +186,6 @@ function QuickStart() {
             : t("Pilih layanan Anda", "Choose your service")}
         </h2>
       </div>
-      <p>
-        {data!.capabilities.booking
-          ? t(
-              "Lihat jadwal yang tersedia, lalu pilih waktu yang sesuai.",
-              "See available appointments and choose a time that suits you.",
-            )
-          : t(
-              "Lihat pilihan dan detail layanan sebelum menghubungi kami.",
-              "Explore your options before contacting us.",
-            )}
-      </p>
       <div className="b-stack">
         {data!.config.preset === "medical" && (
           <Field
@@ -266,13 +241,6 @@ function QuickStart() {
             : t("Lihat layanan", "View service")}
         </Action>
       </div>
-      <small>
-        <ShieldCheck size={16} />
-        {t(
-          "Jadwal dan harga jelas sebelum memesan.",
-          "Know the time and price before booking.",
-        )}
-      </small>
     </section>
   );
 }
@@ -285,44 +253,89 @@ export function ProfessionalList({ compact = false }: { compact?: boolean }) {
         compact ? "b-professionals b-professionals-compact" : "b-professionals"
       }
     >
-      {people.map((r, index) => (
-        <article className="b-professional" key={r.id}>
-          <div className="b-initial-avatar" aria-hidden="true">
-            {r.profile!.initials}
-          </div>
-          <div className="b-profile-info">
-            <h3>{r.name}</h3>
-            <p className="b-specialty">{r.profile!.specialty[route.lang]}</p>
-            {!compact && <p>{r.profile!.bio[route.lang]}</p>}
-            {r.profile!.example && (
-              <small>
-                {t("Profil fiktif untuk demo", "Fictional example profile")}
-              </small>
+      {people.map((r, index) => {
+        const offered = data!.services.filter(
+          (service) => service.image && r.serviceIds.includes(service.id),
+        );
+        const example = offered[index] || offered[0];
+        return (
+          <article className="b-professional" key={r.id}>
+            {!compact && example ? (
+              <figure className="b-specialty-photo">
+                <img src={imageSrc(example.image)} alt="" loading="lazy" decoding="async" />
+                <figcaption>{example.name[route.lang]}</figcaption>
+              </figure>
+            ) : (
+              <div className="b-initial-avatar" aria-hidden="true">{r.profile!.initials}</div>
             )}
-          </div>
-          <Action
-            variant="outline"
-            onClick={() =>
-              navigate({
-                page: data!.capabilities.whatsapp ? "book" : "services",
-                practitioner: r.id,
-                service:
-                  data!.services.find((s) => r.serviceIds.includes(s.id))?.id ||
-                  "",
-              })
-            }
-          >
-            {data!.capabilities.booking
-              ? t("Lihat jadwal", "View availability")
-              : t("Lihat layanan", "View services")}
-          </Action>
-        </article>
-      ))}
+            <div className="b-profile-info">
+              <h3>{r.name}</h3>
+              <p className="b-specialty">{r.profile!.specialty[route.lang]}</p>
+              {!compact && <p>{r.profile!.bio[route.lang]}</p>}
+              {r.profile!.example && (
+                <small>
+                  {t("Profil fiktif untuk demo", "Fictional example profile")}
+                </small>
+              )}
+            </div>
+            <Action
+              variant="outline"
+              onClick={() =>
+                navigate({
+                  page: data!.capabilities.whatsapp ? "book" : "services",
+                  practitioner: r.id,
+                  service: (!compact && example?.id) || r.serviceIds.find((id) =>
+                    data!.services.some((service) => service.id === id),
+                  ) || "",
+                })
+              }
+            >
+              {data!.capabilities.booking
+                ? t("Lihat jadwal", "View availability")
+                : t("Lihat layanan", "View services")}
+            </Action>
+          </article>
+        );
+      })}
     </div>
   );
 }
+function CoverPhoto({ brand, lang }: { brand: Business; lang: Language }) {
+  if (!brand.heroImage) return null;
+  return (
+    <img
+      className="b-cover"
+      src={imageSrc(brand.heroImage)}
+      alt={brand.heroAlt[lang]}
+      fetchPriority="high"
+    />
+  );
+}
+
+function FeaturedServices({ editorial = false }: { editorial?: boolean }) {
+  const { data, t } = useBooking();
+  const services = data!.services.filter((s) => s.featured).slice(0, 3);
+  if (!services.length) return null;
+  return (
+    <section className={`b-section b-featured-services ${editorial ? "b-editorial-services" : ""}`}>
+      <div className="b-section-heading">
+        <h2>{t("Layanan pilihan", "Selected services")}</h2>
+        <RouteLink className="b-collection-link" to={{ page: "services", service: "" }}>
+          <ListFilter size={17} aria-hidden="true" />{t("Semua layanan", "All services")}
+        </RouteLink>
+      </div>
+      <div className={editorial ? "b-editorial-rows" : "b-service-grid"}>
+        {services.map((s, index) => (
+          <Reveal key={s.id}>
+            <ServiceEntry service={s} index={index} large={editorial} />
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
 export function CustomerHome() {
-  const { data, route, t, navigate } = useBooking();
+  const { data, route, t } = useBooking();
   if (!data) return null;
   const { config } = data,
     brand = config.brand,
@@ -332,83 +345,55 @@ export function CustomerHome() {
     return (
       <>
         <section className="b-editorial-hero">
+          <CoverPhoto brand={brand} lang={route.lang} />
           <div className="b-editorial-intro">
             <h1>{brand.headline[route.lang]}</h1>
             <p>{brand.description[route.lang]}</p>
-          </div>
-          <div className="b-editorial-image">
-            <img
-              src={brand.heroImage}
-              alt={brand.heroAlt[route.lang]}
-              fetchPriority="high"
-            />
-            <div className="b-editorial-book">
-              <span>
-                {t(
-                  "Ruang untuk perawatan yang terencana.",
-                  "Make room for thoughtful care.",
-                )}
-              </span>
-              <RouteLink className="b-link-button" to={{ page: "services" }}>
-                {t("Jelajahi layanan", "Explore services")}
-              </RouteLink>
-            </div>
-          </div>
-        </section>
-        <section className="b-section b-editorial-services">
-          <div className="b-section-heading">
-            <h2>{t("Layanan pilihan", "Selected services")}</h2>
-            <RouteLink to={{ page: "services" }}>
-              {t("Semua layanan", "All services")}
+            <RouteLink className="b-link-button" to={{ page: "services" }}>
+              {t("Jelajahi layanan", "Explore services")}
             </RouteLink>
           </div>
-          {data.services
-            .filter((s) => s.featured)
-            .slice(0, 3)
-            .map((s, i) => (
-              <Reveal key={s.id}>
-                <ServiceEntry service={s} index={i} large />
-              </Reveal>
-            ))}
         </section>
+        <FeaturedServices editorial />
         <BusinessNote />
       </>
     );
   if (layout === "minimal-professional")
     return (
       <div className="b-professional-composition">
-        <aside className="b-professional-rail">
-          <span>{brand.name}</span>
-          <p>{brand.address}</p>
-          <RouteLink to={{ page: "about" }}>
-            {t("Kontak & jam buka", "Contact & opening hours")}
-          </RouteLink>
-          <span className="b-rail-rule" />
-        </aside>
         <div>
-          <Reveal>
-            <section className="b-minimal-hero">
+          <section className="b-minimal-hero">
+            <div className="b-minimal-intro">
               <h1>{brand.headline[route.lang]}</h1>
-              <div className="b-minimal-intro">
-                <p>{brand.description[route.lang]}</p>
-                <RouteLink className="b-link-button" to={{ page: "services" }}>
-                  {t("Pilih layanan", "Choose a service")}
+              <p>{brand.description[route.lang]}</p>
+            </div>
+            <div className="b-service-index">
+              <div className="b-section-heading">
+                <h2>{t("Layanan", "Services")}</h2>
+                <RouteLink className="b-collection-link" to={{ page: "services", service: "" }}>
+                  <ListFilter size={17} aria-hidden="true" />{t("Semua layanan", "All services")}
                 </RouteLink>
               </div>
-            </section>
-          </Reveal>
+              <ol>
+                {data.services.slice(0, 3).map((service, i) => (
+                  <li key={service.id}>
+                    <RouteLink to={{ page: "services", service: service.id }}>
+                      <span aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                      <strong>{service.name[route.lang]}</strong>
+                      <small>{service.duration} {t("menit", "min")}</small>
+                    </RouteLink>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <CoverPhoto brand={brand} lang={route.lang} />
+          </section>
           {data.resources.some((r) => r.profile) ? (
             <section className="b-section b-minimal-people">
               <h2>{t("Kenali tim Anda", "Meet your team")}</h2>
               <ProfessionalList />
             </section>
-          ) : (
-            <section className="b-section b-minimal-people">
-              {data.services.slice(0, 3).map((s, i) => (
-                <ServiceEntry key={s.id} service={s} index={i} />
-              ))}
-            </section>
-          )}
+          ) : null}
           <BusinessNote />
         </div>
       </div>
@@ -419,61 +404,26 @@ export function CustomerHome() {
         <Reveal className="b-appointment-intro">
           <h1>{brand.headline[route.lang]}</h1>
           <p>{brand.description[route.lang]}</p>
-          <div className="b-hero-photo">
-            <img
-              src={brand.heroImage}
-              alt={brand.heroAlt[route.lang]}
-              fetchPriority="high"
-            />
-            <span>
-              <MapPin size={16} />
-              {data.locations[0]?.name}
-            </span>
-          </div>
+          {brand.heroImage && (
+            <div className="b-hero-photo">
+              <CoverPhoto brand={brand} lang={route.lang} />
+            </div>
+          )}
         </Reveal>
         <QuickStart />
       </section>
-      <div className="b-assurance-strip">
-        <span>
-          <Clock3 size={19} />
-          {t("Durasi dan jadwal jelas", "Clear appointment times")}
-        </span>
-        <span>
-          <Check size={19} />
-          {t("Pilih layanan yang sesuai", "Services that fit your needs")}
-        </span>
-        <span>
-          <MapPin size={19} />
-          {t("Lokasi mudah ditemukan", "Know where to arrive")}
-        </span>
-      </div>
-      <section className="b-section">
-        <div className="b-section-heading">
-          <h2>
-            {data.resources.some((r) => r.profile)
-              ? t("Tim yang siap membantu", "People ready to help")
-              : t("Pilihan layanan", "Your service options")}
-          </h2>
-          <RouteLink
-            to={{
-              page: data.resources.some((r) => r.profile)
-                ? "professionals"
-                : "services",
-            }}
-          >
-            {t("Lihat semua", "View all")}
-          </RouteLink>
-        </div>
-        {data.resources.some((r) => r.profile) ? (
-          <ProfessionalList compact />
-        ) : (
-          <div className="b-service-grid">
-            {data.services.slice(0, 3).map((s, i) => (
-              <ServiceEntry key={s.id} service={s} index={i} />
-            ))}
+      <FeaturedServices />
+      {data.resources.some((r) => r.profile) && (
+        <section className="b-section">
+          <div className="b-section-heading">
+            <h2>{t("Kenali tim Anda", "Meet your team")}</h2>
+            <RouteLink className="b-collection-link" to={{ page: "professionals" }}>
+              {adapters[data.config.preset].professionalLabel[route.lang]}
+            </RouteLink>
           </div>
-        )}
-      </section>
+          <ProfessionalList compact />
+        </section>
+      )}
       <BusinessNote />
     </>
   );
@@ -483,20 +433,16 @@ function BusinessNote() {
   return (
     <section className="b-business-note">
       <h2>{t("Rencanakan kunjungan Anda.", "Plan your visit.")}</h2>
-      <div>
-        <p>{data!.config.policy.text[route.lang]}</p>
-        <RouteLink to={{ page: "about" }}>
-          {t(
-            "Lihat lokasi, jam buka, dan pertanyaan umum",
-            "View locations, hours, and common questions",
-          )}
-        </RouteLink>
-      </div>
+      <p>{data!.config.policy.text[route.lang]}</p>
+      <RouteLink className="b-place-link" to={{ page: "about", service: "" }}>
+        <MapPin size={21} aria-hidden="true" />
+        <span><strong>{t("Lokasi & jam buka", "Location & hours")}</strong>{data!.config.brand.address}</span>
+      </RouteLink>
     </section>
   );
 }
 export function ServiceCatalog({ home = false }: { home?: boolean }) {
-  const { data, route, t, navigate } = useBooking(),
+  const { data, route, t } = useBooking(),
     [query, setQuery] = useState(""),
     [category, setCategory] = useState(""),
     [sort, setSort] = useState("featured");
@@ -518,11 +464,12 @@ export function ServiceCatalog({ home = false }: { home?: boolean }) {
           ? a.duration - b.duration
           : Number(b.featured) - Number(a.featured),
     );
+  const categories = [{ id: "", name: { id: "Semua layanan", en: "All services" } }, ...data.categories];
   return (
     <section
       className={`b-section b-catalog ${data.config.layout === "service-market" ? "b-market" : ""}`}
     >
-      <div className="b-catalog-heading">
+      <div className={`b-catalog-heading ${home ? "b-market-intro" : ""}`}>
         <div>
           <h1>
             {home
@@ -548,36 +495,22 @@ export function ServiceCatalog({ home = false }: { home?: boolean }) {
           />
         </div>
       </div>
-      <div className="b-catalog-body">
-        <aside className="b-category-nav">
-          <h2>{t("Kategori", "Categories")}</h2>
+      <div className={`b-catalog-body ${home ? "b-catalog-home" : ""}`}>
+        <aside className={home ? "b-category-photos" : "b-category-nav"}>
+          {!home && <h2>{t("Kategori", "Categories")}</h2>}
           <nav aria-label={t("Kategori layanan", "Service categories")}>
-            {[
-              { id: "", name: { id: "Semua layanan", en: "All services" } },
-              ...data.categories,
-            ].map((c) => (
-              <button
-                type="button"
-                key={c.id}
-                aria-pressed={category === c.id}
-                onClick={() => setCategory(c.id)}
-              >
-                {c.name[route.lang]}
-                <span>
-                  {
-                    data.services.filter((s) => !c.id || s.category === c.id)
-                      .length
-                  }
-                </span>
-              </button>
-            ))}
+            {categories.map((c) => {
+              const items = c.id ? data.services.filter((service) => service.category === c.id) : data.services;
+              const photo = home && (c.id ? items.filter((service) => service.image).at(-1)?.image : data.config.brand.heroImage);
+              return (
+                <button type="button" key={c.id} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
+                  {photo && <img src={imageSrc(photo)} alt="" decoding="async" />}
+                  <span className="b-category-label">{c.name[route.lang]}</span>
+                  <span className="b-category-count">{items.length}</span>
+                </button>
+              );
+            })}
           </nav>
-          <p>
-            {t(
-              "Harga dan durasi dapat berubah sesuai pilihan pada langkah berikutnya.",
-              "Price and duration may change with the options chosen in the next step.",
-            )}
-          </p>
         </aside>
         <div className="b-catalog-results">
           <div className="b-results-bar">
@@ -637,10 +570,10 @@ function ServiceDetail({ service }: { service: Service }) {
   return (
     <section className="b-section b-service-detail">
       <RouteLink to={{ service: "", page: "services" }} className="b-back-link">
-        {t("Kembali ke layanan", "Back to services")}
+        <ChevronLeft size={16} aria-hidden="true" />{t("Kembali ke layanan", "Back to services")}
       </RouteLink>
       <div className="b-service-detail-grid">
-        <img src={service.image} alt={service.name[route.lang]} />
+        {service.image && <img src={imageSrc(service.image)} alt="" />}
         <div>
           <h1>{service.name[route.lang]}</h1>
           <div className="b-service-meta">
@@ -679,12 +612,11 @@ function ServiceDetail({ service }: { service: Service }) {
                 : t("Tanya melalui WhatsApp", "Ask through WhatsApp")}
             </Action>
           )}
-          <RouteLink
-            to={{ page: "about", service: "" }}
-            className="b-back-link"
-          >
-            {t("Lokasi dan kontak", "Locations and contact")}
-          </RouteLink>
+          {!data!.capabilities.whatsapp && (
+            <RouteLink to={{ page: "about", service: "" }} className="b-link-button">
+              <MapPin size={17} aria-hidden="true" />{t("Lokasi dan kontak", "Locations and contact")}
+            </RouteLink>
+          )}
         </div>
       </div>
     </section>
@@ -739,15 +671,23 @@ export function AboutPage() {
   return (
     <section className="b-section b-about">
       <div className="b-about-intro">
-        <h1>{t("Sebelum Anda datang.", "Before you arrive.")}</h1>
-        <p>{data.config.brand.description[route.lang]}</p>
-        {data.config.brand.example && (
-          <p className="b-example-note">
-            {t(
-              "Usaha, alamat, harga, dan profil pada demo ini hanya contoh.",
-              "The business, addresses, prices, and profiles in this demo are examples.",
-            )}
-          </p>
+        <div>
+          <h1>{t("Sebelum Anda datang.", "Before you arrive.")}</h1>
+          <p>{data.config.brand.description[route.lang]}</p>
+          {data.config.brand.example && (
+            <p className="b-example-note">
+              {t(
+                "Usaha, alamat, harga, dan profil pada demo ini hanya contoh.",
+                "The business, addresses, prices, and profiles in this demo are examples.",
+              )}
+            </p>
+          )}
+        </div>
+        {data.config.brand.visitPhoto?.image && (
+          <img
+            src={imageSrc(data.config.brand.visitPhoto.image)}
+            alt={data.config.brand.visitPhoto.alt[route.lang]}
+          />
         )}
       </div>
       <div className="b-about-locations">

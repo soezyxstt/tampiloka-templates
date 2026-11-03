@@ -10,10 +10,10 @@ The public toolbar uses `DemoToolbarShell` and imports `@tampiloka/ui-core/demo.
 
 | Layout | Desktop | Mobile |
 | --- | --- | --- |
-| `appointment-first` | Split introduction and appointment selector, supporting practitioner directory below. Compact horizontal navigation. | Introduction and selector stack; a labeled menu replaces wide navigation. Booking remains a direct action. |
-| `editorial` | Centered wordmark/navigation, wide photography, large service titles and alternating image/text rows. | Shorter photography, stacked treatment rows and a full-width booking action. |
-| `service-market` | Search and sorting beside the title, category sidebar and a denser comparison grid. | Categories move into a horizontal strip; service rows retain duration, price and action without page overflow. |
-| `minimal-professional` | Restrained navigation, narrow business-information rail, large text and practitioner-led rows. | Information and profiles stack. Keep one clear service action rather than adding a large photographic hero. |
+| `appointment-first` | A consultation panorama spans the opening. A solid booking strip overlaps its lower edge, with a practitioner picker, service picker and one schedule action. | The strip becomes a single column. Labels and controls stay on an opaque surface. |
+| `editorial` | A full-width treatment photograph carries the headline and a single catalogue action. A local gradient keeps the copy legible. | The gradient shifts to the bottom to leave the top of the photograph visible. |
+| `service-market` | The photographs are category buttons. Selecting one filters the nearby service list while retaining search and sort. | A two-column photo index replaces the sidebar on the home page. Each button retains a readable name, count and pressed state. |
+| `minimal-professional` | A large headline sits beside a numbered index of services and durations, above a panoramic meeting photograph. Each row opens its service. | The photo follows the introduction, then the index and practice directory. |
 
 Business presets do not lock layouts. Medical in Editorial retains its practitioner form and allocation rules. Aesthetic in Catalog removes online booking on the server; it does not merely hide a payment button.
 
@@ -45,7 +45,11 @@ Run the design guard, typecheck, domain tests and browser suite. Check 360, 390,
 
 Preview files under `public/demo-previews/` are real 1280x800 browser captures. Verify live responses and dimensions before publishing catalog entries. Geometry checks do not replace visual review of native fields, image crops, spacing and hierarchy.
 
-Photo sources/checksums are in `public/images/manifest.json`. Images illustrate categories, not the identity or endorsement of fictional practitioners. Prefer client-owned photos at launch.
+Each preset has six local service photographs. A service keeps the same picture in its catalogue, detail page and booking summary. The main photograph introduces the business and the location page shows the venue. Staff can edit both in Settings and replace each service photo in Content. The CLI keeps only files for the selected preset.
+
+The Website Design Kit supplied OPEN-10 for the photograph with a booking strip, WF-14 for practitioner selection and OFFER-01 for the photographic category index. [Aman Spa at The Connaught](https://www.maybourne.com/en/hotels/the-connaught/aman-spa) pairs treatment photography with booking. [Mayo Clinic appointments](https://www.mayoclinic.org/appointments) gives each visitor an explicit starting choice. These guided the interaction and hierarchy. All media remains independently licensed and replaceable.
+
+Treat each service image and title as one detail link. Where the feature level supports booking or WhatsApp, offer a distinct scheduling action beside the details. Catalog-only detail pages lead to location and contact. Each visual category has a text label even without its image. Keep fictional staff names separate from identifiable stock portraits. Asset URLs, licenses and checksums are recorded in `public/images/manifest.json`.
 
 ## Interaction decisions
 
@@ -63,3 +67,5 @@ The care-appointment reference WF-14 supports the existing service-to-booking hi
 The WF-14 care-appointment reference informed the disclosure and service-to-booking hierarchy. Booking retains its own configured brand, typography and four layouts; a catalog-workspace pattern was less appropriate for this focused interaction change. The reference is guidance rather than a new visual identity.
 
 Customer and staff route changes use a 180ms entrance on the main region. The route key excludes language and palette, so those choices preserve open disclosures and entered values. The global reduced-motion rule removes the movement. Bootstrap errors preserve API codes until localized rendering; unknown errors use localized recovery text.
+
+In the public demo, section actions reserve space beside the fixed language switch as they scroll through the viewport.
