@@ -236,6 +236,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## Change log
 
+- **2026-11-03**: Booking demo section actions reserve space for the fixed language control while scrolling.
+
 - **2026-11-03**: School gallery labels published images with their localized titles and limits fictional-demo disclosure to demos.
 
 - **2026-11-03**: School now uses localized page routes, configurable institution identity/assets and CMS-driven home copy; generated-client tests verify built Worker deep links, branding and protected admin access.

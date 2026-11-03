@@ -67,3 +67,5 @@ The care-appointment reference WF-14 supports the existing service-to-booking hi
 The WF-14 care-appointment reference informed the disclosure and service-to-booking hierarchy. Booking retains its own configured brand, typography and four layouts; a catalog-workspace pattern was less appropriate for this focused interaction change. The reference is guidance rather than a new visual identity.
 
 Customer and staff route changes use a 180ms entrance on the main region. The route key excludes language and palette, so those choices preserve open disclosures and entered values. The global reduced-motion rule removes the movement. Bootstrap errors preserve API codes until localized rendering; unknown errors use localized recovery text.
+
+In the public demo, section actions reserve space beside the fixed language switch as they scroll through the viewport.

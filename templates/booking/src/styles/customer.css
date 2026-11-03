@@ -1055,3 +1055,8 @@
     font-size: 15px;
   }
 }
+
+/* Keep section actions clear of the fixed demo language switch while scrolling. */
+body:has(.tl-demo-language) .b-section-heading > .b-collection-link {
+  margin-right: max(0px, calc(100px + env(safe-area-inset-right, 0px) - var(--gutter)));
+}
