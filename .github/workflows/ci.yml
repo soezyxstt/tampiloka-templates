@@ -64,14 +64,14 @@ jobs:
         run: pnpm --filter @tampiloka/template-commerce exec playwright install --with-deps chromium
       - name: Verify commerce customer and staff flow
         run: |
-          pnpm --filter @tampiloka/template-commerce preview > /tmp/tampiloka-commerce-preview.log 2>&1 &
+          DEMO_MODE=true pnpm --filter @tampiloka/template-commerce preview > /tmp/tampiloka-commerce-preview.log 2>&1 &
           COMMERCE_PREVIEW_PID=$!
           trap 'kill "$COMMERCE_PREVIEW_PID" 2>/dev/null || true' EXIT
           for COMMERCE_ATTEMPT in $(seq 1 40); do
             if curl --fail --silent http://127.0.0.1:4174/api/health > /dev/null; then break; fi
             sleep 1
           done
-          curl --fail --silent http://127.0.0.1:4174/api/health
+          curl --fail --silent http://127.0.0.1:4174/api/health | node -e "let s=''; process.stdin.on('data', c => s += c).on('end', () => { if (JSON.parse(s).demo !== true) throw new Error('Commerce preview must run in demo mode'); });"
           pnpm --filter @tampiloka/template-commerce test:e2e
           pnpm --filter @tampiloka/template-commerce test:language
           pnpm --filter @tampiloka/template-commerce exec node tests/staff-browser.mjs
