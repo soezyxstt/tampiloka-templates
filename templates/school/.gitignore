@@ -10,3 +10,5 @@ dist-worker/
 test-results/
 
 node_modules
+
+.data-nusa-preview/

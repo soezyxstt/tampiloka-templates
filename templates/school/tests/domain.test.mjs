@@ -11,6 +11,26 @@ const ctx = (s, role = 'student', level = 'full') => ({ actor: s.users.find(x =>
 const answers = s => Object.fromEntries(s.registrationFields.filter(f => f.required).map(f => [f.name, f.type === 'checkbox' ? true : f.type === 'select' ? f.options[0] : 'Sample']));
 const cmd = (s, c, action, payload, key = crypto.randomUUID()) => command(s, c, { action, payload, key });
 const submit = (s, c = ctx(s)) => cmd(s, c, 'application.submit', { studentId: c.actor.studentIds[0], cohortId: s.cohorts[0].id, answers: answers(s) });
+test('school content collections validate categories before saving and publish to visitors', () => {
+    const s = state('institution'), admin = ctx(s, 'admin');
+    const data = structuredClone(s.content.find(x => x.id === 'home').draft);
+    assert.match(data.image, /^\/images\/institution\//);
+    const traversal = { ...data, image: '/images/../secret', blocks: [] };
+    assert.throws(() => cmd(s, admin, 'content.save', { id: 'traversal', collection: 'pages', data: traversal }), /invalid_media/);
+    data.attributes = { kind: 'not-a-category' };
+    assert.throws(() => cmd(s, admin, 'content.save', { id: 'school-test', collection: 'announcements', data }), /invalid:kind/);
+    assert.equal(s.content.some(x => x.id === 'school-test'), false);
+    data.attributes.kind = 'news';
+    cmd(s, admin, 'content.save', { id: 'school-test', collection: 'announcements', data });
+    const record = s.content.find(x => x.id === 'school-test');
+    assert.equal(snapshot(s, { ...admin, actor: null }, 'institution').content.some(x => x.id === record.id), false);
+    cmd(s, admin, 'content.publish', { id: record.id, version: record.version, data });
+    assert.equal(snapshot(s, { ...admin, actor: null }, 'institution').content.find(x => x.id === record.id).published.attributes.kind, 'news');
+    cmd(s, admin, 'content.save', { id: 'gallery-test', collection: 'gallery', data: { ...data, attributes: {} } });
+    assert.equal(s.content.find(x => x.id === 'gallery-test').collection, 'gallery');
+    cmd(s, admin, 'settings.save', { ...s.institution, navigation: ['news', 'school-teachers', 'school-life', 'school-admissions', 'school-admin-info', 'achievements', 'gallery'].map(page => ({ page, label: { id: page, en: page } })) });
+    assert.equal(s.institution.navigation.length, 7);
+});
 function accept(s, id, level = 'full') { const e = s.enrollments.find(x => x.id === id); cmd(s, ctx(s, 'admin', level), 'application.review', { id, version: e.version, status: 'accepted' }); return e; }
 for (const level of ['profile', 'whatsapp'])
     test(`${level} enforces registration, finance and academic boundaries`, () => {

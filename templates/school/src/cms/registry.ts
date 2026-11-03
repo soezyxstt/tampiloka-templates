@@ -38,7 +38,11 @@ export const cms = {
     collections: new Map<string, Collection>([
         ['pages', { id: 'pages', label: bi('Halaman', 'Pages'), fields: [] }],
         ['programs', { id: 'programs', label: bi('Program', 'Programs'), fields: [] }],
-        ['announcements', { id: 'announcements', label: bi('Pengumuman', 'Announcements'), fields: [] }],
+        ['announcements', { id: 'announcements', label: bi('Kabar dan informasi', 'News and information'), fields: [
+            { name: 'kind', label: bi('Kategori', 'Category'), type: 'select', options: ['news', 'achievement', 'activity', 'administration'] },
+            { name: 'date', label: bi('Tanggal terbit (YYYY-MM-DD)', 'Publication date (YYYY-MM-DD)'), type: 'text' },
+        ] }],
+        ['gallery', { id: 'gallery', label: bi('Galeri', 'Gallery'), fields: [] }],
     ]),
     blocks: new Map<string, BlockDefinition>(['text', 'image-text', 'faq', 'outcomes', 'testimonial', 'facilities'].map(id => [id, { id, label: bi(id, id), validate: body }])),
     programTypes: new Set(['exam-prep', 'language', 'skills', 'institution']),

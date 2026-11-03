@@ -64,7 +64,10 @@ jobs:
         working-directory: templates/school
         run: pnpm exec playwright install --with-deps chromium
       - name: Browser and visual checks
-        run: pnpm test:school:browser && pnpm --filter @tampiloka/template-school exec node tests/extension-browser.mjs
+        run: pnpm test:school:browser && pnpm --filter @tampiloka/template-school exec node tests/institution-browser.mjs && pnpm --filter @tampiloka/template-school exec node tests/extension-browser.mjs
+      - name: Branded institution client and built Worker routes
+        working-directory: templates/school
+        run: node tests/institution-client-browser.mjs
       - name: Package accurate demo previews
         run: |
           mkdir -p templates/school/dist/previews
