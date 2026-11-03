@@ -1,3 +1,4 @@
+import { sampleFinishes } from '../content/finishes.ts';
 import configured from '../config/commerce.json' with { type: 'json' };
 import { categories, defaultConfig, levels, seedCoupons, seedProducts, shippingMethods } from '../content/store.ts';
 import type { Bootstrap, CommerceLevel, Coupon, Order, Product, Review, StoreConfig } from '../src/shared/contracts.ts';
@@ -18,7 +19,7 @@ export function getDefaultConfig(env: Env): StoreConfig {
   return result;
 }
 function seedStatements(env: Env, scope: string, demo: boolean, config: StoreConfig): SqlStatement[] {
-  const stmts: SqlStatement[] = [q(env, 'INSERT OR IGNORE INTO scopes(id,demo,level,preset,config_json,created_at) VALUES(?,?,?,?,?,?)', scope, Number(demo), config.level, config.preset, JSON.stringify(config), now())];
+  const stmts: SqlStatement[] = [q(env, 'INSERT OR IGNORE INTO scopes(id,demo,level,preset,config_json,created_at) VALUES(?,?,?,?,?,?)', scope, Number(demo), config.level, config.preset, JSON.stringify(demo ? { ...config, sampleGalleryVersion: 2 } : config), now())];
   for (const p of seedProducts) {
     stmts.push(q(env, 'INSERT OR IGNORE INTO products(scope,id,slug,name,description,category,price,compare_at_price,images_json,material,featured,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', scope,p.id,p.slug,p.name,p.description,p.category,p.price,p.compareAtPrice ?? null,JSON.stringify(p.images),p.material,Number(p.featured),Number(p.active),p.createdAt));
     for (const v of p.variants) stmts.push(q(env, 'INSERT OR IGNORE INTO variants(scope,id,product_id,name,sku,price,stock,options_json) VALUES(?,?,?,?,?,?,?,?)',scope,v.id,p.id,v.name,v.sku,v.price,v.stock,JSON.stringify(v.options)));
@@ -26,13 +27,55 @@ function seedStatements(env: Env, scope: string, demo: boolean, config: StoreCon
   for (const c of seedCoupons) stmts.push(q(env, 'INSERT OR IGNORE INTO coupons(scope,code,kind,value,min_spend,max_discount,active,use_limit,used_count,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)',scope,c.code,c.kind,c.value,c.minSpend,c.maxDiscount,Number(c.active),c.useLimit,0,c.expiresAt));
   return stmts;
 }
+// Existing demo sessions live for seven days. Update the untouched fixtures once,
+// while keeping staff edits, client stores and order snapshots intact.
+async function refreshDemoGalleries(env: Env, scope: string) {
+  const previous: Record<string, { photo?: string; description?: string }> = {
+    'everyday-tee': { photo: '/images/photo-1521572163474-6864f9cf17ab.webp' },
+    'leather-wallet': {
+      photo: '/images/photo-1627123424574-724758594e93.webp',
+      description: 'Dompet tipis dengan enam ruang kartu dan tempat uang. Bentuk ringkas untuk saku harian.',
+    },
+    'leather-sling': {
+      description: 'Tas selempang kulit dengan tali yang bisa diatur. Ruang terpisah menjaga barang tetap rapi.',
+    },
+  };
+  const statements = seedProducts.filter(product => product.images.length > 1).map(product => {
+    const legacy = previous[product.id];
+    return q(env, `UPDATE products SET images_json = ?,
+        description = CASE WHEN description = ? THEN ? ELSE description END
+      WHERE scope = ? AND id = ? AND images_json = ?
+        AND NOT EXISTS (SELECT 1 FROM audit_events WHERE scope = ? AND entity_id = ?
+          AND action IN ('product.updated', 'product.created'))`,
+      JSON.stringify(product.images), legacy?.description ?? null, product.description, scope, product.id,
+      JSON.stringify([legacy?.photo ?? product.images[0]]), scope, product.id);
+  });
+  for (const [productId, finish] of Object.entries(sampleFinishes)) {
+    if (!finish.previousName) continue;
+    statements.push(q(env, `UPDATE variants SET name = ?, options_json = ?
+      WHERE scope = ? AND product_id = ? AND id = ? AND name = ? AND options_json = ?
+        AND EXISTS (SELECT 1 FROM products p WHERE p.scope = variants.scope
+          AND p.id = variants.product_id AND p.images_json = ?)
+        AND NOT EXISTS (SELECT 1 FROM audit_events a WHERE a.scope = variants.scope
+          AND a.entity_id = variants.product_id AND a.action IN ('product.updated', 'product.created'))`,
+      finish.name, JSON.stringify({ Warna: finish.name }), scope, productId,
+      `${productId}-${finish.previousName.toLowerCase()}`, finish.previousName,
+      JSON.stringify({ Warna: finish.previousName }), JSON.stringify(finish.images)));
+  }
+  statements.push(q(env, "UPDATE scopes SET config_json = json_set(config_json, '$.sampleGalleryVersion', 2) WHERE id = ? AND demo = 1", scope));
+  await env.DB.batch(statements);
+}
+
 export async function sessionFor(request: Request, env: Env, forceNew = false): Promise<Session> {
   const demo = isDemo(env);
   const token = forceNew ? undefined : request.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('tampiloka_session='))?.slice(18);
   if (token && /^[a-f0-9]{64}$/.test(token)) {
     const tokenHash = await digest(token);
-    const existing = await q(env, 'SELECT s.token_hash,s.scope,s.role,s.expires_at,s.member_id,c.demo FROM sessions s JOIN scopes c ON c.id=s.scope WHERE s.token_hash=?',tokenHash).first<Row>();
-    if (existing && existing.expires_at > now() && Boolean(existing.demo) === demo) return { tokenHash, scope: existing.scope, role: existing.role, demo, memberId: existing.member_id||null };
+    const existing = await q(env, "SELECT s.token_hash,s.scope,s.role,s.expires_at,s.member_id,c.demo,json_extract(c.config_json,'$.sampleGalleryVersion') AS gallery_version FROM sessions s JOIN scopes c ON c.id=s.scope WHERE s.token_hash=?",tokenHash).first<Row>();
+    if (existing && existing.expires_at > now() && Boolean(existing.demo) === demo) {
+      if (demo && Number(existing.gallery_version ?? 0) < 2) await refreshDemoGalleries(env, existing.scope);
+      return { tokenHash, scope: existing.scope, role: existing.role, demo, memberId: existing.member_id||null };
+    }
   }
   await rateLimit(env,`session:${await digest(request.headers.get('CF-Connecting-IP')||'local')}`,120,3600);
   const rawToken = id() + id(); const tokenHash = await digest(rawToken); const scope = demo ? `demo_${id()}` : 'store'; const role = demo ? 'owner' : 'customer';

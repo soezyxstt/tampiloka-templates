@@ -2,8 +2,8 @@
   "exam-prep": {
     "name": "Prima Academy",
     "headline": {
-      "id": "Belajar dengan arah. Siap untuk langkah berikutnya.",
-      "en": "Study with purpose. Prepare for what comes next."
+      "id": "Bahas soal UTBK dalam kelas kecil.",
+      "en": "Prepare for the UTBK in a small class."
     },
     "intro": {
       "id": "Kelas persiapan ujian dengan kelompok kecil, pembahasan yang jelas, dan waktu belajar yang teratur.",
@@ -63,7 +63,8 @@
           "id": "Latihan soal, analisis kesalahan, dan strategi waktu.",
           "en": "Question practice, error analysis, and timed problem solving."
         },
-        "kind": "intensive"
+        "kind": "intensive",
+        "image": "/images/study-desk.webp"
       },
       {
         "id": "regular-sma",
@@ -84,7 +85,8 @@
           "id": "Perkuat konsep dan bahas tugas sekolah bersama tutor.",
           "en": "Strengthen concepts and work through school assignments with tutors."
         },
-        "kind": "regular"
+        "kind": "regular",
+        "image": "/images/study-partner.webp"
       },
       {
         "id": "math-foundations",
@@ -105,15 +107,39 @@
           "id": "Aljabar, fungsi, dan penalaran dengan latihan bertahap.",
           "en": "Algebra, functions, and reasoning through guided practice."
         },
-        "kind": "regular"
+        "kind": "regular",
+        "image": "/images/geometry.webp"
       }
-    ]
+    ],
+    "image": "/images/class-reader.webp",
+    "approach": {
+      "image": "/images/class-work.webp",
+      "heading": {
+        "id": "Belajar dari cara Anda menjawab",
+        "en": "Work through your answers"
+      },
+      "body": {
+        "id": "Bawa soal yang belum Anda pahami. Bahas langkahnya bersama pengajar, lalu coba lagi dengan soal serupa.",
+        "en": "Bring a question you found difficult. Work through it with a teacher, then try a similar problem."
+      }
+    },
+    "facilities": {
+      "image": "/images/library.jpg",
+      "heading": {
+        "id": "Ruang baca",
+        "en": "Reading room"
+      },
+      "body": {
+        "id": "Gunakan buku latihan dan meja baca untuk belajar sebelum atau sesudah kelas.",
+        "en": "Use the workbooks and reading desks to study before or after class."
+      }
+    }
   },
   "language": {
     "name": "Lingua Center",
     "headline": {
-      "id": "Gunakan bahasa baru dalam hidup sehari-hari.",
-      "en": "Make a new language part of your everyday life."
+      "id": "Bawa bahasa baru ke percakapan sehari-hari.",
+      "en": "Practice a new language in everyday conversations."
     },
     "intro": {
       "id": "Belajar lewat percakapan, umpan balik guru, dan kelas yang sesuai tingkat Anda. Pilih kelas daring atau tatap muka.",
@@ -183,7 +209,8 @@
           "id": "Berlatih percakapan untuk perjalanan, kerja, dan kegiatan harian.",
           "en": "Practice conversations for travel, work, and everyday situations."
         },
-        "kind": "A2"
+        "kind": "A2",
+        "image": "/images/english-class.webp"
       },
       {
         "id": "japanese-a1",
@@ -204,7 +231,8 @@
           "id": "Mulai dari bunyi, aksara dasar, dan percakapan singkat.",
           "en": "Start with sounds, basic scripts, and short conversations."
         },
-        "kind": "A1"
+        "kind": "A1",
+        "image": "/images/japanese-notes.webp"
       },
       {
         "id": "business-english",
@@ -225,15 +253,39 @@
           "id": "Latihan rapat, presentasi, dan menulis email yang jelas.",
           "en": "Practice meetings, presentations, and clear professional emails."
         },
-        "kind": "B1"
+        "kind": "B1",
+        "image": "/images/seminar.webp"
       }
-    ]
+    ],
+    "image": "/images/conversation.webp",
+    "approach": {
+      "image": "/images/class-reader.webp",
+      "heading": {
+        "id": "Mulai dari percakapan pendek",
+        "en": "Start with a short conversation"
+      },
+      "body": {
+        "id": "Berlatihlah memperkenalkan diri, mengajukan pertanyaan, dan menanggapi teman. Pengajar memberi masukan saat Anda mencoba.",
+        "en": "Practice introductions, questions, and replies with a partner. Your teacher gives feedback as you speak."
+      }
+    },
+    "facilities": {
+      "image": "/images/classroom.jpg",
+      "heading": {
+        "id": "Kelas percakapan",
+        "en": "Conversation classes"
+      },
+      "body": {
+        "id": "Kelas tatap muka menyediakan waktu untuk latihan berpasangan dan diskusi kelompok.",
+        "en": "In-person classes set aside time for paired practice and group discussion."
+      }
+    }
   },
   "skills": {
     "name": "Forma Learning",
     "headline": {
-      "id": "Keahlian yang Anda pakai. Karya yang bisa Anda tunjukkan.",
-      "en": "Skills you can use. Work you can show."
+      "id": "Coba desain, analisis data, dan fotografi produk.",
+      "en": "Explore design, data, and product photography."
     },
     "intro": {
       "id": "Lokakarya praktis dengan proyek kecil dan ulasan pengajar. Pelajari satu keahlian, lalu terapkan dalam pekerjaan.",
@@ -289,7 +341,8 @@
           "id": "Riset singkat, alur pengguna, prototipe, dan ulasan karya.",
           "en": "Short research tasks, user flows, prototypes, and work reviews."
         },
-        "kind": "portfolio"
+        "kind": "portfolio",
+        "image": "/images/design-notes.webp"
       },
       {
         "id": "data-workshop",
@@ -310,7 +363,8 @@
           "id": "Bersihkan data dan susun laporan yang bisa dipakai tim.",
           "en": "Clean data and create reports your team can use."
         },
-        "kind": "workshop"
+        "kind": "workshop",
+        "image": "/images/data-charts.webp"
       },
       {
         "id": "photo-workshop",
@@ -331,9 +385,33 @@
           "id": "Atur cahaya, susun produk, dan olah foto katalog.",
           "en": "Set up lighting, arrange products, and edit catalog photos."
         },
-        "kind": "workshop"
+        "kind": "workshop",
+        "image": "/images/photo-studio.webp"
       }
-    ]
+    ],
+    "image": "/images/team-board.webp",
+    "approach": {
+      "image": "/images/workshop.jpg",
+      "heading": {
+        "id": "Bawa proyek ke meja diskusi",
+        "en": "Bring your project to the table"
+      },
+      "body": {
+        "id": "Tunjukkan hasil percobaan Anda, jelaskan pilihan yang Anda buat, lalu gunakan masukan pengajar untuk memperbaikinya.",
+        "en": "Show your work in progress, explain your choices, and use feedback from your instructor to refine it."
+      }
+    },
+    "facilities": {
+      "image": "/images/discussion.webp",
+      "heading": {
+        "id": "Ruang lokakarya",
+        "en": "Workshop space"
+      },
+      "body": {
+        "id": "Meja bersama dan papan tulis memberi ruang untuk sketsa, catatan, dan diskusi proyek.",
+        "en": "Shared tables and a whiteboard provide space for sketches, notes, and project discussions."
+      }
+    }
   },
   "institution": {
     "name": "Sekolah Mandiri",
@@ -399,7 +477,8 @@
           "id": "Pembelajaran inti, proyek lintas bidang, dan bimbingan wali kelas.",
           "en": "Core learning, cross-subject projects, and homeroom guidance."
         },
-        "kind": "admissions"
+        "kind": "admissions",
+        "image": "/images/class-reader.webp"
       },
       {
         "id": "science-club",
@@ -420,7 +499,8 @@
           "id": "Pengamatan dan percobaan aman dengan pendampingan guru.",
           "en": "Observation and safe experiments with teacher guidance."
         },
-        "kind": "enrichment"
+        "kind": "enrichment",
+        "image": "/images/science-lab.webp"
       },
       {
         "id": "creative-studio",
@@ -441,8 +521,32 @@
           "id": "Seni rupa, dokumentasi proses, dan pameran kelas.",
           "en": "Visual art, process journals, and a class exhibition."
         },
-        "kind": "enrichment"
+        "kind": "enrichment",
+        "image": "/images/painting.webp"
       }
-    ]
+    ],
+    "image": "/images/class-work.webp",
+    "approach": {
+      "image": "/images/study-partner.webp",
+      "heading": {
+        "id": "Belajar bersama teman",
+        "en": "Learning with classmates"
+      },
+      "body": {
+        "id": "Siswa membaca, bertukar catatan, dan membahas tugas bersama dalam kelompok kecil.",
+        "en": "Students read, share notes, and discuss their assignments in small groups."
+      }
+    },
+    "facilities": {
+      "image": "/images/library.jpg",
+      "heading": {
+        "id": "Perpustakaan sekolah",
+        "en": "School library"
+      },
+      "body": {
+        "id": "Jelajahi koleksi bacaan dan gunakan ruang baca untuk belajar mandiri selepas kelas.",
+        "en": "Explore the book collection and use the reading space for independent study after class."
+      }
+    }
   }
 }

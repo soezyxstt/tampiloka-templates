@@ -233,6 +233,28 @@ try {
           await context.close();
         }
       });
+  await check("Photographic categories filter services and retain search", async () => {
+    const { context, page } = await newPage(390);
+    try {
+      await boot(page, { preset: "detailing", layout: "service-market", level: "catalog" });
+      const filters = page.getByRole("navigation", { name: "Service categories" });
+      const interior = filters.getByRole("button", { name: /Interior/ });
+      await interior.focus();
+      await page.keyboard.press("Enter");
+      assert.equal(await interior.getAttribute("aria-pressed"), "true");
+      assert.equal(await page.locator(".b-service-entry").count(), 1);
+      const search = page.getByRole("textbox", { name: "Search services" });
+      await search.fill("interior");
+      await filters.getByRole("button", { name: /All services/ }).click();
+      assert.equal(await search.inputValue(), "interior");
+      const entry = page.locator(".b-service-entry");
+      assert.equal(await entry.getByRole("link").count(), 1);
+      await entry.getByRole("link", { name: "Interior reset" }).click();
+      await page.getByRole("heading", { name: "Interior reset", level: 1 }).waitFor();
+    } finally {
+      await context.close();
+    }
+  });
   for (const preset of presets)
     for (const level of levels)
       await check(`${preset} ${level} boundary and navigation`, async () => {

@@ -1,6 +1,7 @@
 import type { Command, Context, ContentData, ContentRecord, Enrollment, EnrollmentStatus, Field, Json, SchoolState, Snapshot, Preset, ClassSession, Cohort, MediaAsset, LearningMaterial } from './types.ts';
 import { check, integer, text, date, need, isStaff, canEdit, capabilities, has, reservedStatuses } from './capabilities.ts';
 import { cms, validateFields, validateFieldDefinitions } from '../cms/registry.ts';
+import { refreshDemoPhotos } from '../../content/seed.ts';
 export const freeSeats = (s: SchoolState, c: string) => Math.max(0, (s.cohorts.find(x => x.id === c)?.capacity ?? 0) - s.enrollments.filter(e => e.cohortId === c && reservedStatuses.has(e.status)).length);
 export const owns = (ctx: Context, studentId: string) => ctx.actor?.studentIds.includes(studentId) ?? false;
 export function mayTeach(s: SchoolState, ctx: Context, cohortId: string) { return ctx.actor?.role === 'tutor' && s.sessions.some(x => x.cohortId === cohortId && x.tutorId === ctx.actor?.tutorId); }
@@ -67,7 +68,7 @@ export function applyPayment(s: SchoolState, ctx: Context, invoiceId: string, re
     }
     return invoice.id;
 }
-export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
+export function command(s: SchoolState, ctx: Context, cmd: Command, preset?: Preset): Json {
     check(ctx.actor && !ctx.actor.disabled, 'login_required', 401);
     check(typeof cmd.key === 'string' && /^[a-zA-Z0-9_-]{8,100}$/.test(cmd.key), 'invalid_idempotency');
     check(cmd.payload && typeof cmd.payload === 'object' && !Array.isArray(cmd.payload), 'invalid_payload');
@@ -181,6 +182,8 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
             const id = text(p.id, 100);
             let record = s.content.find(x => x.id === id);
             check(!record || record.version === p.version, 'stale_record', 409);
+            // Materialize the public projection before draft mutations can discard its baseline revision.
+            if (record && ctx.demo && preset) record.published = refreshDemoPhotos(record, preset).published;
             if (cmd.action === 'content.restore') {
                 check(record, 'not_found', 404);
                 const rev = record.revisions.find(x => x.version === p.revision);
@@ -447,7 +450,10 @@ export function snapshot(s: SchoolState, ctx: Context, preset: Preset): Snapshot
     const ids = new Set(enrollments.map(e => e.id));
     const studentIds = new Set([...ctx.actor?.studentIds ?? [], ...enrollments.map(e => e.studentId)]);
     const accessibleCohort = (c: string) => staffAccess || mayTeach(s, ctx, c) || s.enrollments.some(e => owns(ctx, e.studentId) && e.cohortId === c && ['active', 'completed'].includes(e.status));
-    const content = s.content.filter(c => editor || c.published).map(c => editor ? c : { ...c, draft: c.published!, revisions: [] });
+    const content = s.content.filter(c => editor || c.published).map(record => {
+        const c = ctx.demo ? refreshDemoPhotos(record, preset) : record;
+        return editor ? c : { ...c, draft: c.published!, revisions: [] };
+    });
     const programIds = new Set(content.filter(c => c.collection === 'programs').map(c => c.id));
     const visiblePrograms = s.programs.filter(p => editor || programIds.has(p.contentId));
     const cohortIds = new Set(s.cohorts.filter(c => visiblePrograms.some(p => p.id === c.programId)).map(c => c.id));

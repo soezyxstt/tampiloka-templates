@@ -1011,6 +1011,22 @@ export function SiteSettings({
               value={draft.brand.heroAlt}
               onChange={(v) => brand("heroAlt", v)}
             />
+            <Field label={t("Foto tempat usaha", "Location photo URL")}>
+              <Input
+                value={draft.brand.visitPhoto?.image || ""}
+                onChange={(e) => brand("visitPhoto", {
+                  image: e.target.value,
+                  alt: draft.brand.visitPhoto?.alt || { id: "", en: "" },
+                })}
+              />
+            </Field>
+            {draft.brand.visitPhoto?.image && (
+              <LocalFields
+                label={t("Deskripsi foto tempat", "Location photo description")}
+                value={draft.brand.visitPhoto.alt}
+                onChange={(alt) => brand("visitPhoto", { image: draft.brand.visitPhoto!.image, alt })}
+              />
+            )}
           </section>
           <section className="b-form-section">
             <h2>

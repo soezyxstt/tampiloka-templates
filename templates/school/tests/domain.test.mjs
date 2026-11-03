@@ -9,7 +9,7 @@ import { database } from '../scripts/sqlite.mjs';
 const state = (preset = 'exam-prep') => seed(preset, config, true);
 const ctx = (s, role = 'student', level = 'full') => ({ actor: s.users.find(x => x.id === role), level, demo: true, now: new Date().toISOString(), id: crypto.randomUUID() });
 const answers = s => Object.fromEntries(s.registrationFields.filter(f => f.required).map(f => [f.name, f.type === 'checkbox' ? true : f.type === 'select' ? f.options[0] : 'Sample']));
-const cmd = (s, c, action, payload, key = crypto.randomUUID()) => command(s, c, { action, payload, key });
+const cmd = (s, c, action, payload, key = crypto.randomUUID()) => command(s, c, { action, payload, key }, 'exam-prep');
 const submit = (s, c = ctx(s)) => cmd(s, c, 'application.submit', { studentId: c.actor.studentIds[0], cohortId: s.cohorts[0].id, answers: answers(s) });
 test('school content collections validate categories before saving and publish to visitors', () => {
     const s = state('institution'), admin = ctx(s, 'admin');
@@ -209,6 +209,23 @@ test('drafts, revisions, publication, and unpublish have no public draft leakage
     cmd(s, c, 'content.unpublish', { id: 'home', version: home.version });
     assert.ok(!snapshot(s, { ...c, actor: null }, 'exam-prep').content.some(x => x.id === 'home'));
 });
+test('legacy demo publication survives draft save and restore', () => {
+    const s = state(), c = ctx(s, 'editor', 'profile'), home = s.content[0];
+    home.draft.image = home.published.image = '/images/classroom.jpg';
+    home.draft.blocks[0].image = home.published.blocks[0].image = '/images/workshop.jpg';
+    home.draft.blocks[1].image = home.published.blocks[1].image = '/images/library.jpg';
+    const publicHome = () => snapshot(s, { ...c, actor: null }, 'exam-prep').content.find(x => x.id === 'home').published;
+    const before = structuredClone(publicHome());
+    assert.notEqual(before.image, '/images/classroom.jpg');
+    const edited = structuredClone(home.draft);
+    edited.title.en = 'Unpublished edit';
+    cmd(s, c, 'content.save', { id: 'home', version: home.version, data: edited });
+    assert.deepEqual(publicHome(), before);
+    cmd(s, c, 'content.restore', { id: 'home', version: home.version, revision: 1 });
+    assert.deepEqual(publicHome(), before);
+    cmd(s, c, 'content.publish', { id: 'home', version: home.version, data: edited });
+    assert.equal(publicHome().title.en, 'Unpublished edit');
+});
 test('conditional validation ignores hidden values, rejects prototype keys and wrong types', () => {
     const fields = [{ name: 'consent', type: 'checkbox', label: { id: 'Ya', en: 'Yes' } }, { name: 'reason', type: 'text', required: true, label: { id: 'Alasan', en: 'Reason' }, when: { field: 'consent', equals: true } }];
     assert.deepEqual(validateFields(fields, { consent: false, reason: 'hidden' }), { consent: false });
@@ -234,3 +251,51 @@ test('registered extension commands and collections work without modifying busin
     assert.throws(() => registerExtension({ collections: [cms.collections.get('events')] }), /duplicate_collection/);
 });
 test('published custom CMS pages can be linked, unknown or draft pages cannot', () => { const s = state(), c = ctx(s, 'admin'); const base = s.content.find(x => x.id === 'home').draft; cmd(s, c, 'content.save', { id: 'admissions-guide', collection: 'pages', data: { ...structuredClone(base), title: { id: 'Panduan', en: 'Guide' } } }); const settings = { ...s.institution, navigation: [{ page: 'admissions-guide', label: { id: 'Panduan', en: 'Guide' } }] }; assert.throws(() => cmd(s, c, 'settings.save', settings), /invalid_page/); const d = s.content.find(x => x.id === 'admissions-guide'); cmd(s, c, 'content.publish', { id: d.id, version: d.version, data: d.draft }); cmd(s, c, 'settings.save', settings); assert.equal(s.institution.navigation[0].page, d.id); });
+
+test('each preset ships a distinct lead and a responsive photograph for every program', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const leads = new Set();
+    for (const preset of ['exam-prep', 'language', 'skills', 'institution']) {
+        const { content } = state(preset);
+        const lead = content.find(entry => entry.id === 'home').published.image;
+        const images = content.filter(entry => entry.collection === 'programs').map(entry => entry.published.image);
+        assert.equal(new Set([lead, ...images]).size, 1 + images.length, preset);
+        leads.add(lead);
+        if (preset === 'institution') {
+            const hero = await readFile(new URL(`../public${lead}`, import.meta.url));
+            assert.equal(hero.toString('ascii', 8, 12), 'WEBP', lead);
+        }
+        for (const image of preset === 'institution' ? images : [lead, ...images]) {
+            assert.match(image, /^\/images\/[a-z-]+\.webp$/);
+            for (const path of [image, image.replace('.webp', '-480.webp')]) {
+                const bytes = await readFile(new URL(`../public${path}`, import.meta.url));
+                assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', path);
+            }
+        }
+    }
+    assert.equal(leads.size, 4);
+});
+
+test('returning demo visitors see new imagery only on untouched built-in records', () => {
+    const s = state('skills');
+    const home = s.content.find(c => c.id === 'home');
+    const photo = s.content.find(c => c.id === 'photo-workshop');
+    const edited = s.content.find(c => c.id === 'design-practice');
+    for (const field of ['draft', 'published']) {
+        home[field].image = '/images/classroom.jpg';
+        home[field].blocks.find(b => b.id === 'facilities').image = '/images/library.jpg';
+        photo[field].image = '/images/workshop.jpg';
+        edited[field].image = '/images/classroom.jpg';
+    }
+    edited.version = 2;
+    const before = structuredClone(s);
+    const view = snapshot(s, ctx(s, 'admin'), 'skills');
+    const visible = id => view.content.find(c => c.id === id).published;
+    assert.equal(visible('home').image, '/images/team-board.webp');
+    assert.equal(visible('home').blocks.find(b => b.id === 'facilities').image, '/images/discussion.webp');
+    assert.equal(visible('photo-workshop').image, '/images/photo-studio.webp');
+    assert.equal(visible('design-practice').image, '/images/classroom.jpg');
+    assert.deepEqual(s, before);
+    const client = snapshot(s, { ...ctx(s, 'admin'), demo: false }, 'skills');
+    assert.equal(client.content.find(c => c.id === 'home').published.image, '/images/classroom.jpg');
+});

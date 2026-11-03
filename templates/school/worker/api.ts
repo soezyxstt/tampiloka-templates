@@ -230,7 +230,7 @@ export async function handle(request: Request, env: Env, execution?: {
             await rateLimit(env.DB, request, 'command', 120);
             const p = await body(request);
             check(p.action !== 'media.add', 'forbidden', 403);
-            const result = await store.mutate(s => command(s, { ...ctx, actor: ctx.actor ? s.users.find(x => x.id === ctx.actor!.id) ?? null : null }, p as unknown as Command));
+            const result = await store.mutate(s => command(s, { ...ctx, actor: ctx.actor ? s.users.find(x => x.id === ctx.actor!.id) ?? null : null }, p as unknown as Command, preset));
             const updated = (await store.load()).state;
             if (!ctx.demo && updated.modules.notifications && env.NOTIFICATION_URL && env.NOTIFICATION_SECRET) {
                 const delivery = sendOutbox(store, env, updated).catch(() => 0);

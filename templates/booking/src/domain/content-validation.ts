@@ -111,6 +111,7 @@ export function settingsInput(
       "FEATURES_LOCKED",
       "Change the business preset and level through deployment configuration, not the content editor.",
     );
+  const visitPhoto = b.visitPhoto ? object(b.visitPhoto) : undefined;
   const email = text(b.email, "Business email", 150),
     whatsapp = text(b.whatsapp, "WhatsApp", 16);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -139,6 +140,10 @@ export function settingsInput(
       whatsapp,
       heroImage: imageUrl(b.heroImage),
       heroAlt: localized(b.heroAlt, "Image description", 200),
+      ...(visitPhoto?.image ? { visitPhoto: {
+        image: imageUrl(visitPhoto.image),
+        alt: localized(visitPhoto.alt, "Visit photo description", 200),
+      } } : {}),
       address: text(b.address, "Business address", 500),
       example: bool(b.example, "Example business"),
       faqs: b.faqs.map((x) => {

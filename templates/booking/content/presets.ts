@@ -24,10 +24,11 @@ const brands = {
       "Pilih layanan dan dokter, lalu atur waktu kunjungan Anda. Seluruh profil di situs contoh ini bersifat fiktif.",
       "Choose a service and practitioner, then arrange your visit. All profiles on this example website are fictional.",
     ),
-    heroImage: "/images/medical.webp",
+    visitPhoto: { image: "/images/medical-detail.webp", alt: l("Meja penerimaan klinik di samping lorong menuju ruang periksa.", "A clinic reception desk beside the hallway to the consultation rooms.") },
+    heroImage: "/images/medical-welcome.webp",
     heroAlt: l(
-      "Ruang layanan kesehatan, foto ilustrasi",
-      "A healthcare space, illustrative photo",
+      "Seorang dokter berbincang dengan pengunjung di ruang konsultasi.",
+      "A practitioner talking with a visitor in a consultation room.",
     ),
   },
   aesthetic: {
@@ -40,10 +41,11 @@ const brands = {
       "Temukan perawatan wajah dan tubuh dalam sesi yang tenang. Pilih perawatan, terapis, dan waktu yang sesuai.",
       "Explore considered face and body treatments in a calm setting. Choose your treatment, therapist, and time.",
     ),
-    heroImage: "/images/aesthetic.webp",
+    visitPhoto: { image: "/images/aesthetic-consult.webp", alt: l("Tempat tidur perawatan dan meja persiapan di ruang studio.", "A treatment bed and preparation counter in the studio.") },
+    heroImage: "/images/aesthetic-welcome.webp",
     heroAlt: l(
-      "Handuk dan perlengkapan perawatan",
-      "Towels and treatment supplies",
+      "Terapis meneteskan serum dari pipet sambil memegang kuas di atas wajah.",
+      "A therapist dispenses serum from a dropper while holding a brush above the face.",
     ),
   },
   detailing: {
@@ -56,6 +58,7 @@ const brands = {
       "Pilih paket sesuai kendaraan Anda. Lihat harga, durasi, dan ketersediaan area kerja sebelum datang.",
       "Choose a package for your vehicle. See the price, duration, and service bay availability before you arrive.",
     ),
+    visitPhoto: { image: "/images/detailing.webp", alt: l("Area pencucian dengan mobil yang sedang dibersihkan.", "A car being washed in the service bay.") },
     heroImage: "/images/detailing.webp",
     heroAlt: l(
       "Perawatan kendaraan di area kerja",
@@ -72,8 +75,9 @@ const brands = {
       "Sesi terarah untuk usaha, karier, dan tim. Temui konsultan secara online atau di kantor.",
       "Focused sessions for your business, career, and team. Meet a professional remotely or in our office.",
     ),
-    heroImage: "/images/consulting.webp",
-    heroAlt: l("Ruang pertemuan profesional", "A professional meeting space"),
+    visitPhoto: { image: "/images/consulting.webp", alt: l("Meja pertemuan di tepi jendela besar ruang kantor.", "A meeting table beside the large office windows.") },
+    heroImage: "/images/consulting-welcome.webp",
+    heroAlt: l("Tim membahas rencana bersama di ruang rapat.", "A team discussing a plan around an office table."),
   },
 };
 const catalog: Record<
@@ -162,6 +166,40 @@ const catalog: Record<
     ["intro", "Sesi perkenalan", "Introduction call", "business", 20, 0],
   ],
 };
+const descriptions: Record<Preset, Record<string, Localized>> = {
+  medical: {
+    general: l("Temui dokter umum untuk membahas keluhan dan langkah selanjutnya.", "Meet a general practitioner to discuss your concerns and next steps."),
+    family: l("Jadwalkan waktu lebih panjang untuk membahas kesehatan anggota keluarga bersama dokter.", "Book a longer visit to discuss a family member’s health with a practitioner."),
+    dental: l("Bicarakan keluhan gigi dan mulut dengan dokter gigi saat pemeriksaan awal.", "Discuss dental concerns with a dentist during an initial examination."),
+    "dental-review": l("Kembali ke dokter gigi untuk meninjau kunjungan sebelumnya.", "Return to the dentist to review your previous visit."),
+    skin: l("Konsultasikan perubahan pada kulit atau kulit kepala secara langsung.", "Discuss changes to your skin or scalp in person."),
+    intro: l("Tanyakan pilihan layanan, biaya, dan hal yang perlu disiapkan sebelum kunjungan.", "Ask about services, fees and what to prepare before your visit."),
+  },
+  aesthetic: {
+    facial: l("Sesi pembersihan wajah, pijat ringan, dan masker bersama terapis.", "A cleansing facial with gentle massage and a mask applied by your therapist."),
+    hydration: l("Nikmati kompres hangat, aplikasi serum, dan masker pelembap dalam satu sesi.", "Settle in for a warm compress, serum application and a hydrating mask."),
+    massage: l("Pilih tekanan pijat yang nyaman untuk punggung, bahu, dan tubuh Anda.", "Choose the massage pressure that feels right for your back, shoulders and body."),
+    scalp: l("Sesi khusus kulit kepala dengan pembilasan dan pijat lembut.", "A dedicated scalp session with a rinse and gentle massage."),
+    ritual: l("Gabungkan facial dan pijat tubuh dalam satu kunjungan panjang.", "Enjoy a facial and a body massage in one extended visit."),
+    consult: l("Bicarakan rutinitas dan pilihan perawatan dengan terapis sebelum memesan.", "Discuss your routine and treatment options with a therapist before booking."),
+  },
+  detailing: {
+    wash: l("Pencucian eksterior, pembersihan roda, dan pengeringan dengan kain mikrofiber.", "An exterior wash, wheel cleaning and a microfiber towel dry."),
+    interior: l("Bersihkan jok, karpet, dan bagian kabin yang sering disentuh.", "Clean the upholstery, carpets and frequently touched cabin surfaces."),
+    polish: l("Pemolesan satu tahap untuk merapikan tampilan permukaan cat.", "A single machine-polishing pass to refine the paint finish."),
+    glass: l("Pembersihan kaca depan, belakang, dan samping, termasuk tepinya.", "A detailed clean of the windscreen, rear and side windows, including the edges."),
+    complete: l("Satu paket untuk pencucian eksterior, perawatan cat, dan kabin.", "An extended session covering the exterior, paint finish and cabin."),
+    inspect: l("Tinjau kondisi kendaraan bersama tim sebelum memilih paket pengerjaan.", "Walk around the vehicle with the team before choosing a package."),
+  },
+  consulting: {
+    business: l("Tinjau angka dan kegiatan usaha untuk memilih hal yang perlu dibenahi lebih dulu.", "Review business figures and operations to decide what needs attention first."),
+    strategy: l("Susun pilihan, tentukan prioritas, dan buat rencana tindakan bersama konsultan.", "Compare options, set priorities and build an action plan with a consultant."),
+    career: l("Bahas pengalaman, minat, dan pilihan peran untuk langkah karier berikutnya.", "Discuss your experience, interests and possible roles for your next career step."),
+    portfolio: l("Tinjau contoh karya Anda dan pilih cara menjelaskan proses serta hasilnya.", "Review work samples and choose how to present your process and results."),
+    team: l("Petakan tugas, pembagian peran, dan jadwal kerja bersama anggota tim.", "Map tasks, responsibilities and a working schedule with your team."),
+    intro: l("Kenali cara kerja konsultan dan tentukan topik untuk pertemuan berikutnya.", "Meet a consultant and choose a topic for a follow-up session."),
+  },
+};
 const categoryNames: Record<string, Localized> = {
   general: l("Umum", "General"),
   dental: l("Gigi", "Dental"),
@@ -185,14 +223,14 @@ export function presetContent(preset: Preset): PresetContent {
     layout: "appointment-first",
     palette: "sage",
     language: "id",
-    typography: "sans",
+    typography: preset === "aesthetic" || preset === "consulting" ? "serif" : "sans",
     timezone: "Asia/Jakarta",
     currency: "IDR",
     brand: {
       ...brand,
       email: "",
       whatsapp: "",
-      address: "Alamat contoh. Ganti sebelum peluncuran.",
+      address: { medical: "Jl. Sora No. 12, Bandung", aesthetic: "Jl. Arum No. 8, Bandung", detailing: "Jl. Reka No. 26, Bandung", consulting: "Jl. Reka No. 16, Bandung" }[preset],
       example: true,
       faqs: [
         {
@@ -267,34 +305,8 @@ export function presetContent(preset: Preset): PresetContent {
       preset,
       name: l(id, en),
       category,
-      description:
-        preset === "medical"
-          ? l(
-              "Kunjungan terjadwal dengan dokter pilihan. Situs ini hanya mengatur janji, bukan rekam medis. Jangan masukkan data klinis.",
-              "A scheduled visit with your chosen practitioner. This website handles appointments, not medical records. Do not enter clinical information.",
-            )
-          : preset === "detailing"
-            ? l(
-                "Paket mencakup pemeriksaan singkat, pengerjaan sesuai pilihan, dan pemeriksaan hasil bersama. Durasi serta harga menyesuaikan jenis kendaraan.",
-                "Includes a brief inspection, the selected service, and a handover check. Duration and price depend on the vehicle category.",
-              )
-            : preset === "aesthetic"
-              ? l(
-                  "Sesi perawatan dengan waktu khusus, ruang yang telah disiapkan, dan terapis yang tersedia. Silakan hubungi tim untuk pertanyaan sebelum kunjungan.",
-                  "A dedicated treatment session with a prepared room and an available therapist. Contact the team with questions before your visit.",
-                )
-              : l(
-                  "Sesi terarah dengan satu konsultan. Tentukan format pertemuan dan topik singkat. Detail pertemuan online akan disampaikan oleh tim.",
-                  "A focused session with one professional. Choose your meeting format and a brief topic. The team will share remote meeting details.",
-                ),
-      image:
-        preset === "medical" && category !== "dental"
-          ? "/images/medical-detail.webp"
-          : preset === "consulting" && index % 2
-            ? "/images/consulting-detail.webp"
-            : preset === "aesthetic" && slug === "scalp"
-              ? "/images/aesthetic-detail.webp"
-              : brand.heroImage,
+      description: descriptions[preset][slug],
+      image: `/images/${preset}-${slug}.webp`,
       duration,
       bufferBefore: 0,
       bufferAfter: preset === "medical" ? 5 : 15,
@@ -352,10 +364,11 @@ export function presetContent(preset: Preset): PresetContent {
           specialty: categoryNames[category],
           initials,
           example: true,
-          bio: l(
-            "Profil fiktif untuk contoh pemesanan. Bukan dokter yang dapat dihubungi.",
-            "Fictional profile demonstrating appointment booking. Not a practitioner available for contact.",
-          ),
+          bio: {
+            general: l("Menerima kunjungan umum dan keluarga. Pilih sesi keluarga untuk waktu yang lebih panjang.", "Welcomes general and family visits. Choose a family session for a longer appointment."),
+            dental: l("Melayani pemeriksaan awal gigi dan kunjungan lanjutan setelah perawatan.", "Offers initial dental consultations and follow-up visits after treatment."),
+            skin: l("Menyediakan sesi tatap muka untuk membahas keluhan kulit dan kulit kepala.", "Offers in-person appointments to discuss skin and scalp concerns."),
+          }[category],
         },
       );
   } else if (preset === "aesthetic") {
@@ -368,7 +381,9 @@ export function presetContent(preset: Preset): PresetContent {
         specialty: l("Perawatan wajah & tubuh", "Face & body treatments"),
         initials,
         example: true,
-        bio: l("Profil terapis contoh.", "Example therapist profile."),
+        bio: suffix === "maya"
+          ? l("Memandu sesi wajah dan membantu memilih rangkaian perawatan.", "Guides facial sessions and helps visitors choose a treatment sequence.")
+          : l("Memandu sesi relaksasi tubuh dan perawatan kulit kepala.", "Guides body relaxation and scalp-care sessions."),
       });
     add("treatment-room", "Treatment room", "room", 2);
   } else if (preset === "detailing") {
@@ -386,10 +401,9 @@ export function presetContent(preset: Preset): PresetContent {
         ),
         initials,
         example: true,
-        bio: l(
-          "Profil konsultan fiktif untuk menunjukkan alur penjadwalan.",
-          "A fictional professional profile demonstrating scheduling.",
-        ),
+        bio: suffix === "dian"
+          ? l("Membahas arah usaha, prioritas, dan pembagian kerja tim.", "Discusses business direction, priorities and team responsibilities.")
+          : l("Mendampingi sesi karier, tinjauan portofolio, dan persiapan pertemuan kerja.", "Guides career planning, portfolio reviews and preparation for work meetings."),
       });
     add("meeting-room", "Meeting room", "room", 1);
   }
