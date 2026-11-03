@@ -13,7 +13,7 @@
     "build": "vite build && node scripts/build-worker.mjs",
     "preview": "node scripts/preview.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/backend.test.mjs",
+    "test": "node --experimental-strip-types --test tests/backend.test.mjs tests/local-env.test.mjs",
     "test:e2e": "node tests/browser.mjs",
     "test:language": "node tests/language-browser.mjs",
     "db:local": "node scripts/dev.mjs migrate",

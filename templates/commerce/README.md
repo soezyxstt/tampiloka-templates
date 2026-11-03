@@ -132,3 +132,5 @@ Bukti pengujian browser ditulis ke `test-results/`. Referensi endpoint, status, 
 Ini template satu merchant dengan pengalaman belanja dan ruang staf. `advanced` bukan marketplace multi-penjual: belum mencakup onboarding seller, komisi/split settlement, escrow, langganan, sinkronisasi ERP, atau integrasi kurir. Pembeli menggunakan sesi tamu dan kode pelacakan, belum akun pelanggan dengan pemulihan password. Konfirmasi transfer menggunakan referensi teks; tidak ada upload bukti transfer yang disajikan sebagai verifikasi otomatis.
 
 Integrasi Midtrans tersedia di kode dan diuji dengan respons provider terkontrol. Transaksi nyata perlu pengujian sandbox dengan kredensial merchant sebelum toko menerima uang. Dokumentasi ini tidak mengklaim adanya transaksi merchant nyata yang telah diuji pada demo.
+
+Local API membaca variabel Worker yang didukung dari environment proses dan `.dev.vars`; nilai `.dev.vars` diprioritaskan. `DEMO_MODE` secara default `false` sesuai konfigurasi proyek klien. Database lokal selalu memakai SQLite lokal.

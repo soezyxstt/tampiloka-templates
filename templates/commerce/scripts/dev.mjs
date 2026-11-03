@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { LocalDatabase } from './local-database.mjs';
+import { localEnv } from './local-env.mjs';
 import { handleRequest } from '../worker/index.ts';
 
 export async function startLocalCommerce(mode) {
@@ -12,7 +13,7 @@ export async function startLocalCommerce(mode) {
     db.close();
     return;
   }
-  const env = { DB: db, DEMO_MODE: 'true' };
+  const env = localEnv(db);
   const api = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://${req.headers.host}`);
