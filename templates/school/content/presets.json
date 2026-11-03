@@ -416,12 +416,12 @@
   "institution": {
     "name": "Sekolah Mandiri",
     "headline": {
-      "id": "Kenali kelas dan kegiatan sekolah kami.",
-      "en": "Discover our classes and school activities."
+      "id": "Bersama, kita belajar jadi lebih berani.",
+      "en": "Together, we learn to be brave."
     },
     "intro": {
-      "id": "Kenali program, pengajar, dan keseharian sekolah kami. Temukan informasi penerimaan serta kalender akademik dalam satu tempat.",
-      "en": "Explore our programs, faculty, and school life. Find admissions information and the academic calendar in one place."
+      "id": "Sekolah adalah tempat untuk bertanya, mencoba, dan tumbuh bersama teman.",
+      "en": "School is a place to ask questions, try new things, and grow with friends."
     },
     "fields": [
       {
