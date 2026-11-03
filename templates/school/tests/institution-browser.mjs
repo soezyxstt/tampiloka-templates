@@ -61,6 +61,8 @@ try {
   assert.equal(await page.locator('.institution-detail-club li').count(), 8);
   assert.ok(await page.locator('.content-section').evaluateAll(sections => sections.every(section => getComputedStyle(section.parentElement).opacity !== '0')), 'School content remains visible before its reveal animation');
   await visit('gallery'); assert.equal(await page.locator('.institution-gallery-grid figure').count(), 8);
+  await page.getByText('Potret ilustrasi untuk demo sekolah fiktif.').waitFor();
+  assert.equal(await page.locator('.institution-gallery-grid figure').first().locator('img').getAttribute('alt'), await page.locator('.institution-gallery-grid figure').first().locator('figcaption').innerText());
   for (const width of [360, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['school-admissions', 'school-teachers', 'school-extracurricular', 'news', 'gallery', 'school-admin-info']) {

@@ -90,10 +90,24 @@ try {
   data.blocks.find(block => block.id === 'welcome').heading.id = 'Belajar bersama di Sekolah Cakra Uji';
   const publication = await page.request.post(`${base}/api/command`, { headers, data: { action: 'content.publish', payload: { id: 'home', version: homeRecord.version, data }, key: 'client-home-publication' } });
   assert.equal(publication.status(), 200);
+  const galleryData = { ...structuredClone(data), title: { id: 'Pentas seni sekolah', en: 'School arts performance' }, image: '/images/client/hero.jpg', attributes: {}, blocks: [] };
+  const saved = await page.request.post(`${base}/api/command`, { headers, data: { action: 'content.save', payload: { id: 'client-gallery', collection: 'gallery', data: galleryData }, key: 'client-gallery-save' } });
+  assert.equal(saved.status(), 200);
+  const galleryRecord = (await (await page.request.get(`${base}/api/bootstrap`)).json()).content.find(record => record.id === 'client-gallery');
+  const galleryPublication = await page.request.post(`${base}/api/command`, { headers, data: { action: 'content.publish', payload: { id: galleryRecord.id, version: galleryRecord.version, data: galleryData }, key: 'client-gallery-publish' } });
+  assert.equal(galleryPublication.status(), 200);
   await page.request.post(`${base}/api/auth/logout`, { headers });
   await page.goto(base + '/');
   await page.getByRole('heading', { name: 'Belajar bersama di Sekolah Cakra Uji', exact: true }).waitFor();
   assert.equal(await page.locator('.school-opening-image img').getAttribute('src'), '/images/client/logo.jpg', 'Published CMS image overrides the initial configured hero');
+  for (const [path, title] of [['/galeri', 'Pentas seni sekolah'], ['/en/gallery', 'School arts performance']]) {
+    await page.goto(base + path);
+    const image = page.getByRole('img', { name: title, exact: true });
+    await image.waitFor();
+    assert.equal(await image.getAttribute('src'), '/images/client/hero.jpg');
+    assert.ok(await image.evaluate(image => image.complete && image.naturalWidth > 0));
+    assert.doesNotMatch(await page.locator('.institution-gallery').innerText(), /fiktif|fictional|illustrative|ilustrasi/i);
+  }
   assert.deepEqual(errors, []);
   console.log('Generated institution client: built Worker routes, branding, isolation and staff authorization PASS');
 } finally {

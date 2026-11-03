@@ -228,6 +228,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## Change log
 
+- **2026-11-03**: School gallery labels published images with their localized titles and limits fictional-demo disclosure to demos.
+
 - **2026-11-03**: School now uses localized page routes, configurable institution identity/assets and CMS-driven home copy; generated-client tests verify built Worker deep links, branding and protected admin access.
 
 - **2026-11-03**: Enriched School institution pages with a complete faculty directory, admissions guides, clubs, dated articles and CMS information layouts; refined visible-first motion and loaded-image browser checks.
