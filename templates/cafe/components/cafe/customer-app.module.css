@@ -39,3 +39,51 @@
 @media(max-width:480px){.ordersHeading{align-items:flex-start}.ordersActions{width:100%}.orderUnit{align-items:flex-start;flex-direction:column;gap:8px}.orderUnitStatus{max-width:100%}.orderArticle{padding:14px}.screenHeading select{max-width:100%}}
 @media(max-width:359px){.menuGrid{grid-template-columns:1fr}.menuCard{flex-direction:row}.menuImage{width:88px;min-width:88px;aspect-ratio:1;align-self:flex-start}.menuCardBody{padding:0 0 0 10px}}
 @media(prefers-reduced-motion:reduce){.menuCard,.menuImage img{transition:none;transform:none!important}}
+
+/* The dish title opens the whole tile. Save and add keep independent targets. */
+.menuCard { position: relative; }
+.menuImage { display: grid; place-items: center; }
+.menuImage > img { display: block; min-height: 0; }
+.dishTitle {
+  align-self: flex-start;
+  text-align: start;
+  font: 600 1rem/1.25 var(--font-heading);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.dishTitle::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.menuCard:has(.dishTitle:focus-visible) { outline: 3px solid var(--primary-ink); outline-offset: 2px; }
+.dishActions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
+.dishActions button, .favorite { z-index: 2; }
+.dishActions button { position: relative; }
+.footerTools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+
+/* The first photographed dish is the opening of the editorial menu itself. */
+:global([data-theme="editorial"]) .menuCard.openingDish {
+  display: grid;
+  isolation: isolate;
+  min-height: clamp(205px, 24vw, 270px);
+  padding: 0;
+  margin-bottom: 8px;
+  border: 0;
+}
+:global([data-theme="editorial"]) .menuCard.openingDish .menuImage {
+  position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto;
+}
+:global([data-theme="editorial"]) .menuCard.openingDish .menuCardBody {
+  align-self: end;
+  z-index: 1;
+  pointer-events: none;
+  padding: 32px clamp(16px, 3vw, 32px) 14px;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--foreground) 93%, transparent) 24px);
+  color: var(--surface);
+}
+:global([data-theme="editorial"]) .menuCard.openingDish .menuCardBody button { pointer-events: auto; }
+:global([data-theme="editorial"]) .menuCard.openingDish .dishTitle { font-size: clamp(23px, 3.2vw, 42px); font-weight: 500; line-height: 1.08; }
+:global([data-theme="editorial"]) .menuCard.openingDish .menuDescription { display: none; }
+:global([data-theme="editorial"]) .menuCard.openingDish .quantityBadge { top: 8px; bottom: auto; }
+@media (min-width: 701px) {
+  :global([data-theme="airy"]) .menuCard.openingDish { grid-column: span 2; }
+  :global([data-theme="airy"]) .menuCard.openingDish .menuImage { aspect-ratio: 2.85; }
+  :global([data-theme="airy"]) .menuCard.openingDish .dishTitle { font-size: 1.6rem; }
+}

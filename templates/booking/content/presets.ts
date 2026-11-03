@@ -223,7 +223,7 @@ export function presetContent(preset: Preset): PresetContent {
     layout: "appointment-first",
     palette: "sage",
     language: "id",
-    typography: "sans",
+    typography: preset === "aesthetic" || preset === "consulting" ? "serif" : "sans",
     timezone: "Asia/Jakarta",
     currency: "IDR",
     brand: {

@@ -10,10 +10,10 @@ The public toolbar uses `DemoToolbarShell` and imports `@tampiloka/ui-core/demo.
 
 | Layout | Desktop | Mobile |
 | --- | --- | --- |
-| `appointment-first` | Consultation photo and appointment selector, followed by pictured services and the practitioner directory. Compact horizontal navigation. | Introduction, compact photo and selector stack; a labeled menu replaces wide navigation. Booking remains a direct action. |
-| `editorial` | Centered wordmark and navigation, split photographic opening, alternating treatment and text rows. | Shorter photography, stacked treatment rows and a full-width booking action. |
-| `service-market` | Search beside a workshop photo, then a category sidebar and service comparison grid. | Categories move into a horizontal strip; service rows retain duration, price and action without page overflow. |
-| `minimal-professional` | Narrow information rail, meeting photo beside the introduction, service index and team directory. | Introduction and service link lead, followed by the meeting photo, pictured service list and team. |
+| `appointment-first` | A consultation panorama spans the opening. A solid booking strip overlaps its lower edge, with a practitioner picker, service picker and one schedule action. | The strip becomes a single column. Labels and controls stay on an opaque surface. |
+| `editorial` | A full-width treatment photograph carries the headline and a single catalogue action. A local gradient keeps the copy legible. | The gradient shifts to the bottom to leave the top of the photograph visible. |
+| `service-market` | The photographs are category buttons. Selecting one filters the nearby service list while retaining search and sort. | A two-column photo index replaces the sidebar on the home page. Each button retains a readable name, count and pressed state. |
+| `minimal-professional` | A large headline sits beside a numbered index of services and durations, above a panoramic meeting photograph. Each row opens its service. | The photo follows the introduction, then the index and practice directory. |
 
 Business presets do not lock layouts. Medical in Editorial retains its practitioner form and allocation rules. Aesthetic in Catalog removes online booking on the server; it does not merely hide a payment button.
 
@@ -47,7 +47,9 @@ Preview files under `public/demo-previews/` are real 1280x800 browser captures. 
 
 Each preset has six local service photographs. A service keeps the same picture in its catalogue, detail page and booking summary. The main photograph introduces the business and the location page shows the venue. Staff can edit both in Settings and replace each service photo in Content. The CLI keeps only files for the selected preset.
 
-WF-14 (Care appointment) informed the clinic’s visible appointment selector. OPEN-10 (Destination and booking overlay) informed the prominence of the setting. Keep the form separate from the photo so its contrast and controls work across crops. Show contextual stock photos of visits, work and facilities. Keep fictional staff names separate from identifiable stock portraits. Each asset has a source URL, licence and checksum in `public/images/manifest.json`.
+The Website Design Kit supplied OPEN-10 for the photograph with a booking strip, WF-14 for practitioner selection and OFFER-01 for the photographic category index. [Aman Spa at The Connaught](https://www.maybourne.com/en/hotels/the-connaught/aman-spa) pairs treatment photography with booking. [Mayo Clinic appointments](https://www.mayoclinic.org/appointments) gives each visitor an explicit starting choice. These guided the interaction and hierarchy. All media remains independently licensed and replaceable.
+
+Treat each service image and title as one detail link. Where the feature level supports booking or WhatsApp, offer a distinct scheduling action beside the details. Catalog-only detail pages lead to location and contact. Each visual category has a text label even without its image. Keep fictional staff names separate from identifiable stock portraits. Asset URLs, licenses and checksums are recorded in `public/images/manifest.json`.
 
 ## Interaction decisions
 

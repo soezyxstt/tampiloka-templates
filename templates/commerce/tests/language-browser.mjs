@@ -39,7 +39,7 @@ try {
     await page.reload({ waitUntil: 'networkidle' });
     assert.equal(await page.locator('html').getAttribute('lang'), other);
     await page.getByRole('button', { name: other === 'en' ? 'Customer' : 'Pembeli', exact: true }).click();
-    await page.getByRole('button', { name: other === 'en' ? 'View collection' : 'Lihat koleksi' }).first().waitFor();
+    await page.getByRole('heading', { name: other === 'en' ? 'Shop by category' : 'Belanja menurut kategori' }).waitFor();
     assert.ok(await page.getByText(other === 'en' ? 'Canvas Book Pouch' : 'Pouch Kanvas Buku').count());
     await context.close();
     console.log(`PASS ${locale}: default ${expected}, toggle, persistence, customer and staff`);
@@ -49,11 +49,26 @@ try {
     const page = await context.newPage();
     await page.goto(`${base}/?preset=${preset}&level=advanced`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(value => document.querySelector('.commerce-app')?.getAttribute('data-preset') === value, preset);
-    await page.getByRole('region', { name: 'Featured product' }).waitFor();
-    await page.getByRole('button', { name: 'Next photo' }).click();
+    const opening = page.locator('.shop-hero');
+    if (preset === 'editorial') {
+      await page.getByRole('region', { name: 'Featured product' }).getByRole('button', { name: 'Next photo' }).click();
+      await opening.getByRole('button', { name: /^View product / }).waitFor();
+    } else if (preset === 'market') {
+      await opening.getByRole('heading', { name: 'Shop by category' }).waitFor();
+      await opening.getByRole('button', { name: /Home.*products?/ }).click();
+      await page.getByRole('status').filter({ hasText: 'products found' }).waitFor();
+    } else if (preset === 'atelier') {
+      await opening.getByRole('heading', { name: 'Material study' }).waitFor();
+      await opening.getByRole('button', { name: /View .+ details/ }).click();
+      await page.getByRole('dialog').getByRole('button', { name: /View photo 2/ }).waitFor();
+    } else {
+      await opening.getByRole('heading', { name: /catalogue/ }).waitFor();
+      await opening.getByRole('textbox', { name: 'Search products' }).fill('zzzz');
+      await page.getByRole('heading', { name: 'No products found' }).waitFor();
+    }
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
     await context.close();
-    console.log(`PASS ${preset}: English carousel`);
+    console.log(`PASS ${preset}: English opening`);
   }
   const context = await browser.newContext({ locale: 'en-US' });
   const page = await context.newPage();

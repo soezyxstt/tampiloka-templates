@@ -217,6 +217,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 - Choose photos that help a visitor decide. Show the treatment or service in Booking, the learning activity in School, and the actual item and its details in Commerce. Give each preset a suitable opening image that also works on a phone.
 - Keep sample media editable, document the source and license, and store optimized files with the template. Treat people in stock photos as illustrations. Preserve client-supplied images when refreshing demo content.
+- Match the opening to its task. A treatment can fill the frame, product photos can filter a collection, and a clinic can bring scheduling into its opening. On a QR menu, keep the first orderable dish within reach. For carousels, provide labeled controls and keep the photo, caption and action in sync.
+- Give each destination one clear target within a product, program or service entry. A named image or row can open details. Keep a separate button when it performs a different action, such as saving a favorite or booking a visit.
 - Check the opening, catalog and detail view with real images at phone and desktop widths. Refresh the 1280 × 800 gallery covers from the running demo after a visual change.
 
 ## School template
@@ -235,6 +237,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 ## Change log
 
 Record UI-system changes here, newest first, one short entry per change.
+
+- **2026-11-03**: Varied public demo openings by visitor task and consolidated duplicate actions on products, dishes, services and programs.
 
 - **2026-11-02**: Added service, course and product photography to Booking, School and Commerce and refreshed their public gallery covers.
 

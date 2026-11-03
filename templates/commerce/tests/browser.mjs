@@ -49,7 +49,7 @@ const staffAction = async (order, button, title, fields = {}) => {
   return result.json();
 };
 const addProduct = async (name, variant) => {
-  await page.locator('.product-card').filter({ has: page.getByRole('button', { name, exact: true }) }).getByRole('button', { name: `Lihat ${name}`, exact: true }).click();
+  await page.locator('.product-card').getByRole('button', { name: `Lihat ${name}`, exact: true }).click();
   const dialog = page.getByRole('dialog', { name, exact: true });
   assert.equal(await dialog.getAttribute('data-slot'), 'dialog-content');
   const shippingDetails = dialog.getByRole('button', { name: 'Pengiriman dan pengembalian' });
@@ -104,12 +104,12 @@ try {
   check('Actual Worker and D1 respond; a new visitor receives an isolated demo');
 
   const hero = page.getByRole('region', { name: 'Produk pilihan' });
-  const firstHeroProduct = await hero.locator('.shop-hero-product strong').textContent();
+  const firstHeroProduct = await hero.locator('.campaign-copy h1').textContent();
   await hero.getByRole('button', { name: 'Foto berikutnya' }).focus();
   await page.keyboard.press('Enter');
-  assert.notEqual(await hero.locator('.shop-hero-product strong').textContent(), firstHeroProduct);
+  assert.notEqual(await hero.locator('.campaign-copy h1').textContent(), firstHeroProduct);
   await hero.getByRole('button', { name: 'Foto sebelumnya' }).click();
-  assert.equal(await hero.locator('.shop-hero-product strong').textContent(), firstHeroProduct);
+  assert.equal(await hero.locator('.campaign-copy h1').textContent(), firstHeroProduct);
   check('Hero carousel changes products and supports keyboard navigation');
 
   const presetTrigger = page.getByRole('combobox', { name: 'Tema demo' });

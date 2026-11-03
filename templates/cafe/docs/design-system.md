@@ -37,6 +37,12 @@ The existing v2 page now includes a [lifecycle review frame](https://www.figma.c
 
 The [operational contract](lifecycle.md) keeps payment, food delivery, guest departure and table cleaning separate. Disabled departure actions must explain the unresolved obligations. Customer order payment states use current bill allocations, and private waitlist status belongs only to the ticket holder.
 
+## Customer menu openings
+
+Editorial uses the first available photographed dish when it is first in the full menu. Its image, name, and price form the cover of the menu list. Airy places that first dish across two desktop columns. Filtering returns both to the compact menu. The other themes keep the quick-order grid. The same catalog record supplies both the cover and the item dialog.
+
+The Menu Ledger (WF-08) keeps prices and search visible near the top of a QR visit. The lead item treatment adapts OFFER-02 and the featured coffee on [Toby’s Estate](https://www.tobysestate.com.au/). The photo and dish title share one detail action. Saving a favorite and adding an item have separate controls.
+
 ## Figma entry points
 
 The work lives in **12 Cafe Template v2** in the existing Design Kit. The original 11 pages remain intact.

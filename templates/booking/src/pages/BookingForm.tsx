@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   CalendarDays,
+  ChevronLeft,
+  MessageCircle,
   Check,
   Clock3,
   Copy,
@@ -251,14 +253,15 @@ export function BookingForm() {
   return (
     <section className="b-section b-book-page">
       <RouteLink to={{ page: "services", service: "" }} className="b-back-link">
-        {t("Kembali ke layanan", "Back to services")}
+        <ChevronLeft size={16} aria-hidden="true" />{t("Kembali ke layanan", "Back to services")}
       </RouteLink>
       <div className="b-book-heading">
         {cap.booking && (
           <RouteLink
-            className="b-back-link"
+            className="b-channel-choice"
             to={{ channel: isBooking ? "whatsapp" : "booking" }}
           >
+            {isBooking ? <MessageCircle size={17} aria-hidden="true" /> : <CalendarDays size={17} aria-hidden="true" />}
             {isBooking
               ? t(
                   "Tanya melalui WhatsApp sebagai pilihan lain",
