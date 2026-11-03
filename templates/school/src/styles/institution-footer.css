@@ -1,0 +1,92 @@
+.institution-footer {
+  background:var(--school-institution-ink);
+  color:var(--school-institution-white);
+}
+.institution-footer-inner {
+  width:min(1280px,90%);
+  margin:auto;
+  padding:68px 0 24px;
+}
+.institution-footer-top {
+  display:grid;
+  grid-template-columns:1.45fr 1fr 1fr 1.1fr;
+  gap:clamp(26px,4vw,60px);
+}
+.institution-footer-name {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:20px;
+  font-weight:800;
+  line-height:1.25;
+}
+.institution-footer-name .institution-mark i {
+  background:var(--school-institution-yellow);
+}
+.institution-footer-brand p {
+  max-width:310px;
+  margin:20px 0 0;
+  line-height:1.7;
+}
+.institution-footer .institution-footer-disclosure {
+  color:color-mix(in srgb,var(--school-institution-white) 78%,var(--school-institution-ink));
+  font-size:13px;
+}
+.institution-footer h2 {
+  color:inherit;
+  font:700 16px/1.4 var(--school-body);
+  letter-spacing:normal;
+  margin:0 0 10px;
+}
+.institution-footer nav,.institution-footer-contact {
+  display:flex;
+  align-items:flex-start;
+  flex-direction:column;
+}
+.institution-footer nav a,.institution-footer-contact a,.institution-footer-bottom a {
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  text-decoration:underline;
+  text-decoration-color:transparent;
+  text-underline-offset:4px;
+  transition:text-decoration-color .2s ease;
+}
+.institution-footer nav a:hover,.institution-footer-contact a:hover,.institution-footer-bottom a:hover {
+  text-decoration-color:currentColor;
+}
+.institution-footer-contact p {
+  margin:0 0 12px;
+  line-height:1.65;
+  overflow-wrap:anywhere;
+}
+.institution-footer-contact a { overflow-wrap:anywhere; }
+.institution-footer-bottom {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  border-top:1px solid color-mix(in srgb,var(--school-institution-white) 28%,transparent);
+  margin-top:54px;
+  padding-top:16px;
+  font-size:13px;
+}
+.institution-footer a:focus-visible {
+  outline:3px solid var(--school-institution-yellow);
+  outline-offset:4px;
+}
+@media(max-width:900px) {
+  .institution-footer-top { grid-template-columns:repeat(2,minmax(0,1fr)); gap:38px; }
+}
+@media(max-width:520px) {
+  .institution-footer-inner { width:calc(100% - 44px); padding-top:48px; }
+  .institution-footer-top { grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 20px; }
+  .institution-footer-brand,.institution-footer-contact { grid-column:1 / -1; }
+  .institution-footer-bottom { margin-top:30px; padding-bottom:54px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .institution-footer nav a,.institution-footer-contact a,.institution-footer-bottom a { transition:none; }
+}
+.school[data-preset=institution] .institution-footer p { color:color-mix(in srgb,var(--school-institution-white) 82%,var(--school-institution-ink)); }
+.institution-footer-bottom { padding-right:100px; }
+@media(max-width:520px) { .institution-footer-bottom { padding-right:85px; align-items:flex-start; flex-direction:column; } }

@@ -8,7 +8,7 @@ function staff(ctx: Context) { check(isStaff(ctx.actor?.role), 'forbidden', 403)
 function admin(ctx: Context) { check(ctx.actor?.role === 'admin', 'forbidden', 403); }
 function academic(s: SchoolState, ctx: Context, cohortId: string) { check(isStaff(ctx.actor?.role) || mayTeach(s, ctx, cohortId), 'forbidden', 403); }
 function label(v: unknown) { check(v && typeof v === 'object', 'invalid_translation'); const x = v as Record<string, unknown>; return { id: text(x.id, 1000), en: text(x.en, 1000) }; }
-function safeUrl(v: unknown) { const x = typeof v === 'string' ? v : ''; check(!x || /^\/api\/media\/[a-zA-Z0-9-]+$|^\/images\/[a-zA-Z0-9._-]+$/.test(x) || /^https:\/\/[^\s<>]+$/.test(x), 'invalid_media'); return x; }
+function safeUrl(v: unknown) { const x = typeof v === 'string' ? v : ''; check(!x || /^\/api\/media\/[a-zA-Z0-9-]+$|^\/images\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9._-]+$/.test(x) || /^https:\/\/[^\s<>]+$/.test(x), 'invalid_media'); return x; }
 function enrolled(s: SchoolState, studentId: string, cohortId: string) { return s.enrollments.some(e => e.studentId === studentId && e.cohortId === cohortId && ['active', 'completed'].includes(e.status)); }
 function event(s: SchoolState, e: Enrollment, status: EnrollmentStatus, ctx: Context, note = '') {
     e.status = status;
@@ -207,14 +207,14 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
             }
             check(data.attributes && typeof data.attributes === 'object' && !Array.isArray(data.attributes), 'invalid_attributes');
             check(JSON.stringify(data.attributes).length <= 10000, 'content_too_long');
+            const collection = record?.collection ?? text(p.collection, 100);
+            check(cms.collections.has(collection), 'unknown_collection');
+            validateFields(cms.collections.get(collection)?.fields ?? [], data.attributes);
             if (!record) {
-                const collection = text(p.collection, 100);
-                check(cms.collections.has(collection), 'unknown_collection');
                 check(/^[a-z0-9-]+$/.test(id), 'invalid_slug');
                 record = { id, collection, slug: id, draft: data, published: null, version: 0, revisions: [] };
                 s.content.push(record);
             }
-            validateFields(cms.collections.get(record.collection)?.fields ?? [], data.attributes);
             record.revisions.push({ version: record.version, at: ctx.now, by: ctx.actor.id, data: structuredClone(record.draft) });
             record.revisions = record.revisions.slice(-20);
             record.draft = structuredClone(data);
@@ -391,7 +391,7 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
                 s.institution.navigation = p.navigation.map((v: unknown) => { const r = v as {
                     page: string;
                     label: unknown;
-                }; check(['home', 'programs', 'teachers', 'schedule', 'about', 'announcements'].includes(r.page) || s.content.some(c => c.collection === 'pages' && c.id === r.page && c.published), 'invalid_page'); return { page: r.page, label: label(r.label) }; });
+                }; check(['home', 'programs', 'teachers', 'schedule', 'about', 'announcements', 'news', 'school-teachers', 'school-life', 'school-admissions', 'school-admin-info', 'achievements', 'gallery'].includes(r.page) || s.content.some(c => c.collection === 'pages' && c.id === r.page && c.published), 'invalid_page'); return { page: r.page, label: label(r.label) }; });
             }
             result = 'settings';
             break;

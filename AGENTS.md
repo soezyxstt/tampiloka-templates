@@ -228,6 +228,16 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## Change log
 
+- **2026-11-03**: School gallery labels published images with their localized titles and limits fictional-demo disclosure to demos.
+
+- **2026-11-03**: School now uses localized page routes, configurable institution identity/assets and CMS-driven home copy; generated-client tests verify built Worker deep links, branding and protected admin access.
+
+- **2026-11-03**: Enriched School institution pages with a complete faculty directory, admissions guides, clubs, dated articles and CMS information layouts; refined visible-first motion and loaded-image browser checks.
+
+- **2026-11-03**: Expanded the institution homepage with activity, achievement and gallery sections, responsive footer navigation and reduced-motion-aware transitions.
+
+- **2026-11-03**: Expanded the School institution demo with bilingual school-life, admissions, news, faculty and information pages and an image-led institutional home.
+
 Record UI-system changes here, newest first, one short entry per change.
 
 - **2026-11-01**: Made cross-family component, motion and bilingual hidden-state parity explicit; shared dialog close targets now use centered 44px controls and disabled fields share the disabled treatment.

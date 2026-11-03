@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { resolveLocation, routeHref } from '../src/routing.ts';
 const base = process.env.SCHOOL_URL ?? 'http://127.0.0.1:5176';
 const out = resolve(process.env.SCHOOL_SCREENSHOTS ?? 'test-results/school');
 await mkdir(out, { recursive: true });
@@ -29,7 +30,8 @@ function track(page) { page.setDefaultTimeout(60000); lastPage = page; page.on('
 async function ready(page) {
     await page.locator('.tl-demo-toolbar').waitFor();
     await page.locator('#main-content').waitFor();
-    const params = new URL(page.url()).searchParams;
+    const url = new URL(page.url());
+    const params = resolveLocation(url.pathname, url.search);
     const view = params.get('view') || 'visitor';
     const role = params.get('preview') === 'true' ? 'admin' : view === 'staff' ? params.get('role') || 'admin' : view;
     await page.locator(`.school[data-role="${role}"]`).waitFor();
@@ -93,8 +95,7 @@ async function current(page, role = 'student') {
 }
 async function navigate(page, patch) {
     const u = new URL(page.url());
-    for (const [k, v] of Object.entries(patch)) u.searchParams.set(k, v);
-    await page.goto(u.href);
+    await page.goto(new URL(routeHref(resolveLocation(u.pathname, u.search), patch, u.hash), u).href);
     await ready(page);
 }
 async function fillRegistration(page, s) {
@@ -161,8 +162,8 @@ try {
                 await page.keyboard.press('Enter');
                 await page.waitForTimeout(150);
                 await overflow(page, 'after select');
-                assert.equal(new URL(page.url()).searchParams.get('level'), 'full');
-                await page.getByRole('button', { name: 'Switch to Indonesian', exact: true }).click();
+                assert.equal(resolveLocation(new URL(page.url()).pathname, new URL(page.url()).search).get('level'), 'full');
+                await page.getByRole('button', { name: 'ID / EN: Switch to Indonesian', exact: true }).click();
                 assert.equal(await page.locator('html').getAttribute('lang'), 'id');
                 await page.reload(); await ready(page);
                 assert.equal(await page.locator('html').getAttribute('lang'), 'id');

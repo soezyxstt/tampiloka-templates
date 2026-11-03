@@ -1,0 +1,12 @@
+.school[data-preset=institution] .institution-logo { width:46px; height:46px; object-fit:contain; flex:none; }
+.school[data-preset=institution] .institution-footer .institution-logo { width:46px; height:46px; }
+.school[data-preset=institution] .institution-inner-hero:not(:has(img)), .school[data-preset=institution] .school-opening-image:not(:has(img)) { background:var(--school-institution-ink); }
+.school[data-preset=institution] .school-event { background:var(--school-institution-ink); }
+.school[data-preset=institution] .school-event>img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.32; }
+.school[data-preset=institution] .school-event>div { position:relative; }
+.school[data-preset=institution] .school-journey.no-images { grid-template-columns:1fr; }
+.school[data-preset=institution] .school-journey.no-images .school-journey-copy { max-width:780px; }
+.school[data-preset=institution] .school-journey-images:not(:has(.school-journey-main)) { padding:0; }
+.school[data-preset=institution] .school-journey-images:not(:has(.school-journey-main)) .school-journey-small { position:static; width:100%; aspect-ratio:1.1; border:0; }
+.school[data-preset=institution] .school-invite.no-image { grid-template-columns:1fr; }
+.school[data-preset=institution] .school-community>.empty { margin-top:30px; }
