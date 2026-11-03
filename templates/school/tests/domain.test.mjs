@@ -261,7 +261,11 @@ test('each preset ships a distinct lead and a responsive photograph for every pr
         const images = content.filter(entry => entry.collection === 'programs').map(entry => entry.published.image);
         assert.equal(new Set([lead, ...images]).size, 1 + images.length, preset);
         leads.add(lead);
-        for (const image of [lead, ...images]) {
+        if (preset === 'institution') {
+            const hero = await readFile(new URL(`../public${lead}`, import.meta.url));
+            assert.equal(hero.toString('ascii', 8, 12), 'WEBP', lead);
+        }
+        for (const image of preset === 'institution' ? images : [lead, ...images]) {
             assert.match(image, /^\/images\/[a-z-]+\.webp$/);
             for (const path of [image, image.replace('.webp', '-480.webp')]) {
                 const bytes = await readFile(new URL(`../public${path}`, import.meta.url));
