@@ -67,7 +67,29 @@ jobs:
         run: pnpm test:school:browser && pnpm --filter @tampiloka/template-school exec node tests/institution-browser.mjs && pnpm --filter @tampiloka/template-school exec node tests/extension-browser.mjs
       - name: Branded institution client and built Worker routes
         working-directory: templates/school
-        run: node tests/institution-client-browser.mjs
+        run: |
+          set -euo pipefail
+          fixture_dir="$(mktemp -d)"
+          cleanup() {
+            if [[ -n "${proxy_pid:-}" ]]; then kill "$proxy_pid" 2>/dev/null || true; wait "$proxy_pid" 2>/dev/null || true; fi
+            docker logs school-libsql || true
+            docker rm -f school-libsql || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup EXIT
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -keyout "$fixture_dir/key.pem" -out "$fixture_dir/cert.pem" -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' -addext 'basicConstraints=critical,CA:TRUE'
+          docker run -d --name school-libsql -p 127.0.0.1:18080:8080 ghcr.io/tursodatabase/libsql-server:v0.24.32
+          node tests/libsql-tls-proxy.mjs "$fixture_dir/key.pem" "$fixture_dir/cert.pem" &
+          proxy_pid=$!
+          export NODE_EXTRA_CA_CERTS="$fixture_dir/cert.pem"
+          export TURSO_DATABASE_URL=https://127.0.0.1:18443 TURSO_AUTH_TOKEN=fixture-only
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail --cacert "$fixture_dir/cert.pem" -H 'Content-Type: application/json' -d '{"requests":[{"type":"execute","stmt":{"sql":"SELECT 1"}},{"type":"close"}]}' "$TURSO_DATABASE_URL/v2/pipeline" | grep -q '"ok"'; then ready=true; break; fi
+            sleep 1
+          done
+          if [[ "$ready" != true ]]; then echo 'libSQL fixture failed readiness' >&2; exit 1; fi
+          node tests/institution-client-browser.mjs
       - name: Package accurate demo previews
         run: |
           mkdir -p templates/school/dist/previews

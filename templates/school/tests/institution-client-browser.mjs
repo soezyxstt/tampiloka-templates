@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
-// Exercise the generated client with its isolated local SQLite backend.
+// Exercise the generated client through its built Worker and HTTPS libSQL backend.
 const root = resolve(process.cwd(), '../..');
 const temp = await mkdtemp(join(tmpdir(), 'school-client-browser-'));
 const client = join(temp, 'school-client');
@@ -23,7 +23,7 @@ try {
   const brand = JSON.parse(await readFile(configPath, 'utf8'));
   Object.assign(brand, { name: 'Sekolah Cakra Uji', address: 'Jalan Uji 12', email: 'test@example.test', logo: '/images/client/logo.jpg', heroImage: '/images/client/hero.jpg' });
   await writeFile(configPath, JSON.stringify(brand, null, 2));
-  await writeFile(join(client, '.dev.vars'), ['AUTH_SECRET', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD'].map(key => `${key}=${JSON.stringify(env[key])}`).join('\n'));
+  await writeFile(join(client, '.dev.vars'), ['AUTH_SECRET', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD', 'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN'].map(key => `${key}=${JSON.stringify(env[key])}`).join('\n'));
   await mkdir(join(client, 'public/images/client'), { recursive: true });
   await copyFile(join(root, 'templates/school/public/images/institution/classroom.jpg'), join(client, 'public/images/client/logo.jpg'));
   await copyFile(join(root, 'templates/school/public/images/institution/students.jpg'), join(client, 'public/images/client/hero.jpg'));
@@ -31,7 +31,8 @@ try {
   else run('pnpm', ['install', '--no-frozen-lockfile'], client);
   run(process.execPath, [join(client, 'node_modules/vite/bin/vite.js'), 'build'], client);
   run(process.execPath, ['scripts/build-worker.mjs'], client);
-  server = spawn(process.execPath, ['--experimental-strip-types', 'scripts/dev.mjs'], { cwd: client, env: { ...env, SCHOOL_DATA_DIR: persist, PORT: '5185', DEMO_MODE: 'false' }, stdio: 'inherit' });
+  assert.ok(env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN, 'HTTPS libSQL fixture configuration is required');
+  server = spawn(process.execPath, [join(client, 'node_modules/wrangler/bin/wrangler.js'), 'dev', '--local', '--no-bundle', '--ip', '127.0.0.1', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
   let ready = false;
   for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/api/health`)).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 300)); }
   assert.ok(ready, 'Local client backend did not become ready');
