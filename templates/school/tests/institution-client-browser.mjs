@@ -32,10 +32,19 @@ try {
   run(process.execPath, [join(client, 'node_modules/vite/bin/vite.js'), 'build'], client);
   run(process.execPath, ['scripts/build-worker.mjs'], client);
   assert.ok(env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN, 'HTTPS libSQL fixture configuration is required');
+  // Use the generated client's production migration tool and its own migration files.
+  run('pnpm', ['db:remote'], client);
+  run('pnpm', ['exec', 'tampiloka-db', 'verify'], client);
+  // Re-running migrate proves the recorded history is accepted without replaying SQL.
+  run('pnpm', ['db:remote'], client);
   server = spawn(process.execPath, [join(client, 'node_modules/wrangler/bin/wrangler.js'), 'dev', '--local', '--no-bundle', '--ip', '127.0.0.1', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
-  let ready = false;
-  for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/api/health`)).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 300)); }
-  assert.ok(ready, 'Local client backend did not become ready');
+  let ready = false, healthFailure = 'no response';
+  for (let i = 0; i < 100; i++) {
+    if (server.exitCode !== null) throw new Error(`Wrangler exited before readiness (${server.exitCode})`);
+    try { const response = await fetch(`${base}/api/health`); if (response.ok) { ready = true; break; } healthFailure = `HTTP ${response.status}: ${await response.text()}`; } catch (error) { healthFailure = String(error); }
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  assert.ok(ready, `Local client backend did not become ready: ${healthFailure}`);
   const snapshot = await (await fetch(`${base}/api/bootstrap`, { headers: { 'X-Demo-Role': 'admin' } })).json();
   assert.equal(snapshot.demo, false);
   assert.equal(snapshot.institution.name, 'Sekolah Cakra Uji');
