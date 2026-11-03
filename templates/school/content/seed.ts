@@ -6,13 +6,18 @@ export const presetContent = catalog;
 // Returning demo visitors may still have the original, shared classroom pictures.
 // Project the new sample media without writing to the CMS or replacing a saved edit.
 export function refreshDemoPhotos(record: ContentRecord, preset: Preset): ContentRecord {
-    if (record.version !== 1 || record.revisions.length || !record.published) return record;
+    if (!record.published) return record;
+    // A first revision preserves the original draft when an unrelated edit is saved.
+    // It also lets us recognize an unchanged published baseline after that save.
+    const baseline = record.version === 1 && !record.revisions.length
+        || record.revisions.some(rev => rev.version === 1 && JSON.stringify(rev.data) === JSON.stringify(record.published));
+    if (!baseline) return record;
     const profile = catalog[preset];
     const isHome = record.collection === 'pages' && record.id === 'home';
     const program = record.collection === 'programs' && profile.programs.find(p => p.id === record.id);
     if (!isHome && !program) return record;
     const previous = record.id === 'photo-workshop' ? photo.workshop : photo.classroom;
-    if (record.published.image !== previous || record.draft.image !== previous) return record;
+    if (record.published.image !== previous) return record;
 
     function refresh(data: ContentData): ContentData {
         if (program) return { ...data, image: program.image };
@@ -25,7 +30,7 @@ export function refreshDemoPhotos(record: ContentRecord, preset: Preset): Conten
         });
         return { ...data, image: profile.image, blocks };
     }
-    return { ...record, draft: refresh(record.draft), published: refresh(record.published) };
+    return { ...record, draft: record.version === 1 && !record.revisions.length && record.draft.image === previous ? refresh(record.draft) : record.draft, published: refresh(record.published) };
 }
 export function seed(preset: Preset, config: SchoolConfig, demo: boolean, now = new Date()): SchoolState {
     const p = catalog[preset], today = now.getTime();

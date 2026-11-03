@@ -9,7 +9,7 @@ import { database } from '../scripts/sqlite.mjs';
 const state = (preset = 'exam-prep') => seed(preset, config, true);
 const ctx = (s, role = 'student', level = 'full') => ({ actor: s.users.find(x => x.id === role), level, demo: true, now: new Date().toISOString(), id: crypto.randomUUID() });
 const answers = s => Object.fromEntries(s.registrationFields.filter(f => f.required).map(f => [f.name, f.type === 'checkbox' ? true : f.type === 'select' ? f.options[0] : 'Sample']));
-const cmd = (s, c, action, payload, key = crypto.randomUUID()) => command(s, c, { action, payload, key });
+const cmd = (s, c, action, payload, key = crypto.randomUUID()) => command(s, c, { action, payload, key }, 'exam-prep');
 const submit = (s, c = ctx(s)) => cmd(s, c, 'application.submit', { studentId: c.actor.studentIds[0], cohortId: s.cohorts[0].id, answers: answers(s) });
 function accept(s, id, level = 'full') { const e = s.enrollments.find(x => x.id === id); cmd(s, ctx(s, 'admin', level), 'application.review', { id, version: e.version, status: 'accepted' }); return e; }
 for (const level of ['profile', 'whatsapp'])
@@ -188,6 +188,23 @@ test('drafts, revisions, publication, and unpublish have no public draft leakage
     assert.notEqual(home.draft.title.en, 'Changed draft');
     cmd(s, c, 'content.unpublish', { id: 'home', version: home.version });
     assert.ok(!snapshot(s, { ...c, actor: null }, 'exam-prep').content.some(x => x.id === 'home'));
+});
+test('legacy demo publication survives draft save and restore', () => {
+    const s = state(), c = ctx(s, 'editor', 'profile'), home = s.content[0];
+    home.draft.image = home.published.image = '/images/classroom.jpg';
+    home.draft.blocks[0].image = home.published.blocks[0].image = '/images/workshop.jpg';
+    home.draft.blocks[1].image = home.published.blocks[1].image = '/images/library.jpg';
+    const publicHome = () => snapshot(s, { ...c, actor: null }, 'exam-prep').content.find(x => x.id === 'home').published;
+    const before = structuredClone(publicHome());
+    assert.notEqual(before.image, '/images/classroom.jpg');
+    const edited = structuredClone(home.draft);
+    edited.title.en = 'Unpublished edit';
+    cmd(s, c, 'content.save', { id: 'home', version: home.version, data: edited });
+    assert.deepEqual(publicHome(), before);
+    cmd(s, c, 'content.restore', { id: 'home', version: home.version, revision: 1 });
+    assert.deepEqual(publicHome(), before);
+    cmd(s, c, 'content.publish', { id: 'home', version: home.version, data: edited });
+    assert.equal(publicHome().title.en, 'Unpublished edit');
 });
 test('conditional validation ignores hidden values, rejects prototype keys and wrong types', () => {
     const fields = [{ name: 'consent', type: 'checkbox', label: { id: 'Ya', en: 'Yes' } }, { name: 'reason', type: 'text', required: true, label: { id: 'Alasan', en: 'Reason' }, when: { field: 'consent', equals: true } }];

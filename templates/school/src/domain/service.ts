@@ -68,7 +68,7 @@ export function applyPayment(s: SchoolState, ctx: Context, invoiceId: string, re
     }
     return invoice.id;
 }
-export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
+export function command(s: SchoolState, ctx: Context, cmd: Command, preset?: Preset): Json {
     check(ctx.actor && !ctx.actor.disabled, 'login_required', 401);
     check(typeof cmd.key === 'string' && /^[a-zA-Z0-9_-]{8,100}$/.test(cmd.key), 'invalid_idempotency');
     check(cmd.payload && typeof cmd.payload === 'object' && !Array.isArray(cmd.payload), 'invalid_payload');
@@ -182,6 +182,8 @@ export function command(s: SchoolState, ctx: Context, cmd: Command): Json {
             const id = text(p.id, 100);
             let record = s.content.find(x => x.id === id);
             check(!record || record.version === p.version, 'stale_record', 409);
+            // Materialize the public projection before draft mutations can discard its baseline revision.
+            if (record && ctx.demo && preset) record.published = refreshDemoPhotos(record, preset).published;
             if (cmd.action === 'content.restore') {
                 check(record, 'not_found', 404);
                 const rev = record.revisions.find(x => x.version === p.revision);
