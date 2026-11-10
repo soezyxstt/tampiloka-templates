@@ -317,3 +317,19 @@ test('catalog preset generates the waiter inbox with empty client transactions',
  assert.match(env,/CAFE_DEMO_DB=1/);assert.match(env,/CAFE_DEMO_EMPTY=1/);
  assert.equal(await exists(join(destination,'.local')),false);
 });
+
+test('the real generated client retains notification code and an installable runtime dependency graph', async () => {
+  const destination = join(scratch, 'notification-client');
+  const generated = spawnSync(process.execPath, [join(root, 'scripts', 'cafe.mjs'), 'init', destination, '--preset', 'full', '--yes'], { cwd: root, encoding: 'utf8', timeout: 20000 });
+  assert.equal(generated.status, 0, generated.stderr);
+  const pkg = JSON.parse(await readFile(join(destination, 'package.json'), 'utf8'));
+  const lock = JSON.parse(await readFile(join(destination, 'package-lock.json'), 'utf8'));
+  assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
+  for (const name of Object.keys(pkg.dependencies)) assert.ok(lock.packages[`node_modules/${name}`], `Missing standalone npm lock entry: ${name}`);
+  assert.equal(pkg.dependencies.sonner, '2.0.7');
+  assert.equal(await exists(join(destination, 'lib', 'order-notification-tracker.ts')), true);
+  assert.equal(await exists(join(destination, 'src', 'demo-runtime')), false);
+  const component = await readFile(join(destination, 'components', 'cafe', 'order-notifications.tsx'), 'utf8');
+  assert.match(component, /@\/lib\/order-notification-tracker/);
+  assert.doesNotMatch(component, /src\/demo-runtime/);
+});

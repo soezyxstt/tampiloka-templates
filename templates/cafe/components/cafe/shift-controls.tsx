@@ -1,8 +1,9 @@
 'use client';
+import { toast } from 'sonner';
 import { useCafeLanguage } from '@/lib/language';
 
 import { useId, useState } from 'react';
-import { Button, Input, Label, InlineError, Money, StatusLabel, Surface, InlineNotice } from './ui-primitives';
+import { Button, Input, Label, InlineError, Money, StatusLabel, Surface } from './ui-primitives';
 import { isModuleEnabled } from '@/src/config/cafe';
 
 type Shift = {
@@ -26,7 +27,6 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
   const [counted, setCounted] = useState('');
   const [closeReason, setCloseReason] = useState('');
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [pending, setPending] = useState(false);
   const locked = busy || pending;
   if (!isModuleEnabled('cashier')) return null;
@@ -41,7 +41,7 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
 
   const run = async (action: 'OPEN_SHIFT' | 'CASH_IN' | 'CASH_OUT' | 'CLOSE_SHIFT') => {
     if (locked) return;
-    setError(''); setNotice('');
+    setError('');
     try {
       const payload: Record<string, unknown> = { action };
       if (action === 'OPEN_SHIFT') payload.amountIdr = amountValue(opening, true);
@@ -60,7 +60,7 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
       }
       setPending(true);
       await onCommand('CASH_SHIFT_ACTION', payload);
-      setNotice(action === 'OPEN_SHIFT' ? tr("Shift dibuka. Kasir siap menerima pembayaran tunai.", "Shift opened. The cashier can receive cash payments.") : action === 'CLOSE_SHIFT' ? tr("Hitungan disimpan dan shift ditutup.", "Count saved and shift closed.") : tr("Perubahan kas tersimpan.", "Cash movement saved."));
+      toast.success(action === 'OPEN_SHIFT' ? tr("Shift dibuka. Kasir siap menerima pembayaran tunai.", "Shift opened. The cashier can receive cash payments.") : action === 'CLOSE_SHIFT' ? tr("Hitungan disimpan dan shift ditutup.", "Count saved and shift closed.") : tr("Perubahan kas tersimpan.", "Cash movement saved."));
       setAmount(''); setReason(''); setCounted(''); setCloseReason('');
     } catch (caught) { setError(caught instanceof Error ? caught.message : tr("Perubahan kas belum tersimpan.", "Cash movement was not saved.")); }
     finally { setPending(false); }
@@ -73,7 +73,6 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
     </div>
     {!active && !expanded && <p className="text-sm text-[var(--muted-foreground)]">{tr("Buka shift sebelum menerima pembayaran tunai.", "Open a shift before accepting cash payments.")}</p>}
     <InlineError message={error} />
-    {notice && <InlineNotice tone="success">{notice}</InlineNotice>}
     {expanded && <div id={`${prefix}-details`}>
       {!active ? <div className="flex flex-wrap items-end gap-3"><div className="space-y-1"><Label htmlFor={`${prefix}-opening`}>{tr("Modal awal laci (Rp)", "Opening drawer float (Rp)")}</Label><Input id={`${prefix}-opening`} type="number" inputMode="numeric" min={0} step={1} value={opening} disabled={locked} onChange={event => setOpening(event.target.value)} /></div><Button disabled={locked} onClick={() => run('OPEN_SHIFT')}>{pending ? tr("Menyimpan…", "Saving…") : tr("Buka shift kasir", "Open cashier shift")}</Button></div> : <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-3"><p className="text-sm font-semibold">{active.drawerName}</p><dl className="space-y-2 text-sm"><div className="flex justify-between gap-2"><dt>{tr("Modal awal", "Opening float")}</dt><dd><Money amount={active.openingFloatIdr} /></dd></div><div className="flex justify-between gap-2"><dt>{tr("Pembayaran tunai", "Cash payments")}</dt><dd><Money amount={active.cashReceiptsIdr} /></dd></div><div className="flex justify-between gap-2"><dt>{tr("Kas masuk", "Cash in")}</dt><dd><Money amount={active.cashInIdr} /></dd></div><div className="flex justify-between gap-2"><dt>{tr("Kas keluar", "Cash out")}</dt><dd><Money amount={active.cashOutIdr} /></dd></div><div className="flex justify-between gap-2"><dt>{tr("Pengembalian tunai", "Cash refunds")}</dt><dd><Money amount={active.cashRefundsIdr} /></dd></div><div className="flex justify-between gap-2 border-t border-[var(--border)] pt-2 font-semibold"><dt>{tr("Perkiraan laci", "Expected drawer cash")}</dt><dd><Money amount={active.expectedCashIdr} /></dd></div></dl></div>

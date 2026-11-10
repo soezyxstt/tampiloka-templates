@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CustomerApp } from './customer-app';
 import { StaffApp } from './staff-app';
+import { DemoPaymentControls } from './demo-payment-controls';
+import { Button, DialogModal } from './ui-primitives';
 import { cafeConfig, hasStaffModules, isModuleEnabled, THEMES } from '@/src/config/cafe';
 import { useCafeLanguage } from '@/lib/language';
 import { localizeSampleMenu } from '@/src/catalog/sample-menu';
@@ -11,13 +13,14 @@ import { localizeSystemMessage } from '@/lib/system-messages';
 export type WorkspaceView = 'pelanggan' | 'staf';
 type CustomerContext = { tableId: string; principalId: string };
 
-export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId, initialBillId, onViewChange }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string; initialBillId?: string; onViewChange?: (view: WorkspaceView) => void }) {
+export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', initialTableId, initialBillId, onViewChange, demoStaffId }: { initialSnapshot: any; initialView?: WorkspaceView; initialTableId?: string; initialBillId?: string; onViewChange?: (view: WorkspaceView) => void; demoStaffId?: string }) {
   const { language, t } = useCafeLanguage();
   const [snapshot, setSnapshot] = useState<any>(initialSnapshot);
   const customerSnapshot = useMemo(() => localizeSampleMenu(snapshot, language), [snapshot, language]);
   const [activeView, setActiveView] = useState<WorkspaceView>(isModuleEnabled('catalog') ? initialView : 'staf');
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState('');
+  const [paymentToolsOpen, setPaymentToolsOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('');
   const context = useRef<CustomerContext>({ tableId: initialTableId || initialSnapshot?.tables?.[0]?.id || '', principalId: '' });
   const commandPending = useRef(false);
@@ -62,7 +65,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   useEffect(() => {
     if (staticCatalog) return;
     const timer = setInterval(() => {
-      if (!document.hidden && !commandPending.current) void loadSnapshot(activeView, true);
+      if ((activeView === 'staf' || !document.hidden) && !commandPending.current) void loadSnapshot(activeView, true);
     }, 8000);
     const online = () => { void loadSnapshot(activeView, true); };
     const offline = () => setConnectionError(t('Koneksi terputus. Keranjang Anda tetap tersimpan.', 'Connection lost. Your cart is still saved.'));
@@ -97,7 +100,8 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
       setConnectionError('');
       return json?.data;
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : t('Permintaan belum berhasil. Coba lagi.', 'Request failed. Try again.'));
+      // Command validation belongs to the form that initiated it. Network
+      // health is reported by snapshot refresh, avoiding duplicate page banners.
       throw error;
     } finally {
       commandPending.current = false;
@@ -105,9 +109,25 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     }
   };
 
+  const localDemoNavigation = snapshot?.runtime?.demo && snapshot?.runtime?.mode !== 'browser-demo' && !demoStaffId;
+  const venuePath = `${encodeURIComponent(cafeConfig.venue.tenantSlug)}/${encodeURIComponent(cafeConfig.venue.outletSlug)}`;
+  const tableToken = snapshot?.tables?.find((table: any) => table.id === context.current.tableId)?.qrToken || snapshot?.tables?.[0]?.qrToken;
+  const localeQuery = new URLSearchParams({ lang: language }).toString();
+  const customerHref = `${tableToken ? `/t/${venuePath}/m/${encodeURIComponent(tableToken)}` : '/'}?${localeQuery}`;
+  const staffHref = `/staff/${venuePath}?${localeQuery}`;
+
   return <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+    {localDemoNavigation && <nav className="cafe-local-demo-nav" aria-label={t('Tampilan kafe', 'Cafe views')}>
+      {isModuleEnabled('catalog') && <a href={customerHref} aria-current={activeView === 'pelanggan' ? 'page' : undefined}>{t('Pelanggan', 'Customer')}</a>}
+      {hasStaffModules() && <a href={staffHref} aria-current={activeView === 'staf' ? 'page' : undefined}>{t('Staf', 'Staff')}</a>}
+      {activeView === 'staf' && isModuleEnabled('payments') && <Button variant="secondary" onClick={() => setPaymentToolsOpen(true)}>{t('Simulasi pembayaran', 'Payment simulation')}</Button>}
+    </nav>}
+    {localDemoNavigation && <DialogModal open={paymentToolsOpen} onClose={() => setPaymentToolsOpen(false)} title={t('Simulasi pembayaran', 'Payment simulation')}>
+
+      <DemoPaymentControls snapshot={snapshot} busy={busy} onCommand={executeCommand} />
+    </DialogModal>}
     {connectionError && <div className="connection-notice" role="status"><span>{connectionError}</span><button type="button" disabled={busy} className="font-semibold underline" onClick={refreshSnapshot}>{t('Coba lagi', 'Try again')}</button><button type="button" aria-label={t('Tutup pemberitahuan', 'Dismiss notification')} onClick={() => setConnectionError('')}>×</button></div>}
-    {activeView === 'pelanggan' && isModuleEnabled('catalog') ? <CustomerApp snapshot={customerSnapshot} initialTableId={initialTableId} initialBillId={initialBillId} onContextChange={onContextChange} onCommand={executeCommand} busy={busy} onRefresh={refreshSnapshot} onOpenStaffPortal={hasStaffModules() ? () => { void switchView('staf'); } : undefined} /> : <StaffApp snapshot={snapshot} onCommand={executeCommand} onRefresh={refreshSnapshot} lastUpdated={lastUpdated} busy={busy} initialSignedIn={false} onBackToCustomer={isModuleEnabled('catalog') ? () => { void switchView('pelanggan'); } : undefined} />}
+    {activeView === 'pelanggan' && isModuleEnabled('catalog') ? <CustomerApp snapshot={customerSnapshot} initialTableId={initialTableId} initialBillId={initialBillId} onContextChange={onContextChange} onOpenStaffPortal={!snapshot?.runtime?.demo && hasStaffModules() ? () => { window.location.assign(staffHref); } : undefined} onCommand={executeCommand} busy={busy} onRefresh={refreshSnapshot} /> : <StaffApp snapshot={snapshot} activeStaff={demoStaffId} explorationManaged={Boolean(demoStaffId)} onCommand={executeCommand} onRefresh={refreshSnapshot} lastUpdated={lastUpdated} busy={busy} initialSignedIn={Boolean(demoStaffId)} onBackToCustomer={!snapshot?.runtime?.demo && isModuleEnabled('catalog') ? () => { void switchView('pelanggan'); } : undefined} />}
   </div>;
 }
 

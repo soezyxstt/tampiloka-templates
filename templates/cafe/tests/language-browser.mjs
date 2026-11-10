@@ -1,3 +1,4 @@
+import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -23,7 +24,9 @@ try {
   await page.getByRole('button', { name: 'Switch language to Indonesian' }).click();
   assert.equal(await page.evaluate(() => localStorage.getItem('tampiloka-language-choice')), 'id');
   await page.goto(`${base}/p/order-at-cashier/`);
-  await page.getByRole('button', { name: 'Ulangi demo' }).waitFor({ timeout: 120000 });
+  await page.getByRole('button', { name: 'Opsi demo' }).waitFor({ timeout: 120000 });
+  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await enterTableMenu(page);
   await page.getByPlaceholder('Cari menu').waitFor({ timeout: 120000 });
   const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly === true);
   assert.equal(localOnly, true, 'Order checks require the local-only demo runtime.');
@@ -46,8 +49,9 @@ try {
   await confirmation.getByRole('button', { name: 'Submit order', exact: true }).click();
   await page.getByRole('navigation', { name: 'Customer navigation' }).getByRole('button', { name: 'Orders', exact: true }).waitFor();
   await page.getByRole('link', { name: 'Staff', exact: true }).click();
-  await page.getByRole('button', { name: 'Reset demo' }).waitFor({ timeout: 120000 });
-  await page.getByRole('button', { name: /Raka Pratama/ }).first().click();
+  await page.getByRole('button', { name: 'Demo options' }).waitFor({ timeout: 120000 });
+  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await chooseDemoStaff(page);
   await page.getByRole('navigation', { name: 'Desktop operations navigation' }).waitFor();
   assert.deepEqual(errors, []);
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');

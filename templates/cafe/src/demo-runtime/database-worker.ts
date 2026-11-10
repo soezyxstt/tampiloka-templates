@@ -5,6 +5,7 @@ import { attachBrowserWorkerDatabase } from './worker-database.ts';
 import { validateConfig, type CafeConfig } from '../config/catalog.mjs';
 import type { BrowserOperation } from './types.ts';
 import { createDurableOperationBatch } from './durable-batch.ts';
+import { attachOperationServer } from './operation-protocol.ts';
 
 // PGlite's worker wrapper elects one database owner for all tabs with the same id.
 // Only that owner opens IndexedDB and applies schema DDL.
@@ -38,22 +39,37 @@ void worker({
       const runDurably = createDurableOperationBatch(client.fs);
       const { handleBrowserOperation } = await import('./worker-service.ts');
       const channel = new BroadcastChannel(`${scope}:operations`);
-      let queue: Promise<void> = Promise.resolve();
-      channel.onmessage = event => {
-        const message = event.data as { type?: string; requestId?: string; operation?: BrowserOperation };
-        if (message?.type !== 'cafe-request' || typeof message.requestId !== 'string' || !message.operation) return;
-        queue = queue.then(async () => {
-          try {
-            const result = await runDurably(() => handleBrowserOperation(message.operation!));
-            channel.postMessage({ type: 'cafe-response', requestId: message.requestId, result });
-          } catch (error) {
-            const failure = error as { code?: string; status?: number; message?: string };
-            channel.postMessage({ type: 'cafe-response', requestId: message.requestId, error: { code: failure.code, status: failure.status, message: failure.message || 'Tindakan demo belum berhasil.' } });
+      const updates = new BroadcastChannel(`${scope}:refresh`);
+      const detach = attachOperationServer(channel, async rawOperation => {
+        const operation = rawOperation as BrowserOperation;
+        let newOrder: { id: string; customerName: string; tableLabel: string | null } | undefined;
+        const result = await runDurably(async () => {
+          const input = operation.kind === 'command' ? operation.input : undefined;
+          const key = input?.command === 'SUBMIT_ORDER_REQUEST' && input.surface !== 'staff' && typeof input.payload?.idempotencyKey === 'string'
+            ? input.payload.idempotencyKey : undefined;
+          // Checking before the serialized command distinguishes a real insert
+          // from an idempotent replay, including replays on another tab.
+          const previous = key ? await client.query<{ id: string }>(
+            'SELECT id FROM order_requests WHERE idempotency_key = $1 AND outlet_id = (SELECT id FROM outlets WHERE slug = $2 LIMIT 1) LIMIT 1',
+            [key, config.venue.outletSlug],
+          ) : undefined;
+          const value = await handleBrowserOperation(operation);
+          if (key && !previous?.rows.length && value && typeof value === 'object' && 'result' in value && 'snapshot' in value) {
+            const response = value as { result: { orderRequestId?: string }; snapshot: { orderRequests?: Array<{ id: string; customerName: string; tableLabel: string | null }> } };
+            const order = response.snapshot.orderRequests?.find(entry => entry.id === response.result?.orderRequestId);
+            if (order) newOrder = { id: order.id, customerName: order.customerName, tableLabel: order.tableLabel };
           }
+          return value;
         });
-      };
+        if (operation.kind === 'command') {
+          // Publish from the owner, after the strict flush, even if the tab
+          // which submitted the command has already gone away.
+          try { updates.postMessage({ type: 'cafe-data-changed', order: newOrder }); } catch { /* Polling and visibility refresh remain fallbacks. */ }
+        }
+        return result;
+      });
       const close = client.close.bind(client);
-      client.close = async () => { channel.close(); await close(); };
+      client.close = async () => { detach(); channel.close(); updates.close(); await close(); };
       return client;
     } catch (error) {
       await client.close();

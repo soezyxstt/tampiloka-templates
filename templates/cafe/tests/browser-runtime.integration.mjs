@@ -21,6 +21,7 @@ async function open(context) {
       return result.data?.runtime?.mode === 'browser-demo';
     } catch { return false; }
   }, undefined, { timeout: 120000 });
+  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
   if (!timing.coldReadyMs) timing.coldReadyMs = Date.now() - started;
   page.on('request', request => { if (new URL(request.url()).pathname.startsWith('/api/v1/') && request.method() !== 'GET') networkCommands.push(request.url()); });
   return page;
@@ -55,6 +56,20 @@ try {
   const customer = await open(context);
   const initial = (await command(customer, 'RESET_DEMO_DATA', {})).snapshot;
   const staff = await open(context);
+  await staff.evaluate(() => {
+    window.__cafeOrderEvents = [];
+    window.__cafeRefreshes = 0;
+    window.addEventListener('cafe:new-order', event => window.__cafeOrderEvents.push(event.detail));
+    window.addEventListener('cafe:data-changed', () => { window.__cafeRefreshes += 1; });
+  });
+  await staff.evaluate(() => {
+    window.__cafeTones = 0;
+    const create = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function (...args) { window.__cafeTones += 1; return create.apply(this, args); };
+  });
+  await staff.getByRole('button', { name: 'Suara pesanan nonaktif', exact: true }).click();
+  await staff.getByRole('button', { name: 'Suara pesanan aktif', exact: true }).waitFor();
+  assert.equal(await staff.evaluate(() => window.__cafeTones), 1, 'Enabling sound plays a confirmation tone.');
   assert.equal(initial.runtime.localOnly, true);
   assert.equal(initial.runtime.crossDeviceSync, false);
   assert.ok(initial.catalog.length && initial.staffRoles.length);
@@ -74,6 +89,10 @@ try {
     command(staff, 'SUBMIT_ORDER_REQUEST', orderPayload, 'customer'),
   ]);
   assert.equal(first.result.orderRequestId, retry.result.orderRequestId);
+  await staff.waitForFunction(id => window.__cafeOrderEvents.some(order => order.id === id), first.result.orderRequestId);
+  assert.equal(await staff.evaluate(id => window.__cafeOrderEvents.filter(order => order.id === id).length, first.result.orderRequestId), 1, 'an idempotent cross-tab replay does not create another alert');
+  await staff.waitForFunction(() => window.__cafeTones === 2);
+  check('enabled staff sound plays for a real new customer order, once across event and snapshot detection');
   const accepted = (await command(staff, 'ACCEPT_ORDER_REQUEST', { orderRequestId: first.result.orderRequestId, actorName: 'Browser test', actorRole: 'CASHIER' })).result;
   const pending = (await command(customer, 'RECORD_PAYMENT', { billId: accepted.billId, method: 'QRIS', amountIdr: quote.totalIdr, createExternalAttemptOnly: true, principalId }, 'customer')).result;
   assert.equal(pending.isDemo, true);
@@ -88,6 +107,23 @@ try {
   assert.ok(units.length); assert.ok(units.every(unit => unit.fulfillmentStatus === 'QUEUED'));
   for (const targetStatus of ['PREPARING', 'READY', 'PICKED_UP']) await command(staff, 'TRANSITION_UNITS', { unitIds: units.map(unit => unit.id), targetStatus, actorName: 'Browser test', actorRole: 'KITCHEN' });
   check('customer order, concurrent idempotent retry, simulated payment and kitchen fulfillment across two tabs', { totalIdr: quote.totalIdr, receipts: bill.receipts.length });
+
+  const concurrentPrincipals = [`guest_${id}_a`, `guest_${id}_b`];
+  const concurrentQuotes = await Promise.all(concurrentPrincipals.map((principalId, index) =>
+    command(index ? staff : customer, 'CREATE_QUOTE', { principalId, mode: 'TAKEAWAY', items: [line] }, 'customer')));
+  const concurrentRequests = await Promise.all(concurrentPrincipals.map((principalId, index) =>
+    command(index ? staff : customer, 'SUBMIT_ORDER_REQUEST', {
+      quoteId: concurrentQuotes[index].result.quoteId, principalId, customerName: `Concurrent ${index} ${id}`,
+      mode: 'TAKEAWAY', presenceVerified: false, idempotencyKey: `${id}-concurrent-${index}`,
+    }, 'customer')));
+  const concurrentIds = concurrentRequests.map(entry => entry.result.orderRequestId);
+  assert.equal(new Set(concurrentIds).size, 2);
+  state = await snapshot(staff);
+  for (const requestId of concurrentIds) assert.equal(state.orderRequests.filter(entry => entry.id === requestId).length, 1);
+  await staff.waitForFunction(ids => ids.every(id => window.__cafeOrderEvents.filter(order => order.id === id).length === 1), concurrentIds);
+  await staff.waitForFunction(() => window.__cafeTones === 4);
+  assert.ok(await staff.evaluate(() => window.__cafeRefreshes > 0));
+  check('independent simultaneous writes persist once each and notify the other tab');
 
   const posPrincipal = `staff_${id}`;
   const posQuote = (await command(staff, 'CREATE_QUOTE', { principalId: posPrincipal, mode: 'TAKEAWAY', manualDiscountIdr: 5000, items: [{ ...line, quantity: 2 }] })).result;
@@ -106,6 +142,7 @@ try {
   assert.equal(counted, shift.expectedCashIdr + 4000);
   await command(staff, 'CASH_SHIFT_ACTION', { action: 'CLOSE_SHIFT', shiftId: shift.id, countedCashIdr: counted, actorName: 'Browser test' });
   await command(staff, 'CASH_SHIFT_ACTION', { action: 'OPEN_SHIFT', amountIdr: 100000, actorName: 'Browser test' });
+  assert.equal(await staff.evaluate(() => window.__cafeTones), 4, 'POS entry does not alert the cashier who entered it.');
   check('POS discount, cash change, drawer movements, close and reopen shift', { totalIdr: posQuote.totalIdr, changeIdr: cash.changeIdr });
 
   await customer.close();
@@ -113,8 +150,10 @@ try {
   await staff.waitForFunction(async () => {
     try { return (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.mode === 'browser-demo'; } catch { return false; }
   }, undefined, { timeout: 120000 });
+  await staff.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
   state = await snapshot(staff);
   assert.ok(state.orders.some(order => order.id === accepted.orderId));
+  for (const requestId of concurrentIds) assert.equal(state.orderRequests.filter(entry => entry.id === requestId).length, 1);
   assert.equal(state.bills.find(entry => entry.id === posOrder.billId).balanceIdr, 0);
   check('state survives leader tab closure and page reload');
 
@@ -126,10 +165,26 @@ try {
   await otherContext.close();
   check('another visitor browser context has independent demo data');
 
+  await staff.evaluate(() => {
+    window.__cafeOrderEvents = [];
+    window.__cafeRefreshes = 0;
+    window.addEventListener('cafe:new-order', event => window.__cafeOrderEvents.push(event.detail));
+    window.addEventListener('cafe:data-changed', () => { window.__cafeRefreshes += 1; });
+  });
   const reset = (await command(staff, 'RESET_DEMO_DATA', {})).snapshot;
   assert.equal(reset.orders.length, initial.orders.length);
   assert.equal(reset.orders.some(order => order.id === accepted.orderId), false);
   assert.equal(reset.bills.some(entry => entry.id === posOrder.billId), false);
+  await staff.waitForFunction(() => window.__cafeRefreshes > 0);
+  assert.deepEqual(await staff.evaluate(() => window.__cafeOrderEvents), [], 'reset fixtures must not be announced as new orders');
+  await staff.reload({ waitUntil: 'domcontentloaded' });
+  await staff.waitForFunction(async () => {
+    try { return (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.mode === 'browser-demo'; } catch { return false; }
+  }, undefined, { timeout: 120000 });
+  await staff.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  state = await snapshot(staff);
+  assert.equal(state.orders.length, initial.orders.length);
+  assert.equal(state.orders.some(order => order.id === accepted.orderId), false);
   assert.deepEqual(networkCommands, []);
   assert.deepEqual(errors, []);
   check('reset restores fixtures, no demo mutations reach the network, no browser page errors');

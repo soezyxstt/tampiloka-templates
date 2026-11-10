@@ -150,7 +150,7 @@ export function DemoPortal({ demos: sourceDemos, baseDomain }: DemoPortalProps) 
       </section>
 
       <section className="dp-packages dp-container" id="demos" aria-labelledby="packages-title">
-        <div className="dp-section-heading"><div><h2 id="packages-title">{t("Pilih alur yang ingin dicoba", "Choose a flow to try")}</h2><p>{t("Setiap pilihan membuka demo interaktif dengan fitur yang berbeda.", "Each option opens an interactive demo with different features.")}</p></div><p className="dp-open-note">{t("Tampilan pelanggan cocok untuk ponsel.", "The customer view works well on phones.")}<br />{t("Tampilan staf cocok untuk tablet dan desktop.", "The staff view works well on tablets and desktops.")}</p></div>
+        <div className="dp-section-heading"><div><h2 id="packages-title">{t("Pilih alur yang ingin dicoba", "Choose a flow to try")}</h2></div></div>
         <div className="dp-package-toolbar"><div className="dp-audience-controls" role="group" aria-label={t("Saring demo", "Filter demos")}>{audienceOptions.map(option => <button type="button" key={option.id} aria-pressed={audience === option.id} onClick={() => setAudience(option.id)}>{option.label}<span>{option.count}</span></button>)}</div><span className="dp-result-count" role="status">{visibleDemos.length} demo</span></div>
 
         {visibleDemos.length ? <ul className="dp-package-grid">{visibleDemos.map(demo => {
@@ -178,7 +178,7 @@ export function DemoPortal({ demos: sourceDemos, baseDomain }: DemoPortalProps) 
         <div className="dp-comparison-scroll" role="region" aria-label="Perbandingan fitur demo; geser ke samping untuk melihat fitur lainnya" tabIndex={0}>
           <table className="dp-comparison"><caption className="dp-visually-hidden">{t("Fitur yang tersedia pada setiap demo kafe", "Features available in each cafe demo")}</caption><thead><tr><th scope="col">Demo</th>{FEATURES.map(feature => <th key={feature.id} scope="col">{language === 'en' ? ({catalog: 'Menu', ordering: 'Orders', payments: 'Online payment', cashier: 'Cashier', kitchen: 'Kitchen', dashboard: 'Reports'} as const)[feature.id] : feature.name}</th>)}</tr></thead><tbody>{demos.map(demo => <tr key={demo.id}><th scope="row">{demo.name}</th>{FEATURES.map(feature => <td key={feature.id}>{demo.modules.includes(feature.id) ? <span className="dp-feature-included"><CheckIcon /><span className="dp-visually-hidden">{t("Tersedia", "Available")}</span></span> : <span className="dp-feature-absent"><span className="dp-feature-minus" aria-hidden="true" /><span className="dp-visually-hidden">{t("Tidak tersedia", "Not available")}</span></span>}</td>)}</tr>)}</tbody></table>
         </div>
-        <p className="dp-comparison-footnote">{t("Pembayaran online dalam demo hanya simulasi. Layanan lengkap juga mencakup layanan meja, loyalitas, dan promosi.", "Online payments are simulated. Full service also includes table service, loyalty and promotions.")}</p>
+
       </div></section>
 
       <section className="dp-try-flow dp-container" aria-labelledby="try-flow-title">
@@ -189,7 +189,7 @@ export function DemoPortal({ demos: sourceDemos, baseDomain }: DemoPortalProps) 
           <li><span className="dp-step-number">3</span><div><h3>{t("Coba alur lainnya", "Try other flows")}</h3><p>{t("Jelajahi fitur yang tersedia atau ulangi demo untuk mencoba dari awal.", "Explore the available features or reset the demo to start again.")}</p></div></li>
         </ol>
       </section>
-      <div className="dp-session-note dp-container"><p>{t("Tab pelanggan dan staf pada demo yang sama berbagi data di browser ini. Demo lain dan perangkat lain memiliki sesi terpisah. Nama, pesanan, dan pembayaran yang ditampilkan adalah contoh.", "Customer and staff tabs in the same demo share data in this browser. Other demos and devices have separate sessions. Names, orders and payments are examples.")}</p></div>
+
     </main>
 
     <footer className="dp-portal-footer dp-container"><span>Dapur Pagi · Demo kafe</span><a href="#demo-main">{t("Kembali ke atas", "Back to top")} <ArrowIcon /></a></footer>

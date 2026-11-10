@@ -18,21 +18,21 @@ The [demo hub](https://cafe.tampiloka.site) is a client presentation portfolio f
 | `menu-order-cashier` | [cafe-menu-order-pos.tampiloka.site](https://cafe-menu-order-pos.tampiloka.site) | Table ordering and a full cashier workspace |
 | `full` | [cafe-full.tampiloka.site](https://cafe-full.tampiloka.site) | The complete customer and staff workflow, including tables, loyalty and promotions |
 
-Add `/staff` to any package that includes staff functions. The public root opens the customer view when catalog is enabled, or the staff view for staff-only packages. Every package has an independent hostname and database scope. The catalog preset now initializes the same browser-local transaction runtime as ordering. Only a separately generated `--modules catalog` project stays database-free.
+Add `/staff` to any package that includes staff functions. The public root opens a table QR entry when catalog is enabled, or the staff view for staff-only packages. Every package has an independent hostname and database scope. The catalog preset now initializes the same browser-local transaction runtime as ordering. Only a separately generated `--modules catalog` project stays database-free.
 
 Themes are intentionally varied across packages: editorial for the catalog, rounded for table ordering, airy for online checkout, boxy for POS/operations, and playful for cashier/kitchen. The hub previews all five treatments. A theme does not change which service modules are enabled.
 
 ## Present a connected workflow
 
 1. Open the [full-service demo](https://cafe-full.tampiloka.site) on your presentation computer. Use a narrow browser window or device preview for the customer screen.
-2. Open its **Staf** link in another tab in the same browser. Choose an available demo role. The sample role buttons and PINs are presentation controls; they do not represent production authentication.
-3. In the staff toolbar, expand **Data untuk mencoba alur operasional**, choose **Mulai dari kafe kosong**, and load the scenario. Open **Meja & Antrean → Tempatkan tamu** to start a visit before ordering.
+2. Open its **Staf** link in another tab in the same browser. Choose the staff identity in the top demo toolbar and enable **Suara pesanan** before submitting an order. This showcase selector does not represent production authentication; the internal workspace contains no demo role switcher.
+3. In the top toolbar, open **Opsi demo**, expand **Data untuk mencoba alur operasional**, choose **Mulai dari kafe kosong**, and load the scenario. Close the dialog, then open **Meja & Antrean → Kunjungan aktif → Tempatkan tamu** to start a visit before ordering.
 4. Open the customer's table QR link in the other tab. Choose an item, select its options, add it to the cart, enter a customer name and submit the reviewed order. A valid table QR does not require location permission again.
-5. In the staff tab, accept the incoming order. Show the resulting order and bill. Under the default PREPAY policy, preparation remains held until payment settles.
-6. Return to the customer bill and start the simulated online payment. The QR is explicitly nonpayable. Use the staff demo payment controls to settle that attempt and show the updated bill. Under PAY_LATER, preparation may begin before settlement.
+5. In the staff tab, accept the order under **Pesanan masuk**. Use **Tagihan** for payment and **Kunjungan aktif** for departure checks. Show the resulting order and bill. Under the default PREPAY policy, preparation remains held until payment settles.
+6. Return to the customer bill and start the simulated online payment. The QR is explicitly nonpayable. Open **Opsi demo → Simulasi pembayaran** in the staff tab to settle that attempt and show the updated bill. Under PAY_LATER, preparation may begin before settlement.
 7. Advance the kitchen/bar items through preparing, ready and delivered. Add another customer order to demonstrate its own unpaid bill within the same visit. The cashier can also enter multiple items, apply a discount, take a partial cash payment and calculate change.
 8. Use **Tinjau kepulangan** to show the remaining obligations. Confirm departure once all food, payments and service requests are resolved. Mark the table clean before seating the next party.
-9. Use **Ulangi** to restore the sample state, or load one of the 14 scenarios to jump to a particular operational condition.
+9. Use **Opsi demo → Ulangi demo** to restore the sample state, or load one of the 14 scenarios to jump to a particular operational condition.
 
 For a smaller package, demonstrate only the included steps. `order-at-cashier` has an inbox without full POS; `menu-cashier` lets guests browse without placing their own orders. Reports show sales, receipts, refunds and outstanding amounts. They do not estimate operating costs or profit.
 
@@ -44,7 +44,7 @@ Transactional demos run the existing database schema, seed data and domain servi
 
 Customer and staff tabs at the same preset address share one session within the same browser profile. Reloading preserves the data. Separate visitors, browser profiles, devices and preset subdomains have separate databases. Sharing a bill URL with a different device does not transfer its local bill. For a demonstration across two physical devices, use the original Next.js demo server with both devices connected to that server; see [local demo setup](../README.md#start-the-supplied-demo).
 
-The worker serializes complete domain operations and shares database ownership across tabs. The generated SQL in `src/demo-runtime/schema.generated.ts` is checked against the Drizzle schema. The source application continues to use its server database adapter; the Pages build replaces only the environment adapters.
+The worker serializes complete domain operations and shares database ownership across tabs. Protocol generation `rpc3` isolates a previous deployment’s worker. Staff notification history survives owner handover; fixture resets suppress only fixture IDs, and closely spaced real orders each receive a tone after sound is enabled. The generated SQL in `src/demo-runtime/schema.generated.ts` is checked against the Drizzle schema. The source application continues to use its server database adapter; the Pages build replaces only the environment adapters.
 
 Version 0.3.1 starts a new local demo storage generation so a tab left open on the earlier version cannot execute old lifecycle rules for the updated interface. Previous demonstration records are not migrated into this generation. New customer/staff tabs share the updated dataset, and committed commands notify peer tabs immediately with polling as a fallback.
 

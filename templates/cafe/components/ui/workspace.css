@@ -40,8 +40,8 @@ button.stat-item:hover{background:var(--accent-surface)}
 .staff-main .workspace-stack>*{min-width:0}
 .staff-feedback{min-width:0;max-width:100%;display:grid;gap:8px}
 .staff-sidebar{display:none}
-.staff-main .visit-list{display:grid;gap:0}
-.staff-main .visit-row{border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:12px 0;box-shadow:none;min-width:0}
+.staff-main .visit-list{display:grid;gap:var(--card-padding)}
+.staff-main .visit-row{overflow-wrap:anywhere;border:1px solid var(--border-strong);border-radius:var(--radius-panel);background:var(--surface);padding:var(--section-gap);box-shadow:none;min-width:0}
 #staff-content{scroll-margin-top:132px}
 @media(min-width:768px){
  .staff-toolbar{grid-template-columns:minmax(0,1fr) 280px auto;padding:8px 20px}
@@ -73,3 +73,11 @@ button.stat-item:hover{background:var(--accent-surface)}
 .cafe-staff .visit-row h3,.cafe-staff .visit-row p{overflow-wrap:anywhere}
 
 @media(max-width:639px){.choice-strip[data-variant=segmented] .choice-item{min-height:44px}}
+
+/* A task has one clear boundary; rows inside a task use quieter dividers. */
+.ui-surface[data-variant=task],.operation-record{min-width:0;max-width:100%;overflow-wrap:anywhere;padding:var(--section-gap);border:1px solid var(--border-strong);border-radius:var(--radius-panel);background:var(--surface)}
+.operation-list{display:grid;gap:var(--card-padding)}
+.operation-choice{border:1px solid var(--border-strong);border-radius:var(--radius-control);background:var(--surface)}
+.operation-choice[aria-pressed=true]{border-color:var(--primary-ink);box-shadow:inset 3px 0 var(--primary-ink);background:var(--accent-surface)}
+.operation-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
+@media(max-width:767px){.operation-actions{width:100%;border-top:1px solid var(--border);padding-top:12px}.operation-actions>div:first-child{margin-right:auto;text-align:left}}

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /**
  * Static showcase checks against Cloudflare Pages or the nine public demo hosts.
  *
@@ -53,13 +54,14 @@ function pass(name, detail = {}) {
 
 async function ready(page) {
   await page.waitForFunction(() => {
-    const reset = document.querySelector('button[aria-label="Ulangi demo"]');
+    const reset = document.querySelector('button[aria-label="Opsi demo"]');
     return (reset && !reset.disabled) || document.querySelector('.demo-loading[role="alert"]');
   }, null, { timeout: bootTimeout });
   const error = page.locator('.demo-loading[role="alert"]');
   if (await error.count()) throw new Error(`Demo initialization failed: ${await error.innerText()}`);
   await page.evaluate(() => document.fonts.ready);
-  assert.match(await page.title(), /demo/i, 'The page title should identify the showcase.');
+  await enterTableMenu(page);
+  assert.match(await page.title(), / · Dapur Pagi$/, 'The page title should identify the cafe.');
 }
 
 async function open(page, url) {
@@ -158,9 +160,7 @@ async function checkCustomer(page, demo) {
 }
 
 async function signInStaff(page) {
-  if (await page.getByRole('heading', { name: 'Ruang operasional', exact: true }).count()) {
-    await page.getByRole('button', { name: /Raka Pratama/ }).click();
-  }
+  await chooseDemoStaff(page);
   await page.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true }).waitFor();
 }
 
@@ -180,6 +180,7 @@ async function checkStaff(page, demo) {
     await assertPresence(nav.getByRole('button', { name }), enabled, `${demo.id}: ${name} capability navigation.`);
   }
   await assertPresence(page.getByRole('button', { name: /^Pesanan baru$/i }), modules.has('cashier'), `${demo.id}: POS creation is only available to cashier packages.`);
+  if (modules.has('cashier')) await page.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   await assertPresence(page.getByRole('region', { name: 'Shift kasir', exact: true }), modules.has('cashier'), `${demo.id}: cash shift controls are available without requiring reports.`);
   await assertPresence(page.locator('.demo-toolbar').getByRole('link', { name: 'Pelanggan', exact: true }), modules.has('catalog'), `${demo.id}: no customer link in staff-only packages.`);
   if (!modules.has('payments')) {
@@ -224,8 +225,9 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.equal(customer.context(), context);
   assert.equal(staff.context(), context);
   assert.equal(new URL(customer.url()).origin, new URL(staff.url()).origin);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   await staff.getByRole('button', { name: 'Perbarui data operasional', exact: true }).click();
-  const incoming = staff.locator('#incoming-orders .divide-y > div').filter({ hasText: customerName });
+  const incoming = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: customerName });
   await incoming.waitFor();
   await localClick(staff, incoming.getByRole('button', { name: 'Terima', exact: true }), 'before staff acceptance');
   await incoming.waitFor({ state: 'hidden' });
@@ -240,11 +242,12 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   await customer.getByRole('dialog').getByRole('button', { name: /^Pembayaran(?:\s|$)/ }).click();
   await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(bill.id);
   await localClick(customer, customer.getByRole('button', { name: 'Buat QRIS', exact: true }), 'before demo QR creation');
-  await customer.getByAltText('Kode QR demo, tidak dapat dibayar', { exact: true }).waitFor();
+  await customer.getByAltText('Kode QR tidak dapat dibayar', { exact: true }).waitFor();
   const pending = await pollSnapshot(customer, snapshot => snapshot.bills.find(entry => entry.id === bill.id)?.attempts.find(attempt => attempt.status === 'PENDING'), 'pending demo QR payment');
   assert.ok(pending.value.id);
   await checkGeometry(customer, demo.id, 'demo payment', 'full-payment-390.png');
   await staff.getByRole('button', { name: 'Perbarui data operasional', exact: true }).click();
+  await openDemoOptions(staff);
   const simulation = staff.getByRole('region', { name: 'Simulasi pembayaran', exact: true }).locator('.divide-y > div').filter({ hasText: customerName });
   await simulation.waitFor();
   await localClick(staff, simulation.getByRole('button', { name: 'Simulasikan lunas', exact: true }), 'before simulated settlement');
@@ -256,6 +259,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.equal(settled.value.receipts.length, 1, 'The new bill has one simulated receipt.');
   pass('full: nonpayable customer QR is settled through the staff demo control', { preset: demo.id, billId: bill.id });
 
+  await staff.keyboard.press('Escape');
   await staff.getByRole('button', { name: /^Pesanan baru$/i }).first().click();
   const pos = staff.getByRole('dialog');
   await pos.locator('#pos-name').fill(posName);
@@ -281,6 +285,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   const afterReload = await localSnapshot(staff, 'reload persistence');
   assert.equal(afterReload.bills.find(entry => entry.id === bill.id)?.paymentState, 'SETTLED');
   assert.equal(afterReload.bills.find(entry => entry.id === posBill.id)?.discountIdr, 5000);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   await staff.locator('input[placeholder*="Cari meja atau pelanggan"]').fill(posName);
   await staff.getByText(posName, { exact: false }).first().waitFor();
   await open(customer, tableUrl(demo, table.qrToken, bill.shareToken));
@@ -290,10 +295,11 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   pass('full: staff reload and customer bill link preserve the sale and settlement', { preset: demo.id });
 
   await localSnapshot(staff, 'before toolbar reset');
+  await openDemoOptions(staff);
   staff.once('dialog', dialog => dialog.accept());
   await Promise.all([
     staff.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: bootTimeout }),
-    staff.getByRole('button', { name: 'Ulangi demo', exact: true }).click(),
+    staff.getByRole('button', { name: 'Reset data', exact: true }).click(),
   ]);
   await ready(staff);
   const reset = await localSnapshot(staff, 'after toolbar reset');

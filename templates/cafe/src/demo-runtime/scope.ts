@@ -13,17 +13,11 @@ const identity = JSON.stringify({
   payment: cafeConfig.payment.mode,
 });
 
-export const browserDemoScope = `cafe-demo-rpc2-${BROWSER_SCHEMA_REVISION}-${createHash('sha256').update(identity).digest('hex').slice(0, 16)}`;
+export const browserDemoScope = `cafe-demo-rpc3-${BROWSER_SCHEMA_REVISION}-${createHash('sha256').update(identity).digest('hex').slice(0, 16)}`;
 export const browserDemoDataDir = `idb://${browserDemoScope}`;
 
 export function assertBrowserDemoSupport(): void {
   if (!globalThis.isSecureContext || !globalThis.indexedDB || !globalThis.Worker || !globalThis.navigator?.locks || !globalThis.BroadcastChannel) {
     throw new Error('Demo interaktif memerlukan browser terbaru dengan penyimpanan lokal, Web Worker, dan koneksi HTTPS. Buka tautan ini di Chrome, Edge, Firefox, atau Safari terbaru.');
   }
-}
-
-/** A service action spans multiple queries. Serialize the whole action across tabs. */
-export async function withBrowserDemoLock<T>(action: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-  assertBrowserDemoSupport();
-  return navigator.locks.request(`${browserDemoScope}:service`, { mode: 'exclusive', ...(signal ? { signal } : {}) }, action);
 }

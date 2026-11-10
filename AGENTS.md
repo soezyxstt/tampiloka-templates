@@ -236,6 +236,20 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## Change log
 
+- **2026-11-10**: Cafe copy removes redundant guidance and demo commentary from operational screens; only actionable blockers, costs and essential financial scope remain.
+
+- **2026-11-10**: Cafe active visits open on a shared interactive floor map with drawn chairs, explicit readiness/cleaning/occupancy/hold states and contextual table actions; staff floor navigation and primary actions use horizontal space.
+
+- **2026-11-10**: Six-role Cafe simulation verified UI transactions through closing reports; QR entry now refreshes table changes across tabs and floor-plan successes use toasts.
+
+- **2026-11-10**: Cafe reports support inclusive day, week, month and custom business-date periods, with daily summaries and matching localized CSV exports.
+
+- **2026-11-10**: Cafe task records now have explicit surface boundaries across staff roles and customer checkout; small buttons use 44px targets and bill selection has a shape cue.
+
+- **2026-11-10**: Cafe review fixes preserve standalone navigation, isolate incompatible workers, and retain alerts and individual tones across handover and rapid orders.
+
+- **2026-11-09**: Cafe exploration stays in its top toolbar; focused operational queues use transient toast feedback and preserve explicit payment-simulation disclosure.
+
 - **2026-11-03**: Booking demo section actions reserve space for the fixed language control while scrolling.
 
 - **2026-11-03**: School gallery labels published images with their localized titles and limits fictional-demo disclosure to demos.

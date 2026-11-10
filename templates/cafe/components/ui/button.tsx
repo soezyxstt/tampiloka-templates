@@ -31,7 +31,7 @@ const buttonVariants = cva(
       },
       size: {
         default: 'min-h-[44px] px-4 py-2 text-[15px] leading-[22px]',
-        sm: 'min-h-[36px] px-3 py-1.5 text-[13px] leading-[18px]',
+        sm: 'min-h-[44px] px-3 py-1.5 text-[13px] leading-[18px]',
         lg: 'min-h-[48px] px-5 py-2.5 text-[16px] leading-[24px] font-semibold',
         icon: 'min-h-[44px] min-w-[44px] p-2',
       },

@@ -100,3 +100,35 @@ button:disabled { cursor:not-allowed; }
 
 /* Keep keyboard focus visible on shared controls with their own ring styles. */
 .ui-button:focus-visible,.ui-field-control:focus-visible { outline:3px solid var(--primary-ink); outline-offset:2px; }
+
+/* Toast feedback uses the same readable surfaces as operational dialogs. */
+[data-sonner-toast].cafe-toast {
+  --normal-bg: var(--surface);
+  --normal-text: var(--foreground);
+  --normal-border: var(--border-strong);
+  --border-radius: var(--radius-panel);
+  font-family: var(--font-body);
+  font-size: 14px;
+  box-shadow: var(--shadow-soft);
+}
+[data-sonner-toast].cafe-toast [data-description] { color: var(--muted-foreground); }
+[data-sonner-toast].cafe-toast [data-close-button] {
+  width: 44px;
+  height: 44px;
+  left: auto;
+  right: 0;
+  top: 0;
+  transform: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+}
+[data-sonner-toast].cafe-toast:has([data-close-button]) { padding-right: 48px; }
+[data-sonner-toast].cafe-toast [data-close-button]:focus-visible { outline: 2px solid var(--primary-ink); outline-offset: -4px; }
+
+/* Local Next.js sample runtime has no public exploration toolbar. */
+.cafe-local-demo-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; padding:.5rem 1rem; border-bottom:1px solid var(--border); background:var(--surface); }
+.cafe-local-demo-nav a { display:inline-flex; align-items:center; min-height:44px; padding:.5rem .75rem; border-radius:var(--radius-control); font-size:14px; color:var(--muted-foreground); }
+.cafe-local-demo-nav a[aria-current="page"] { color:var(--primary-ink); background:var(--accent-surface); font-weight:600; }
+.cafe-local-demo-nav a:hover { background:var(--surface-muted); }
+.cafe-local-demo-nav a:focus-visible { outline:2px solid var(--primary-ink); outline-offset:2px; }

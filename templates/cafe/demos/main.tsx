@@ -17,11 +17,11 @@ import { LanguageProvider, useCafeLanguage } from '@/lib/language';
 const DemoWorkspace = lazy(() => import('./workspace'));
 for (const [key, value] of Object.entries(getBrandCssVariables())) document.documentElement.style.setProperty(key, value);
 document.documentElement.dataset.theme = cafeConfig.theme;
-document.title = activeDemo ? `${activeDemo.name} · ${cafeConfig.brand.name} demo` : 'Cafe demos · Tampiloka';
+document.title = activeDemo ? `${activeDemo.name} · ${cafeConfig.brand.name}` : 'Cafe demos · Tampiloka';
 
 function DemoLoading() {
   const { t } = useCafeLanguage();
-  return <main className="demo-loading"><span className="demo-spinner" /><h1>{t('Menyiapkan demo…', 'Preparing demo…')}</h1><p>{t('Menu dan ruang staf akan segera tersedia.', 'The menu and staff workspace will be ready soon.')}</p></main>;
+  return <main className="demo-loading"><span className="demo-spinner" /><h1>{t('Menyiapkan halaman…', 'Preparing page…')}</h1><p>{t('Mohon tunggu sebentar.', 'Please wait a moment.')}</p></main>;
 }
 
 createRoot(document.getElementById('root')!).render(<LanguageProvider><MotionProvider>

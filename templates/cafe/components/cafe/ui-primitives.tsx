@@ -369,7 +369,7 @@ export function QuantityControl({
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
         aria-label={t(`Kurangi jumlah ${itemLabel}`, `Decrease quantity of ${itemLabel}`)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-50 cursor-pointer transition-colors"
       >
         <Minus className="w-4 h-4" />
       </motion.button>
@@ -393,7 +393,7 @@ export function QuantityControl({
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
         aria-label={t(`Tambah jumlah ${itemLabel}`, `Increase quantity of ${itemLabel}`)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-40 cursor-pointer transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-50 cursor-pointer transition-colors"
       >
         <Plus className="w-4 h-4" />
       </motion.button>
@@ -650,8 +650,8 @@ export function DialogModal({
 }) {
   const { t } = useCafeLanguage();
   const descriptionId = React.useId();
-  const opener = React.useRef<HTMLElement | null>(null);
-  React.useLayoutEffect(() => { if (open && document.activeElement instanceof HTMLElement) opener.current = document.activeElement; }, [open]);
+  const opener = React.useRef<HTMLElement | SVGElement | null>(null);
+  React.useLayoutEffect(() => { if (open && (document.activeElement instanceof HTMLElement || document.activeElement instanceof SVGElement)) opener.current = document.activeElement; }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>

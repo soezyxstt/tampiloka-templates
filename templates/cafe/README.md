@@ -2,7 +2,7 @@
 
 > Catalog update: `--preset catalog` now includes a guest order list and the waiter inbox, with offline payment. Use `--modules catalog` only for a read-only, database-free menu. `order-at-cashier` remains a compatibility alias, not a separate feature tier. See [compact UI and catalog requests](docs/compact-ui.md).
 
-A reusable cafe website and operations template with independent choices for **brand identity**, **component style**, and **service scope**. Customer screens start with phone layouts; staff workspaces prioritize tablets and desktop screens. The application currently uses Indonesian copy, integer Indonesian Rupiah prices, and a configurable outlet timezone.
+A reusable cafe website and operations template with independent choices for **brand identity**, **component style**, and **service scope**. Customer screens start with phone layouts; staff workspaces prioritize tablets and desktop screens. The application provides Indonesian and English copy, integer Indonesian Rupiah prices, and a configurable outlet timezone.
 
 There are three runtime paths:
 
@@ -14,9 +14,9 @@ There are three runtime paths:
 
 ## Show the demos to clients
 
-The full demo includes explicit guest seating, a guarded departure checklist, separate table cleaning, and 14 reproducible mock scenarios. Open the staff workspace and expand **Data untuk mencoba alur operasional** to choose a starting point. See the [visit lifecycle and test-data guide](docs/lifecycle.md) for the complete customer/cashier/kitchen flow.
+The full demo includes explicit guest seating, a guarded departure checklist, separate table cleaning, and 14 reproducible mock scenarios. Open **Opsi demo** in the top toolbar and expand **Data untuk mencoba alur operasional** to choose a starting point. See the [visit lifecycle and test-data guide](docs/lifecycle.md) for the complete customer/cashier/kitchen flow.
 
-Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packages and component themes. Every preset has a dedicated address, and each applicable demo offers customer and staff views. The customer layout starts on phones; the staff workspace starts on tablets and desktops.
+Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** with a table QR, then open its menu. Use the small top toolbar to compare service modes, component themes, and staff roles. Every preset has a dedicated address, and each applicable demo offers customer and staff views. The customer layout starts on phones; the staff workspace starts on tablets and desktops.
 
 | Preset | Client demo |
 | --- | --- |
@@ -30,11 +30,13 @@ Start at **[cafe.tampiloka.site](https://cafe.tampiloka.site)** to compare packa
 | Menu, orders and cashier | [cafe-menu-order-pos.tampiloka.site](https://cafe-menu-order-pos.tampiloka.site) |
 | Full service | [cafe-full.tampiloka.site](https://cafe-full.tampiloka.site) |
 
-The demos use fictional sample data and cannot collect money. Open customer and staff views in the **same browser at the same demo address** to demonstrate their connected workflow. Separate devices or browsers have separate sessions. Changes survive a page reload; **Ulangi** resets that preset for your browser. The first transactional visit downloads and initializes its local database.
+The demos use fictional sample data and cannot collect money. Open customer and staff views in the **same browser at the same demo address** to demonstrate their connected workflow. Separate devices or browsers have separate sessions. Changes survive a page reload; **Ulangi** resets that preset for your browser. Enable **Suara pesanan** in the staff header to hear new orders; the browser requires that click before audio can play. The cashier separates **Pesanan masuk**, **Tagihan**, and **Kunjungan aktif**. Reset and payment simulation live in **Opsi demo**. The first transactional visit downloads and initializes its local database.
 
 See the [showcase guide](docs/demos.md) for a presentation walkthrough, local development, browser requirements, and Cloudflare Pages deployment. New client projects created by the CLI exclude the portfolio and its Vite/Wrangler dependencies.
 
 ## Start the supplied demo
+
+The local Next.js sample has compact customer/staff links at the top. Pending QRIS/VA attempts can be completed through **Simulasi pembayaran** in that bar. No money is transferred. The public browser showcase keeps these actions in its shared exploration toolbar.
 
 Use Node.js **22.12 or newer** and npm. From this repository:
 

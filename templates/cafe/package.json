@@ -12,9 +12,9 @@
     "cafe": "node scripts/cafe.mjs",
     "typecheck": "tsc --noEmit",
     "test:config": "node --test scripts/cafe-config.test.mjs",
-    "test:domain": "node --experimental-strip-types --test src/domain/rules.test.ts src/domain/capabilities.test.ts src/domain/order-billing.test.ts",
+    "test:domain": "node --experimental-strip-types --test src/domain/rules.test.ts src/domain/capabilities.test.ts src/domain/order-billing.test.ts lib/reporting.test.ts",
     "test": "npm run test:config && npm run test:catalog && npm run test:domain && npm run test:integration && npm run test:ui-contracts",
-    "test:integration": "node --experimental-strip-types --test src/db/service.integration.test.ts src/db/service.lifecycle.test.ts",
+    "test:integration": "node --experimental-strip-types --test --test-concurrency=1 src/db/service.integration.test.ts src/db/service.lifecycle.test.ts",
     "test:presets": "node tests/preset-integration.mjs",
     "test:browser": "node tests/browser-workflows.mjs",
     "test:catalog": "node --experimental-strip-types --test src/catalog/static-catalog.test.ts src/catalog/sample-menu.test.ts src/db/sample-photos.test.ts lib/system-messages.test.ts",
@@ -24,7 +24,7 @@
     "demos:build": "vite build --config demos/vite.config.mts",
     "demos:preview": "vite preview --config demos/vite.config.mts",
     "demos:deploy": "npm run demos:build && wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos",
-    "test:demo-runtime": "node --experimental-strip-types --test tests/browser-runtime-crypto.test.mjs tests/browser-runtime-schema.test.mjs tests/browser-runtime-durability.test.mjs tests/browser-runtime-scenarios.test.mjs",
+    "test:demo-runtime": "node --experimental-strip-types --test --test-concurrency=1 tests/browser-runtime-coordination.test.mjs tests/browser-runtime-order-notifications.test.mjs tests/browser-runtime-crypto.test.mjs tests/browser-runtime-schema.test.mjs tests/browser-runtime-durability.test.mjs tests/browser-runtime-scenarios.test.mjs",
     "test:demo-browser": "node --experimental-strip-types tests/demos-browser.mjs",
     "test:language-browser": "node tests/language-browser.mjs",
     "test:demo-lifecycle": "node --experimental-strip-types tests/demos-lifecycle.mjs",
@@ -55,19 +55,20 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "sonner": "2.0.7",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@typescript/native": "npm:typescript@7.0.2",
-    "@tampiloka/ui-core": "workspace:*",
     "@fontsource/manrope": "5.3.0",
     "@fontsource/source-sans-3": "5.3.1",
     "@noble/hashes": "2.4.0",
     "@tailwindcss/postcss": "4.1.11",
+    "@tampiloka/ui-core": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript/native": "npm:typescript@7.0.2",
     "@vitejs/plugin-react": "6.1.2",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.8",
@@ -85,4 +86,3 @@
     "cafe": "scripts/cafe.mjs"
   }
 }
-
