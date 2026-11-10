@@ -1,19 +1,14 @@
 import rawConfig from '../config/cafe.json';
-import { applyPreset, validateConfig, foregroundForColor, readableAccent, THEMES, type ModuleId, type CafeConfig } from '../src/config/catalog.mjs';
-import { DEMOS, resolveDemo } from './manifest';
+import { validateConfig, foregroundForColor, readableAccent, type ModuleId, type CafeConfig } from '../src/config/catalog.mjs';
+import { resolveDemoConfiguration } from './configuration';
 
 export type { CafeConfig, ModuleId, ThemeId, PaymentMode } from '../src/config/catalog.mjs';
 export { MODULES, PRESETS, THEMES } from '../src/config/catalog.mjs';
 
-export const activeDemo = typeof location === 'undefined' ? undefined : resolveDemo(location.hostname, location.pathname) || DEMOS.find(demo => demo.id === 'full');
-const base = applyPreset(validateConfig(rawConfig), activeDemo?.id || 'full');
-const requestedTheme = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('theme');
+const resolved = resolveDemoConfiguration(rawConfig, typeof location === 'undefined' ? undefined : location);
+export const activeDemo = resolved.activeDemo;
 declare global { var __CAFE_DEMO_CONFIG__: CafeConfig | undefined; }
-export const cafeConfig = validateConfig(globalThis.__CAFE_DEMO_CONFIG__ || {
-  ...base,
-  theme: requestedTheme && Object.hasOwn(THEMES, requestedTheme) ? requestedTheme : activeDemo?.theme || 'rounded',
-  venue: { ...base.venue, tenantSlug: 'dapur-pagi', outletSlug: activeDemo?.subdomain || 'cafe-full' },
-});
+export const cafeConfig = validateConfig(globalThis.__CAFE_DEMO_CONFIG__ || resolved.config);
 export const isModuleEnabled = (module: ModuleId) => cafeConfig.modules.includes(module);
 export const hasStaffModules = () => (['cashier', 'ordering', 'kitchen', 'dashboard', 'tables', 'marketing'] as ModuleId[]).some(isModuleEnabled);
 export const getDefaultStaffModule = () => (['cashier', 'ordering', 'kitchen', 'dashboard', 'tables', 'marketing'] as ModuleId[]).find(isModuleEnabled) ?? null;

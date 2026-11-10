@@ -1,5 +1,9 @@
 # Verification and delivery record
 
+## Cross-tab refresh follow-up, 10 November 2026
+
+`node --experimental-strip-types --test --test-concurrency=1 templates/cafe/tests/browser-runtime-scope.test.mjs templates/cafe/tests/snapshot-refresh-gate.test.mjs templates/cafe/tests/demo-navigation.test.mjs templates/cafe/tests/browser-runtime-coordination.test.mjs templates/cafe/tests/browser-runtime-order-notifications.test.mjs` passed 17 tests. These lightweight checks cover preset and launcher identity, refreshes received during commands, the subscription gap, worker coordination, navigation and notification deduplication. `git diff --check` and `node --check` for the changed JavaScript tests passed. The browser workflow now requires the customer order to appear in the cashier queue with polling disabled and a different staff theme. That browser regression, design lint, the full suites, build and typecheck were not run for this follow-up; they remain required before release.
+
 Verified on 28 October 2026 against the reusable cafe template implementation. Local tools: Node.js 24.22.1, Next.js 15.5.28, Playwright 1.56.1 and Chromium. The repository CI configuration uses Node.js 22. The original showcase release is recorded in [PR #1](https://github.com/soezyxstt/cafe-template/pull/1); the lifecycle corrections described below supersede its narrower operational coverage.
 
 ## Version 0.3.1: complete visit lifecycle
