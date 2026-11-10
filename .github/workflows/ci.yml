@@ -48,8 +48,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Test registry and standalone client generation
         run: pnpm test:docs && pnpm test:registry && pnpm test:cli && pnpm --filter @tampiloka/shared-utils test && node --test scripts/cutover-turso.test.mjs
-      - name: Test cafe transactions and runtime
-        run: pnpm --filter @tampiloka/template-cafe test && pnpm --filter @tampiloka/template-cafe test:demo-runtime
+      - name: Test cafe transactions, runtime and operations regressions
+        run: pnpm --filter @tampiloka/template-cafe test && pnpm --filter @tampiloka/template-cafe test:demo-runtime && pnpm test:operations
       - name: Test commerce permissions, pricing, stock and payments
         run: pnpm --filter @tampiloka/template-commerce test
       - name: Check types
