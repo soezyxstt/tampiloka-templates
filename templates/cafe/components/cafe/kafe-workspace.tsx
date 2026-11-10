@@ -9,6 +9,7 @@ import { cafeConfig, hasStaffModules, isModuleEnabled, THEMES } from '@/src/conf
 import { useCafeLanguage } from '@/lib/language';
 import { localizeSampleMenu } from '@/src/catalog/sample-menu';
 import { localizeSystemMessage } from '@/lib/system-messages';
+import { createSnapshotRefreshGate } from '@/lib/snapshot-refresh-gate';
 
 export type WorkspaceView = 'pelanggan' | 'staf';
 type CustomerContext = { tableId: string; principalId: string };
@@ -25,6 +26,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   const [customerTableId, setCustomerTableId] = useState(initialTableId || initialSnapshot?.tables?.[0]?.id || '');
   const context = useRef<CustomerContext>({ tableId: customerTableId, principalId: '' });
   const commandPending = useRef(false);
+  const flushPeerRefresh = useRef<(() => void) | undefined>(undefined);
   const latestRequest = useRef(0);
   const staticCatalog = initialSnapshot?.runtime?.mode === 'catalog';
 
@@ -71,11 +73,19 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
     }, 8000);
     const online = () => { void loadSnapshot(activeView, true); };
     const offline = () => setConnectionError(t('Koneksi terputus. Keranjang Anda tetap tersimpan.', 'Connection lost. Your cart is still saved.'));
-    const dataChanged = () => { if (!commandPending.current) void loadSnapshot(activeView, true); };
+    const gate = createSnapshotRefreshGate(() => commandPending.current, () => { void loadSnapshot(activeView, true); });
+    const dataChanged = () => gate.changed();
+    const flush = () => gate.flush();
+    flushPeerRefresh.current = flush;
     window.addEventListener('online', online);
     window.addEventListener('offline', offline);
     window.addEventListener('cafe:data-changed', dataChanged);
-    return () => { clearInterval(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); window.removeEventListener('cafe:data-changed', dataChanged); };
+    // A peer may have committed after the initial snapshot but before this listener mounted.
+    dataChanged();
+    return () => {
+      if (flushPeerRefresh.current === flush) flushPeerRefresh.current = undefined;
+      clearInterval(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); window.removeEventListener('cafe:data-changed', dataChanged);
+    };
   }, [activeView, loadSnapshot, staticCatalog, t]);
 
   const switchView = async (view: WorkspaceView) => {
@@ -107,6 +117,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
       throw error;
     } finally {
       commandPending.current = false;
+      flushPeerRefresh.current?.();
       setBusy(false);
     }
   };

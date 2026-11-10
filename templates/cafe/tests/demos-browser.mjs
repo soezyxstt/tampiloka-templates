@@ -195,6 +195,13 @@ async function checkStaff(page, demo) {
 async function fullWorkflow(context, customer, staff, demo, baseline) {
   const customerName = `Showcase ${runId}`;
   const posName = `POS ${runId}`;
+  await staff.getByRole('combobox', { name: 'Tema demo', exact: true }).click();
+  await staff.getByRole('option', { name: 'Airy', exact: true }).click();
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
+  await staff.evaluate(() => {
+    window.__liveOrderNotices = [];
+    window.addEventListener('cafe:new-order', event => window.__liveOrderNotices.push(event.detail));
+  });
   const table = baseline.tables.find(entry => entry.id === 'tbl_m06' && entry.active) || baseline.tables.find(entry => entry.active && entry.physicalState !== 'OUT_OF_SERVICE');
   const tea = baseline.catalog.find(entry => entry.id === 'item_teh_melati' && entry.isAvailable);
   const pastry = baseline.catalog.find(entry => entry.id === 'item_croissant' && entry.isAvailable);
@@ -217,6 +224,12 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   await localClick(customer, customer.getByRole('button', { name: /Periksa pesanan ·/ }), 'before customer price review');
   await localClick(customer, customer.getByRole('dialog').getByRole('button', { name: 'Kirim pesanan', exact: true }), 'before customer submission');
   await customer.getByRole('dialog').waitFor({ state: 'hidden' });
+  // Polling is disabled in this staff tab. The existing queue must update from
+  // the committed peer event without a manual refresh, even with another theme.
+  assert.ok(await staff.evaluate(() => window.__disabledWorkspacePolling > 0));
+  await staff.waitForFunction(name => window.__liveOrderNotices.some(order => order.customerName === name), customerName, { timeout: actionTimeout });
+  const incoming = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: customerName });
+  await incoming.waitFor();
   const submitted = await pollSnapshot(customer, snapshot => snapshot.orderRequests.find(entry => entry.customerName === customerName), 'customer order request');
   assert.equal(submitted.value.state, 'REQUESTED', 'The seeded full demo should allow explicit staff acceptance.');
 
@@ -225,10 +238,6 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.equal(customer.context(), context);
   assert.equal(staff.context(), context);
   assert.equal(new URL(customer.url()).origin, new URL(staff.url()).origin);
-  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
-  await staff.getByRole('button', { name: 'Perbarui data operasional', exact: true }).click();
-  const incoming = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: customerName });
-  await incoming.waitFor();
   await localClick(staff, incoming.getByRole('button', { name: 'Terima', exact: true }), 'before staff acceptance');
   await incoming.waitFor({ state: 'hidden' });
   const accepted = await pollSnapshot(staff, snapshot => snapshot.orders.find(entry => entry.customerName === customerName), 'accepted customer order');
@@ -353,6 +362,14 @@ try {
       if (hasStaff) {
         staff = hasCustomer ? await context.newPage() : first;
         await staff.setViewportSize({ width: 1024, height: 768 });
+        if (demo.id === 'full' && hasCustomer) await staff.addInitScript(() => {
+          const original = window.setInterval.bind(window);
+          window.__disabledWorkspacePolling = 0;
+          window.setInterval = (handler, timeout, ...args) => {
+            if (timeout === 8000) { window.__disabledWorkspacePolling++; return 0; }
+            return original(handler, timeout, ...args);
+          };
+        });
         if (hasCustomer) await open(staff, demoUrl(demo, '/staff'));
         await localSnapshot(staff, `${demo.id} staff runtime guard`);
         result.views.push(await checkStaff(staff, demo));

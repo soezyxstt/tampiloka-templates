@@ -256,6 +256,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 - **2026-11-10**: Added planned Operations scaffolding, configuration contract and unverified requirements mapping.
 
+- **2026-11-10**: Cafe views recheck after subscribing and retain cross-tab refreshes during commands; same-origin preset data remains shared across roles and themes.
+
 - **2026-11-10**: Cafe copy removes redundant guidance and demo commentary from operational screens; only actionable blockers, costs and essential financial scope remain.
 
 - **2026-11-10**: Cafe active visits open on a shared interactive floor map with drawn chairs, explicit readiness/cleaning/occupancy/hold states and contextual table actions; staff floor navigation and primary actions use horizontal space.
