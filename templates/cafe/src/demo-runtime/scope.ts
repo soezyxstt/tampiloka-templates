@@ -1,17 +1,13 @@
 import { cafeConfig } from '../config/cafe.ts';
 import { createHash } from './crypto.ts';
 import { BROWSER_SCHEMA_REVISION } from './schema.generated.ts';
+import { browserDemoIdentity } from './scope-identity.ts';
 
 // IndexedDB is already origin-scoped. The extra identity separates presets
 // hosted on one origin and prevents a changed schema from reusing old demo data.
 // Bump the runtime epoch when worker commands/semantics change: an already-open
 // old tab must not become the database leader for a newly deployed interface.
-const identity = JSON.stringify({
-  tenant: cafeConfig.venue.tenantSlug,
-  outlet: cafeConfig.venue.outletSlug,
-  modules: cafeConfig.modules,
-  payment: cafeConfig.payment.mode,
-});
+const identity = browserDemoIdentity(cafeConfig);
 
 export const browserDemoScope = `cafe-demo-rpc3-${BROWSER_SCHEMA_REVISION}-${createHash('sha256').update(identity).digest('hex').slice(0, 16)}`;
 export const browserDemoDataDir = `idb://${browserDemoScope}`;

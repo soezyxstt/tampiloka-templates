@@ -31,7 +31,7 @@ A customer can begin with a table QR before opening the menu. Direct table QR an
 
 Successful actions use the shared Sonner toaster, mounted once in `MotionProvider` for both the Next.js app and the Pages showcase. Toasts use semantic surface, text, border and shadow tokens; close controls are 44px. Validation errors remain next to the form or task they block. Never show a failed request using a success badge. Essential transaction status remains visible in the order or bill after its short-lived toast disappears.
 
-The browser showcase shares a scoped database across tabs on the same origin and preset. Browser audio requires a user gesture; staff must be able to enable or disable audible order alerts explicitly. Opening a seeded queue must not announce every pre-existing order as new. Cross-device and cross-origin sync require a production server and are not implied by same-browser pitching.
+The browser showcase shares a scoped database across tabs on the same origin and preset, regardless of theme, language or staff identity. Views revalidate after subscribing and retain peer changes received during a pending local command. Browser audio requires a user gesture; staff must be able to enable or disable audible order alerts explicitly. Opening a seeded queue must not announce every pre-existing order as new. Cross-device and cross-origin sync require a production server and are not implied by same-browser pitching.
 
 Verification results for this change are recorded separately after running the affected checks; this section describes the contract, not a passing test claim.
 
