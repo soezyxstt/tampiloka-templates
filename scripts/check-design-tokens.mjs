@@ -15,6 +15,7 @@ const SKIP = /(\.test\.|\/tests?\/|\/scripts\/|\/worker\/|\/db\/|\/domain\/|demo
 const IGNORE_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage', 'test-results', '.wrangler', '.turbo']);
 /** Files that *define* palettes. Keep this list short. */
 const TOKEN_SOURCES = new Set([
+  'templates/operations/src/styles/tokens.css',
   'templates/cafe/src/config/catalog.mjs',
   'templates/cafe/src/config/cafe.ts',
 ]);
