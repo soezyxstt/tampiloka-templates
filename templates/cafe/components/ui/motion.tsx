@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { MotionConfig, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
+import { CafeToaster } from './toaster';
 import { cn } from '@/lib/utils';
 
 /** Shared interaction timings. CSS counterparts live in motion.css. */
@@ -15,7 +16,7 @@ export const MOTION = {
 /** Apply to both the Next.js app and the standalone Pages showcase. */
 export function MotionProvider({ children }: { children: React.ReactNode }) {
   const reduce = useReducedMotion();
-  return <MotionConfig reducedMotion="user" transition={{ type: 'tween', duration: reduce ? 0 : MOTION.enter, ease: MOTION.ease }}>{children}</MotionConfig>;
+  return <MotionConfig reducedMotion="user" transition={{ type: 'tween', duration: reduce ? 0 : MOTION.enter, ease: MOTION.ease }}>{children}<CafeToaster /></MotionConfig>;
 }
 
 /** A keyed screen. Exiting content cannot receive pointer or keyboard actions.

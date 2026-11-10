@@ -5,6 +5,7 @@ import { useCafeLanguage } from '@/lib/language';
 import { localizeSystemMessage } from '@/lib/system-messages';
 import { localizeSampleName } from '@/src/catalog/sample-menu';
 import QRCode from 'qrcode';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import styles from './customer-app.module.css';
 import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
@@ -182,7 +183,6 @@ export function CustomerApp({
   const [promoCodeInput, setPromoCodeInput] = useState<string>('');
   const [activeQuote, setActiveQuote] = useState<any | null>(null);
   const [checkoutError, setCheckoutError] = useState<string>('');
-  const [checkoutSuccessMsg, setCheckoutSuccessMsg] = useState<string>('');
 
   // Payment screen state (C08 / C09)
   const [selectedBillId, setSelectedBillId] = useState<string>(initialBillId || '');
@@ -214,7 +214,6 @@ export function CustomerApp({
   const [waitlistArea, setWaitlistArea] = useState<string>('Ruang Utama (Indoor)');
   const [waitlistPhone, setWaitlistPhone] = useState<string>('');
   const [waitlistNotes, setWaitlistNotes] = useState<string>('');
-  const [waitlistNotice, setWaitlistNotice] = useState<string>('');
   const [waitlistError, setWaitlistError] = useState('');
   const [waitlistTicket, setWaitlistTicket] = useState<any | null>(null);
   const rememberWaitlist = (ticket: any) => { setWaitlistTicket(ticket); try { if (ticket) localStorage.setItem(`${storageKey}:waitlist`, JSON.stringify(ticket)); else localStorage.removeItem(`${storageKey}:waitlist`); } catch { /* The current tab can still track its queue without storage. */ } };
@@ -489,7 +488,6 @@ export function CustomerApp({
 
   const handleRequestQuote = async (overridePromoCode?: string) => {
     setCheckoutError('');
-    setCheckoutSuccessMsg('');
     const codeToApply =
       typeof overridePromoCode === 'string' ? overridePromoCode : promoCodeInput.trim();
     if (typeof overridePromoCode === 'string') {
@@ -528,7 +526,6 @@ export function CustomerApp({
 
   const handleSubmitOrderRequest = async () => {
     setCheckoutError('');
-    setCheckoutSuccessMsg('');
     if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t("Lanjutkan sebagai tamu.", "Continue as a guest.")); return; }
     if (guestName.trim().length < 2) {
       setCheckoutError(
@@ -563,7 +560,7 @@ export function CustomerApp({
       });
 
       const outcome = subRes?.result || subRes;
-      setCheckoutSuccessMsg(
+      toast.success(
         outcome?.orderId
           ? t("Pesanan diterima.", "Order accepted.")
           : t("Menunggu konfirmasi staf.", "Awaiting staff confirmation.")
@@ -665,7 +662,7 @@ export function CustomerApp({
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveScreen('menu')}
                 aria-label={t("Kembali ke menu utama", "Back to main menu")}
-                className="w-9 h-9 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
+                className="w-11 h-11 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
               </motion.button>
@@ -677,8 +674,8 @@ export function CustomerApp({
                 <span className="font-heading text-[21px] leading-[25px] font-bold text-[var(--foreground)] truncate">
                   {cafeConfig.brand.name}
                 </span>
-                {snapshot?.runtime?.demo && <span className="text-[12px] text-[var(--muted-foreground)] shrink-0">Demo</span>}
-                {!snapshot?.runtime?.demo && snapshot?.runtime?.sampleMenu && <span className="text-[12px] text-[var(--muted-foreground)] shrink-0">{t("Contoh menu", "Sample menu")}</span>}
+
+
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
@@ -690,7 +687,7 @@ export function CustomerApp({
                 <MapPin className="w-3.5 h-3.5 text-[var(--primary-ink)] shrink-0" />
                 <span className="truncate">
                   {orderMode === 'DINE_IN'
-                    ? `Meja ${selectedTable.label} (${selectedTable.areaName})`
+                    ? `${t('Meja', 'Table')} ${selectedTable.label} (${selectedTable.areaName})`
                     : t("Bawa pulang", "Takeaway")}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 shrink-0" />
@@ -869,7 +866,6 @@ export function CustomerApp({
               {cart.length === 0 ? (
                 <EmptyState
                   title={t("Keranjang masih kosong", "Your cart is empty")}
-                  description={t("Pilih makanan atau minuman dari menu, lalu tambahkan ke keranjang.", "Choose food or drinks from the menu and add them to your cart.")}
                   actionLabel={t("Lihat menu", "View menu")}
                   onAction={() => setActiveScreen('menu')}
                 />
@@ -880,12 +876,12 @@ export function CustomerApp({
                     <h2 className="font-heading text-[16px] font-semibold">
                       {t('Menu', 'Items')} ({cartSummary.totalQty} {t('item', 'items')})
                     </h2>
-                    <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                    <div className={styles.orderList}>
                       {cart.map((line, idx) => (
                         <motion.div
                           key={line.cartLineId}
                           layout="position"
-                          className="py-3.5 flex items-start justify-between gap-3"
+                          className={`${styles.cartLine} flex items-start justify-between gap-3`}
                         >
                           <div className="space-y-0.5 min-w-0">
                             <p className="font-semibold text-[15px] text-[var(--foreground)]">
@@ -1021,8 +1017,7 @@ export function CustomerApp({
                           id="promo-code-input"
                           value={promoCodeInput}
                           onChange={(e) => { setPromoCodeInput(e.target.value); setActiveQuote(null); }}
-                          placeholder={t("Masukkan kode promo (mis. HEMAT10)", "Enter promo code")}
-                          className="uppercase"
+                          placeholder={t("Kode promo", "Promo code")}
                         />
                         <Button
                           variant="secondary"
@@ -1079,9 +1074,6 @@ export function CustomerApp({
 
                     {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau membantu memilih meja lain.", "This table is not ready for orders. Ask staff to prepare it or help you choose another.")}</p>}
                     <InlineError message={checkoutError} />
-                    {checkoutSuccessMsg && (
-                      <StatusLabel label={checkoutSuccessMsg} tone="success" />
-                    )}
 
                     <Button
                       variant="primary"
@@ -1120,7 +1112,7 @@ export function CustomerApp({
                 </div>
               </div>
 
-              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} description={t("Setelah dikirim, pesanan Anda akan muncul di sini bersama statusnya.", "After you submit an order, it and its status will appear here.")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
+              {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
               {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></section>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
@@ -1129,7 +1121,7 @@ export function CustomerApp({
                   <h2 className="font-heading text-[16px] font-semibold">
                     {t("Menunggu konfirmasi staf", "Awaiting staff confirmation")}
                   </h2>
-                  <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                  <div className={styles.orderList}>
                     {customerRequests
                       .filter((r: any) => r.state === 'REQUESTED')
                       .map((req: any) => {
@@ -1137,10 +1129,10 @@ export function CustomerApp({
                           (q: any) => q.id === req.quoteId
                         );
                         return (
-                          <div key={req.id} className="py-3.5 space-y-1.5">
+                          <div key={req.id} className={`${styles.orderArticle} space-y-1.5`}>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <span className="min-w-0 break-words font-semibold text-[15px]">
-                                Meja {req.tableLabel} · {req.customerName}
+                                {t('Meja', 'Table')} {req.tableLabel} · {req.customerName}
                               </span>
                               <StatusLabel label={t("Menunggu konfirmasi staf", "Awaiting staff confirmation")} tone="warning" />
                             </div>
@@ -1150,8 +1142,8 @@ export function CustomerApp({
                                 amount={matchedQuote?.totalIdr ?? req.totalIdr ?? 0}
                                 className="font-semibold"
                               />{' '}
-                              · Diajukan pukul{' '}
-                              {new Date(req.createdAt).toLocaleTimeString('id-ID', {
+                              · {t('Diajukan pukul', 'Submitted at')}{' '}
+                              {new Date(req.createdAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en', {
                             timeZone: cafeConfig.timezone,
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -1182,8 +1174,8 @@ export function CustomerApp({
                             </p>
                             <p className="text-[12px] text-[var(--muted-foreground)]">
                               {ord.mode === 'DINE_IN'
-                                ? `Meja ${ord.tableLabelSnapshot || ord.tableLabel}`
-                                : 'Bawa Pulang'}
+                                ? t(`Meja ${ord.tableLabelSnapshot || ord.tableLabel}`, `Table ${ord.tableLabelSnapshot || ord.tableLabel}`)
+                                : t('Bawa pulang', 'Takeaway')}
                             </p>
                           </div>
 
@@ -1283,7 +1275,7 @@ export function CustomerApp({
 
               {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')}</p><p>{t("Sisa seluruh tagihan:", "Total outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div>}
 
-              {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={t("Lihat pesanan", "View orders")} onAction={() => setActiveScreen('pesanan')} />}
+              {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} actionLabel={t("Lihat pesanan", "View orders")} onAction={() => setActiveScreen('pesanan')} />}
               {selectedBill && (
                 <div className="space-y-6">
                   {/* Bill Items (Open Hairline List) */}
@@ -1369,7 +1361,7 @@ export function CustomerApp({
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
                     /></div>
 
-                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p><p className="mt-1 text-sm">{t("Sebutkan nama pemesan atau nomor meja di kasir. Staf akan mencatat pembayaran Anda.", "Give your name or table number at the counter. Staff will record your payment.")}</p></div>}
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p><p className="mt-1 text-sm">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p></div>}
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
@@ -1379,7 +1371,7 @@ export function CustomerApp({
                               <QrCode className="w-10 h-10 mx-auto text-[var(--primary-ink)]" />
                               <p className="font-semibold">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</p>
                               <Money amount={selectedBill.balanceIdr} className="block text-2xl font-semibold" />
-                              {snapshot?.paymentAccount?.isDemo && <StatusLabel label="Demo" tone="neutral" />}
+
                             </div>
                             <Button variant="primary" className="w-full" disabled={busy} onClick={async () => {
                               setPaymentFeedback('');
@@ -1393,20 +1385,20 @@ export function CustomerApp({
                           </>
                         ) : (
                           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8 text-center space-y-4">
-                            <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>{paymentIsDemo && <StatusLabel label="Demo" tone="neutral" />}</div>
+                            <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3></div>
                             <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
                             <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-semibold" />
-                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? t('Kode QR demo, tidak dapat dibayar', 'Demo QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>}
-                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode demo. Tidak dapat dibayar.', 'Demo code. Cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
+                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? t('Kode QR tidak dapat dibayar', 'QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>}
+                            <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode ini tidak dapat dibayar.', 'This code cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
                             <StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" />
                             {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">{t('Berlaku sampai', 'Valid until')} {new Date(pendingAttempt.expiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
                             <div className="flex justify-center gap-2">
-                              <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
+                              <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(''); toast.success(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
                               {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
                             </div>
                           </section>
                         )}
-                        {paymentFeedback && <p role="status" className="text-sm text-[var(--muted-foreground)]">{paymentFeedback}</p>}
+                        <InlineError message={paymentFeedback} />
                         {cafeConfig.payment.mode === 'both' && <p className="text-sm text-[var(--muted-foreground)]">{pendingAttempt ? t('Ingin ganti metode? Minta staf membatalkan instruksi aktif sebelum membayar di kasir.', 'To change methods, ask staff to cancel the active instructions before paying at the counter.') : t('Anda juga bisa membayar langsung di kasir.', 'You can also pay at the counter.')}</p>}
                       </div>
                     )}
@@ -1530,7 +1522,7 @@ export function CustomerApp({
                   />
                 </div>
 
-                {helpFeedback && <StatusLabel label={helpFeedback} tone="success" />}
+                <InlineError message={helpFeedback} />
 
                 <Button
                   variant="primary"
@@ -1547,7 +1539,7 @@ export function CustomerApp({
                       notes: helpNotes,
                     });
                     const out = res?.result || res;
-                    setHelpFeedback(out?.message || 'Permintaan bantuan terkirim ke staf.');
+                    toast.success(localizeSystemMessage(out?.message || t('Permintaan bantuan terkirim ke staf.', 'Your request was sent to staff.'), language));
                     setHelpNotes('');
                     } catch (error: any) { setHelpFeedback(error.message); }
                   }}
@@ -1678,7 +1670,7 @@ export function CustomerApp({
                       >
                         {[5, 4, 3, 2, 1].map((n) => (
                           <option key={n} value={n}>
-                            {n} Bintang
+                            {n} {t('bintang', 'stars')}
                           </option>
                         ))}
                       </SelectField>
@@ -1691,7 +1683,7 @@ export function CustomerApp({
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder={t("Tulis ulasan", "Write a review")}
                 />
-                {reviewSubmittedMsg && <StatusLabel label={reviewSubmittedMsg} tone="success" />}
+                <InlineError message={reviewSubmittedMsg} />
                 <Button
                   variant="primary"
                   size="sm"
@@ -1716,7 +1708,7 @@ export function CustomerApp({
                       },
                     });
                     setCommentText('');
-                    setReviewSubmittedMsg('Ulasan terkirim.');
+                    toast.success(t('Ulasan terkirim. Terima kasih.', 'Review submitted. Thank you.'));
                     } catch (error: any) { setReviewSubmittedMsg(error.message); }
                   }}
                 >
@@ -1763,13 +1755,12 @@ export function CustomerApp({
                     />
                   </div>
                 </div>
-                {waitlistNotice && <StatusLabel label={waitlistNotice} tone="success" />}
                 <InlineError message={waitlistError} />
                 <Button
                   variant="primary"
                   disabled={busy || (waitlistName || guestName).trim().length < 2 || !Number.isInteger(waitlistPartySize) || waitlistPartySize < 1 || waitlistPartySize > 20}
                   onClick={async () => {
-                    setWaitlistNotice(''); setWaitlistError('');
+                    setWaitlistError('');
                     try {
                     const res = await onCommand('WAITLIST_ACTION', {
                       action: 'CREATE',
@@ -1781,7 +1772,7 @@ export function CustomerApp({
                       notes: waitlistNotes,
                     });
                     const out = res?.result || res;
-                    setWaitlistNotice(`Nomor antrean ${out?.publicSequence}.`);
+                    toast.success(t(`Nomor antrean ${out?.publicSequence}.`, `Waitlist number ${out?.publicSequence}.`));
                     rememberWaitlist({ ...out, customerName: (waitlistName || guestName).trim(), partySize: waitlistPartySize });
                     if (!guestName.trim()) setGuestName(waitlistName.trim());
                     setWaitlistName('');
@@ -1799,9 +1790,9 @@ export function CustomerApp({
                   <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} {t('orang', 'people')}</p>
                   {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? t('Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.', 'The previous call expired. Ask staff to call you again.') : t('Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.', 'Please wait while staff prepare a table. Refresh the waitlist for the latest call.')}</p>}
                   {waitlistTicket.status === 'CALLED' && <p className="text-sm">{t('Temui staf untuk menuju Meja', 'Meet staff to go to table')} {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` ${t('Meja ditahan hingga', 'Table held until')} ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
-                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2"><p className="text-sm">{t("Meja Anda sudah siap. Pindai kode QR di meja untuk membuka menu dan mulai memesan.", "Your table is ready. Scan its QR code to open the menu and order.")}</p>{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>{t("Buka menu meja", "Open table menu")}</Button>}</div>}
+                  {waitlistTicket.status === 'SEATED' && <div className="space-y-2">{(snapshot?.tables || []).some((table: any) => table.id === waitlistTicket.tableId && table.qrToken) && <Button onClick={() => { const table = snapshot.tables.find((entry: any) => entry.id === waitlistTicket.tableId); window.location.assign(`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`); }}>{t("Buka menu meja", "Open table menu")}</Button>}</div>}
                   {waitlistError && <Button variant="ghost" size="sm" onClick={() => { rememberWaitlist(null); setWaitlistError(''); }}>{t("Hapus antrean tersimpan", "Remove saved waitlist entry")}</Button>}
-                </article> : <p className="text-sm text-[var(--muted-foreground)]">{t("Setelah mendaftar, nomor dan status antrean akan muncul di sini.", "Your waitlist number and status will appear here after joining.")}</p>}
+                </article> : <p className="text-sm text-[var(--muted-foreground)]">{t("Belum ada antrean.", "No waitlist entry yet.")}</p>}
               </section>
             </MotionPanel>
           )}
@@ -1822,7 +1813,7 @@ export function CustomerApp({
             {canUseTables && <Button variant="subtle" onClick={() => setActiveScreen('bantuan')}>
               <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
             </Button>}
-            {onOpenStaffPortal && <Button variant="ghost" onClick={onOpenStaffPortal}>
+            {onOpenStaffPortal && !snapshot?.runtime?.demo && <Button variant="ghost" onClick={onOpenStaffPortal}>
               <Lock aria-hidden="true" size={16} />{t("Ruang staf dan kasir", "Staff and cashier")}
             </Button>}
           </div>
@@ -1868,13 +1859,13 @@ export function CustomerApp({
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title={t("Bagikan menu", "Share menu")}>
         <div className="text-center space-y-4">
           {shareQr && <Image src={shareQr} width={320} height={320} unoptimized alt={t('Kode QR tautan menu', 'Menu link QR code')} className="w-64 h-64 mx-auto" />}
-          <p className="text-sm text-[var(--muted-foreground)]">{t("Bagikan menu ke teman.", "Share the menu with friends.")}</p>
+
           <Button className="w-full" disabled={!shareUrl} onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}</Button>
         </div>
       </DialogModal>
       <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title={t("Kirim pesanan?", "Submit order?")}>
         <div className="space-y-5">
-          <p className="text-sm text-[var(--muted-foreground)]">{t("Periksa menu dan jumlahnya. Pesanan akan dikirim ke staf setelah Anda mengonfirmasi.", "Review the items and quantities. Your order is sent to staff after confirmation.")}</p>
+
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
           <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
@@ -1987,7 +1978,7 @@ export function CustomerApp({
           </div>
 
           {/* Subtle Staff / Cashier Portal Link at the bottom */}
-          {onOpenStaffPortal && (
+          {onOpenStaffPortal && !snapshot?.runtime?.demo && (
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between gap-2">
               <span className="text-[12px] text-[var(--muted-foreground)]">
                 {t("Staf kedai", "Cafe staff")}

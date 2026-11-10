@@ -46,7 +46,7 @@ try {
   await staff.goto(`${base}/staff/${config.venue.tenantSlug}/${config.venue.outletSlug}`, { waitUntil: 'networkidle' });
   await staff.getByRole('button', { name: /Raka Pratama/ }).click();
   if (request.state === 'REQUESTED') {
-    const row = staff.locator('#incoming-orders .divide-y > div').filter({ hasText: unique });
+    const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: unique });
     await row.getByRole('button', { name: 'Terima', exact: true }).click();
   }
   full = await snapshot();
@@ -60,7 +60,7 @@ try {
   await customer.waitForTimeout(9000); // The running app polls every 8 s.
   await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(bill.id);
   await customer.getByRole('button', { name: 'Buat QRIS', exact: true }).click();
-  await customer.getByAltText('Kode QR demo, tidak dapat dibayar').waitFor();
+  await customer.getByAltText('Kode QR tidak dapat dibayar').waitFor();
   await customer.screenshot({ path: `${out}/customer-payment-demo.png`, fullPage: true });
   full = await snapshot();
   const onlineBill = full.bills.find(entry => entry.id === bill.id);
@@ -70,7 +70,7 @@ try {
   await sharedBillPage.goto(`${base}/t/${config.venue.tenantSlug}/${config.venue.outletSlug}/m/${table.qrToken}?bill=${encodeURIComponent(bill.shareToken)}`, { waitUntil: 'networkidle' });
   await sharedBillPage.getByRole('heading', { name: 'Pembayaran', exact: true }).waitFor();
   assert.equal(await sharedBillPage.getByLabel('Pilih tagihan meja', { exact: true }).inputValue(), bill.id);
-  await sharedBillPage.getByAltText('Kode QR demo, tidak dapat dibayar').waitFor();
+  await sharedBillPage.getByAltText('Kode QR tidak dapat dibayar').waitFor();
   await sharedBillPage.close();
   check('shared bill URL opens its payment screen on the first render');
   await staff.getByRole('button', { name: 'Perbarui data operasional', exact: true }).click();

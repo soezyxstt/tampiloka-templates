@@ -10,6 +10,7 @@ Demo template tersedia melalui tautan berikut.
 | `cafe` | `available` | Ada: [demo](https://cafe.tampiloka.site) |
 | `school` | `available` | Ada: [demo](https://school.tampiloka.site) |
 | `booking` | `available` | Ada: [demo](https://booking.tampiloka.site) |
+| `operations` | `planned` | Belum ada |
 | `dashboard` | `planned` | Belum ada |
 
 Status CLI berasal dari registry; entri katalog menunjukkan konfigurasi publikasi, bukan jaminan kesehatan demo yang sedang berjalan. Galeri publik ada di [tampiloka.site/templates](https://tampiloka.site/templates); sumber dan aturan publikasinya dijelaskan di [panduan katalog demo](docs/public-demo-catalog.md).
@@ -176,3 +177,5 @@ Read [school setup and limits](templates/school/README.md). The standalone gener
 ## Appointment booking
 
 `booking` now has a server-backed implementation. Generate medical, aesthetic, detailing, or consulting projects independently from their Catalog / WhatsApp / Booking / Full level, layout and palette. Run `pnpm dev:booking` for the isolated public demonstration. See [`templates/booking/README.md`](templates/booking/README.md) for setup, architecture, verification and merchant-specific payment limitations. Public catalog readiness remains separate from template availability.
+
+Operations (`templates/operations`) is planned; its implementation is present, while standalone and runtime verification remain pending. See [Operations](templates/operations/README.md).

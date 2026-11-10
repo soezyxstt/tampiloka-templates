@@ -8,6 +8,10 @@ type FullSnapshot = Awaited<ReturnType<Service['getFullApplicationSnapshot']>>;
 
 const loadService = () => import('../db/service.ts');
 const wire = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+// Owner changes preserve unseen real orders; fixture replacements provide the
+// exact IDs to suppress, rather than silencing an entire refreshed snapshot.
+let notificationEpoch = crypto.randomUUID();
+let notificationBaselineIds: string[] = [];
 
 function assertSurface(surface: Surface): void {
   if ((surface === 'customer' && !isModuleEnabled('catalog')) || (surface === 'staff' && !hasStaffModules())) {
@@ -27,6 +31,8 @@ function visibleSnapshot(service: Service, full: FullSnapshot, context: BrowserS
       persistence: 'indexeddb' as const,
       sync: 'same-browser-tabs' as const,
       crossDeviceSync: false,
+      notificationEpoch,
+      notificationBaselineIds,
     },
   });
 }
@@ -88,11 +94,13 @@ export async function executeBrowserCommand(input: BrowserCommand) {
     case 'RESET_DEMO_DATA': {
       const { resetDemoData } = await import('../db/seed.ts');
       result = await resetDemoData({ empty: payload.empty === true ? true : undefined });
+      notificationEpoch = crypto.randomUUID();
       break;
     }
     case 'LOAD_DEMO_SCENARIO': {
       const { loadDemoScenario } = await import('./scenarios.ts');
       result = await loadDemoScenario(typeof payload.scenarioId === 'string' ? payload.scenarioId : '');
+      notificationEpoch = crypto.randomUUID();
       break;
     }
     default: throw new CapabilityError('UNKNOWN_COMMAND', 'Tindakan tidak dikenal.', 400);
@@ -102,7 +110,9 @@ export async function executeBrowserCommand(input: BrowserCommand) {
     tableId: input.tableId || (typeof payload.tableId === 'string' ? payload.tableId : undefined),
     principalId: input.principalId || (typeof payload.principalId === 'string' ? payload.principalId : undefined),
   };
-  const snapshot = visibleSnapshot(service, await service.getFullApplicationSnapshot(), context);
+  const full = await service.getFullApplicationSnapshot();
+  if (command === 'RESET_DEMO_DATA' || command === 'LOAD_DEMO_SCENARIO') notificationBaselineIds = full.orderRequests.map(request => request.id);
+  const snapshot = visibleSnapshot(service, full, context);
   return wire({ result, snapshot });
 }
 

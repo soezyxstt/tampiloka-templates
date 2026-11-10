@@ -1,7 +1,7 @@
 /** Local-only API adapter for the public static demo site. No network mutations. */
 import { CapabilityError } from '../domain/capabilities.ts';
 import { requestBrowserOperation } from './database.ts';
-import { browserDemoScope, withBrowserDemoLock } from './scope.ts';
+import { browserDemoScope } from './scope.ts';
 import type { BrowserCommand, BrowserSnapshotContext } from './types.ts';
 
 export type { BrowserCommand, BrowserSnapshotContext } from './types.ts';
@@ -9,23 +9,29 @@ type Snapshot = Awaited<ReturnType<typeof import('./worker-service.ts')['getBrow
 type CommandResult = Awaited<ReturnType<typeof import('./worker-service.ts')['executeBrowserCommand']>>;
 
 export function initializeBrowserDemo(): Promise<void> {
-  return withBrowserDemoLock(() => requestBrowserOperation<void>({ kind: 'initialize' }));
+  return requestBrowserOperation<void>({ kind: 'initialize' });
 }
 
 export function getBrowserSnapshot(context: BrowserSnapshotContext = {}, signal?: AbortSignal): Promise<Snapshot> {
-  return withBrowserDemoLock(() => requestBrowserOperation<Snapshot>({ kind: 'snapshot', context }), signal);
+  return requestBrowserOperation<Snapshot>({ kind: 'snapshot', context }, signal);
 }
 
+let localCommands = 0;
+let deferredRefresh = false;
+
 export async function executeBrowserCommand(input: BrowserCommand, signal?: AbortSignal): Promise<CommandResult> {
-  const result = await withBrowserDemoLock(() => requestBrowserOperation<CommandResult>({ kind: 'command', input }), signal);
-  // The write has already committed durably. Notify peer tabs without making a
-  // best-effort refresh failure look like a failed order or payment.
+  localCommands += 1;
   try {
-    const channel = new BroadcastChannel(`${browserDemoScope}:refresh`);
-    channel.postMessage({ type: 'cafe-data-changed' });
-    channel.close();
-  } catch { /* Normal polling remains available in every tab. */ }
-  return result;
+    return await requestBrowserOperation<CommandResult>({ kind: 'command', input }, signal);
+  } finally {
+    localCommands -= 1;
+    if (!localCommands && deferredRefresh) {
+      deferredRefresh = false;
+      // Let the calling UI finish applying its command response first. A peer
+      // may have changed data while that response was still being processed.
+      setTimeout(() => window.dispatchEvent(new Event('cafe:data-changed')), 0);
+    }
+  }
 }
 
 export async function resetBrowserDemo() {
@@ -55,8 +61,17 @@ export function installBrowserDemoFetch(): () => void {
   const original = globalThis.fetch;
   const updates = new BroadcastChannel(`${browserDemoScope}:refresh`);
   updates.onmessage = event => {
-    if (event.data?.type === 'cafe-data-changed') window.dispatchEvent(new Event('cafe:data-changed'));
+    if (event.data?.type !== 'cafe-data-changed') return;
+    const order = event.data.order;
+    if (order && typeof order.id === 'string' && typeof order.customerName === 'string' && (typeof order.tableLabel === 'string' || order.tableLabel === null)) {
+      window.dispatchEvent(new CustomEvent('cafe:new-order', { detail: order }));
+    }
+    if (localCommands) deferredRefresh = true;
+    else window.dispatchEvent(new Event('cafe:data-changed'));
   };
+  // Backgrounded pages can be frozen or discarded and miss transient messages.
+  const visibility = () => { if (!document.hidden) window.dispatchEvent(new Event('cafe:data-changed')); };
+  document.addEventListener('visibilitychange', visibility);
   const localFetch: typeof fetch = async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), globalThis.location.href);
     if (url.origin !== globalThis.location.origin || !url.pathname.startsWith('/api/v1/')) return original.call(globalThis, input, init);
@@ -95,6 +110,7 @@ export function installBrowserDemoFetch(): () => void {
   globalThis.fetch = localFetch;
   uninstallFetch = () => {
     updates.close();
+    document.removeEventListener('visibilitychange', visibility);
     if (globalThis.fetch === localFetch) globalThis.fetch = original;
     uninstallFetch = undefined;
   };

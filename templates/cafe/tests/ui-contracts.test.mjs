@@ -18,9 +18,11 @@ test('customer categories and staff navigation share ChoiceStrip',async()=>{
  assert.match(await read('components/ui/animated-tabs.tsx'),/<ChoiceStrip/);
  assert.doesNotMatch(await read('components/cafe/customer-app.tsx'),/styles\.categor(?:y|ies)/);
 });
-test('messages use the wrapping notice primitive, not non-shrinking badges',async()=>{
+test('staff successes use transient feedback while task errors remain inline',async()=>{
  const staff=await read('components/cafe/staff-app.tsx');
- assert.match(staff,/<InlineNotice tone="success">\{actionNotice\}/);
+ assert.match(staff,/toast\.success\(/);
+ assert.match(staff,/<InlineError message=\{actionError\}/);
+ assert.doesNotMatch(staff,/actionNotice/);
  assert.doesNotMatch(staff,/<StatusLabel label=\{actionNotice\}/);
  const css=await read('components/ui/workspace.css');
  assert.match(css,/\.ui-notice-text\{[^}]*min-width:0[^}]*overflow-wrap:anywhere/);
@@ -29,4 +31,12 @@ test('messages use the wrapping notice primitive, not non-shrinking badges',asyn
 test('native select markup has one source across application and showcase',async()=>{
  async function walk(dir){let files=[];for(const entry of await readdir(new URL('../'+dir,import.meta.url),{withFileTypes:true}).catch(error=>{if(error.code==='ENOENT')return [];throw error;})){const path=join(dir,entry.name);if(entry.isDirectory())files.push(...await walk(path));else if(path.endsWith('.tsx'))files.push(path);}return files;}
  for(const file of [...await walk('components'),...await walk('demos')]) if(file!==join('components','ui','select.tsx')) assert.doesNotMatch(await read(file),/<select(?:\s|>)/,file);
+});
+
+test('workspace account impersonation stays outside the operational header', async () => {
+ const staff=await read('components/cafe/staff-app.tsx');
+ assert.doesNotMatch(staff,/<SelectField aria-label=\{t\("Petugas aktif"/);
+ const workspace=await read('components/cafe/kafe-workspace.tsx');
+ assert.match(workspace,/onOpenStaffPortal=\{!snapshot\?\.runtime\?\.demo/);
+ assert.match(workspace,/localDemoNavigation && <nav/);
 });

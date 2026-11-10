@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /** Interaction-state UI regression. Uses only fresh local demo storage. */
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -15,8 +16,9 @@ const url=(id,path='/')=>domain?'https://'+DEMOS.find(d=>d.id===id).subdomain+'.
 const pass=(name,data={})=>{checks.push({name,...data});console.log('PASS '+name);};
 async function ready(page,address){
  const response=await page.goto(address,{waitUntil:'domcontentloaded',timeout:120000});assert.ok(response?.ok());
- await page.waitForFunction(()=>{const b=document.querySelector('button[aria-label="Ulangi demo"]');return b&&!b.disabled;},null,{timeout:120000});
+ await page.waitForFunction(()=>{const b=document.querySelector('button[aria-label="Opsi demo"]');return b&&!b.disabled;},null,{timeout:120000});
  await page.evaluate(()=>document.fonts.ready);
+ await enterTableMenu(page);
  const state=await page.evaluate(async()=>(await(await fetch('/api/v1/snapshot?surface=staff')).json()).data);
  assert.equal(state?.runtime?.localOnly,true);assert.equal(state.runtime.demo,true);
 }
@@ -28,9 +30,9 @@ async function context(){
  return ctx;
 }
 async function geometry(page,name,screenshot=true){
- const g=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].flatMap(e=>{const r=e.getBoundingClientRect();if(!r.width||r.right<=innerWidth+1)return [];for(let p=e.parentElement;p&&p!==document.body;p=p.parentElement){if(['auto','scroll','hidden','clip'].includes(getComputedStyle(p).overflowX))return [];}const s=getComputedStyle(e);return [{tag:e.tagName,cls:typeof e.className==='string'?e.className:'svg',text:e.textContent.slice(0,75),x:r.x,right:r.right,width:r.width,minWidth:s.minWidth,display:s.display,wrap:s.flexWrap,parent:e.parentElement?.className}];}).slice(0,15),clippedRoot:['hidden','clip'].includes(getComputedStyle(document.documentElement).overflowX)||['hidden','clip'].includes(getComputedStyle(document.body).overflowX),badNotices:[...document.querySelectorAll('[data-ui="notice"]')].filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+1||r.left< -1||e.scrollWidth>e.clientWidth+1;}).map(e=>e.textContent)}));
+ const g=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].flatMap(e=>{const r=e.getBoundingClientRect();if(!r.width||r.right<=innerWidth+1)return [];for(let p=e.parentElement;p&&p!==document.body;p=p.parentElement){if(['auto','scroll','hidden','clip'].includes(getComputedStyle(p).overflowX))return [];}const s=getComputedStyle(e);return [{tag:e.tagName,cls:typeof e.className==='string'?e.className:'svg',text:e.textContent.slice(0,75),x:r.x,right:r.right,width:r.width,minWidth:s.minWidth,display:s.display,wrap:s.flexWrap,parent:e.parentElement?.className}];}).slice(0,15),clippedRoot:['hidden','clip'].includes(getComputedStyle(document.documentElement).overflowX)||['hidden','clip'].includes(getComputedStyle(document.body).overflowX),badNotices:[...document.querySelectorAll('[data-ui="notice"],[data-sonner-toast]')].filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+1||r.left< -1||e.scrollWidth>e.clientWidth+1;}).map(e=>e.textContent)}));
  assert.equal(g.clippedRoot,false,name+': document clipping hides defects');
- assert.ok(g.scrollWidth<=g.width+1,name+': overflow '+JSON.stringify(g));assert.deepEqual(g.badNotices,[],name);
+ assert.ok(g.scrollWidth<=g.width+1,name+': overflow '+JSON.stringify(g));assert.deepEqual(g.badNotices,[],name+': notification overflow');
  if(screenshot)await page.screenshot({path:join(out,name+'.png'),animations:'disabled'});
  pass(name,g);return g;
 }
@@ -47,25 +49,27 @@ async function run(id,fn){const ctx=await context();try{await fn(ctx);}catch(e){
 try{
  await run('payment-notice',async ctx=>{
   const page=await ctx.newPage();await ready(page,url('full','/staff'));
-  await page.getByRole('button',{name:/Raka Pratama/}).click();await page.locator('.staff-header').waitFor();
-  const stats=await page.locator('[data-ui="stat-strip"]').boundingBox();assert.ok(stats.height<=160,'Mobile stats must not take two large cards per row.');
+  await chooseDemoStaff(page);await page.locator('.staff-header').waitFor();
+  assert.equal(await page.locator('[data-ui="stat-strip"]').count(),0,'Summary cards must not compete with cashier tasks.');
+  await page.getByRole('navigation',{name:'Tugas kasir dan pesanan'}).getByRole('button',{name:/^Tagihan/}).click();
   await geometry(page,'staff-390-compact');
-  await page.getByRole('group',{name:'Metode pembayaran kasir',exact:true}).getByRole('button',{name:'QRIS demo',exact:true}).click();
-  await page.getByRole('button',{name:/Buat instruksi demo/}).click();
-  const notice=page.locator('.staff-feedback [data-ui="notice"]').filter({hasText:'Instruksi pembayaran demo dibuat.'});await notice.waitFor();
-  assert.match(await notice.innerText(),/menunggu konfirmasi/);
-  for(const width of [320,360,390,412,768,1280,1920]){await resize(page,width);await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));await geometry(page,'payment-notice-'+width);}
-  await resize(page,390);await notice.evaluate(e=>{e.querySelector('.ui-notice-text').textContent='Referensi '+ 'ORDER'.repeat(60);});
+  await page.getByRole('group',{name:'Metode pembayaran kasir',exact:true}).getByRole('button',{name:'QRIS',exact:true}).click();
+  await page.getByRole('button',{name:/Buat instruksi pembayaran/}).click();
+  const notice=page.locator('[data-sonner-toast]').filter({hasText:'Instruksi pembayaran dibuat.'});await notice.waitFor();await notice.hover();
+  assert.match(await notice.innerText(),/menunggu konfirmasi/i);
+
+  await resize(page,390);await notice.evaluate(e=>{e.querySelector('[data-title]').textContent='Referensi '+ 'ORDER'.repeat(60);});
   await geometry(page,'long-unbroken-notice-390');
-  const broken=await page.addStyleTag({content:'.staff-feedback .ui-notice{width:max-content!important;max-width:none!important}.staff-feedback .ui-notice-text{white-space:nowrap!important;min-width:max-content!important}'});
+  const broken=await page.addStyleTag({content:'[data-sonner-toast]{width:max-content!important;max-width:none!important}[data-sonner-toast] [data-title]{white-space:nowrap!important;min-width:max-content!important}'});
   try{await assert.rejects(()=>geometry(page,'negative-nowrap',false),/overflow/);}finally{await broken.evaluate(e=>e.remove());}
   pass('negative control rejects the original unwrapped feedback defect');
+  for(const width of [320,360,390,412,768,1280,1920]){await resize(page,width);await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));await geometry(page,'payment-notice-'+width);}
  });
  await run('navigation-and-fields',async ctx=>{
   const page=await ctx.newPage();await ready(page,url('full','/staff'));
-  await page.getByRole('button',{name:/Nadia Kusuma/}).click();
-  const select=page.getByLabel('Petugas aktif',{exact:true});
-  for(const width of [360,390,768,1280]){await resize(page,width);await select.selectOption('staff_manager');await geometry(page,'staff-selector-'+width);}
+  await chooseDemoStaff(page, 'staff_manager');
+  const select=page.getByRole('combobox',{name:'Identitas staf demo',exact:true});
+  for(const width of [360,390,768,1280]){await resize(page,width);await chooseDemoStaff(page, 'staff_manager');await geometry(page,'staff-selector-'+width);}
   await resize(page,390);
   const nav=page.getByRole('navigation',{name:'Navigasi operasional kafe',exact:true});
   await nav.getByRole('button',{name:/^Kasir/}).focus();await page.keyboard.press('ArrowRight');

@@ -910,7 +910,7 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       if (isModuleEnabled('cashier')) {
         await db.insert(cashShifts).values({
           id: 'shift_clean_demo', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID,
-          drawerName: 'Kas demo', operatorName: 'Kasir demo', businessDate: TODAY_BUSINESS_DATE,
+          drawerName: 'Laci Kas Utama #1', operatorName: 'Sinta Maharani', businessDate: TODAY_BUSINESS_DATE,
           state: 'OPEN', openingFloatIdr: 0, cashReceiptsIdr: 0, cashInIdr: 0,
           cashRefundsIdr: 0, cashOutIdr: 0, expectedCashIdr: 0,
         }).onConflictDoNothing();

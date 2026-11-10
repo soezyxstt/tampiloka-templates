@@ -20,6 +20,12 @@ try {
   assert.equal(await page.locator('.tl-demo-brand').getAttribute('href'), 'https://tampiloka.site/en/templates');
   const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly);
   assert.equal(localOnly, true);
+  assert.equal(await page.locator('.demo-context, .demo-session > .demo-scenarios').count(), 0, 'Demo information does not occupy the app layout.');
+  await page.getByRole('button', { name: 'Demo options' }).click();
+  const options = page.getByRole('dialog', { name: 'Settings' });
+  await options.getByRole('button', { name: 'Reset data', exact: true }).waitFor();
+  await options.getByText('Data for trying operational flows', { exact: true }).waitFor();
+  await options.getByRole('button', { name: 'Close', exact: true }).click();
 
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
@@ -40,6 +46,38 @@ try {
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('combobox', { name: 'Choose a table' }).click();
+  await page.getByRole('option', { name: /^Table M02/ }).click();
+  // A QR entry left open must follow table edits made in another real tab.
+  const manager = await context.newPage();
+  manager.on('pageerror', error => errors.push(error.message));
+  await manager.setViewportSize({ width: 1024, height: 850 });
+  await manager.goto(`${base}/p/full/staff?staff=staff_owner&lang=id`);
+  await manager.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({ timeout: 120000 });
+  await manager.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ }).click();
+  await manager.getByRole('button', { name: 'Atur denah', exact: true }).click();
+  await manager.getByRole('combobox', { name: 'Pilih area ruang', exact: true }).selectOption('room_outdoor');
+  await manager.getByRole('button', { name: /^Meja T02 ·/ }).click();
+  await page.getByRole('combobox', { name: 'Choose a table' }).click();
+  await page.getByRole('option', { name: /^Table T02/ }).click();
+  for (const label of ['R02', 'T02']) {
+    await manager.getByRole('button', { name: 'Atur Posisi & Denah', exact: true }).click();
+    await manager.locator('#tbl-label-input').fill(label);
+    await manager.getByRole('button', { name: 'Terapkan Denah', exact: true }).click();
+    await manager.getByRole('button', { name: 'Atur Posisi & Denah', exact: true }).waitFor();
+    await page.getByRole('img', { name: `Menu QR code for table ${label}`, exact: true }).waitFor();
+  }
+  await manager.close();
+  await page.getByRole('combobox', { name: 'Choose a table' }).click();
+  await page.getByRole('option', { name: /^Table M02/ }).click();
+  const tableLink = page.getByRole('link', { name: 'Open table menu' });
+  const tableUrl = new URL(await tableLink.getAttribute('href'));
+  assert.match(tableUrl.pathname, /^\/t\/dapur-pagi\/cafe-full\/m\/qr_meranti_m02$/);
+  assert.equal(tableUrl.searchParams.get('lang'), 'en');
+  await page.getByRole('img', { name: 'Menu QR code for table M02' }).waitFor();
+  await tableLink.click();
+  await page.waitForURL(url => url.pathname === tableUrl.pathname);
+  await ready();
   await page.getByRole('button', { name: 'Add Iced Jasmine Leaf Tea', exact: true }).click();
   await page.getByRole('dialog', { name: 'Iced Jasmine Leaf Tea', exact: true }).getByRole('button', { name: 'Add to cart', exact: true }).click();
   await page.locator('[data-ui="customer-cart-bar"]').waitFor();
@@ -66,6 +104,16 @@ try {
   await page.getByRole('navigation', { name: 'Demo view' }).getByRole('link', { name: 'Staff', exact: true }).click();
   await ready();
   assert.equal(await page.getByRole('link', { name: 'Staff', exact: true }).getAttribute('aria-current'), 'page');
+  const identity = page.getByRole('combobox', { name: 'Demo staff identity' });
+  assert.equal(new URL(page.url()).searchParams.get('staff'), 'staff_cashier');
+  await identity.click();
+  await page.getByRole('option', { name: /Raka Pratama/ }).click();
+  assert.equal(new URL(page.url()).searchParams.get('staff'), 'staff_owner');
+  await page.getByRole('heading', { name: 'Reports & shifts', exact: true }).waitFor();
+  await page.goBack();
+  assert.equal(new URL(page.url()).searchParams.get('staff'), 'staff_cashier');
+  await page.goForward();
+  assert.equal(new URL(page.url()).searchParams.get('staff'), 'staff_owner');
   await page.getByRole('combobox', { name: 'Demo mode', exact: true }).click();
   await page.getByRole('option', { name: 'Cashier', exact: true }).click();
   await page.waitForURL(url => url.pathname === '/p/cashier/staff');
@@ -74,6 +122,7 @@ try {
   assert.equal(new URL(page.url()).origin, new URL(base).origin);
   assert.equal(new URL(page.url()).searchParams.get('theme'), 'airy');
   assert.equal(new URL(page.url()).searchParams.get('lang'), 'en');
+  assert.equal(new URL(page.url()).searchParams.get('staff'), 'staff_owner');
   assert.equal(await page.getByRole('navigation', { name: 'Demo view' }).getByRole('link', { name: 'Customer', exact: true }).count(), 0, 'Staff-only modes omit the customer action.');
 
   await page.getByRole('combobox', { name: 'Demo mode', exact: true }).click();
@@ -83,13 +132,17 @@ try {
   assert.match(new URL(page.url()).pathname, /\/p\/order-at-cashier\/staff$/, 'Mode changes preserve the active staff view when available.');
   await page.getByRole('navigation', { name: 'Demo view' }).getByRole('link', { name: 'Customer', exact: true }).click();
   await ready();
+  const orderTableLink = page.getByRole('link', { name: 'Open table menu' });
+  assert.match(new URL(await orderTableLink.getAttribute('href')).pathname, /^\/t\/dapur-pagi\/cafe-order\/m\//, 'The QR route retains the selected mode.');
+  await orderTableLink.click();
+  await ready();
   await page.getByPlaceholder('Search menu', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Switch language to Indonesian' }).click();
   await page.reload();
   await ready();
   assert.equal(await page.locator('html').getAttribute('lang'), 'id');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'airy');
-  assert.match(new URL(page.url()).pathname, /\/p\/order-at-cashier\/$/);
+  assert.match(new URL(page.url()).pathname, /\/t\/dapur-pagi\/cafe-order\/m\//);
   assert.equal(await page.locator('.cafe-language-toggle').count(), 1);
   const table = await page.evaluate(async () => {
     const snapshot = (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data;

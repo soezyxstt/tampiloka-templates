@@ -37,7 +37,7 @@ export function ScenarioPanel({ snapshot }: { snapshot: any }) {
   const scenario = scenarios.find(entry => entry.id === selected) || scenarios[0];
   const table = snapshot.tables.find((entry: any) => entry.id === loaded.tableId);
   const load = async () => {
-    if (!confirm(t('Muat data skenario ini? Pesanan dan perubahan demo saat ini di browser ini akan diganti.', 'Load this scenario? Current demo orders and changes in this browser will be replaced.'))) return;
+    if (!confirm(t('Muat data skenario ini? Pesanan dan perubahan saat ini akan diganti.', 'Load this scenario? Current orders and changes will be replaced.'))) return;
     setBusy(true);
     setError('');
     try {
@@ -65,7 +65,6 @@ export function ScenarioPanel({ snapshot }: { snapshot: any }) {
         <Button variant="secondary" disabled={busy} onClick={load}>{busy ? t('Menyiapkan data…', 'Preparing data…') : t('Muat skenario', 'Load scenario')}</Button>
       </div>
       <p>{language === 'en' ? english[scenario.id][1] : scenario.description}</p>
-      <p><strong>{t('Yang perlu diperiksa:', 'What to check:')}</strong> {language === 'en' ? english[scenario.id][2] : scenario.expected}</p>
       {table && cafeConfig.modules.includes('catalog') && <a href={`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`} target="_blank" rel="noopener noreferrer">{t('Buka pelanggan', 'Open customer view')} {table.label}</a>}
       {error && <p role="alert">{error}</p>}
     </div>

@@ -17,6 +17,65 @@
 .workspace :global(.staff-toolbar) {
   min-height: 64px;
 }
+.explorationManaged :global(.staff-toolbar) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.explorationManaged :global(.staff-actions) {
+  grid-column: 2;
+}
+.disclosure summary,
+.workspace :global(.visit-details summary) {
+  width: fit-content;
+  min-height: 40px;
+  padding: 9px 0;
+  color: var(--primary-ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.disclosure summary:focus-visible,
+.workspace :global(.visit-details summary:focus-visible) {
+  outline: 2px solid var(--primary-ink);
+  outline-offset: 2px;
+}
+.kitchenGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+  gap: var(--section-gap);
+}
+.kitchenTicket {
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+.kitchenTicketHeader {
+  padding: var(--card-padding) var(--section-gap);
+  border-bottom: 1px solid var(--border);
+}
+.kitchenItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--card-padding);
+  padding: var(--card-padding) var(--section-gap);
+  overflow-wrap: anywhere;
+}
+.kitchenItem > div { flex: 1 1 180px; }
+.reportSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px 24px;
+  padding: var(--section-gap);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+.floorNav { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border); }
+.reportSummary dt { color: var(--muted-foreground); font-size: 14px; }
+.reportSummary dd { margin-top: 4px; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .syncText {
   display: none;
   color: var(--muted-foreground);
@@ -36,3 +95,9 @@
   }
   .workspace :global(.staff-main) { padding-inline: 16px; }
 }
+
+.workspace { background:var(--surface-muted); }
+.kitchenTicketHeader { background:var(--surface-muted); border-bottom-color:var(--border-strong); border-radius:var(--radius-panel) var(--radius-panel) 0 0; }
+.workspace :global(.choice-strip[data-variant=segmented]) { border-color:var(--border-strong); }
+.workspace :global(.choice-strip[data-variant=segmented] .choice-item[data-active]) { box-shadow:inset 0 0 0 1px var(--border-strong); }
+.workspace :global(.staff-main > .workspace-stack) { min-width:0; }

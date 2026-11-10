@@ -1,5 +1,40 @@
 # Cafe template design system
 
+## Manager periods and six-tab simulation, 10 November 2026
+
+Reports support daily, Monday–Sunday weekly, calendar-month and inclusive custom periods. Selected bills, daily rollups, shift records and localized CSV use the same range. The report is based on bill business dates; receipt/refund totals are the current totals of those bills, including later settlements. It does not calculate profit or replace a transaction-date cash-flow ledger.
+
+A six-tab Chromium simulation used one browser context for owner, cashier, waiter, kitchen, bar and customer. All business actions went through the UI. It began with an empty cafe, published A01 as a round four-seat table at 900 × 800 mm, opened a Rp200,000 float, seated three guests, ordered from the table QR, accepted and paid, prepared across kitchen/bar, resolved a guest request, served, approved departure and cleaned the table. A second takeaway was entered at the POS, paid, prepared and picked up. Both visits ended closed. The final two bills totalled Rp100,485, both settled; outstanding balance was zero. Counted drawer cash was Rp300,485 with no difference.
+
+The simulation found a stale QR-entry table list despite synchronized database state. The entry now listens for data changes and refreshes its prepared snapshot, with a transient retry error. A01 → A02 → A01 was observed live without customer navigation or reload. The explorer suite now covers this with a second manager tab editing an available outdoor table and restoring its label. Floor-plan successes now use Sonner; takeaway bills are labelled as takeaway rather than as physical tables.
+
+Verification: reporting/calendar helpers join the 32 passing domain tests; JavaScript typecheck and Vite build passed. The explorer, including the live-entry regression, passed; the separate full-service browser suite passed 10 checks including reload persistence. The interactive scenario completed 12 checks and saved 16 original screenshots and ID/EN CSVs with no page errors or network transaction writes. Its REPL reached the 30-minute resource limit after the scenario/export finished; an extra reload check in that session did not complete and is not claimed as passed. See `test-results/cafe-simulation/README.md`, `gallery.html`, `evidence.json`, and the machine's `cafe-simulation-*.log` files. No hosted deployment is claimed.
+
+## Operational contrast review, 10 November 2026
+
+A quiet interface still needs visible task boundaries. Staff lists now place each order, visit, service request, menu entry and stock record on a white surface with a strong boundary and space between records, over the muted warm canvas. Thin decorative dividers are reserved for rows inside one record. Floor service requests and the guest waitlist have separate task destinations, so staff do not need to scan two operational queues together. Kitchen ticket headers distinguish table/station identity from preparation items. Owner reports group related figures rather than creating one dashboard card per number.
+
+The shared `Surface` task variant and record styles own this treatment. Selected bills use a check mark, a leading rule and an accent fill; selection does not depend on color alone. Customer menu photography remains the main boundary between dishes; cart lines and order-status groups use stronger outlines. Small shared buttons now have a 44px minimum target, and quantity controls use the strong input border.
+
+Existing tokens are reused. On the white task surface, the default foreground contrast is 16.04:1, secondary text 6.41:1 and the strong boundary 3.43:1. This visual review supplements functional tests; it is not a usability study with cafe staff.
+
+Follow-up verification: JavaScript typecheck and Vite production build passed. Compact UI passed 40 checks across customer themes and phone/tablet/desktop sizes; the full-service staff layout passed 17 checks over eight widths (the previous log footer incorrectly said all presets, so the reporter now states the actual selected count). The full-service checkout/POS flow passed 10 checks and language persistence passed. After splitting floor tasks, both pay-later service handling and customer-to-staff waitlist lifecycles passed, including assertions that the unrelated queue is absent. The final CSS-only canvas fix was rebuilt, and the resulting staff surfaces and phone overflow checks were inspected directly.
+
+Manual review covered customer menu/cart, cashier orders/bills, floor visits/requests/waitlist, kitchen/bar tickets, owner reports, catalogue and settings. All nine 1280 × 800 public previews were refreshed from loaded pages; final PNG evidence and measured geometry are in `test-results/contrast-review`. Resource-intensive checks ran sequentially under the existing CPU/RAM limits. No deployment is claimed.
+
+
+## Focused operational workspace, 9 November 2026
+
+The showcase keeps exploration controls in the shared top toolbar. Theme, service mode, customer/staff view and staff identity belong to that toolbar; the customer menu and internal workspace use the same task-oriented composition as a generated cafe project. Sample payment instructions must still clearly say they cannot be paid. Reset and sample scenarios remain secondary exploration actions.
+
+A customer can begin with a table QR before opening the menu. Direct table QR and shared-bill links preserve their existing destination. Owners start with reports when that module is enabled; kitchen/bar roles start with their station and floor staff with visits. Staff work should show one task at a time: incoming requests, bills/payments, and active visits have separate destinations. Counts belong to their task labels rather than a row of summary cards competing with the actual queue. Kitchen preparation, payment settlement, departure approval and table cleaning remain separate operations.
+
+Successful actions use the shared Sonner toaster, mounted once in `MotionProvider` for both the Next.js app and the Pages showcase. Toasts use semantic surface, text, border and shadow tokens; close controls are 44px. Validation errors remain next to the form or task they block. Never show a failed request using a success badge. Essential transaction status remains visible in the order or bill after its short-lived toast disappears.
+
+The browser showcase shares a scoped database across tabs on the same origin and preset, regardless of theme, language or staff identity. Views revalidate after subscribing and retain peer changes received during a pending local command. Browser audio requires a user gesture; staff must be able to enable or disable audible order alerts explicitly. Opening a seeded queue must not announce every pre-existing order as new. Cross-device and cross-origin sync require a production server and are not implied by same-browser pitching.
+
+Verification results for this change are recorded separately after running the affected checks; this section describes the contract, not a passing test claim.
+
 ## Shared demo exploration, 30 October 2026
 
 The public cafe entry opens the full interactive demo. Visitors choose the theme and service mode in the top toolbar, without first finding a card lower on a hub page. The gallery remains at `https://tampiloka.site/templates` and the outlined Tampiloka logo returns to its current language.
@@ -209,9 +244,9 @@ The new cashier, kitchen, and owner-report frames are **1024 × 768**. The scree
 
 Example values are explicitly demo data. Sales, receipts, refunds, tax/service charges, and profit have different meanings. Do not label sales as profit without the relevant cost data.
 
-The runtime also provides compact `ShiftControls` within the cashier package, including cashier-only projects. Opening a drawer, recording cash movements, and closing a shift do not depend on enabling reports. The staff order inbox exposes explicitly labeled demo QRIS/VA settlement controls when those demo methods are enabled. These compositions share the same radius, border, spacing, and control tokens.
+The runtime also provides compact `ShiftControls` within the cashier package, including cashier-only projects. Opening a drawer, recording cash movements, and closing a shift do not depend on enabling reports. Payment simulations stay in the top exploration controls. QRIS/VA actions disclose simulation beside the method, and pending instructions point to those controls. These compositions share the same radius, border, spacing, and control tokens.
 
-Reports filter by the selected business date and distinguish billed amounts, payments received, refunds, net receipts, and outstanding balances. They exclude voided bills and export the same date-filtered records to CSV. Shift records in the report are read-only; cash operations remain in the cashier workspace. The current financial report does not claim to calculate profit.
+Reports filter by business date using a day, Monday–Sunday week, calendar month, or inclusive custom range. Multi-day periods include a daily table for dates with bills. Billed amounts, payments received, refunds, net receipts, and outstanding balances remain distinct: payments and refunds are current totals on the selected bills, even if transactions occurred outside the selected period. Voided bills are excluded, and CSV exports the same selected bills with localized headers. Shift records in the report are read-only and use the same date range; cash operations remain in the cashier workspace. The current financial report does not claim to calculate profit.
 
 ## Verification and limits
 
@@ -234,3 +269,59 @@ Independent browser review also checked the five customer themes at 390 px and i
 The connected Figma library is not published with Code Connect. The source map above and semantic WEB token names provide the current handoff. Keep the same IDs and update the source map when changing the actual component contract.
 
 
+
+### Overhaul verification, 10 November 2026
+
+Checks ran sequentially on the shared VM. The initial workspace installation overlapped the dev server/browser and the user reported a stall; those processes were stopped. All subsequent computational checks used systemd memory, CPU, process and time limits. Builds/typechecks stayed below 1 GB; automated browser suites stayed around 1.4 GB. The later six-tab interactive simulation peaked at 1.6 GB. No further package installation was needed.
+
+| Check | Result and scope |
+| --- | --- |
+| Locked workspace installation | Completed with the frozen workspace lockfile. Sonner is also represented in the template npm lockfile used by generated clients. |
+| Cafe `test` | Passed configuration/generator, catalog, domain, isolated integration and UI contracts. Includes an actual generated client with retained notification code and a complete npm runtime dependency graph. |
+| `test:demo-runtime` | 30 passed: operation serialization, durable acknowledgement, leader handover/uncertain writes, fixture reset, notification deduplication and staff-POS suppression. |
+| Typecheck and demo build | Passed with the installed JavaScript TypeScript compiler, followed by the Vite production build. Native compiler was stopped by the task limit; no native compiler check is claimed. Latest operational-header UI-contract recheck: 6 passed. |
+| Design tokens | `Design tokens OK` (151 source files). |
+| Public catalog and docs | Catalog tests passed; documentation consistency passed. Public metadata/readiness was not promoted. |
+| Explorer | Passed responsive toolbar, popup bounds, keyboard/Escape/focus return, QR entry, identity, theme/mode independence, locale, history and reload. |
+| Motion | Customer/reduced-motion/preset journeys passed; targeted staff journeys passed 4 checks after waiting for legitimate task-opening animations before testing refresh persistence. |
+| Compact UI | 40 passed, including long toast text and a negative overflow control, staff selectors, and five customer themes at phone/tablet/desktop widths. |
+| Staff layout | 158 passed at 390–2560px: sidebar/toolbar offsets, hit targets, dialogs, scrolling, resized layouts and injected overlap/overflow defects. |
+| All-preset browser | 9/9 passed. Full-service flow additionally passed after final feedback changes: order, second-tab acceptance, nonpayable QR settlement, POS discount, deep bill link, reload, reset and cleared cart. |
+| Lifecycle | 12/12 cases passed across capped runs, including prepay/add-ons, pay-later, takeaway, rejection, immediate/deferred refund, split/merge, exception departure, both small ordering packages, waitlist and all 14 scenarios. |
+| Cross-tab/audio integration | Passed on the final functional build: concurrent writes/idempotency, native audio confirmation and real-order tone, one new-order event, payment/fulfillment, cash ledger, owner-tab closure, reload, isolated profiles and reset. |
+| Language | ID, EN and fallback defaults passed; choice and transaction state persisted through customer/staff navigation and reload. |
+| Visual/export | Nine loaded 1280 × 800 previews were inspected and exported to optimized 8:5 WebP files (about 456 KB total). Additional QR/phone, cashier payment, owner and kitchen views were inspected. At 360 × 844, the QR open action ends around 692px and stays above the fixed language control. |
+
+Commands used the documented Cafe scripts or their direct Node equivalent. Bounds were 1.2–1.6 GB / 75% CPU for unit/compile work and 1.8–1.9 GB / 80% CPU for one browser suite at a time. The static preview server was separately limited to 384 MB / 20% CPU; the development server stayed off. Screenshots were resized/exported with the already-installed Sharp dependency, without installing image tools.
+
+Some aggregate diagnostic runs failed on selectors from the old single-page workspace. Those selectors were corrected to navigate the new task views while retaining transaction, state-persistence and animation assertions; affected journeys were rechecked. The final claims above describe the passing command/case coverage rather than claiming that an interrupted diagnostic aggregate run passed.
+
+Evidence remains in `test-results/overhaul-final`, the existing browser-suite reports and the machine's `cafe-overhaul-*.log` files. Preview files keep their stable public paths. These are local built-artifact checks; no deployment, hosted verification or catalog promotion is claimed. Commerce, School and Booking implementations and shared packages were unchanged, so their builds/browser suites were not run.
+
+Independent read-only UI/runtime reviews completed. Their findings were corrected: the operation scope is now `rpc3` to isolate old workers; owner handover retains notification history; fixture resets suppress only their exact order IDs, so a real order in the next snapshot still alerts; separate orders queue separate tones instead of being dropped by a cooldown. The standalone Next.js demo has compact top customer/staff navigation and payment simulation controls, while public exploration remains owned by `DemoToolbarShell`. Production staff entry remains available without adding demo chrome.
+
+The post-review focused unit checks passed 16 cases. A bounded server-render check passed actual standalone customer/staff markup, localized valid routes, payment control availability and separation from browser/production chrome (101 MB peak). The final JavaScript typecheck and Vite build passed in 19.4 seconds at 614 MB peak. The post-review browser chain passed cross-tab/native-audio integration, the responsive explorer and language persistence in 99.8 seconds at 1.4 GB peak. The full runtime recheck passed 30 tests and UI contracts passed 6; design tokens, docs consistency and the 5 public catalog tests passed. One final command used an obsolete catalog-test path; only that command was rerun with the documented `packages/registry/tests/public-catalog.test.mjs` path.
+
+
+### Map-first visit service, 10 November 2026
+
+Active visits use the published floor plan as their primary surface whenever table management is enabled. The same `FloorMap` renders room geometry, obstacles, table shape/rotation and individually drawn seats in the layout editor. Table labels include the configured seat count. Status text distinguishes clean/ready, occupied, needs cleaning, held for the waitlist, and unavailable; held and unavailable tables also use different stroke patterns. Selection has a ring and check mark, and keyboard Enter/Space selects a table.
+
+On tablet/laptop widths the map sits next to one selected-table inspector. The inspector offers the appropriate operation: seat guests, review departure, clean a vacated table, or reactivate an unavailable table. Reactivation still requires inspection/cleaning. A held table points to the waitlist instead of allowing a walk-in seating operation. Existing server eligibility checks remain authoritative. Secondary visit details, moves and join codes are disclosed on demand. Takeaway completion remains accessible in a separate disclosure. Smaller viewports contain map scrolling locally, with 12px minimum map labels, 44px table hit zones and an enlarge control. Selecting a table below 960px opens its details in the shared dialog; seating and departure review replace the dialog content instead of stacking dialogs. Escape steps back to the table details and then returns focus to the selected SVG table. Physical dimensions in the inspector are shown in centimetres, converted from stored millimetres.
+
+Floor operations place their heading and task navigation on one row when space permits. Table actions use compact shared buttons while retaining 44px touch height; the main departure and bill actions sit together instead of consuming two vertical rows. The layout configuration task is labelled “Atur denah” / “Edit floor plan”. Modes without floor management retain the visit list.
+
+The final JavaScript TypeScript check and Vite demo build passed (22.1s, 656 MB peak); UI contracts passed 6 tests, design-token lint passed 154 files, documentation consistency passed, and public catalog tests passed 5 cases. Browser commands ran sequentially under 80% CPU and 1.9GB memory caps: `CAFE_DEMO_PRESETS=full,operations node --experimental-strip-types tests/demos-staff-layout.mjs` passed 49 checks, covering all nine table selections, chair counts, dimensions, 390–1440px map layouts, 44px hit zones, 12px labels, portrait detail dialogs, Escape/focus return, and two-tab state propagation. The three selected lifecycle cases `prepay-addon-close,takeaway-close,waitlist-customer-staff` passed, including held-table exclusion, occupied → departure → cleaning → ready transitions. `node tests/demos-explorer.mjs` passed the shared controls, QR entry, edit publication in a second tab, language, history and reload. The combined browser gate completed in 147.7s at 1.1GB peak with no page errors or network mutations. A targeted intermediate portrait test exposed a dialog-stacking/Escape conflict; it was fixed by keeping one dialog and the final checks passed. Opus review could not start: Antigravity SS and ST both returned `model_unavailable` for `claude-opus-5-5`; no independent Opus review is claimed. No deployment or catalog promotion is implied.
+
+The final smaller-mode fallback check also passed `external-counter,catalog-waiter` (2/2 cases, 26.9s, 930 MB peak), verifying offline receipts and completion through the retained visit list. Screenshots and reports for this revision are in `test-results/floor-review`, `floor-layout`, `floor-service` and `floor-small-modes`.
+
+
+### Operational copy, 10 November 2026
+
+The cafe workspace reads like the client application: exploration belongs to the top toolbar. Avoid visible demo/sample badges, simulated-payment commentary, instructions that narrate obvious controls, and descriptions that repeat headings or statuses. Empty states normally use a short heading and a relevant action. The QR entry uses its table selector, QR and open-menu action without introductory paragraphs. Table details rely on status and contextual actions; exceptions and blockers retain short, actionable copy. Financial scope remains where figures would otherwise be ambiguous. Nonpayable payment codes retain only their functional unavailable status. Indonesian and English follow the same density. The toolbar options keep reset consequences and scenario effects, without a general demo explanation.
+
+Copy verification: final JavaScript TypeScript check and Vite build passed (21.2s, 613 MB peak), design tokens passed 154 files, UI/catalog contracts passed 11 tests, and documentation/diff checks passed. The explorer passed responsive QR entry, controls, ID/EN, role/history and reload. Full-preset browser workflow passed 10 checks, followed by 2 lifecycle cases (prabayar/add-ons/closing/cleaning and customer/staff waitlist). Browser work ran sequentially with 80% CPU and 1.9GB memory caps; the final flow run peaked at 1.3GB. Earlier diagnostics expected removed simulation copy and a demo-labelled page title; those assertions now verify the settings controls and cafe identity instead. No runtime failure, deployment or hosted verification is claimed from those diagnostics.
+
+Release CI additionally caught React render/ref and effect-state violations. The follow-up keeps the customer table used by navigation in state, synchronizes notification refs after commit, registers audio listeners only on context creation, resets role-owned UI during the guarded identity transition, loads payment tools from the open event, and keys QR results to their URL. Full ESLint passed without errors (two image-optimization warnings), followed by JavaScript typecheck and Vite build in a serialized capped run (80.9s, 974 MB peak). The initial queued Cafe release was cancelled before deployment so the corrected revision can be released.
+
+Post-fix browser checks passed cross-tab runtime/native audio (8 checks) and the complete explorer in 83.3s at 1.2GB peak. UI contracts also passed 6 tests. An initial runtime check was pointed at the customer entry rather than the staff route; its missing-sound-control timeout was corrected by using `/p/full/staff`, with no application change for that diagnostic.

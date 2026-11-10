@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /** Staff-shell geometry and hit-target checks. Run locally via test:demo-all,
  * or against the public demos with CAFE_DEMO_BASE_DOMAIN=tampiloka.site.
  * Every browser has isolated demo storage; real network writes are blocked.
@@ -14,6 +15,8 @@ const domain = process.env.CAFE_DEMO_BASE_DOMAIN?.trim();
 assert.ok(['http:', 'https:'].includes(base.protocol));
 if (domain) assert.match(domain, /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i);
 const out = resolve(process.env.CAFE_LAYOUT_OUTPUT || 'test-results/staff-layout');
+const selectedIds = process.env.CAFE_DEMO_PRESETS?.split(',');
+if (selectedIds) for (const id of selectedIds) assert.ok(DEMOS.some(demo => demo.id === id), `Unknown preset: ${id}`);
 const widths = [390, 768, 1024, 1279, 1280, 1440, 1920, 2560];
 const checks = [], failures = [], pageErrors = [], consoleErrors = [], networkWrites = [];
 const startedAt = new Date().toISOString();
@@ -34,12 +37,12 @@ async function resize(page, width) {
   // A broken breakpoint still fails within 5 seconds; the independent geometry
   // assertions below continue to reject overflow and covered controls.
   await page.waitForFunction(({ width, height }) => {
-    const select = document.querySelector('.cafe-staff > header select[aria-label="Petugas aktif"]');
+    const select = document.querySelector('.tl-demo-toolbar [aria-label="Identitas staf demo"]');
     const aside = document.querySelector('.cafe-staff > aside');
     if (!select || !aside || innerWidth !== width || innerHeight !== height) return false;
-    const expectedSelectorWidth = width >= 768 ? 280 : width - 32;
+    const expectedSelectorWidth = select.getBoundingClientRect().width;
     const expectedSidebarDisplay = width >= 1280 ? 'flex' : 'none';
-    return Math.abs(select.parentElement.getBoundingClientRect().width - expectedSelectorWidth) < 1
+    return expectedSelectorWidth >= 44 && select.getBoundingClientRect().right <= innerWidth + 1
       && getComputedStyle(aside).display === expectedSidebarDisplay
       && matchMedia('(min-width: 768px)').matches === (width >= 768)
       && matchMedia('(min-width: 1280px)').matches === (width >= 1280);
@@ -55,7 +58,7 @@ async function geometry(page) {
       const r = element.getBoundingClientRect();
       return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom, display: getComputedStyle(element).display };
     };
-    const selectors = ['.tl-demo-brand', '.demo-context > summary', '.demo-scenarios > summary', '.cafe-staff > header [aria-label="Petugas aktif"]', '.cafe-staff > header [aria-label="Perbarui data operasional"]', '.cafe-staff > header [aria-label="Keluar dari portal staf"]'];
+    const selectors = ['.tl-demo-brand', '.tl-demo-toolbar [aria-label="Opsi demo"]', '.tl-demo-toolbar [aria-label="Identitas staf demo"]', '.cafe-staff > header [aria-label="Perbarui data operasional"]'];
     const obscured = selectors.flatMap(selector => {
       const element = document.querySelector(selector);
       if (!element) return [{ selector, reason: 'missing' }];
@@ -68,7 +71,7 @@ async function geometry(page) {
         return element.contains(hit) ? [] : [{ selector, x, y, coveredBy: hit?.tagName, className: hit?.className }];
       });
     });
-    const select = document.querySelector('select[aria-label="Petugas aktif"]');
+    const select = null;
     let longestLabel = 0, labelSpace = 0;
     if (select) {
       const style = getComputedStyle(select);
@@ -77,7 +80,7 @@ async function geometry(page) {
       longestLabel = Math.max(...[...select.options].map(option => canvas.measureText(option.textContent).width));
       labelSpace = select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     }
-    return { width: innerWidth, height: innerHeight, scrollY, scrollWidth: document.documentElement.scrollWidth, toolbar: rect('.tl-demo-toolbar'), root: rect('.cafe-staff'), sidebar: rect('.cafe-staff > aside'), header: rect('.cafe-staff > header'), main: rect('#staff-content'), scenarios: rect('.demo-scenarios'), obscured, longestLabel, labelSpace };
+    return { width: innerWidth, height: innerHeight, scrollY, scrollWidth: document.documentElement.scrollWidth, toolbar: rect('.tl-demo-toolbar'), root: rect('.cafe-staff'), sidebar: rect('.cafe-staff > aside'), header: rect('.cafe-staff > header'), main: rect('#staff-content'), scenarios: rect('.tl-demo-toolbar'), obscured, longestLabel, labelSpace };
   });
 }
 
@@ -106,8 +109,112 @@ async function assertLayout(page, name, { atTop = true } = {}) {
   pass(name, g);
 }
 
+async function verifyFloorService(page, context, demo) {
+  await resize(page, 1024);
+  const floor = p => p.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ });
+  await floor(page).click();
+  const read = p => p.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data);
+  const initial = await read(page);
+  for (const room of initial.rooms) {
+    await page.getByRole('combobox', { name: 'Area kunjungan', exact: true }).selectOption(room.id);
+    for (const table of initial.tables.filter(t => t.roomId === room.id)) {
+      const node = page.locator(`svg [data-table-id="${table.id}"]`);
+      assert.equal(await node.locator('[data-chair]').count(), table.capacity, `${table.label}: configured chair count`);
+      await node.focus(); await page.keyboard.press('Space');
+      assert.equal(await node.getAttribute('aria-pressed'), 'true');
+      const details = page.locator('[aria-label="Detail meja terpilih"]');
+      await details.getByRole('heading', { name: `Meja ${table.label}`, exact: true }).waitFor();
+      assert.ok((await details.innerText()).includes(`${Number(table.widthMm) / 10} × ${Number(table.heightMm) / 10} cm`));
+    }
+  }
+  pass('Floor map: all nine table selections, configured chairs, dimensions and keyboard operation');
+  await page.getByRole('combobox', { name: 'Area kunjungan', exact: true }).selectOption('room_indoor');
+  await page.locator('svg [data-table-id="tbl_m04"]').click();
+  for (const width of [390, 768, 1024, 1280, 1440]) {
+    await resize(page, width); await top(page);
+    const measure = await page.evaluate(() => {
+      const map = document.querySelector('[data-testid="floor-plan-svg-container"]');
+      const panel = document.querySelector('[aria-label="Detail meja terpilih"]');
+      const canvas = map.querySelector('svg');
+      const r = map.getBoundingClientRect(), d = panel.getBoundingClientRect();
+      return { width: innerWidth, scroll: document.documentElement.scrollWidth, map: { x:r.x, right:r.right }, panel: {x:d.x, right:d.right}, labels: [...canvas.querySelectorAll('text')].map(e => parseFloat(getComputedStyle(e).fontSize) * e.getScreenCTM().a), targets: [...canvas.querySelectorAll('rect[class*="hit"]')].map(e => { const b=e.getBoundingClientRect();return {width:b.width,height:b.height}; }) };
+    });
+    assert.ok(measure.scroll <= width + 1, `Floor map contains its own scrolling at ${width}px`);
+    assert.ok(measure.labels.every(size => size >= 11.99), `Floor labels at least 12px at ${width}px`);
+    assert.ok(measure.targets.every(r => r.width >= 43.99 && r.height >= 43.99), 'Table hit zones retain 44px targets');
+    if (width >= 1024) assert.ok(measure.panel.x >= measure.map.right, 'Map and contextual actions use horizontal space');
+    await page.screenshot({path:join(out, `floor-service-${width}.png`),animations:'disabled'});
+    pass(`Floor service ${width}px: no document overflow, legible labels and accessible table targets`);
+  }
+  for (const width of [390, 768]) {
+    await resize(page, width);
+    const selected = page.locator('svg [data-table-id="tbl_m04"]');
+    await selected.focus(); await page.keyboard.press('Enter');
+    const detail = page.getByRole('dialog', {name:'Detail meja',exact:true});
+    await detail.getByRole('heading',{name:'Meja M04',exact:true}).waitFor();
+    await detail.getByRole('button',{name:'Tinjau kepulangan',exact:true}).click();
+    await page.getByRole('dialog',{name:'Selesaikan kunjungan',exact:true}).waitFor();
+    await page.keyboard.press('Escape');
+    await detail.waitFor();
+    await page.screenshot({path:join(out, `floor-detail-${width}.png`),animations:'disabled'});
+    await page.keyboard.press('Escape');
+    await detail.waitFor({state:'hidden'});
+    assert.equal(await selected.evaluate(e=>document.activeElement===e),true,'Closing details returns keyboard focus to the selected SVG table');
+    pass(`Floor service ${width}px: table detail sheet, nested departure review, Escape and focus return`);
+  }
+  await resize(page, 1024); await top(page);
+  const observer = await context.newPage();
+  observer.on('pageerror', error => pageErrors.push({ preset: demo.id, message: error.message }));
+  await observer.setViewportSize({width:768,height:1000});
+  await observer.goto(urlFor(demo)+'?staff=staff_waiter&lang=id');
+  await observer.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({timeout:120000});
+  await floor(observer).click();
+  const tableId='tbl_m05';
+  await page.locator(`svg [data-table-id="${tableId}"]`).click();
+  await observer.locator(`svg [data-table-id="${tableId}"]`).click();
+  await page.getByRole('button',{name:'Tandai bersih & siap',exact:true}).click();
+  await observer.getByRole('button',{name:'Tempatkan tamu di sini',exact:true}).waitFor();
+  assert.equal(await observer.locator(`svg [data-table-id="${tableId}"]`).getAttribute('data-state'),'ready');
+  // Disable through the editor, then reactivate and inspect/clean from visits.
+  await page.getByRole('group',{name:'Sub-menu operasional lantai',exact:true}).getByRole('button',{name:'Atur denah',exact:true}).click();
+  await page.getByRole('button',{name:/^Meja M05 ·/}).click();
+  await page.getByRole('button',{name:'Nonaktifkan Sementara',exact:true}).click();
+  await observer.getByRole('button',{name:'Aktifkan meja',exact:true}).waitFor();
+  assert.equal(await observer.locator(`svg [data-table-id="${tableId}"]`).getAttribute('data-state'),'inactive');
+  await observer.getByRole('button',{name:'Aktifkan meja',exact:true}).click();
+  await observer.getByRole('button',{name:'Tandai bersih & siap',exact:true}).waitFor();
+  assert.equal(await observer.getByRole('button',{name:'Tempatkan tamu di sini',exact:true}).count(),0,'Reactivation cannot bypass cleaning');
+  await observer.getByRole('button',{name:'Tandai bersih & siap',exact:true}).click();
+  await observer.getByRole('button',{name:'Tempatkan tamu di sini',exact:true}).waitFor();
+  await page.getByRole('group',{name:'Sub-menu operasional lantai',exact:true}).getByRole('button',{name:'Kunjungan aktif',exact:true}).click();
+  await page.locator(`svg [data-table-id="${tableId}"]`).click();
+  await page.getByRole('button',{name:'Tempatkan tamu di sini',exact:true}).click();
+  const seating=page.getByRole('dialog',{name:'Tempatkan tamu',exact:true});
+  assert.equal(await seating.getByLabel('Meja untuk tamu',{exact:true}).inputValue(),tableId,'Clicking a ready table preselects exactly that table');
+  await seating.getByLabel('Nama tamu',{exact:true}).fill('Rani Denah');
+  await seating.getByRole('button',{name:'Mulai kunjungan',exact:true}).click();
+  await observer.getByRole('article',{name:'Kunjungan Rani Denah',exact:true}).waitFor();
+  assert.equal(await observer.locator(`svg [data-table-id="${tableId}"]`).getAttribute('data-state'),'occupied');
+  await observer.getByRole('button',{name:'Tinjau kepulangan',exact:true}).click();
+  await observer.getByRole('dialog',{name:'Selesaikan kunjungan',exact:true}).getByRole('button',{name:'Konfirmasi tamu pulang',exact:true}).click();
+  await page.getByRole('button',{name:'Tandai bersih & siap',exact:true}).waitFor();
+  await observer.close();
+  await page.screenshot({path:join(out,'floor-service-cross-tab.png'),animations:'disabled'});
+  await page.getByRole('button',{name:'Ganti bahasa ke Inggris',exact:true}).click();
+  await page.getByRole('button',{name:'Mark clean & ready',exact:true}).waitFor();
+  assert.equal(await page.locator(`svg [data-table-id="${tableId}"]`).getAttribute('data-state'),'dirty');
+  assert.ok((await page.locator(`svg [data-table-id="${tableId}"]`).getAttribute('aria-label')).includes('2 seats'));
+  await page.reload();
+  await page.locator('button[aria-label="Demo options"]:not(:disabled)').waitFor({timeout:120000});
+  await page.locator('.staff-mobile-nav').getByRole('button',{name:/^Tables & waitlist/}).click();
+  await page.locator(`svg [data-table-id="${tableId}"]`).click();
+  await page.getByRole('button',{name:'Mark clean & ready',exact:true}).waitFor();
+  await page.screenshot({path:join(out,'floor-service-en-reload.png'),animations:'disabled'});
+  pass('Two staff tabs: cleaning, deactivation, reactivation, seating and departure sync without refresh; locale and reload retain business state');
+}
+
 try {
-  for (const demo of DEMOS.filter(demo => demo.staffPath !== undefined)) {
+  for (const demo of DEMOS.filter(demo => demo.staffPath !== undefined && (!selectedIds || selectedIds.includes(demo.id)))) {
     const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 1920, height: 1000 }, reducedMotion: 'reduce' });
     await context.route('**/*', route => {
       if (['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) return route.continue();
@@ -122,12 +229,12 @@ try {
       const response = await page.goto(urlFor(demo), { waitUntil: 'domcontentloaded', timeout: 120000 });
       assert.ok(response?.ok(), `${demo.id}: HTTP ${response?.status()}`);
       await page.waitForFunction(() => {
-        const button = document.querySelector('button[aria-label="Ulangi demo"]');
+        const button = document.querySelector('button[aria-label="Opsi demo"]');
         return button && !button.disabled;
       }, null, { timeout: 120000 });
       const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly);
       assert.equal(localOnly, true, 'Refusing interactive checks outside an isolated demo.');
-      await page.getByRole('button', { name: 'Nadia Kusuma Manajer Operasional', exact: true }).click();
+      await chooseDemoStaff(page, 'staff_manager');
       await page.locator('.cafe-staff > header').waitFor();
       await page.evaluate(() => document.fonts.ready);
       await top(page);
@@ -135,9 +242,11 @@ try {
       // Negative controls live only in this isolated page and are removed before
       // continuing. The test must catch both the original bug and real overflow.
       if (demo.id === 'cashier') {
-        const originalPosition = await page.addStyleTag({ content: '.cafe-staff > aside {position:fixed!important;inset:0 auto 0 0!important;width:232px!important;}' });
+        const originalPosition = await page.addStyleTag({ content: '.cafe-staff > aside {position:fixed!important;inset:0 auto 0 0!important;width:232px!important;z-index:1000!important;}' });
+        await page.waitForFunction(() => { const side = document.querySelector('.cafe-staff > aside'); return side && getComputedStyle(side).position === 'fixed' && side.getBoundingClientRect().y === 0; });
+        await settle(page);
         const negative = await geometry(page);
-        assert.ok(negative.obscured.some(entry => entry.selector === '.demo-context > summary'), 'The regression detector failed to catch the original sidebar overlapping demo context.');
+        assert.ok(negative.obscured.some(entry => entry.selector === '.tl-demo-brand'), 'The regression detector failed to catch the original sidebar overlapping demo context.');
         await page.screenshot({ path: join(out, 'negative-control-fixed-sidebar.png'), animations: 'disabled' });
         await originalPosition.evaluate(element => element.remove());
         await settle(page);
@@ -174,13 +283,14 @@ try {
         // Trial clicks detect overlays without navigating away or changing data.
         await page.locator('.tl-demo-brand').click({ trial: true });
         if ([1280, 1920].includes(width)) {
-          await page.locator('.demo-context > summary').click();
-          await page.locator('.demo-scenarios > summary').click();
-          await top(page);
-          await assertLayout(page, `${demo.id} ${width}px expanded disclosures`);
+          await openDemoOptions(page);
+          const tools = page.getByRole('dialog', { name: 'Pengaturan' });
+          await tools.getByText('Data untuk mencoba alur operasional', { exact: true }).click();
+          const popup = await tools.boundingBox();
+          assert.ok(popup.x >= -1 && popup.x + popup.width <= width + 1, 'Demo tools stay within the viewport');
           await page.screenshot({ path: join(out, `${demo.id}-${width}-expanded.png`), animations: 'disabled' });
-          await page.locator('.demo-scenarios > summary').click();
-          await page.locator('.demo-context > summary').click();
+          await page.keyboard.press('Escape');
+          await top(page);
           await top(page);
         }
         await page.evaluate(() => scrollTo({ top: 650, behavior: 'instant' }));
@@ -200,6 +310,7 @@ try {
         await dialog.waitFor({ state: 'hidden' });
         pass(`${demo.id}: new-order dialog remains above staff shell`);
       }
+      if (demo.id === 'full') await verifyFloorService(page, context, demo);
     } catch (error) {
       failures.push({ preset: demo.id, message: error.stack || String(error) });
       console.error(`FAIL ${demo.id}: ${error.message}`);
@@ -215,5 +326,5 @@ assert.deepEqual(failures, [], 'Staff layout regression checks failed.');
 assert.deepEqual(pageErrors, [], 'Unexpected browser exceptions.');
 assert.deepEqual(consoleErrors, [], 'Unexpected console errors.');
 assert.deepEqual(networkWrites, [], 'No public-server mutations are permitted.');
-console.log(`Staff layout: ${checks.length} checks passed across all nine staff presets.`);
+console.log(`Staff layout: ${checks.length} checks passed across ${selectedIds?.length || DEMOS.length} selected staff presets.`);
 

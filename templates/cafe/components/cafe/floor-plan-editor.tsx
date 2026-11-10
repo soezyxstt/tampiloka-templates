@@ -1,5 +1,7 @@
 'use client';
 import { useCafeLanguage } from '@/lib/language';
+import { toast } from 'sonner';
+import { FloorMap } from './floor-map';
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -56,7 +58,7 @@ function formatTableStateLabel(state: string, tr: (id: string, en: string) => st
 } {
   switch (state) {
     case 'AVAILABLE':
-      return { label: tr('Kosong', 'Available'), tone: 'success' };
+      return { label: tr('Siap diisi', 'Ready to seat'), tone: 'success' };
     case 'OCCUPIED':
       return { label: tr('Terisi', 'Occupied'), tone: 'info' };
     case 'NEEDS_CLEANING':
@@ -117,7 +119,6 @@ export function FloorPlanEditor({
   const [draftTables, setDraftTables] = useState<any[]>(roomTablesInit);
   const [selectedTableId, setSelectedTableId] = useState<string>(roomTablesInit[0]?.id || 'tbl_m01');
   const [warningsAcknowledged, setWarningsAcknowledged] = useState<boolean>(false);
-  const [editorMessage, setEditorMessage] = useState<string>('');
   const [editorError, setEditorError] = useState<string>('');
 
   const handleSwitchRoom = (roomId: string) => {
@@ -131,7 +132,7 @@ export function FloorPlanEditor({
     setDraftTables(filtered);
     setSelectedTableId(filtered[0]?.id || '');
     setEditorError('');
-    setEditorMessage('');
+
   };
 
   // Layout drafts own geometry only. Occupancy and cleaning must always use the
@@ -142,10 +143,10 @@ export function FloorPlanEditor({
   }) : roomTablesInit;
   const selectedTable = displayTables.find((t) => t.id === selectedTableId) || displayTables[0];
   const applyTableAction = async (payload: any) => {
-    setEditorError(''); setEditorMessage('');
+    setEditorError('');
     try {
       await onTableAction(payload);
-      setEditorMessage(payload.action === 'MARK_CLEAN' ? tr("Meja sudah bersih dan siap untuk tamu berikutnya.", "The table is clean and ready for the next guest.") : payload.action === 'ENABLE_TABLE' ? tr("Meja diaktifkan. Periksa dan bersihkan sebelum digunakan.", "Table activated. Check and clean it before use.") : tr("Meja dinonaktifkan sementara.", "Table temporarily deactivated."));
+      toast.success(payload.action === 'MARK_CLEAN' ? tr("Meja sudah bersih dan siap untuk tamu berikutnya.", "The table is clean and ready for the next guest.") : payload.action === 'ENABLE_TABLE' ? tr("Meja diaktifkan. Periksa dan bersihkan sebelum digunakan.", "Table activated. Check and clean it before use.") : tr("Meja dinonaktifkan sementara.", "Table temporarily deactivated."));
     } catch (caught) { setEditorError(caught instanceof Error ? caught.message : tr("Status meja belum diperbarui.", "The table status was not updated.")); }
   };
 
@@ -155,7 +156,7 @@ export function FloorPlanEditor({
       prev.map((t) => (t.id === selectedTable.id ? { ...t, ...patch } : t))
     );
     setEditorError('');
-    setEditorMessage('');
+
   };
 
   const validation = useMemo(() => {
@@ -173,7 +174,6 @@ export function FloorPlanEditor({
     });
   }, [polygon, draftTables]);
 
-  const polygonPointsAttr = polygon.map((p) => `${p.x},${p.y}`).join(' ');
 
   return (
     <div className="space-y-4">
@@ -241,7 +241,7 @@ export function FloorPlanEditor({
                       warningsAcknowledged,
                       actorName,
                     });
-                    setEditorMessage(tr('Draft denah berhasil disimpan.', 'Layout draft saved.'));
+                    toast.success(tr('Draft denah berhasil disimpan.', 'Layout draft saved.'));
                   } catch (err: any) {
                     setEditorError(err.message);
                   }
@@ -266,7 +266,7 @@ export function FloorPlanEditor({
                       warningsAcknowledged,
                       actorName,
                     });
-                    setEditorMessage(tr('Denah berhasil diterapkan.', 'Layout applied.'));
+                    toast.success(tr('Denah berhasil diterapkan.', 'Layout applied.'));
                     setEditMode(false);
                   } catch (err: any) {
                     setEditorError(err.message);
@@ -284,7 +284,6 @@ export function FloorPlanEditor({
       {/* Validation Status & Warnings */}
       {!validation.valid && <InlineError message={validation.errors.map(translateValidation).join(' · ')} />}
       {editorError && <InlineError message={editorError} />}
-      {editorMessage && <StatusLabel label={editorMessage} tone="success" />}
 
       {editMode && validation.warnings.length > 0 && (
         <div className="py-2.5 px-3 rounded-[8px] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] text-[13px] flex flex-wrap items-center justify-between gap-3">
@@ -304,174 +303,7 @@ export function FloorPlanEditor({
       {/* Main Split: Visual Floor Map (7 cols) + Selected Table Inspector (5 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-7 space-y-2">
-          <div
-            data-testid="floor-plan-svg-container"
-            className="w-full overflow-x-auto bg-[var(--surface-muted)] border border-[var(--border)] rounded-[10px] p-3"
-          >
-            <svg
-              viewBox="-400 -400 10800 8800"
-              className="w-full h-auto max-h-[420px]"
-              role="img"
-              aria-label={tr(`Denah ruang ${currentRoom?.name}`, `Floor plan of ${currentRoom?.name}`)}
-            >
-              {[0, 2000, 4000, 6000, 8000, 10000].map((gx) => (
-                <line
-                  key={`gx_${gx}`}
-                  x1={gx}
-                  y1={0}
-                  x2={gx}
-                  y2={8000}
-                  stroke="var(--border)"
-                  strokeWidth={20}
-                />
-              ))}
-              {[0, 2000, 4000, 6000, 8000].map((gy) => (
-                <line
-                  key={`gy_${gy}`}
-                  x1={0}
-                  y1={gy}
-                  x2={10000}
-                  y2={gy}
-                  stroke="var(--border)"
-                  strokeWidth={20}
-                />
-              ))}
-
-              <polygon
-                points={polygonPointsAttr}
-                fill="#FFFFFF"
-                stroke="var(--status-success-fg)"
-                strokeWidth={55}
-              />
-
-              {((currentRoom?.obstaclesJson as any[]) || []).map((obs: any) => (
-                <g key={obs.id}>
-                  <rect
-                    x={obs.xMm}
-                    y={obs.yMm}
-                    width={obs.widthMm}
-                    height={obs.heightMm}
-                    rx={60}
-                    fill="var(--surface-muted)"
-                    stroke="var(--border-strong)"
-                    strokeWidth={25}
-                  />
-                  <text
-                    x={obs.xMm + obs.widthMm / 2}
-                    y={obs.yMm + obs.heightMm / 2 + 70}
-                    textAnchor="middle"
-                    fill="var(--muted-foreground)"
-                    fontSize="240"
-                    fontWeight="600"
-                  >
-                    {obs.label}
-                  </text>
-                </g>
-              ))}
-
-              {displayTables.map((t) => {
-                const isSelected = t.id === selectedTable?.id;
-                const heldWl = waitlistEntries.find(
-                  (w) => w.heldTableId === t.id && w.status === 'CALLED' && Date.parse(w.holdExpiresAt) > Date.now()
-                );
-
-                let fill = 'var(--status-success-bg)';
-                let stroke = 'var(--status-success-fg)';
-                let stateShort = tr('Kosong', 'Available');
-
-                if (t.physicalState === 'OCCUPIED') {
-                  fill = 'var(--status-info-bg)';
-                  stroke = 'var(--status-info-fg)';
-                  stateShort = tr('Terisi', 'Occupied');
-                } else if (t.physicalState === 'NEEDS_CLEANING') {
-                  fill = 'var(--status-warning-bg)';
-                  stroke = 'var(--status-warning-fg)';
-                  stateShort = tr('Bersihkan', 'Clean');
-                } else if (t.physicalState === 'OUT_OF_SERVICE') {
-                  fill = 'var(--status-danger-bg)';
-                  stroke = 'var(--status-danger-fg)';
-                  stateShort = tr('Nonaktif', 'Inactive');
-                } else if (heldWl) {
-                  fill = 'var(--status-warning-bg)';
-                  stroke = 'var(--status-warning-fg)';
-                  stateShort = tr(`Ditahan ${heldWl.publicSequence}`, `Held ${heldWl.publicSequence}`);
-                }
-
-                const cx = Number(t.xMm) + Number(t.widthMm) / 2;
-                const cy = Number(t.yMm) + Number(t.heightMm) / 2;
-
-                return (
-                  <g
-                    key={t.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={tr(`Denah meja ${t.label} · ${stateShort}`, `Table layout ${t.label} · ${stateShort}`)}
-                    aria-pressed={isSelected}
-                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTableId(t.id); } }}
-                    transform={`rotate(${t.rotationDeg || 0} ${cx} ${cy})`}
-                    onClick={() => setSelectedTableId(t.id)}
-                    className="cursor-pointer"
-                  >
-                    {t.shape === 'CIRCLE' ? (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={Math.min(Number(t.widthMm), Number(t.heightMm)) / 2}
-                        fill={fill}
-                        stroke={isSelected ? 'var(--foreground)' : stroke}
-                        strokeWidth={isSelected ? 70 : 35}
-                      />
-                    ) : (
-                      <rect
-                        x={t.xMm}
-                        y={t.yMm}
-                        width={t.widthMm}
-                        height={t.heightMm}
-                        rx={80}
-                        fill={fill}
-                        stroke={isSelected ? 'var(--foreground)' : stroke}
-                        strokeWidth={isSelected ? 70 : 35}
-                      />
-                    )}
-                    <text
-                      x={cx}
-                      y={cy - 35}
-                      textAnchor="middle"
-                      fill="var(--foreground)"
-                      fontSize="250"
-                      fontWeight="700"
-                    >
-                      {t.label}
-                    </text>
-                    <text
-                      x={cx}
-                      y={cy + 185}
-                      textAnchor="middle"
-                      fill="var(--muted-foreground)"
-                      fontSize="185"
-                      fontWeight="500"
-                    >
-                      {stateShort}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-[12px] text-[var(--muted-foreground)] px-1">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-success-fg)]" /> {tr("Kosong", "Available")}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-info-fg)]" /> {tr("Terisi Tamu", "Occupied")}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-warning-fg)]" /> {tr("Perlu Dibersihkan", "Needs cleaning")}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-danger-fg)]" /> {tr("Nonaktif", "Inactive")}
-            </span>
-          </div>
+          <FloorMap room={{ ...currentRoom, polygonJson: editMode ? polygon : currentRoom?.polygonJson }} tables={displayTables} waitlistEntries={waitlistEntries} selectedTableId={selectedTable?.id} onSelect={setSelectedTableId} />
         </div>
 
         {/* Right Column: Clean Selected Table Controls & Status List (No heavy nested cards) */}

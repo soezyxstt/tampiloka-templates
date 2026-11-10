@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /**
  * Executable customer/staff visit acceptance tests for the static public demos.
  *
@@ -51,12 +52,13 @@ function pass(name, detail = {}) {
 }
 async function ready(page) {
   await page.waitForFunction(() => {
-    const reset = document.querySelector('button[aria-label="Ulangi demo"]');
+    const reset = document.querySelector('button[aria-label="Opsi demo"]');
     return (reset && !reset.disabled) || document.querySelector('.demo-loading[role="alert"]');
   }, null, { timeout });
   const error = page.locator('.demo-loading[role="alert"]');
   if (await error.count()) throw new Error(`Demo failed to initialize: ${await error.innerText()}`);
   await page.evaluate(() => document.fonts.ready);
+  await enterTableMenu(page);
   const entry = await page.evaluate(() => {
     const script = document.querySelector('script[type="module"][src]');
     return script ? new URL(script.src).pathname : null;
@@ -104,9 +106,7 @@ async function poll(page, predicate, label) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 async function staffLogin(page) {
-  if (await page.getByRole('heading', { name: 'Ruang operasional', exact: true }).count()) {
-    await page.getByRole('button', { name: /Raka Pratama/ }).click();
-  }
+  await chooseDemoStaff(page);
   await page.getByRole('navigation', { name: 'Navigasi operasional kafe' }).waitFor();
 }
 async function refreshStaff(page) {
@@ -185,8 +185,9 @@ async function orderFromCustomer(customer, staff, fixture, itemId, expectedOrder
 }
 async function accept(staff, customerName, requestId) {
   await section(staff, /^Kasir & Pesanan|^Pesanan masuk/);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   await refreshStaff(staff);
-  const row = staff.locator('#incoming-orders .divide-y > div').filter({ hasText: customerName });
+  const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: customerName });
   await row.getByRole('button', { name: 'Terima', exact: true }).click();
   const accepted = await poll(staff, data => data.orderRequests.find(request => request.id === requestId && request.state === 'ACCEPTED'), 'accepted request');
   const order = accepted.snapshot.orders.find(order => order.id === accepted.value.acceptedOrderId);
@@ -213,18 +214,21 @@ async function customerPayment(customer, billId) {
 async function createQr(customer, billId) {
   await customerPayment(customer, billId);
   await customer.getByRole('button', { name: 'Buat QRIS', exact: true }).click();
-  await customer.getByAltText('Kode QR demo, tidak dapat dibayar', { exact: true }).waitFor();
+  await customer.getByAltText('Kode QR tidak dapat dibayar', { exact: true }).waitFor();
   const pending = await poll(customer, data => data.bills.find(bill => bill.id === billId)?.attempts.find(attempt => attempt.status === 'PENDING'), 'pending QR');
   return pending.value;
 }
 async function simulateQr(staff, customerName, attemptId, action) {
   await section(staff, /^Kasir & Pesanan|^Pesanan masuk/);
   await refreshStaff(staff);
+  await openDemoOptions(staff);
   const row = staff.getByRole('region', { name: 'Simulasi pembayaran', exact: true }).locator('.divide-y > div').filter({ hasText: customerName });
   await row.getByRole('button', { name: action === 'CANCEL' ? 'Batalkan' : action === 'EXPIRE' ? 'Kedaluwarsa' : 'Simulasikan lunas', exact: true }).click();
   await poll(staff, data => data.bills.some(bill => bill.attempts.some(attempt => attempt.id === attemptId && !['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status))), `QR ${action}`);
+  await staff.keyboard.press('Escape');
 }
 async function ensureCashShift(staff) {
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   const data = await snapshot(staff);
   if (data.cashShifts.some(shift => shift.state === 'OPEN')) return;
   const region = staff.getByRole('region', { name: 'Shift kasir', exact: true });
@@ -235,10 +239,12 @@ async function ensureCashShift(staff) {
 }
 async function selectBill(staff, billId, name, paid = false) {
   await section(staff, /^Kasir & Pesanan/);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   await refreshStaff(staff);
   await staff.getByLabel('Cari tagihan berdasarkan meja atau pelanggan', { exact: true }).fill(name);
   await staff.getByRole('group', { name: 'Filter pembayaran tagihan', exact: true }).getByRole('button', { name: paid ? 'Semua' : 'Belum lunas', exact: true }).click();
   await staff.locator(`button[data-bill-id="${billId}"]`).click();
+  await staff.locator('[data-ui="bill-items"] > summary').click();
 }
 async function cash(staff, billId, customerName, amount, tender = amount) {
   await selectBill(staff, billId, customerName);
@@ -269,7 +275,7 @@ async function kitchen(staff, orderId, terminal = 'DELIVERED') {
   for (const unit of units) {
     const card = staff.locator(`[data-unit-id="${unit.id}"]`);
     for (const [status, label] of [['PREPARING', 'Mulai siapkan'], ['READY', 'Siap diantar'], [terminal, terminal === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan']]) {
-      await card.getByRole('button', { name: label, exact: true }).click();
+      await card.getByRole('button', { name: new RegExp('^' + label + ':') }).click();
       await poll(staff, data => data.orderUnits.find(current => current.id === unit.id)?.fulfillmentStatus === status, `${unit.id} ${status}`);
     }
   }
@@ -278,10 +284,22 @@ async function departureReview(staff, visit, expectedAllowed) {
   const floorNav = staff.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true }).getByRole('button', { name: /^Meja & Antrean/ });
   if (await floorNav.count()) {
     await floorNav.click();
-    await staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true }).getByRole('button', { name: 'Denah & Kunjungan Meja', exact: true }).click();
+    await staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true }).getByRole('button', { name: 'Kunjungan aktif', exact: true }).click();
   }
-  else await section(staff, /^Kasir & Pesanan|^Pesanan masuk/);
+  else { await section(staff, /^Kasir & Pesanan|^Pesanan masuk/); await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Kunjungan aktif/ }).click(); }
   await refreshStaff(staff);
+  const area = staff.getByRole('combobox', { name: 'Area kunjungan', exact: true });
+  if (await area.count()) {
+    const current = (await snapshot(staff)).visits.find(entry => entry.id === visit.id) || visit;
+    const table = (await snapshot(staff)).tables.find(entry => entry.id === current.primaryTableId);
+    if (table) {
+      await area.selectOption(table.roomId);
+      await staff.locator(`svg [data-table-id="${table.id}"]`).click();
+    } else {
+      const other = staff.locator('details').filter({ has: staff.locator(`[data-visit-id="${visit.id}"]`) });
+      if (await other.count() && !(await other.getAttribute('open') !== null)) await other.locator('summary').click();
+    }
+  }
   const card = staff.getByRole('article', { name: `Kunjungan ${visit.customerName}`, exact: true });
   await card.getByRole('button', { name: visit.mode === 'TAKEAWAY' ? 'Selesaikan pengambilan' : 'Tinjau kepulangan', exact: true }).click();
   const dialog = staff.getByRole('dialog', { name: 'Selesaikan kunjungan', exact: true });
@@ -307,9 +325,16 @@ async function closeAndClean(staff, visit, table) {
   if (!table) return closed.value;
   assert.equal(closed.value.tables.find(entry => entry.id === table.id).physicalState, 'NEEDS_CLEANING');
   assert.ok(closed.value.visits.find(entry => entry.id === visit.id).departedAt);
-  await staff.getByRole('button', { name: new RegExp(`^Meja ${table.label} ·`) }).click();
-  await staff.getByRole('button', { name: 'Tandai Bersih & Siap Pakai', exact: true }).click();
+  const mapTable = staff.locator(`svg [data-table-id="${table.id}"]`);
+  await mapTable.click();
+  assert.equal(await mapTable.getAttribute('data-state'), 'dirty');
+  assert.equal(await staff.getByRole('button', { name: 'Tempatkan tamu di sini', exact: true }).count(), 0, 'A dirty table cannot be seated.');
+  await geometry(staff, 'floor-guest-left-1024');
+  await staff.getByRole('button', { name: 'Tandai bersih & siap', exact: true }).click();
   await poll(staff, data => data.tables.find(entry => entry.id === table.id)?.physicalState === 'AVAILABLE', 'clean available table');
+  await staff.getByRole('button', { name: 'Tempatkan tamu di sini', exact: true }).waitFor();
+  assert.equal(await mapTable.getAttribute('data-state'), 'ready');
+  await geometry(staff, 'floor-clean-ready-1024');
   return closed.value;
 }
 
@@ -387,7 +412,8 @@ async function payLaterJourney(context) {
   await customer.getByRole('button', { name: 'Kirim permintaan', exact: true }).click();
   const service = await poll(staff, data => data.serviceRequests.find(request => request.visitId === visit.id && request.state === 'OPEN'), 'customer service request');
   await assertBlocked(staff, visit, 'unresolvedServiceCount');
-  await staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true }).getByRole('button', { name: /^Panggilan & Antrean/ }).click();
+  await staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true }).getByRole('button', { name: /^Panggilan pelayan/ }).click();
+  assert.equal(await staff.locator('[data-waitlist-id]').count(), 0, 'Guest requests have their own task view.');
   const serviceRow = staff.locator(`[data-service-request-id="${service.value.id}"]`);
   await serviceRow.getByText('Alat makan', { exact: true }).waitFor();
   await serviceRow.getByRole('button', { name: 'Tangani', exact: true }).click();
@@ -440,8 +466,9 @@ async function rejectionJourney(context) {
   await open(customer, qrUrl(table));
   const request = await orderFromCustomer(customer, staff, fixture, fixture.itemId);
   await section(staff, /^Kasir & Pesanan/);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   await refreshStaff(staff);
-  const row = staff.locator('#incoming-orders .divide-y > div').filter({ hasText: fixture.name });
+  const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: fixture.name });
   await row.getByRole('button', { name: 'Tolak', exact: true }).click();
   const rejection = staff.getByRole('dialog', { name: 'Tolak pesanan', exact: true });
   await rejection.getByLabel('Alasan penolakan', { exact: true }).fill('Pilihan menu perlu diganti sesuai permintaan pelanggan.');
@@ -605,9 +632,11 @@ async function externalCounterJourney(context, preset = 'order-at-cashier') {
   const visit = sale.snapshot.visits.find(visit => visit.id === sale.order.visitId);
   assert.ok(sale.bill.balanceIdr > 0);
   await orderPaymentLabel(customer, sale.order.id, 'Belum Dibayar');
-  await staff.locator(`[data-order-id="${sale.order.id}"]`).getByRole('button', { name: 'Tandai selesai', exact: true }).click();
+  await staff.locator(`[data-order-id="${sale.order.id}"]`).getByRole('button', { name: 'Sudah disajikan', exact: true }).click();
   await poll(staff, data => data.orderUnits.filter(unit => unit.orderId === sale.order.id).every(unit => unit.fulfillmentStatus === 'DELIVERED'), 'simple order fulfillment');
   await assertBlocked(staff, visit, 'outstandingBalanceIdr');
+  await section(staff, /^Pesanan masuk/);
+  await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   const counter = staff.getByRole('region', { name: 'Pembayaran kasir eksternal', exact: true });
   await counter.locator(`[data-bill-id="${sale.bill.id}"]`).getByRole('button', { name: 'Konfirmasi pembayaran kasir', exact: true }).click();
   const dialog = staff.getByRole('dialog', { name: 'Konfirmasi pembayaran kasir', exact: true });
@@ -656,22 +685,37 @@ async function waitlistJourney(context) {
   await section(staff, /^Meja & Antrean/);
   await refreshStaff(staff);
   const floorTabs = staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true });
-  await floorTabs.getByRole('button', { name: /^Panggilan & Antrean/ }).click();
+  await floorTabs.getByRole('button', { name: /^Antrean tamu/ }).click();
+  assert.equal(await staff.locator('[data-service-request-id]').count(), 0, 'The waitlist excludes unrelated service requests.');
   const staffTicket = staff.locator(`[data-waitlist-id="${joined.value.id}"]`);
   await staffTicket.getByLabel(`Meja untuk ${name}`, { exact: true }).selectOption(table.id);
   await staffTicket.getByRole('button', { name: 'Panggil tamu', exact: true }).click();
   await poll(staff, data => data.waitlistEntries.find(entry => entry.id === joined.value.id)?.status === 'CALLED', 'staff calls waiting guest');
   await customer.getByRole('button', { name: 'Perbarui antrean', exact: true }).click();
   await customerTicket.getByText('Dipanggil', { exact: true }).waitFor();
-  await floorTabs.getByRole('button', { name: 'Denah & Kunjungan Meja', exact: true }).click();
+  await floorTabs.getByRole('button', { name: 'Kunjungan aktif', exact: true }).click();
+  await staff.locator(`svg [data-table-id="${table.id}"]`).focus();
+  await staff.keyboard.press('Enter');
+  const heldTable = staff.locator(`svg [data-table-id="${table.id}"]`);
+  assert.equal(await heldTable.getAttribute('data-state'), 'held');
+  assert.equal(await heldTable.getAttribute('aria-pressed'), 'true');
+  assert.equal(await heldTable.locator('[data-chair]').count(), table.capacity, 'The map draws the configured number of chairs.');
+  assert.equal(await staff.getByRole('button', { name: 'Tempatkan tamu di sini', exact: true }).count(), 0);
+  await geometry(staff, 'floor-waitlist-held-1024');
   await staff.getByRole('button', { name: 'Tempatkan tamu', exact: true }).click();
   const seating = staff.getByRole('dialog', { name: 'Tempatkan tamu', exact: true });
   assert.equal(await seating.getByLabel('Meja untuk tamu', { exact: true }).locator(`option[value="${table.id}"]`).count(), 0, 'A held waitlist table is unavailable to a different walk-in guest.');
   await seating.getByRole('button', { name: 'Kembali', exact: true }).click();
-  await floorTabs.getByRole('button', { name: /^Panggilan & Antrean/ }).click();
+  await floorTabs.getByRole('button', { name: /^Antrean tamu/ }).click();
+  assert.equal(await staff.locator('[data-service-request-id]').count(), 0, 'The waitlist excludes unrelated service requests.');
   await staffTicket.getByRole('button', { name: 'Tempatkan di meja', exact: true }).click();
   const seated = await poll(staff, data => data.visits.find(visit => visit.customerName === name && visit.status === 'OPEN'), 'waitlisted guest seated');
   assert.equal(seated.value.primaryTableId, table.id);
+  await floorTabs.getByRole('button', { name: 'Kunjungan aktif', exact: true }).click();
+  await staff.locator(`svg [data-table-id="${table.id}"]`).click();
+  assert.equal(await heldTable.getAttribute('data-state'), 'occupied');
+  await staff.getByRole('article', { name: `Kunjungan ${name}`, exact: true }).waitFor();
+  await geometry(staff, 'floor-seated-1024');
   await customer.getByRole('button', { name: 'Perbarui antrean', exact: true }).click();
   await customerTicket.getByText('Sudah Duduk', { exact: true }).waitFor();
   await customer.reload({ waitUntil: 'domcontentloaded' });
@@ -733,13 +777,14 @@ function assertScenarioState(scenarioId, data) {
 }
 async function scenarioPicker(context) {
   const { staff } = await setupPages(context);
+  await openDemoOptions(staff);
   const picker = staff.getByLabel('Skenario uji', { exact: true });
   await staff.getByText('Data untuk mencoba alur operasional', { exact: true }).click();
   await picker.waitFor();
   const options = await picker.locator('option').evaluateAll(options => options.map(option => option.value).filter(Boolean));
   assert.deepEqual([...options].sort(), DEMO_SCENARIOS.map(scenario => scenario.id).sort(), 'Full demo offers every declared deterministic scenario.');
   for (const scenarioId of options) {
-    if (!await picker.isVisible()) await staff.getByText('Data untuk mencoba alur operasional', { exact: true }).click();
+    if (!await picker.isVisible()) { await openDemoOptions(staff); await staff.getByText('Data untuk mencoba alur operasional', { exact: true }).click(); }
     await picker.selectOption(scenarioId);
     await snapshot(staff);
     staff.once('dialog', dialog => dialog.accept());

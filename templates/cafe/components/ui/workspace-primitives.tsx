@@ -16,7 +16,7 @@ export function InlineNotice({ children, tone='info', onDismiss, className }: { 
     {onDismiss && <Button size="icon" variant="ghost" aria-label="Tutup pemberitahuan" onClick={onDismiss}><X className="h-4 w-4" /></Button>}
   </div>;
 }
-export function Surface({ as:Tag='section', variant='ruled', className, ...props }: React.HTMLAttributes<HTMLElement> & { as?:'section'|'div'|'article'; variant?:'plain'|'ruled'|'panel' }) {
+export function Surface({ as:Tag='section', variant='ruled', className, ...props }: React.HTMLAttributes<HTMLElement> & { as?:'section'|'div'|'article'; variant?:'plain'|'ruled'|'panel'|'task' }) {
   return <Tag {...props} data-ui="surface" data-variant={variant} className={cn('ui-surface', className)} />;
 }
 export type StatItem = { id:string; label:string; value:React.ReactNode; onSelect?:()=>void; icon?:React.ComponentType<{ className?:string }> };
