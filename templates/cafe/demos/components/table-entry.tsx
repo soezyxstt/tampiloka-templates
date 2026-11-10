@@ -14,8 +14,7 @@ export function TableEntry({ tables, theme, staffId }: { tables: Table[]; theme:
   const { language, t } = useCafeLanguage();
   const available = useMemo(() => tables.filter(table => table.active !== false && table.qrToken && table.physicalState !== 'OUT_OF_SERVICE'), [tables]);
   const [tableId, setTableId] = useState(() => available[0]?.id || '');
-  const [qr, setQr] = useState('');
-  const [qrFailed, setQrFailed] = useState(false);
+  const [qrResult, setQrResult] = useState({ url: '', value: '', failed: false });
   const table = available.find(entry => entry.id === tableId) || available[0];
   const areaLabel = (area?: string) => language === 'en' ? ({ 'Ruang Utama (Indoor)': 'Main room (indoor)', 'Teras Kebun (Outdoor)': 'Garden terrace (outdoor)' } as Record<string, string>)[area || ''] || area : area;
   const tableUrl = useMemo(() => {
@@ -31,12 +30,12 @@ export function TableEntry({ tables, theme, staffId }: { tables: Table[]; theme:
 
   useEffect(() => {
     let active = true;
-    setQr('');
-    setQrFailed(false);
-    if (tableUrl) void QRCode.toDataURL(tableUrl, { width: 320, margin: 2 }).then(value => { if (active) setQr(value); }).catch(() => { if (active) setQrFailed(true); });
+    if (tableUrl) void QRCode.toDataURL(tableUrl, { width: 320, margin: 2 }).then(value => { if (active) setQrResult({ url: tableUrl, value, failed: false }); }).catch(() => { if (active) setQrResult({ url: tableUrl, value: '', failed: true }); });
     return () => { active = false; };
   }, [tableUrl]);
 
+  const qr = qrResult.url === tableUrl ? qrResult.value : '';
+  const qrFailed = qrResult.url === tableUrl && qrResult.failed;
   if (!table) return null;
   return <main className="demo-table-entry">
     <div className="demo-entry-layout">

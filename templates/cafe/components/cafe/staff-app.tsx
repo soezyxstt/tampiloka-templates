@@ -371,9 +371,12 @@ export function StaffApp({
       mfaEnabled: true,
     };
 
-  // A controlled identity change comes from the demo toolbar; a local sign-in
-  // or account switch follows the same role-specific starting point.
-  useEffect(() => {
+  // Reset role-owned UI before rendering the new identity, without an effect
+  // that first commits the previous role's workspace.
+  const identityKey = `${activeStaff}:${currentStaffObj.role}`;
+  const [workspaceIdentity, setWorkspaceIdentity] = useState('');
+  if (workspaceIdentity !== identityKey) {
+    setWorkspaceIdentity(identityKey);
     const role = currentStaffObj.role;
     const preferred: StaffSection = role === 'OWNER' && sectionEnabled('laporan') ? 'laporan' : role === 'BAR' || role === 'KITCHEN' ? 'dapur' : role === 'WAITER' ? 'meja' : 'kasir';
     const roleSections: StaffSection[] = role === 'BAR' || role === 'KITCHEN'
@@ -394,8 +397,7 @@ export function StaffApp({
     setNewPromoModalOpen(false);
     setShowSplitMergePanel(false);
     setSelectedUnitIdsForSplit([]);
-  // Refreshes of the same snapshot must not reset work.
-  }, [activeStaff, currentStaffObj.role]);
+  }
 
   const runStaffCommand = async (action: string, payload: Record<string, any>) => {
     setActionError('');

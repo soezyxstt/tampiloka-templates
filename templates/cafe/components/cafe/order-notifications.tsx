@@ -22,9 +22,11 @@ export function OrderNotifications({ snapshot, active = true }: { snapshot?: Ord
   const notifyRef = useRef<(order: NewOrderNotice) => void>(() => {});
   const hiddenOrders = useRef<NewOrderNotice[]>([]);
   const nextSoundAt = useRef(0);
-  activeRef.current = active;
-  languageRef.current = language;
-  soundRef.current = sound;
+  useEffect(() => {
+    activeRef.current = active;
+    languageRef.current = language;
+    soundRef.current = sound;
+  }, [active, language, sound]);
 
   const play = useCallback(() => {
     const context = contextRef.current;
@@ -62,13 +64,17 @@ export function OrderNotifications({ snapshot, active = true }: { snapshot?: Ord
     if (!Audio) { setSound('unavailable'); return; }
     try {
       // Construct and resume synchronously inside the click handler, before any await.
-      const context = contextRef.current || new Audio();
-      contextRef.current = context;
+      let context = contextRef.current;
+      if (!context) {
+        const created = new Audio();
+        created.addEventListener('statechange', () => {
+          if (armed.current && contextRef.current === created) setSound(created.state === 'running' ? 'on' : 'paused');
+        });
+        context = created;
+        contextRef.current = created;
+      }
       nextSoundAt.current = context.currentTime;
       armed.current = true;
-      context.onstatechange = () => {
-        if (armed.current && contextRef.current === context) setSound(context.state === 'running' ? 'on' : 'paused');
-      };
       soundRef.current = 'enabling';
       setSound('enabling');
       const resumed = context.resume();

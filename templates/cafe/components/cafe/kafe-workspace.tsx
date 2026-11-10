@@ -22,7 +22,8 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   const [connectionError, setConnectionError] = useState('');
   const [paymentToolsOpen, setPaymentToolsOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('');
-  const context = useRef<CustomerContext>({ tableId: initialTableId || initialSnapshot?.tables?.[0]?.id || '', principalId: '' });
+  const [customerTableId, setCustomerTableId] = useState(initialTableId || initialSnapshot?.tables?.[0]?.id || '');
+  const context = useRef<CustomerContext>({ tableId: customerTableId, principalId: '' });
   const commandPending = useRef(false);
   const latestRequest = useRef(0);
   const staticCatalog = initialSnapshot?.runtime?.mode === 'catalog';
@@ -59,6 +60,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
   const onContextChange = useCallback((tableId: string, principalId: string) => {
     if (context.current.tableId === tableId && context.current.principalId === principalId) return;
     context.current = { tableId, principalId };
+    setCustomerTableId(tableId);
     if (!commandPending.current) void loadSnapshot('pelanggan', true);
   }, [loadSnapshot]);
 
@@ -111,7 +113,7 @@ export function KafeWorkspace({ initialSnapshot, initialView = 'pelanggan', init
 
   const localDemoNavigation = snapshot?.runtime?.demo && snapshot?.runtime?.mode !== 'browser-demo' && !demoStaffId;
   const venuePath = `${encodeURIComponent(cafeConfig.venue.tenantSlug)}/${encodeURIComponent(cafeConfig.venue.outletSlug)}`;
-  const tableToken = snapshot?.tables?.find((table: any) => table.id === context.current.tableId)?.qrToken || snapshot?.tables?.[0]?.qrToken;
+  const tableToken = snapshot?.tables?.find((table: any) => table.id === customerTableId)?.qrToken || snapshot?.tables?.[0]?.qrToken;
   const localeQuery = new URLSearchParams({ lang: language }).toString();
   const customerHref = `${tableToken ? `/t/${venuePath}/m/${encodeURIComponent(tableToken)}` : '/'}?${localeQuery}`;
   const staffHref = `/staff/${venuePath}?${localeQuery}`;

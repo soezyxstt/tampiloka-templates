@@ -31,10 +31,12 @@ export function DemoTools({ snapshot, resetting, onReset, canUseScenarios }: { s
     }
   }, []);
 
-  useEffect(() => {
-    if (open && canSimulatePayments) void refreshPayments();
-    return () => { paymentRequest.current += 1; };
-  }, [open, canSimulatePayments, refreshPayments]);
+  useEffect(() => () => { paymentRequest.current += 1; }, []);
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    if (next && canSimulatePayments) void refreshPayments();
+    else paymentRequest.current += 1;
+  };
 
   const simulatePayment = async (command: string, payload: Record<string, unknown>) => {
     const runtime = await import('../../src/demo-runtime/index');
@@ -58,7 +60,7 @@ export function DemoTools({ snapshot, resetting, onReset, canUseScenarios }: { s
     link.href = target.href;
   };
 
-  return <Dialog open={open} onOpenChange={setOpen}>
+  return <Dialog open={open} onOpenChange={changeOpen}>
     <DialogTrigger asChild><button type="button" disabled={!snapshot} aria-label={t('Opsi demo', 'Demo options')} title={t('Opsi demo', 'Demo options')}><SlidersHorizontal size={16} aria-hidden="true" /></button></DialogTrigger>
     <DialogContent className="demo-tools-dialog" aria-describedby={undefined}>
       <div className="demo-tools-header">
