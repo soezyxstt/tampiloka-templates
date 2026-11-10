@@ -28,3 +28,15 @@ Penyimpanan masih memakai proyeksi keseluruhan state; indeks/paginasi untuk beba
 - [Pemetaan KF01–38 dan AT01–40](docs/requirements.md), [catatan verifikasi](docs/verification.md), dan [spesifikasi sumber](docs/spec/Spesifikasi_Operasional_Multilokasi.md).
 
 Referensi gambar dalam salinan spesifikasi mengarah ke ZIP sumber. Periksa keputusan V01–V12 sebelum pilot. Deployment dan katalog publik memerlukan bukti tersendiri menurut AGENTS.md; tidak ada deployment atau publikasi pada pekerjaan ini.
+
+## Tingkatan CLI Operations
+
+Generator menyediakan tingkatan berikut, terpisah dari preset usaha dan tema:
+
+- `inventory` — **Stok saja** (default): persediaan multilokasi, pengiriman, penerimaan dan opname; harga dan transaksi kasir dinonaktifkan.
+- `retail` — **Stok + harga + kasir**: fitur stok, pengaturan harga, transaksi penjualan dan pembayaran; promosi dan profil pajak tambahan dinonaktifkan.
+- `full` — opsi lengkap yang tetap didukung: stok, harga, kasir, promosi dan profil pajak.
+
+Saat Operations tersedia, wizard akan meminta tingkatan dan tema. Untuk otomatisasi, gunakan `--template operations --level inventory` atau `--template operations --level retail`; tanpa `--level` memakai `inventory`. ID level lama tetap berlaku.
+
+Operations masih `planned`; `create` publik tetap ditolak sampai verifikasi standalone dan rilis selesai. Pilihan ini diuji melalui fixture generator internal, bukan bukti ketersediaan CLI publik. Demo tetap memakai mode lengkap secara default agar semua fitur dapat ditinjau.

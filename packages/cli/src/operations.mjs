@@ -12,7 +12,7 @@ function choice(value, allowed, name) {
   if (!allowed.includes(value)) throw new Error(`${name} tidak dikenal: ${value}. Pilih ${allowed.join(', ')}.`);
 }
 export function validateOperations(options) {
-  options.level ??= 'full'; options.theme ??= 'sand';
+  options.level ??= 'inventory'; options.theme ??= 'sand';
   choice(options.preset, presets, 'Preset operations');
   choice(options.level, levels, 'Level operations');
   choice(options.theme, themes, 'Tema operations');

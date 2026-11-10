@@ -351,23 +351,23 @@
       },
       "levels": {
         "inventory": {
-          "name": "Inventory",
-          "description": "Persediaan multilokasi.",
+          "name": "Stok saja",
+          "description": "Stok saja: persediaan multilokasi, pengiriman, penerimaan dan opname.",
           "capabilities": [
             "inventory"
           ]
         },
         "retail": {
-          "name": "Retail",
-          "description": "Persediaan dan kasir.",
+          "name": "Stok + harga + kasir",
+          "description": "Stok + harga + kasir: pengaturan harga, penjualan dan pembayaran.",
           "capabilities": [
             "inventory",
             "sales"
           ]
         },
         "full": {
-          "name": "Full",
-          "description": "Operasional lengkap.",
+          "name": "Operasional lengkap",
+          "description": "Stok + harga + kasir, ditambah promosi dan pengaturan pajak.",
           "capabilities": [
             "inventory",
             "sales",
@@ -378,7 +378,7 @@
         }
       },
       "defaultPreset": "food",
-      "defaultLevel": "full"
+      "defaultLevel": "inventory"
     }
   ]
 }

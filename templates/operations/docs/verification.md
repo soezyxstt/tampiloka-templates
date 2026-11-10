@@ -163,3 +163,15 @@ Ditemukan dan diperbaiki saat menjalankan browser: kurung JSX penutup yang hilan
 Setelah perbaikan: runner satu proses `node --max-old-space-size=64 --experimental-transform-types templates/operations/tests/run.mjs` lulus 76/76 (suite terbaru sudah memuat perubahan lain sejak checkpoint 69); `node --max-old-space-size=64 scripts/check-design-tokens.mjs --summary` menghasilkan 0 temuan; `git diff --check` lulus. Artifak sesi: `/home/codespace/.t3/scratch/operations-review-2026-11-10/` berisi manifest, galeri dan 29 PNG/ZIP.
 
 Ini smoke test browser dan satu alur transaksi nyata lokal, bukan kelulusan AT01–40. Retur/refund, seluruh varian opname, impor, konflik jaringan/konkurensi, akses lintas usaha, backup R2/restore produksi, reduced-motion dan semua kombinasi tema/mode/peran belum diuji menyeluruh. Family tetap planned dan belum dideploy.
+
+## CLI level selection — 2026-11-10
+
+Working-tree follow-up to `2d68107`: Operations wizard now offers `inventory` (Stok saja, default), `retail` (Stok + harga + kasir) and the existing `full` level. Preset/theme remain independent. Registry and manifest defaults match; demo default remains full. No availability or public catalog promotion.
+
+- `pnpm test:cli`: 35 passed, including generated configurations for the default and all three levels, empty demo balances/prices, project metadata and the public planned-family gate.
+- Interactive PTY dry-run with an available-only test fixture: selecting option 2 and the default theme produced `operations / food / retail`; no Cafe theme or unsupported WhatsApp prompt appeared.
+- `node scripts/check-docs-consistency.mjs`: passed.
+- `pnpm catalog:test`: 5 passed.
+- `git diff --check`: passed.
+- `pnpm test:registry`: 19 passed; registry schema suite blocked by missing local `ajv` dependency.
+- No runtime UI or domain logic changed. Browser/build/standalone release gates for the complete PR remain outstanding; this follow-up does not make the draft ready for review or Operations publicly available.

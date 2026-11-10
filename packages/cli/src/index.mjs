@@ -25,7 +25,8 @@ Usage:
 Pilihan create:
   --template <id>  cafe, commerce, school, atau booking
   --preset <id>    commerce: susunan; cafe: paket; booking: medical, aesthetic, detailing, consulting
-  --level <id>     commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
+  --level <id>     operations: inventory (stok saja), retail (stok + harga + kasir), full
+                  commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
   --modules catalog Cafe: menu publik hanya-baca tanpa database
   --features <ids> commerce: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers; none atau all
   --layout <id>    commerce: editorial, market, atelier, compact; booking: appointment-first, editorial, service-market, minimal-professional
@@ -115,6 +116,9 @@ async function interactive(options, registry) {
       if(!result.card)result.card=await choose('Kartu produk',[['open','Tanpa bingkai'],['framed','Garis tepi'],['soft','Permukaan lembut']],template.presets[result.preset].card);
       if(!result.button)result.button=await choose('Tombol utama',[['solid','Warna isi'],['outline','Garis tepi']],template.presets[result.preset].button);
       if(!result.features)result.features=(await prompt.question('Modul tambahan (pisahkan koma; Enter memakai bawaan level): ')).trim()||undefined;
+    } else if(template.id==='operations'){
+      if(!result.level)result.level=await choose('Tingkatan Operations',Object.entries(template.levels).map(([id,item])=>[id,item.description]),template.defaultLevel);
+      if(!result.theme)result.theme=await choose('Tema Operations',[['sand','Netral hangat'],['forest','Hijau'],['ink','Monokrom']],'sand');
     } else if(template.id==='school'){
       if(!result.level)result.level=await choose('Level school',Object.entries(registry.schoolLevels).map(([id,v])=>[id,v.description]),'profile');
       if(!result.layout)result.layout=await choose('Layout school',registry.schoolLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
@@ -126,7 +130,7 @@ async function interactive(options, registry) {
       if(!result.theme)result.theme=await choose('Palet contoh',registry.bookingPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
     } else if(!result.theme)result.theme=await choose('Tema cafe',[['boxy','Tegas'],['rounded','Sudut lembut'],['editorial','Tipografi editorial'],['playful','Garis dan bayangan kuat'],['airy','Ruang longgar']],'rounded');
     if(!result.name)result.name=(await prompt.question('Nama brand (Enter memakai nama proyek): ')).trim()||undefined;
-    if(!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
+    if(template.id!=='operations'&&!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
     return result;
   } finally {prompt.close();}
 }
@@ -338,7 +342,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}
   const shellDestination = "'" + destination.replaceAll("'", "'\"'\"'") + "'";
-  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?`npm ci\n  npm run ${options.modules?'dev':'demo'}`:template.id==='school'?'pnpm install\n  pnpm demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
+  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?`npm ci\n  npm run ${options.modules?'dev':'demo'}`:template.id==='school'?'pnpm install\n  pnpm demo':template.id==='operations'?'pnpm install\n  pnpm dev':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
   return result;
 }
 

@@ -6,7 +6,7 @@
   "status": "planned",
   "description": "Operasional persediaan, pengiriman dan kasir multilokasi.",
   "defaultPreset": "food",
-  "defaultLevel": "full",
+  "defaultLevel": "inventory",
   "presets": [
     "food",
     "retail",
