@@ -1,0 +1,28 @@
+{
+  "$schema": "../../packages/registry/template.schema.json",
+  "schemaVersion": 1,
+  "id": "operations",
+  "name": "Operations",
+  "status": "planned",
+  "description": "Operasional persediaan, pengiriman dan kasir multilokasi.",
+  "defaultPreset": "food",
+  "defaultLevel": "full",
+  "presets": [
+    "food",
+    "retail",
+    "supplies"
+  ],
+  "levels": [
+    "inventory",
+    "retail",
+    "full"
+  ],
+  "palettes": [
+    "sand",
+    "forest",
+    "ink"
+  ],
+  "sharedPackages": [
+    "ui-core"
+  ]
+}

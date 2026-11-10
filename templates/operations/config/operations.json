@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "business": {
+    "id": "operations-client",
+    "name": "Dapur Cimol",
+    "timezone": "Asia/Jakarta",
+    "currency": "IDR"
+  },
+  "preset": "food",
+  "mode": "full",
+  "theme": "sand",
+  "modules": {
+    "pos": true,
+    "commercial": true
+  },
+  "locations": [
+    {
+      "id": "warehouse",
+      "name": "Gudang Pusat Garut",
+      "kind": "warehouse",
+      "city": "Garut",
+      "active": true,
+      "allowNegativeSale": false
+    },
+    {
+      "id": "outlet-a",
+      "name": "Garut 1",
+      "kind": "outlet",
+      "city": "Garut",
+      "active": true,
+      "allowNegativeSale": true
+    },
+    {
+      "id": "outlet-b",
+      "name": "Garut 2",
+      "kind": "outlet",
+      "city": "Garut",
+      "active": true,
+      "allowNegativeSale": true
+    },
+    {
+      "id": "outlet-c",
+      "name": "Bandung 1",
+      "kind": "outlet",
+      "city": "Bandung",
+      "active": true,
+      "allowNegativeSale": true
+    },
+    {
+      "id": "outlet-d",
+      "name": "Bandung 2",
+      "kind": "outlet",
+      "city": "Bandung",
+      "active": true,
+      "allowNegativeSale": true
+    },
+    {
+      "id": "outlet-e",
+      "name": "Tasikmalaya 1",
+      "kind": "outlet",
+      "city": "Tasikmalaya",
+      "active": true,
+      "allowNegativeSale": true
+    }
+  ],
+  "products": [
+    {
+      "id": "cimol-ori",
+      "sku": "CIMOL-ORI",
+      "name": "Cimol Original",
+      "variant": "Original",
+      "baseUnit": "porsi",
+      "units": {
+        "porsi": 1,
+        "pak": 10
+      },
+      "fractional": false,
+      "active": true
+    },
+    {
+      "id": "cimol-pedas",
+      "sku": "CIMOL-PEDAS",
+      "name": "Cimol Pedas",
+      "variant": "Pedas",
+      "baseUnit": "porsi",
+      "units": {
+        "porsi": 1,
+        "pak": 10
+      },
+      "fractional": false,
+      "active": true
+    }
+  ],
+  "demo": {
+    "openingStock": [
+      {
+        "locationId": "warehouse",
+        "productId": "cimol-ori",
+        "quantity": 1000,
+        "condition": "sellable"
+      },
+      {
+        "locationId": "warehouse",
+        "productId": "cimol-pedas",
+        "quantity": 600,
+        "condition": "sellable"
+      }
+    ],
+    "prices": [
+      {
+        "productId": "cimol-ori",
+        "amount": 10000
+      },
+      {
+        "productId": "cimol-pedas",
+        "amount": 12000
+      }
+    ]
+  }
+}

@@ -328,6 +328,57 @@
       "defaultPreset": "medical",
       "defaultLevel": "booking",
       "demoUrl": "https://booking.tampiloka.site"
+    },
+    {
+      "id": "operations",
+      "name": "Operations",
+      "description": "Operasional persediaan, pengiriman dan kasir multilokasi.",
+      "status": "planned",
+      "directory": "templates/operations",
+      "presets": {
+        "food": {
+          "name": "Food",
+          "description": "Produk siap jual."
+        },
+        "retail": {
+          "name": "Retail",
+          "description": "Barang ritel."
+        },
+        "supplies": {
+          "name": "Supplies",
+          "description": "Perlengkapan usaha."
+        }
+      },
+      "levels": {
+        "inventory": {
+          "name": "Inventory",
+          "description": "Persediaan multilokasi.",
+          "capabilities": [
+            "inventory"
+          ]
+        },
+        "retail": {
+          "name": "Retail",
+          "description": "Persediaan dan kasir.",
+          "capabilities": [
+            "inventory",
+            "sales"
+          ]
+        },
+        "full": {
+          "name": "Full",
+          "description": "Operasional lengkap.",
+          "capabilities": [
+            "inventory",
+            "sales",
+            "promotions",
+            "taxes",
+            "reports"
+          ]
+        }
+      },
+      "defaultPreset": "food",
+      "defaultLevel": "full"
     }
   ]
 }

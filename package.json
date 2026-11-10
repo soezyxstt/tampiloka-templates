@@ -30,7 +30,9 @@
     "dev:booking": "pnpm --filter @tampiloka/template-booking dev",
     "build:booking": "pnpm --filter @tampiloka/template-booking build:demo",
     "test:booking": "pnpm --filter @tampiloka/template-booking test",
-    "test:booking:standalone": "node packages/cli/tests/booking-standalone.mjs"
+    "test:booking:standalone": "node packages/cli/tests/booking-standalone.mjs",
+    "dev:operations": "pnpm --filter @tampiloka/template-operations dev",
+    "test:operations": "pnpm --filter @tampiloka/template-operations test"
   },
   "devDependencies": {
     "turbo": "^2.5.6",

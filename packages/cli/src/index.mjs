@@ -1,4 +1,5 @@
 import {validateSchool,createSchool,doctorSchool} from './school.mjs';
+import {validateOperations,createOperations,doctorOperations} from './operations.mjs';
 import { readFile, writeFile, readdir, mkdir, lstat, realpath, rename, rm, rmdir, copyFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, basename, resolve, join, relative, sep } from 'node:path';
@@ -296,6 +297,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
     if(options.card)assertChoice(options.card,['open','framed','soft'],'Kartu');
     if(options.button)assertChoice(options.button,['solid','outline'],'Tombol');
     if(options.color)throw new Error('--color hanya untuk cafe. Untuk commerce ubah token brand di config dan CSS proyek.');
+  } else if(template.id==='operations'){validateOperations(options);
   } else if(template.id==='school'){validateSchool(options,registry);
   } else if(template.id==='booking'){
     options.level=options.level||template.defaultLevel;assertChoice(options.level,Object.keys(registry.bookingLevels),'Level');
@@ -325,7 +327,8 @@ export async function createProject(target,initial,sourceRoot,registry) {
       const run=spawnSync(process.execPath,args,{encoding:'utf8'});
       if(run.error)throw run.error;
       if(run.status!==0)throw new Error(run.stderr.trim()||'Pembuatan cafe gagal.');
-    }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
+    }else if(template.id==='operations')await createOperations(sourceRoot,temp,target,options,template,copyTree,normalizeDependencies);
+    else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
     await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(options.modules?{modules:[options.modules]}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
@@ -357,6 +360,7 @@ export async function doctor(options,sourceRoot,registry) {
     emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status)process.exitCode=child.status;return result;
   }
   if(template.id==='school'){const result=await doctorSchool(directory,registry);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
+  if(template.id==='operations'){const result=await doctorOperations(directory);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
   if(template.id==='booking'){
     const config=await json(join(directory,'config/booking.json')),pkg=await json(join(directory,'package.json')),wrangler=await json(join(directory,'wrangler.jsonc'));
     try{assertChoice(config.level,Object.keys(registry.bookingLevels),'Level');assertChoice(config.preset,Object.keys(registry.bookingPresets),'Preset');assertChoice(config.layout,registry.bookingLayouts,'Layout');assertChoice(config.palette,registry.bookingPalettes,'Palette');new Intl.DateTimeFormat('en',{timeZone:config.timezone});checks.push({name:'Konfigurasi booking',status:'pass',detail:`${config.preset} / ${config.level} / ${config.layout} / ${config.palette}`});}catch(e){checks.push({name:'Konfigurasi booking',status:'fail',detail:e.message});}
