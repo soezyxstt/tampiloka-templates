@@ -15,7 +15,7 @@ export function BackupStatusPanel(){
  return <Panel title={t('Cadangan terjadwal','Scheduled backups')} action={<Button variant="outline" disabled={loading} onClick={()=>setReload(v=>v+1)}>{t('Periksa status','Check status')}</Button>}>
   <div className="op-stack">
    {loading&&<Notice>{t('Memuat status cadangan…','Loading backup status…')}</Notice>}
-   {error&&<Notice kind="danger">{errorText(error)}</Notice>}
+   {error?<Notice kind="danger">{errorText(error)}</Notice>:typeof error==='number'||typeof error==='bigint'?error:null}
    {status&&<>
     <p>{status.enabled?t('Pencadangan otomatis aktif.','Automatic backups enabled.'):t('Pencadangan otomatis belum aktif.','Automatic backups are not enabled.')}</p>
     {status.outcome==='failed'&&<Notice kind="warning">{t('Percobaan cadangan atau pembersihan terakhir gagal. Periksa konfigurasi dan penyimpanan; cadangan berhasil sebelumnya tetap tercatat.','The latest backup or cleanup attempt failed. Check configuration and storage; the previous successful backup remains recorded.')} · {status.errorCode}</Notice>}
