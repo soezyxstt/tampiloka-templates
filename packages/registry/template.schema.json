@@ -16,6 +16,7 @@
     "levels": { "type": "array", "items": { "type": "string" } },
     "layouts": { "$ref": "#/$defs/axisIds" },
     "palettes": { "$ref": "#/$defs/axisIds" },
+    "storage": { "type": "object", "properties": { "databases": { "$ref": "#/$defs/axisIds" }, "objectStorage": { "$ref": "#/$defs/axisIds" } }, "required": ["databases", "objectStorage"], "additionalProperties": false },
     "sharedPackages": { "type": "array", "items": { "type": "string" } },
     "demoUrl": { "type": "string", "format": "uri" }
   },

@@ -32,7 +32,7 @@ pnpm install
 pnpm dev:commerce
 ```
 
-Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal selalu demo. Database SQLite lokal ada di `.data/commerce.sqlite`. Mode ini tidak memerlukan token.
+Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal mengikuti `DEMO_MODE` di `.dev.vars`; proyek hasil generator memulai dalam mode klien. Database SQLite lokal ada di `.data/commerce.sqlite`. Mode ini tidak memerlukan token.
 
 Untuk mencoba build produksi dengan API lokal:
 
@@ -71,7 +71,7 @@ Simpan nomor pesanan dan kode akses untuk melihat pesanan dari perangkat lain. K
 
 ## Deploy toko klien ke Cloudflare
 
-Jalankan dari folder proyek klien. Beri setiap toko database Turso sendiri. Ganti `nama-grup-libsql` dengan nama grup libSQL Anda. Pilih nama Worker dan domain toko di `wrangler.jsonc` dan gunakan `DEMO_MODE: "false"`.
+Contoh berikut untuk pilihan default Turso; untuk D1 atau PostgreSQL ikuti bagian Storage providers. Jalankan dari folder proyek klien. Beri setiap toko database Turso sendiri. Ganti `nama-grup-libsql` dengan nama grup libSQL Anda. Pilih nama Worker dan domain toko di `wrangler.jsonc` dan gunakan `DEMO_MODE: "false"`.
 
 ```sh
 turso db create nama-toko --group nama-grup-libsql --wait
@@ -133,4 +133,8 @@ Ini template satu merchant dengan pengalaman belanja dan ruang staf. `advanced` 
 
 Integrasi Midtrans tersedia di kode dan diuji dengan respons provider terkontrol. Transaksi nyata perlu pengujian sandbox dengan kredensial merchant sebelum toko menerima uang. Dokumentasi ini tidak mengklaim adanya transaksi merchant nyata yang telah diuji pada demo.
 
-Local API membaca variabel Worker yang didukung dari environment proses dan `.dev.vars`; nilai `.dev.vars` diprioritaskan. `DEMO_MODE` secara default `false` sesuai konfigurasi proyek klien. Database lokal selalu memakai SQLite lokal.
+### Storage providers
+
+Turso is the Worker default. Configure `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` as Worker secrets, then run `pnpm db:remote` with the same migration environment. Its migration ledger verifies schema and detects drift; adopt a restored database only after the cutover checks. For D1 select `DATABASE_PROVIDER=d1`, configure the client-owned `DB` binding, and run `pnpm db:remote`. PostgreSQL uses `DATABASE_PROVIDER=postgresql`, `DATABASE_URL`, and its separate migrations with `pnpm db:remote`. Coordinate migrations and verify hosted transport before production. `pnpm dev`, `pnpm preview`, and `pnpm db:local` use isolated local SQLite, independently of the deployed provider. Do not put secrets in command-line arguments.
+
+Staff can upload JPEG, PNG, or WebP images up to 5 MiB through `POST /api/staff/uploads` with the image as the request body and its MIME type in `Content-Type`. The response gives a scoped staff-only URL; authenticated staff can GET it, and owner or operations can DELETE it. Configure `OBJECT_STORAGE_PROVIDER=s3` with `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and optionally `S3_REGION` and `S3_PUBLIC_URL`; or set `OBJECT_STORAGE_PROVIDER=uploadthing` and `UPLOADTHING_TOKEN`. Keep credentials in Worker secrets. Deleting demo data does not remove objects from the provider; configure provider lifecycle cleanup for abandoned uploads.

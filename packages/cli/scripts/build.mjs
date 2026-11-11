@@ -7,7 +7,7 @@ const here=dirname(fileURLToPath(import.meta.url));
 const root=resolve(here,'../../..'),payload=resolve(here,'../payload');
 await rm(payload,{recursive:true,force:true});
 await mkdir(payload,{recursive:true});
-for(const name of ['registry','theme-engine','ui-core','shared-utils','config'])await copyTree(join(root,'packages',name),join(payload,'packages',name));
+for(const name of ['registry','theme-engine','ui-core','shared-utils','config','storage'])await copyTree(join(root,'packages',name),join(payload,'packages',name));
 const includedTemplates=templates.filter(template=>template.status==='available').map(template=>template.id);
 for(const name of includedTemplates){
   await copyTree(join(root,'templates',name),join(payload,'templates',name));

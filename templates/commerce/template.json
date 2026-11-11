@@ -7,8 +7,24 @@
   "description": "Katalog brand hingga toko dengan stok, pesanan, pembayaran, dan staf.",
   "defaultPreset": "editorial",
   "defaultLevel": "store",
-  "presets": ["editorial","market","atelier","compact"],
-  "levels": ["catalog","whatsapp","store","advanced"],
-  "sharedPackages": ["ui-core","theme-engine","shared-utils","config"],
+  "presets": [
+    "editorial",
+    "market",
+    "atelier",
+    "compact"
+  ],
+  "levels": [
+    "catalog",
+    "whatsapp",
+    "store",
+    "advanced"
+  ],
+  "sharedPackages": [
+    "ui-core",
+    "theme-engine",
+    "shared-utils",
+    "config",
+    "storage"
+  ],
   "demoUrl": "https://ecommerce.tampiloka.site"
 }

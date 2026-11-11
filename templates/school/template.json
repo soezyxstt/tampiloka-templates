@@ -30,6 +30,7 @@
   ],
   "sharedPackages": [
     "ui-core",
+    "storage",
     "shared-utils"
   ]
 }

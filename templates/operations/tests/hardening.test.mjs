@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import { pbkdf2Sync } from 'node:crypto';
 import { registerHooks } from 'node:module';
 import { fixture, openShift, sell, pid, outlet, approval } from './domain-support.mjs';
 import { assertIntegrity, validateJournal } from '../src/domain/core.ts';
@@ -142,6 +143,13 @@ test('Worker rate-limited login does not invoke PBKDF2',async()=>{
 test('password KDF uses three bounded native passes and explicit credential version',async()=>{
  const {passwordHash}=await import('../worker/password.ts');const iterations=[],original=crypto.subtle.deriveBits;crypto.subtle.deriveBits=async(params)=>{iterations.push(params.iterations);return new Uint8Array(32).buffer;};
  try{await passwordHash('test-only',new Uint8Array(16),100000,3);assert.deepEqual(iterations,[100000,100000,100000]);await assert.rejects(passwordHash('test-only',new Uint8Array(16),210000,1),code('CREDENTIAL_CONFIG'));}finally{crypto.subtle.deriveBits=original;}
+});
+test('password KDF preserves the bytes of a sliced salt across each pass',async()=>{
+ const {passwordHash}=await import('../worker/password.ts');
+ const salt=new Uint8Array([99,...Array.from({length:16},(_,i)=>i+1),77]).subarray(1,17);
+ let expected=Buffer.from('test-é');
+ for(let i=0;i<3;i++)expected=pbkdf2Sync(expected,salt,100000,32,'sha256');
+ assert.deepEqual(Buffer.from(await passwordHash('test-é',salt,100000,3)),expected);
 });
 test('return rounding reconciles every historical component after catalog and tax changes',()=>{
  const f=fixture(),shiftId=openShift(f);

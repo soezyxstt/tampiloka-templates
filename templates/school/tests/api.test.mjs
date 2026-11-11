@@ -129,6 +129,61 @@ test('upload sniffing rejects executable input and private materials require act
     assert.equal(denied.status, 403);
     db.raw.close();
 });
+test('explicit object providers never fall back to local media for private uploads', async () => {
+    const { db, env, client } = await setup();
+    const originalError = console.error;
+    try {
+        const c = client();
+        await c.call('/api/bootstrap', undefined, 'admin');
+        let writes = 0;
+        env.MEDIA = { async put() { writes++; }, async get() { return null; } };
+        const upload = () => handle(new Request('https://school.test/api/media', {
+            method: 'POST', headers: { Cookie: c.cookie, 'Content-Type': 'text/plain', 'X-School-Request': '1', 'X-Demo-Role': 'admin', Origin: 'https://school.test' }, body: 'private material',
+        }), env);
+        console.error = () => {};
+        for (const provider of ['s3', 'uploadthing', 'invalid']) {
+            env.OBJECT_STORAGE_PROVIDER = provider;
+            assert.equal((await upload()).status, 500, provider);
+            assert.equal(writes, 0, provider);
+        }
+        delete env.OBJECT_STORAGE_PROVIDER;
+        assert.equal((await upload()).status, 201);
+        assert.equal(writes, 1);
+    } finally { console.error = originalError; db.raw.close(); }
+});
+test('media uploads stop reading an oversized stream before storage', async () => {
+    const { db, env, client } = await setup();
+    try {
+        const c = client();
+        await c.call('/api/bootstrap', undefined, 'admin');
+        let stored = false, pulls = 0, cancelled = false;
+        env.MEDIA = { async put() { stored = true; }, async get() { return null; } };
+        const stream = new ReadableStream({
+            pull(controller) {
+                if (++pulls <= 10) controller.enqueue(new Uint8Array(1024 * 1024));
+                else controller.close();
+            },
+            cancel() { cancelled = true; },
+        });
+        const request = new Request('https://school.test/api/media', {
+            method: 'POST', headers: { Cookie: c.cookie, 'Content-Type': 'application/pdf', 'X-School-Request': '1', 'X-Demo-Role': 'admin', Origin: 'https://school.test' },
+            body: stream, duplex: 'half',
+        });
+        const result = await handle(request, env);
+        assert.equal(result.status, 413);
+        assert.equal(cancelled, true);
+        assert.ok(pulls < 10, `stream consumed ${pulls} chunks`);
+        assert.equal(stored, false);
+        const boundary = new Uint8Array(5000000);
+        boundary.set(new TextEncoder().encode('%PDF-'));
+        const accepted = await handle(new Request('https://school.test/api/media', {
+            method: 'POST', headers: { Cookie: c.cookie, 'Content-Type': 'application/pdf', 'X-School-Request': '1', 'X-Demo-Role': 'admin', Origin: 'https://school.test' },
+            body: boundary,
+        }), env);
+        assert.equal(accepted.status, 201);
+        assert.equal(stored, true);
+    } finally { db.raw.close(); }
+});
 test('payment callbacks reject forged signatures before contacting a provider', async () => {
     const { db, env } = await setup(false);
     env.CONFIG.payment = { provider: 'midtrans' };

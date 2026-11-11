@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { environment, client, create, orderInput, scopeFor } from './backend-harness.mjs';
-import worker, { cleanup } from '../worker/index.ts';
+import worker, { cleanup, handleRequest } from '../worker/index.ts';
 import { digest } from '../worker/security.ts';
 
 function fixture(t,overrides) { const env=environment(overrides);t.after(()=>env.DB.close());return {env,c:client(env)}; }
@@ -15,6 +15,27 @@ test('hosted Worker serves assets and rejects API calls if Turso secrets are mis
   const response = await worker.fetch(new Request('https://commerce.test/api/health'), env);
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error.code, 'DATABASE_NOT_CONFIGURED');
+});
+
+test('hosted provider selection ignores an unrelated DB binding and permits explicit D1', async t => {
+  const { env } = fixture(t);
+  for (const provider of [undefined, 'turso', 'postgresql']) {
+    const response = await worker.fetch(new Request('https://commerce.test/api/health'), { ...env, DATABASE_PROVIDER: provider });
+    assert.equal(response.status, 503, provider ?? 'default');
+  }
+  const response = await worker.fetch(new Request('https://commerce.test/api/health'), { ...env, DATABASE_PROVIDER: 'd1' });
+  assert.equal(response.status, 200);
+});
+
+test('provider failures do not put credentials or customer data in logs',async()=>{
+  const original=console.error, logs=[]; console.error=(...args)=>logs.push(args.join(' '));
+  try {
+    const DB={prepare(){return {bind(){return this;},async first(){throw new Error('postgres://user:secret@example.test/private customer-data');}};}};
+    const response=await handleRequest(new Request('https://store.test/api/health'),{DB});
+    assert.equal(response.status,500);
+    assert.equal(logs.length,1);
+    assert.doesNotMatch(logs[0],/secret|customer-data|postgres:/);
+  } finally { console.error=original; }
 });
 
 test('demo session is durable, HttpOnly, secure, isolated and cannot spoof a scope',async t=>{
@@ -371,4 +392,26 @@ test('returning demos adopt untouched photo sets once and keep staff edits and s
   setPhotos.run(stockShot, 'store', 'canvas-tote');
   await store.get('/api/bootstrap');
   assert.equal(db.prepare("SELECT images_json AS photos FROM products WHERE scope='store' AND id='canvas-tote'").get().photos, stockShot);
+});
+
+test('staff uploads enforce role and image validation before accessing storage', async t => {
+  const {env,c}=fixture(t);
+  await c.get('/api/bootstrap');
+  await c.post('/api/demo/role',{role:'viewer'});
+  const request = (type, bytes) => workerRequest(type, bytes);
+  async function workerRequest(type, bytes) {
+    const { default: worker } = await import('../worker/index.ts');
+    return worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':type},body:bytes}), { ...env, DATABASE_PROVIDER: 'd1' });
+  }
+  assert.equal((await request('image/png',new Uint8Array([1]))).status,403);
+  await c.post('/api/demo/role',{role:'operations'});
+  assert.equal((await request('text/html',new Uint8Array([1]))).status,422);
+  assert.equal((await request('image/png',new Uint8Array([1]))).status,422);
+  let pulls=0, cancelled=false;
+  const stream=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(1024*1024));},cancel(){cancelled=true;}});
+  const { default: worker } = await import('../worker/index.ts');
+  const oversized=await worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':'image/png'},body:stream,duplex:'half'}), { ...env, DATABASE_PROVIDER: 'd1' });
+  assert.equal(oversized.status,413);
+  assert.equal(cancelled,true);
+  assert.ok(pulls<10, `stream consumed ${pulls} chunks`);
 });

@@ -17,6 +17,19 @@ export interface Database {
 }
 export interface Env {
   DB: Database;
+  DATABASE_PROVIDER?: "d1" | "turso" | "postgresql";
+  OBJECT_STORAGE_PROVIDER?: "s3" | "uploadthing";
+  TURSO_DATABASE_URL?: string;
+  TURSO_AUTH_TOKEN?: string;
+  DATABASE_URL?: string;
+  S3_ENDPOINT?: string;
+  S3_BUCKET?: string;
+  S3_ACCESS_KEY_ID?: string;
+  S3_SECRET_ACCESS_KEY?: string;
+  S3_REGION?: string;
+  S3_PUBLIC_URL?: string;
+  UPLOADTHING_TOKEN?: string;
+  UPLOADTHING_API_URL?: string;
   ASSETS?: { fetch(request: Request): Promise<Response> };
   DEMO_MODE?: string;
   STAFF_OWNER_PASSWORD?: string;

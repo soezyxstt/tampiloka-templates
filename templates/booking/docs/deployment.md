@@ -2,7 +2,7 @@
 
 ## Client-owned Cloudflare deployment
 
-The generated Worker uses `DEMO_MODE=false`. Create a dedicated Turso database for the client. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the same URL and a read/write token for that database as Worker secrets. An organization token is unnecessary for SQL access. Use a separate migration token if the runtime token restricts schema changes.
+The generated Worker uses `DEMO_MODE=false`. The commands below use the default Turso provider; for D1 or PostgreSQL see [client setup](client-setup.md). Create a dedicated Turso database for the client. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the same URL and a read/write token for that database as Worker secrets. An organization token is unnecessary for SQL access. Use a separate migration token if the runtime token restricts schema changes.
 
 ```sh
 pnpm exec wrangler login
@@ -23,7 +23,7 @@ Scheduled cleanup runs every five minutes. It expires holds and sessions, reconc
 
 ## Public demonstration
 
-Use a dedicated Turso database for `wrangler.demo.jsonc`, which enables demo mode. The config pins the database URL. Store the database-scoped token in the GitHub Actions secret `TURSO_BOOKING_AUTH_TOKEN`. Run `pnpm db:migrate:remote` with the demo database credentials before deployment. The release workflow verifies the Turso schema before deploying the demo build with its runtime token. Keep live payment and notification credentials separate. Preview screenshots are real browser captures, not design mockups.
+Use a dedicated Turso database for `wrangler.demo.jsonc`, which enables demo mode. The config pins the database URL. Store the database-scoped token in the GitHub Actions secret `TURSO_BOOKING_AUTH_TOKEN`. Before deployment, run `pnpm db:migrate:remote` with `DATABASE_PROVIDER=turso` and the demo database URL and token explicitly set in the migration environment. The migration runner does not infer a database from `--demo`; confirm the URL matches `wrangler.demo.jsonc`. The release workflow verifies the Turso schema before deploying the demo build with its runtime token. Keep live payment and notification credentials separate. Preview screenshots are real browser captures, not design mockups.
 
 Before publishing the catalog entry, verify the deployed origin, isolated visitor sessions, every level, customer/staff switching, a simulated deposit, ticket validation, and the preview image URLs. Each preview must be a 1280×800 WebP. Keep catalog `ready` false until that gate passes. A successful local test is not a live-URL check.
 

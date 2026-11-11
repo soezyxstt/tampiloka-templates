@@ -178,4 +178,34 @@ Read [school setup and limits](templates/school/README.md). The standalone gener
 
 `booking` now has a server-backed implementation. Generate medical, aesthetic, detailing, or consulting projects independently from their Catalog / WhatsApp / Booking / Full level, layout and palette. Run `pnpm dev:booking` for the isolated public demonstration. See [`templates/booking/README.md`](templates/booking/README.md) for setup, architecture, verification and merchant-specific payment limitations. Public catalog readiness remains separate from template availability.
 
+### Database dan penyimpanan objek
+
+`create` menerima pilihan independen `--database turso|d1|postgresql` dan
+`--object-storage uploadthing|s3`. Bawaan Cafe adalah PostgreSQL, sedangkan
+Commerce, Booking, dan School memakai D1; penyimpanan objek bawaan adalah S3
+(termasuk layanan kompatibel seperti R2). Contoh:
+
+```sh
+tampiloka create toko --template commerce --database turso --object-storage s3 --yes
+```
+
+Pilihan disimpan di `config/storage.json`. Isi variabel server dan rahasia sesuai
+panduan proyek yang dihasilkan, siapkan resource milik klien, lalu jalankan migrasi
+untuk provider yang dipilih. `tampiloka doctor --dir toko` memeriksa konfigurasi dan
+keberadaan variabel pada environment proses; secret yang hanya tersimpan di platform
+deploy tidak dapat diverifikasi olehnya. Jangan memasukkan kredensial ke repositori.
+
+S3 menerima endpoint kompatibel, termasuk Neon dan Cloudflare R2. Gunakan bucket
+privat; UploadThing memerlukan izin override ACL agar upload dapat disimpan privat.
+Untuk Cafe, D1 memakai snapshot atomik dengan batas 1.500.000 byte per outlet dan
+memerlukan runtime Node dengan `node:sqlite`. Pemilihan storage tidak membuka gate
+autentikasi atau pembayaran live Cafe; lihat [batas runtime Cafe](templates/cafe/docs/runtime.md).
+
+Verifikasi storage dilakukan dengan tes Node berurutan: generator/konfigurasi,
+registry/catalog, adapter, backend Worker, PostgreSQL lokal melalui PGlite, dan
+lifecycle SQLite/D1 Cafe. Typecheck keempat keluarga dan lint desain juga lulus.
+Build penuh, browser suite, transport provider hosted dan deployment tidak dijalankan
+dalam pekerjaan ini untuk membatasi penggunaan resource. Tes lokal tidak menggantikan
+verifikasi layanan dan deployment milik klien.
+
 Operations (`templates/operations`) is planned; its implementation is present, while standalone and runtime verification remain pending. See [Operations](templates/operations/README.md).

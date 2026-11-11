@@ -1,4 +1,4 @@
-import { createTursoDatabase } from "@tampiloka/shared-utils/turso";
+import { resolveDatabase, resolveObjectStorage } from "@tampiloka/storage";
 import { capabilities } from "../src/domain/model.ts";
 import { adapters } from "../src/domain/adapters.ts";
 import {
@@ -266,6 +266,41 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
       };
     }
   }
+  if (path === "/api/staff/media" && method === "POST") {
+    requireStaff(s, true);
+    if (s.demo) fail(403, "MEDIA_UNAVAILABLE", "Media uploads are unavailable in the demo.");
+    const input = await body(request) as { contentType?: unknown; data?: unknown };
+    const contentType = input.contentType;
+    if (typeof contentType !== "string" || !["image/jpeg", "image/png", "image/webp"].includes(contentType) ||
+        typeof input.data !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(input.data))
+      fail(422, "INVALID_MEDIA", "Provide a JPEG, PNG or WebP image as base64.");
+    const bytes = Uint8Array.from(atob(input.data as string), c => c.charCodeAt(0));
+    if (!bytes.length || bytes.length > 45000) fail(413, "BODY_TOO_LARGE", "Image must be at most 45 KB.");
+    const id = uid(), storage = resolveObjectStorage(env);
+    const uploaded = await storage.put(`${s.scope}/${id}`, bytes, { contentType: contentType as string });
+    try {
+      await q(env, "INSERT INTO media_objects(id,scope,provider_key,content_type) VALUES(?,?,?,?)", id, s.scope, uploaded.key, contentType).run();
+    } catch (error) {
+      await storage.delete(uploaded.key).catch(() => {});
+      throw error;
+    }
+    return { id, url: `/api/staff/media/${id}` };
+  }
+  const media = path.match(/^\/api\/staff\/media\/([a-zA-Z0-9_-]+)$/);
+  if (media && (method === "GET" || method === "DELETE")) {
+    requireStaff(s, method === "DELETE");
+    const row = await q(env, "SELECT provider_key,content_type FROM media_objects WHERE id=? AND scope=?", media[1], s.scope).first<{provider_key: string; content_type: string}>();
+    if (!row) fail(404, "NOT_FOUND", "Media not found.");
+    const storage = resolveObjectStorage(env);
+    if (method === "DELETE") {
+      await storage.delete(row.provider_key);
+      await q(env, "DELETE FROM media_objects WHERE id=? AND scope=?", media[1], s.scope).run();
+      return { deleted: true };
+    }
+    const item = await storage.get(row.provider_key);
+    if (!item) fail(404, "NOT_FOUND", "Media not found.");
+    return new Response(Uint8Array.from(item.body).buffer, { headers: { ...headers, "Content-Type": row.content_type, "Content-Disposition": "attachment" } });
+  }
   if (path === "/api/staff/snapshot" && method === "GET") {
     requireStaff(s);
     await expire(env, s);
@@ -299,7 +334,7 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
     });
   return fail(404, "NOT_FOUND", "API route not found.");
 }
-type Bindings = Omit<Env, "DB"> & { TURSO_DATABASE_URL?: string; TURSO_AUTH_TOKEN?: string };
+type Bindings = Omit<Env, "DB"> & { DB?: Env["DB"] };
 
 export const assetHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -327,8 +362,6 @@ export async function handleRequest(
   const requestId = uid();
   let s: Session | undefined;
   try {
-    if (!env.DB)
-      fail(503, "DATABASE_NOT_CONFIGURED", "Database binding is missing.");
     if (url.pathname === "/api/health" && request.method === "GET") {
       // Check the tables and columns needed to create a fresh demo session.
       // A scopes-only probe can succeed even when the deployment is incomplete.
@@ -336,9 +369,9 @@ export async function handleRequest(
         s.created_at, s.expires_at, x.hash, x.scope, x.principal, x.role,
         x.expires_at, r.key, r.count, r.expires_at, c.config_json,
         e.kind, e.id, e.preset, e.data, u.resource, u.unit
-        FROM scopes s LEFT JOIN sessions x ON 0 LEFT JOIN rate_limits r ON 0
-        LEFT JOIN settings c ON 0 LEFT JOIN entities e ON 0
-        LEFT JOIN resource_units u ON 0 LIMIT 1`).first();
+        FROM scopes s LEFT JOIN sessions x ON FALSE LEFT JOIN rate_limits r ON FALSE
+        LEFT JOIN settings c ON FALSE LEFT JOIN entities e ON FALSE
+        LEFT JOIN resource_units u ON FALSE LIMIT 1`).first();
       return json({
         ok: true,
         service: "tampiloka-booking",
@@ -411,11 +444,12 @@ export async function cleanup(env: Env) {
 export default {
   fetch(request: Request, bindings: Bindings) {
     if (!new URL(request.url).pathname.startsWith("/api/")) return serveAssets(request, bindings);
-    if (!bindings.TURSO_DATABASE_URL || !bindings.TURSO_AUTH_TOKEN)
-      return json({error: {code: "DATABASE_NOT_CONFIGURED", message: "Configure the Turso database credentials."}}, 503);
-    return handleRequest(request, { ...bindings, DB: createTursoDatabase(bindings) });
+    let db: Env["DB"];
+    try { db = resolveDatabase(bindings) as Env["DB"]; }
+    catch { return json({error: {code: "DATABASE_NOT_CONFIGURED", message: "Configure the selected database."}}, 503); }
+    return handleRequest(request, { ...bindings, DB: db });
   },
   async scheduled(_controller: unknown, bindings: Bindings) {
-    await cleanup({ ...bindings, DB: createTursoDatabase(bindings) });
+    await cleanup({ ...bindings, DB: resolveDatabase(bindings) as Env["DB"] });
   },
 };

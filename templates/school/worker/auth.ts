@@ -25,7 +25,7 @@ export async function rateLimit(db: Database, request: Request, kind: string, li
     const ip = request.headers.get('CF-Connecting-IP') ?? 'local';
     const window = Math.floor(Date.now() / 60000);
     const key = await digest(`${kind}:${ip}:${window}`);
-    const row = await db.prepare('INSERT INTO school_limits(key,count,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key, Date.now() + 120000).first<{
+    const row = await db.prepare('INSERT INTO school_limits(key,count,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=school_limits.count+1 RETURNING count').bind(key, Date.now() + 120000).first<{
         count: number;
     }>();
     check(row && row.count <= limit, 'rate_limited', 429);

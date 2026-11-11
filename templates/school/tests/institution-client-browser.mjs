@@ -37,7 +37,9 @@ try {
   run('pnpm', ['exec', 'tampiloka-db', 'verify'], client);
   // Re-running migrate proves the recorded history is accepted without replaying SQL.
   run('pnpm', ['db:remote'], client);
-  server = spawn(process.execPath, [join(client, 'node_modules/wrangler/bin/wrangler.js'), 'dev', '--local', '--no-bundle', '--ip', '127.0.0.1', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
+  // The intermediate Worker leaves provider SDKs external for Wrangler's
+  // nodejs_compat bundling, as in the production deployment.
+  server = spawn(process.execPath, [join(client, 'node_modules/wrangler/bin/wrangler.js'), 'dev', '--local', '--ip', '127.0.0.1', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
   let ready = false, healthFailure = 'no response';
   for (let i = 0; i < 100; i++) {
     if (server.exitCode !== null) throw new Error(`Wrangler exited before readiness (${server.exitCode})`);

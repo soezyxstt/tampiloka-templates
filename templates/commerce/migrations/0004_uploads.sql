@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS uploads (scope TEXT NOT NULL REFERENCES scopes(id) ON DELETE CASCADE, id TEXT NOT NULL, object_key TEXT NOT NULL, content_type TEXT NOT NULL, PRIMARY KEY(scope,id));

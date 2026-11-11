@@ -11,7 +11,8 @@
     "./turso": {
       "types": "./src/turso.d.mts",
       "import": "./src/turso.mjs"
-    }
+    },
+    "./db-cli": "./src/db-cli.mjs"
   },
   "files": [
     "src"
@@ -23,6 +24,7 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@libsql/client": "0.18.0"
+    "@libsql/client": "0.18.0",
+    "@tampiloka/storage": "workspace:*"
   }
 }

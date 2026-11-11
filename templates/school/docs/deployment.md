@@ -13,15 +13,19 @@ The demo runs on `http://127.0.0.1:5176`. It uses `.data/school.sqlite` and `.da
 
 For real client-mode validation, set three environment variables in your shell before `pnpm dev`: a random `AUTH_SECRET` of at least 32 characters, `BOOTSTRAP_ADMIN_EMAIL`, and a unique `BOOTSTRAP_ADMIN_PASSWORD` of at least 12 characters. Go to the staff view and sign in. Bootstrap can create only the first admin and cannot overwrite an existing admin. Remove the bootstrap password after creating the admin, but retain the auth secret. Changing that secret invalidates stored password verifiers and requires a deliberate credential recovery migration.
 
-`.dev.vars.example` documents Worker secrets. The Node local server reads the process environment, not `.dev.vars`. Never put secrets in `config/school.json`, `VITE_` variables, client source or Git.
+`.dev.vars.example` documents Worker secrets. The Node local server and migration script read `.dev.vars`; explicit process environment values take precedence. Never put secrets in `config/school.json`, `VITE_` variables, client source or Git.
+
+## Database and object storage providers
+
+The generator records independent selections in `config/storage.json` and Worker variables. Turso is the Worker default. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN`, then run `pnpm db:remote`. For D1 select `DATABASE_PROVIDER=d1`, configure the client-owned `DB` binding and run `pnpm db:remote`. For PostgreSQL set `DATABASE_PROVIDER=postgresql` and `DATABASE_URL`, then run `pnpm db:remote`; the Worker uses `nodejs_compat`. Turso uses its schema-verified migration ledger, while PostgreSQL uses a separate provider-specific ledger. Coordinate migration runs, back up existing data, and migrate data separately when changing providers. The public demo uses Turso and its own native R2 binding.
+
+For S3-compatible storage set `OBJECT_STORAGE_PROVIDER=s3`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` and optionally `S3_REGION` (default `auto`). Configure the bucket as private; the Worker checks permissions before streaming media. For UploadThing set `OBJECT_STORAGE_PROVIDER=uploadthing` and `UPLOADTHING_TOKEN`. The UploadThing application must enforce private file ACLs, including for newly uploaded files, so that its direct URLs cannot bypass School authorization. The adapter requests private ACLs for each upload. Verify that direct access without authorization fails before storing private learning materials. Never configure a public bucket or public provider URLs for private media.
+
+Local `pnpm demo` and `pnpm dev` use isolated SQLite, independently of the deployed database. Local demo media uses local files; client mode uses the selected object provider. Supply secrets through the shell locally or Worker secrets in deployment. The private media route and access rules are the same for each provider.
 
 ## Database and private media
 
-```sh
-pnpm exec wrangler r2 bucket create client-school-private
-```
-
-Set the client-owned bucket name in `wrangler.jsonc` and keep `DEMO_MODE=false`. Create a dedicated Turso database. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the Worker with the same URL and a read/write token scoped to that database. Use a separate migration token if schema changes require broader access.
+The commands below illustrate the default Turso database; configure the selected private object provider separately and keep `DEMO_MODE=false`. Create a dedicated Turso database. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the Worker with the same URL and a read/write token scoped to that database. Use a separate migration token if schema changes require broader access.
 
 ```sh
 pnpm db:remote
@@ -58,7 +62,7 @@ The scheduled handler runs daily for expiry cleanup and retries; command executi
 
 ## Operations and limits
 
-Back up the Turso database before migrations and configure R2 retention. Monitor errors, provider failures, outbox age and `length(data)` in `school_state`. Keep the aggregate far below its 1.5 MB safety limit; archive historical cohorts or migrate to normalized tables before growth reaches it. Keep idempotency/event history long enough for retries and finance reconciliation. Do not delete financial audit rows casually.
+Back up the selected database before migrations and configure retention for the selected object provider. Monitor errors, provider failures, outbox age and `length(data)` in `school_state`. Keep the aggregate far below its 1.5 MB safety limit; archive historical cohorts or migrate to normalized tables before growth reaches it. Keep idempotency/event history long enough for retries and finance reconciliation. Do not delete financial audit rows casually.
 
 The demo namespace expires after 24 hours. Cleanup removes expired DB sessions and states. R2 objects require a matching retention policy for public demo uploads; the database cleanup does not delete orphaned R2 bytes. Do not share the production R2 bucket with demos.
 

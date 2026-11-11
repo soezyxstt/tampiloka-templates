@@ -52,6 +52,8 @@ jobs:
         run: pnpm --filter @tampiloka/template-cafe test && pnpm --filter @tampiloka/template-cafe test:demo-runtime && pnpm test:operations
       - name: Test commerce permissions, pricing, stock and payments
         run: pnpm --filter @tampiloka/template-commerce test
+      - name: Test shared storage and PostgreSQL provider flows
+        run: node --experimental-strip-types --test --test-concurrency=1 packages/storage/index.test.mjs templates/booking/tests/postgresql.integration.mjs templates/commerce/tests/postgresql.test.mjs
       - name: Check types
         run: pnpm typecheck
       - name: Lint cafe

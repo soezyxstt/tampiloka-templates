@@ -14,11 +14,12 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:e2e": "node tests/browser.mjs",
     "db:local": "node scripts/sqlite.mjs",
-    "db:remote": "tampiloka-db migrate",
+    "db:remote": "node scripts/migrate.mjs --remote",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:demo": "pnpm build && wrangler deploy --config wrangler.demo.jsonc",
     "test:standalone": "node scripts/check-standalone.mjs",
-    "assets": "node scripts/assets.mjs"
+    "assets": "node scripts/assets.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@tampiloka/shared-utils": "workspace:*",
@@ -31,7 +32,8 @@
     "lucide-react": "0.553.0",
     "motion": "12.43.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "@tampiloka/storage": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

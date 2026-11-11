@@ -7,7 +7,21 @@
   "description": "Layanan dan janji dengan jadwal, kapasitas, pembayaran, serta tiket.",
   "defaultPreset": "medical",
   "defaultLevel": "booking",
-  "presets": ["medical", "aesthetic", "detailing", "consulting"],
-  "levels": ["catalog", "whatsapp", "booking", "full"],
-  "sharedPackages": ["ui-core", "shared-utils"]
+  "presets": [
+    "medical",
+    "aesthetic",
+    "detailing",
+    "consulting"
+  ],
+  "levels": [
+    "catalog",
+    "whatsapp",
+    "booking",
+    "full"
+  ],
+  "sharedPackages": [
+    "ui-core",
+    "storage",
+    "shared-utils"
+  ]
 }

@@ -14,7 +14,7 @@ pnpm test
 pnpm build
 ```
 
-The dev script applies local migrations automatically. `pnpm db:migrate` also applies them explicitly. Local data lives in `.data/` and never belongs in Git. A generated project defaults to `DEMO_MODE=false` even during development; no public role switch or simulated payment endpoint becomes available. Use the monorepo's separate demo for payment simulation.
+The dev script applies migrations to an isolated local SQLite database. `pnpm db:migrate` also applies them locally. Local data lives in `.data/` and never belongs in Git. A generated project defaults to `DEMO_MODE=false` even during development; no public role switch or simulated payment endpoint becomes available. Use the monorepo's separate demo for payment simulation.
 
 ## Configure the business
 
@@ -28,7 +28,7 @@ Use the resource editor to assign exactly which services a practitioner/professi
 
 Layouts change navigation, hierarchy, content density and mobile composition. Palettes change tokens without changing feature levels or service rules. The `typography` setting switches the display treatment; the body uses a locally bundled font dependency. Replace font imports in `src/main.tsx` with client-licensed assets when needed.
 
-Photographs live under `public/images/`; service and hero URLs can reference owned local files or HTTPS assets. Replace illustrative images for a real business. Use meaningful alternative text for the hero. The staff editor accepts image URLs; it is not a media-upload/storage service.
+Photographs live under `public/images/`; service and hero URLs can reference owned local files or HTTPS assets. Replace illustrative images for a real business. Use meaningful alternative text for the hero. The staff editor accepts image URLs. An authenticated staff media API is available separately; it does not add an upload control to the editor.
 
 For colors beyond the four samples, edit `src/styles/brand.css`. Override the semantic tokens declared in `tokens.css` under a customer-only selector. Keep staff tokens neutral. For example, use `html[data-view="customer"] { --action: ...; --on-action: ...; }`, using the actual token names in `tokens.css`. Verify 4.5:1 normal text, 3:1 large text and control/focus contrast. Do not put secret data in frontend configuration.
 
@@ -42,4 +42,10 @@ Policy text and numeric rules must agree. The seed is an example, not legal advi
 
 Customers receive private session history and a reference/access-key recovery option. Advise customers to save both after creating an appointment; sharing them grants control of that one appointment. These are bearer credentials, not a verified identity account. Staff initially uses owner/operations/viewer server secrets. A studio with individual staff accountability or MFA should replace the supplied identity adapter before launch.
 
-`pnpm tampiloka doctor --dir ...` checks structure and config. Warnings about missing Turso credentials, sample content, missing WhatsApp numbers or payment credentials are launch blockers to resolve; a valid structural result does not certify live deployment.
+`pnpm tampiloka doctor --dir ...` checks structure and config. Warnings about placeholder DB IDs, sample content, missing WhatsApp numbers or payment credentials are launch blockers to resolve; a valid structural result does not certify live deployment.
+
+## Database and object storage
+
+The public demo uses Turso; generated projects select providers in `config/storage.json` and Wrangler variables. Turso is the Worker default: configure `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN`, then run `pnpm db:migrate:remote` with those credentials before deployment. The Turso migration command verifies the checked-in schema and migration ledger; adopt a restored database only after following the cutover guide. For D1, set `DATABASE_PROVIDER=d1`, configure the client-owned `DB` binding and run `pnpm db:migrate:remote`. For PostgreSQL set `DATABASE_PROVIDER=postgresql` and `DATABASE_URL` and run the same remote command. Explicit process environment values override `.dev.vars` for migrations. Coordinate migrations before serving traffic, back up existing data, and verify the chosen hosted provider. Local `pnpm dev` and `pnpm db:migrate` use isolated SQLite independently of the deployed provider.
+
+For object storage set `OBJECT_STORAGE_PROVIDER` to `s3` or `uploadthing`. S3 needs `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and optionally `S3_REGION` and `S3_PUBLIC_URL`; UploadThing needs `UPLOADTHING_TOKEN`. Set credentials as Worker secrets. Staff can POST JSON `{ "contentType": "image/png", "data": "<base64>" }` to `/api/staff/media` (JPEG, PNG or WebP, up to 45 KB); the returned URL supports authenticated staff GET and DELETE. Only owners and operations may upload/delete; viewers may read. This API is private and its URLs are not suitable for public storefront images. Keep the same provider configured for existing media. Uploads are disabled in demo sessions.

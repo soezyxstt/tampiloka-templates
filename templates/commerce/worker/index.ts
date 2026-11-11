@@ -1,5 +1,5 @@
+import { resolveDatabase, resolveObjectStorage } from '@tampiloka/storage';
 import type { CommerceLevel, StaffRole } from '../src/shared/contracts.ts';
-import { createTursoDatabase } from '@tampiloka/shared-utils/turso';
 import type { Bindings, Env, Row, Session } from './types.ts';
 import { levels } from '../content/store.ts';
 import { all, auditStatement, bootstrap, configFor, orderFor, orderFrom, ordersFrom, q, reviewsFor, sessionFor, wishlistFor } from './db.ts';
@@ -30,6 +30,44 @@ async function login(request:Request,env:Env,session:Session,input:Row) {
 }
 async function route(request:Request,env:Env,session:Session,path:string) {
   const method=request.method;
+  if(path==='/api/staff/uploads'&&method==='POST') {
+    staff(session,true);
+    const length=Number(request.headers.get('content-length') || 0);
+    if(length>5_242_880)fail(413,'BODY_TOO_LARGE','Berkas terlalu besar.');
+    const type=(request.headers.get('content-type')||'').split(';')[0];
+    if(!['image/jpeg','image/png','image/webp'].includes(type))fail(422,'INVALID_FILE','Format gambar tidak didukung.');
+    const reader=request.body?.getReader();
+    const chunks:Uint8Array[]=[];let size=0;
+    if(reader){
+      try {
+        while(true){
+          const {done,value}=await reader.read();if(done)break;
+          size+=value.byteLength;
+          if(size>5_242_880){await reader.cancel().catch(()=>{});fail(413,'BODY_TOO_LARGE','Ukuran berkas tidak valid.');}
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+    }
+    const data=new Uint8Array(size);let offset=0;
+    for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.byteLength;}
+    if(!data.length||data.length>5_242_880)fail(413,'BODY_TOO_LARGE','Ukuran berkas tidak valid.');
+    const valid=type==='image/jpeg'?data[0]===255&&data[1]===216&&data[2]===255:type==='image/png'?data.length>=8&&[137,80,78,71,13,10,26,10].every((n,i)=>data[i]===n):data.length>=12&&String.fromCharCode(...data.slice(0,4))==='RIFF'&&String.fromCharCode(...data.slice(8,12))==='WEBP';
+    if(!valid)fail(422,'INVALID_FILE','Isi gambar tidak valid.');
+    const uploadId=id();const storage=resolveObjectStorage(env as unknown as Parameters<typeof resolveObjectStorage>[0]);const stored=await storage.put(`${session.scope}/${uploadId}`,data,{contentType:type});
+    try { await q(env,'INSERT INTO uploads(scope,id,object_key,content_type) VALUES(?,?,?,?)',session.scope,uploadId,stored.key,type).run(); }
+    catch(error) { await storage.delete(stored.key); throw error; }
+    return {id:uploadId,url:`/api/staff/uploads/${uploadId}`};
+  }
+  const upload=path.match(/^\/api\/staff\/uploads\/([a-f0-9]{32})$/);
+  if(upload&&(method==='GET'||method==='DELETE')) {
+    staff(session,method==='DELETE');
+    const record=await q(env,'SELECT object_key,content_type FROM uploads WHERE scope=? AND id=?',session.scope,upload[1]).first<Row>();
+    if(!record)fail(404,'NOT_FOUND','Berkas tidak ditemukan.');
+    const storage=resolveObjectStorage(env as unknown as Parameters<typeof resolveObjectStorage>[0]);
+    if(method==='DELETE'){await storage.delete(record.object_key);await q(env,'DELETE FROM uploads WHERE scope=? AND id=?',session.scope,upload[1]).run();return {ok:true};}
+    const object=await storage.get(record.object_key);if(!object)fail(404,'NOT_FOUND','Berkas tidak ditemukan.');
+    return new Response(object.body.slice().buffer as ArrayBuffer,{headers:{...apiHeaders,'Content-Type':record.content_type,'Content-Disposition':'inline'}});
+  }
   if(path==='/api/bootstrap'&&method==='GET'){await expireManualOrders(env,session);return bootstrap(env,session);}
   if(path==='/api/session/demo'&&method==='POST') {
     if(!session.demo)fail(403,'DEMO_ONLY','Sesi demo tidak tersedia pada toko ini.');
@@ -108,9 +146,9 @@ export async function handleRequest(request:Request,env:Env):Promise<Response> {
   }catch(error){
     let status=500,code='INTERNAL_ERROR',message='Permintaan belum dapat diproses. Coba lagi.';
     if(error instanceof HttpError){status=error.status;code=error.code;message=error.message;}
-    else if(/CHECK constraint|mutation_guards|UNIQUE constraint|FOREIGN KEY|PRICE_CHANGED|COUPON_CHANGED|PRODUCT_UNAVAILABLE/i.test(String(error))){status=409;code='CONFLICT';message='Data berubah atau stok tidak cukup. Muat ulang dan coba lagi.';}
+    else if((typeof error==='object' && error!==null && 'code' in error && ['23505','23503','23514'].includes(String(error.code))) || /CHECK constraint|mutation_guards|UNIQUE constraint|FOREIGN KEY|PRICE_CHANGED|COUPON_(?:CHANGED|UNAVAILABLE|EXPIRED)|PRODUCT_UNAVAILABLE|INVALID_DISCOUNT|POINTS_UNAVAILABLE/i.test(String(error))){status=409;code='CONFLICT';message='Data berubah atau stok tidak cukup. Muat ulang dan coba lagi.';}
     // Log only identifiers and error classes; never customer input, cookies or credentials.
-    if(status===500)console.error(JSON.stringify({requestId,code,name:error instanceof Error?error.name:'Error',message:String(error).slice(0,180)}));
+    if(status===500)console.error(JSON.stringify({requestId,code,name:error instanceof Error?error.name:'Error'}));
     return json({error:{code,message},requestId},status,session?.cookie);
   }
 }
@@ -121,7 +159,7 @@ export async function cleanup(env:Env) {
   await env.DB.batch([q(env,'DELETE FROM sessions WHERE expires_at<=?',now()),q(env,'DELETE FROM rate_limits WHERE expires_at<=?',now()),q(env,"DELETE FROM scopes WHERE demo=1 AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.scope=scopes.id AND s.expires_at>?)",now())]);
 }
 function connect(bindings: Bindings): Env {
-  return { ...bindings, DB: createTursoDatabase(bindings) };
+  return { ...bindings, DB: resolveDatabase(bindings) as Env['DB'] };
 }
 
 export default {
@@ -129,10 +167,10 @@ export default {
     if (!new URL(request.url).pathname.startsWith('/api/')) {
       return bindings.ASSETS?.fetch(request) ?? new Response('Commerce API.', { status: 404 });
     }
-    if (!bindings.TURSO_DATABASE_URL || !bindings.TURSO_AUTH_TOKEN) {
-      return json({ error: { code: 'DATABASE_NOT_CONFIGURED', message: 'Basis data belum terpasang.' } }, 503);
-    }
-    return handleRequest(request, connect(bindings));
+    let env: Env;
+    try { env = connect(bindings); }
+    catch { return json({ error: { code: 'DATABASE_NOT_CONFIGURED', message: 'Basis data belum terpasang.' } }, 503); }
+    return handleRequest(request, env);
   },
   async scheduled(_controller: unknown, bindings: Bindings) {
     await cleanup(connect(bindings));

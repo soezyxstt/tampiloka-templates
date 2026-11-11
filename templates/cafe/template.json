@@ -6,7 +6,19 @@
   "status": "available",
   "description": "Menu, pesanan dari meja, kasir, dapur, dan operasional.",
   "defaultPreset": "catalog",
-  "presets": ["catalog","order-at-cashier","order-and-pay","cashier","cashier-kitchen","operations","menu-cashier","menu-order-cashier","full"],
-  "sharedPackages": [],
+  "presets": [
+    "catalog",
+    "order-at-cashier",
+    "order-and-pay",
+    "cashier",
+    "cashier-kitchen",
+    "operations",
+    "menu-cashier",
+    "menu-order-cashier",
+    "full"
+  ],
+  "sharedPackages": [
+    "storage"
+  ],
   "demoUrl": "https://cafe.tampiloka.site"
 }
