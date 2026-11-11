@@ -42,7 +42,11 @@ test('PostgreSQL migrations, booking capacity and School CAS use the shared adap
     const rejected = await c.post('/api/bookings', { ...input, idempotencyKey: crypto.randomUUID() });
     assert.equal(rejected.status, 409, JSON.stringify(rejected.data));
     assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM bookings').first()).n), 2);
-    await owner(c);
+    const staff = await owner(c);
+    const resource = staff.resources[0];
+    const edited = await c.put('/api/staff/content/resource', { revision: staff.revision, data: { ...resource, capacity: resource.capacity + 1 } });
+    assert.equal(edited.status, 200, JSON.stringify(edited.data));
+    assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM resource_units WHERE scope=? AND resource=?').bind((await db.prepare('SELECT scope FROM bookings WHERE id=?').bind(first.id).first()).scope, resource.id).first()).n), resource.capacity + 1);
     const noted = await action(c, first, 'note', { note: 'Call first', version: first.version });
     assert.equal(noted.status, 200, JSON.stringify(noted.data));
     assert.equal((await action(c, first, 'note', { note: 'Stale', version: first.version })).status, 409);

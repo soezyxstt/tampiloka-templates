@@ -389,4 +389,11 @@ test('staff uploads enforce role and image validation before accessing storage',
   await c.post('/api/demo/role',{role:'operations'});
   assert.equal((await request('text/html',new Uint8Array([1]))).status,422);
   assert.equal((await request('image/png',new Uint8Array([1]))).status,422);
+  let pulls=0, cancelled=false;
+  const stream=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(1024*1024));},cancel(){cancelled=true;}});
+  const { default: worker } = await import('../worker/index.ts');
+  const oversized=await worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':'image/png'},body:stream,duplex:'half'}), env);
+  assert.equal(oversized.status,413);
+  assert.equal(cancelled,true);
+  assert.ok(pulls<10, `stream consumed ${pulls} chunks`);
 });

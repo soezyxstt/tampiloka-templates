@@ -64,7 +64,7 @@ export function units(
     ),
     q(
       env,
-      "INSERT OR IGNORE INTO resource_units(scope,resource,unit) SELECT ?,?,value FROM json_each(?)",
+      "INSERT OR IGNORE INTO resource_units(scope,resource,unit) SELECT ?,?,CAST(value AS INTEGER) FROM json_each(?)",
       scope,
       resource,
       JSON.stringify(Array.from({ length: capacity }, (_, i) => i)),

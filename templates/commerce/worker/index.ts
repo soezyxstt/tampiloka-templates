@@ -36,7 +36,20 @@ async function route(request:Request,env:Env,session:Session,path:string) {
     if(length>5_242_880)fail(413,'BODY_TOO_LARGE','Berkas terlalu besar.');
     const type=(request.headers.get('content-type')||'').split(';')[0];
     if(!['image/jpeg','image/png','image/webp'].includes(type))fail(422,'INVALID_FILE','Format gambar tidak didukung.');
-    const data=new Uint8Array(await request.arrayBuffer());
+    const reader=request.body?.getReader();
+    const chunks:Uint8Array[]=[];let size=0;
+    if(reader){
+      try {
+        while(true){
+          const {done,value}=await reader.read();if(done)break;
+          size+=value.byteLength;
+          if(size>5_242_880){await reader.cancel().catch(()=>{});fail(413,'BODY_TOO_LARGE','Ukuran berkas tidak valid.');}
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+    }
+    const data=new Uint8Array(size);let offset=0;
+    for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.byteLength;}
     if(!data.length||data.length>5_242_880)fail(413,'BODY_TOO_LARGE','Ukuran berkas tidak valid.');
     const valid=type==='image/jpeg'?data[0]===255&&data[1]===216&&data[2]===255:type==='image/png'?data.length>=8&&[137,80,78,71,13,10,26,10].every((n,i)=>data[i]===n):data.length>=12&&String.fromCharCode(...data.slice(0,4))==='RIFF'&&String.fromCharCode(...data.slice(8,12))==='WEBP';
     if(!valid)fail(422,'INVALID_FILE','Isi gambar tidak valid.');
