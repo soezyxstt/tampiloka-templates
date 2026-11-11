@@ -67,6 +67,32 @@ async function body(request: Request) { check(Number(request.headers.get('conten
 catch {
     throw new DomainError('invalid_json');
 } }
+async function mediaBody(request: Request): Promise<Uint8Array> {
+    const max = 5000000;
+    check(Number(request.headers.get('content-length') ?? 0) <= max, 'file_too_large', 413);
+    const reader = request.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader) {
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                size += value.byteLength;
+                if (size > max) {
+                    await reader.cancel().catch(() => {});
+                    throw new DomainError('file_too_large', 413);
+                }
+                chunks.push(value);
+            }
+        } finally { reader.releaseLock(); }
+    }
+    check(size > 0, 'file_too_large', 413);
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return bytes;
+}
 function csrf(request: Request) { const origin = request.headers.get('origin'); check(!origin || origin === new URL(request.url).origin, 'invalid_origin', 403); check(request.headers.get('X-School-Request') === '1', 'invalid_origin', 403); }
 function configuration(env: Env) { const config = env.CONFIG ?? configJson as SchoolConfig; check(levels.includes(config.level) && presets.includes(config.preset), 'invalid_config', 503); return config; }
 async function context(request: Request, env: Env) {
@@ -322,10 +348,8 @@ export async function handle(request: Request, env: Env, execution?: {
             const media = mediaStorage(env);
             check(media, 'storage_not_configured', 503);
             await rateLimit(env.DB, request, 'upload', 20);
-            check(Number(request.headers.get('content-length') ?? 0) <= 5000000, 'file_too_large', 413);
-            const bytes = await request.arrayBuffer();
-            check(bytes.byteLength <= 5000000 && bytes.byteLength > 0, 'file_too_large', 413);
-            const a = new Uint8Array(bytes);
+            const bytes = await mediaBody(request);
+            const a = bytes;
             const head = new TextDecoder().decode(a.slice(0, 16));
             const type = request.headers.get('Content-Type') ?? '';
             const valid = type === 'image/jpeg' && a[0] === 255 && a[1] === 216 && a[2] === 255 || type === 'image/png' && a[0] === 137 && head.slice(1, 4) === 'PNG' || type === 'image/webp' && head.startsWith('RIFF') && head.slice(8, 12) === 'WEBP' || type === 'application/pdf' && head.startsWith('%PDF-') || type === 'text/plain' && !/[\x00-\x08]/.test(new TextDecoder().decode(a));
@@ -336,7 +360,7 @@ export async function handle(request: Request, env: Env, execution?: {
             if (!publicAsset && env.OBJECT_STORAGE_PROVIDER === 'uploadthing')
                 check((media as { privateUploads?: boolean }).privateUploads === true, 'storage_not_configured', 503);
             const id = crypto.randomUUID(), key = `${store.namespace}/${id}`;
-            const stored = await media.put(key, new Uint8Array(bytes), { contentType: type });
+            const stored = await media.put(key, bytes, { contentType: type });
             await store.mutate(s => command(s, ctx, { action: 'media.add', key: `media_${id}`, payload: { media: { id, key: stored.key, name: (request.headers.get('X-File-Name') ?? 'resource').replace(/[^\w. -]/g, '').slice(0, 100), type, size: bytes.byteLength, public: publicAsset } } }));
             return response({ id, url: `/api/media/${id}` }, 201);
         }
