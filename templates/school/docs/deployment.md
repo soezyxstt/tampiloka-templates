@@ -13,7 +13,15 @@ The demo runs on `http://127.0.0.1:5176`. It uses `.data/school.sqlite` and `.da
 
 For real client-mode validation, set three environment variables in your shell before `pnpm dev`: a random `AUTH_SECRET` of at least 32 characters, `BOOTSTRAP_ADMIN_EMAIL`, and a unique `BOOTSTRAP_ADMIN_PASSWORD` of at least 12 characters. Go to the staff view and sign in. Bootstrap can create only the first admin and cannot overwrite an existing admin. Remove the bootstrap password after creating the admin, but retain the auth secret. Changing that secret invalidates stored password verifiers and requires a deliberate credential recovery migration.
 
-`.dev.vars.example` documents Worker secrets. The Node local server reads the process environment, not `.dev.vars`. Never put secrets in `config/school.json`, `VITE_` variables, client source or Git.
+`.dev.vars.example` documents Worker secrets. The Node local server and migration script read `.dev.vars`; explicit process environment values take precedence. Never put secrets in `config/school.json`, `VITE_` variables, client source or Git.
+
+## Database and object storage providers
+
+The generator records independent selections in `config/storage.json` and Worker variables. D1 remains the default database. For D1 use the native `DB` binding and `pnpm db:local` / `pnpm db:remote`. For Turso set `DATABASE_PROVIDER=turso`, `TURSO_DATABASE_URL`, and, when required, `TURSO_AUTH_TOKEN`. For PostgreSQL set `DATABASE_PROVIDER=postgresql` and `DATABASE_URL`; the Worker uses `nodejs_compat`. Run `pnpm db:migrate` with those credentials before starting the server or deploying. This applies a provider-specific initial schema and migration ledger; coordinate migration runs, back up existing data, and migrate data separately when changing providers. The demo retains native D1 and R2 bindings.
+
+For S3-compatible storage set `OBJECT_STORAGE_PROVIDER=s3`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` and optionally `S3_REGION` (default `auto`). Configure the bucket as private; the Worker checks permissions before streaming media. For UploadThing set `OBJECT_STORAGE_PROVIDER=uploadthing` and `UPLOADTHING_TOKEN`. The UploadThing application must enforce private file ACLs, including for newly uploaded files, so that its direct URLs cannot bypass School authorization. The adapter requests private ACLs for each upload. Verify that direct access without authorization fails before storing private learning materials. Never configure a public bucket or public provider URLs for private media.
+
+The local demo uses SQLite and local media by default when no other database is selected. `pnpm dev` reads the selected providers; D1 uses local SQLite and remote choices require their credentials. Supply secrets through the shell locally or Worker secrets in deployment. The private media route and access rules are the same for each provider.
 
 ## Independent Cloudflare resources
 

@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:e2e": "node tests/browser.mjs",
-    "db:migrate": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:migrate:remote": "node scripts/migrate.mjs --remote",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:demo": "pnpm build:demo && wrangler deploy --config wrangler.demo.jsonc"
   },
@@ -29,7 +29,8 @@
     "motion": "12.43.0",
     "qrcode": "1.5.4",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "@tampiloka/storage": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

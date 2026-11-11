@@ -4,7 +4,7 @@ import worker from '../worker/index.ts';
 
 // Executes the actual D1 SQL and triggers, rather than mocking business results.
 export class SQLiteD1 {
-  constructor(path = ':memory:') { this.db = new DatabaseSync(path); this.db.exec(readFileSync(new URL('../migrations/0001_commerce.sql', import.meta.url), 'utf8')); this.db.exec(readFileSync(new URL('../migrations/0002_optional_modules.sql', import.meta.url), 'utf8')); this.db.exec(readFileSync(new URL('../migrations/0003_loyalty_eligibility.sql', import.meta.url), 'utf8')); }
+  constructor(path = ':memory:') { this.db = new DatabaseSync(path); this.db.exec(readFileSync(new URL('../migrations/0001_commerce.sql', import.meta.url), 'utf8')); this.db.exec(readFileSync(new URL('../migrations/0002_optional_modules.sql', import.meta.url), 'utf8')); this.db.exec(readFileSync(new URL('../migrations/0003_loyalty_eligibility.sql', import.meta.url), 'utf8')); this.db.exec(readFileSync(new URL('../migrations/0004_uploads.sql', import.meta.url), 'utf8')); }
   prepare(sql) {
     const make = (args = []) => ({
       bind: (...values) => make(values),

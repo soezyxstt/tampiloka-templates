@@ -1,3 +1,4 @@
+import { resolveDatabase, resolveObjectStorage } from '@tampiloka/storage';
 import type { CommerceLevel, StaffRole } from '../src/shared/contracts.ts';
 import type { Env, Row, Session } from './types.ts';
 import { levels } from '../content/store.ts';
@@ -29,6 +30,31 @@ async function login(request:Request,env:Env,session:Session,input:Row) {
 }
 async function route(request:Request,env:Env,session:Session,path:string) {
   const method=request.method;
+  if(path==='/api/staff/uploads'&&method==='POST') {
+    staff(session,true);
+    const length=Number(request.headers.get('content-length') || 0);
+    if(length>5_242_880)fail(413,'BODY_TOO_LARGE','Berkas terlalu besar.');
+    const type=(request.headers.get('content-type')||'').split(';')[0];
+    if(!['image/jpeg','image/png','image/webp'].includes(type))fail(422,'INVALID_FILE','Format gambar tidak didukung.');
+    const data=new Uint8Array(await request.arrayBuffer());
+    if(!data.length||data.length>5_242_880)fail(413,'BODY_TOO_LARGE','Ukuran berkas tidak valid.');
+    const valid=type==='image/jpeg'?data[0]===255&&data[1]===216&&data[2]===255:type==='image/png'?data.length>=8&&[137,80,78,71,13,10,26,10].every((n,i)=>data[i]===n):data.length>=12&&String.fromCharCode(...data.slice(0,4))==='RIFF'&&String.fromCharCode(...data.slice(8,12))==='WEBP';
+    if(!valid)fail(422,'INVALID_FILE','Isi gambar tidak valid.');
+    const uploadId=id();const storage=resolveObjectStorage(env as unknown as Parameters<typeof resolveObjectStorage>[0]);const stored=await storage.put(`${session.scope}/${uploadId}`,data,{contentType:type});
+    try { await q(env,'INSERT INTO uploads(scope,id,object_key,content_type) VALUES(?,?,?,?)',session.scope,uploadId,stored.key,type).run(); }
+    catch(error) { await storage.delete(stored.key); throw error; }
+    return {id:uploadId,url:`/api/staff/uploads/${uploadId}`};
+  }
+  const upload=path.match(/^\/api\/staff\/uploads\/([a-f0-9]{32})$/);
+  if(upload&&(method==='GET'||method==='DELETE')) {
+    staff(session,method==='DELETE');
+    const record=await q(env,'SELECT object_key,content_type FROM uploads WHERE scope=? AND id=?',session.scope,upload[1]).first<Row>();
+    if(!record)fail(404,'NOT_FOUND','Berkas tidak ditemukan.');
+    const storage=resolveObjectStorage(env as unknown as Parameters<typeof resolveObjectStorage>[0]);
+    if(method==='DELETE'){await storage.delete(record.object_key);await q(env,'DELETE FROM uploads WHERE scope=? AND id=?',session.scope,upload[1]).run();return {ok:true};}
+    const object=await storage.get(record.object_key);if(!object)fail(404,'NOT_FOUND','Berkas tidak ditemukan.');
+    return new Response(object.body.slice().buffer as ArrayBuffer,{headers:{...apiHeaders,'Content-Type':record.content_type,'Content-Disposition':'inline'}});
+  }
   if(path==='/api/bootstrap'&&method==='GET'){await expireManualOrders(env,session);return bootstrap(env,session);}
   if(path==='/api/session/demo'&&method==='POST') {
     if(!session.demo)fail(403,'DEMO_ONLY','Sesi demo tidak tersedia pada toko ini.');
@@ -98,7 +124,7 @@ export async function handleRequest(request:Request,env:Env):Promise<Response> {
   const url=new URL(request.url);if(!url.pathname.startsWith('/api/'))return env.ASSETS?env.ASSETS.fetch(request):new Response('Commerce API. Run the Vite storefront to open the shop.',{status:404});
   const requestId=id();let session:Session|undefined;
   try{
-    if(!env.DB)fail(503,'DATABASE_NOT_CONFIGURED','Basis data belum terpasang.');
+    env={...env,DB:resolveDatabase(env as unknown as Parameters<typeof resolveDatabase>[0]) as Env['DB']};
     if(url.pathname==='/api/health'&&request.method==='GET'){await q(env,'SELECT 1 AS ready').first();return json({ok:true,service:'tampiloka-commerce',demo:isDemo(env)});}
     if(url.pathname==='/api/webhooks/midtrans'&&request.method==='POST')return json(await paymentWebhook(env,await body(request)));
     sameOrigin(request,env);session=await sessionFor(request,env);
@@ -108,13 +134,14 @@ export async function handleRequest(request:Request,env:Env):Promise<Response> {
   }catch(error){
     let status=500,code='INTERNAL_ERROR',message='Permintaan belum dapat diproses. Coba lagi.';
     if(error instanceof HttpError){status=error.status;code=error.code;message=error.message;}
-    else if(/CHECK constraint|mutation_guards|UNIQUE constraint|FOREIGN KEY|PRICE_CHANGED|COUPON_CHANGED|PRODUCT_UNAVAILABLE/i.test(String(error))){status=409;code='CONFLICT';message='Data berubah atau stok tidak cukup. Muat ulang dan coba lagi.';}
+    else if((typeof error==='object' && error!==null && 'code' in error && ['23505','23503','23514'].includes(String(error.code))) || /CHECK constraint|mutation_guards|UNIQUE constraint|FOREIGN KEY|PRICE_CHANGED|COUPON_(?:CHANGED|UNAVAILABLE|EXPIRED)|PRODUCT_UNAVAILABLE|INVALID_DISCOUNT|POINTS_UNAVAILABLE/i.test(String(error))){status=409;code='CONFLICT';message='Data berubah atau stok tidak cukup. Muat ulang dan coba lagi.';}
     // Log only identifiers and error classes; never customer input, cookies or credentials.
     if(status===500)console.error(JSON.stringify({requestId,code,name:error instanceof Error?error.name:'Error',message:String(error).slice(0,180)}));
     return json({error:{code,message},requestId},status,session?.cookie);
   }
 }
 export async function cleanup(env:Env) {
+  env={...env,DB:resolveDatabase(env as unknown as Parameters<typeof resolveDatabase>[0]) as Env['DB']};
   await expireManualOrders(env);
   // A real gateway reservation is released only after a verified provider status.
   if(env.MIDTRANS_SERVER_KEY){const due=await all(env,"SELECT o.scope,o.id FROM orders o JOIN scopes s ON s.id=o.scope WHERE s.demo=0 AND o.payment_method='midtrans' AND o.status='awaiting_payment' AND o.expires_at<? LIMIT 25",now());for(const row of due){try{await reconcilePayment(env,{scope:row.scope,demo:false,role:'owner',tokenHash:'scheduled'},row.id);}catch{/* Next schedule or a staff reconcile retries provider failures. */}}}

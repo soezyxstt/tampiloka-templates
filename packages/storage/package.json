@@ -1,0 +1,8 @@
+{
+  "name": "@tampiloka/storage",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": { "types": "./index.d.ts", "default": "./index.mjs" } },
+  "files": ["index.mjs", "index.d.ts", "README.md"],
+  "dependencies": { "@aws-sdk/client-s3": "^3.900.0", "@libsql/client": "^0.15.15", "pg": "^8.16.3", "uploadthing": "^7.7.4" }
+}

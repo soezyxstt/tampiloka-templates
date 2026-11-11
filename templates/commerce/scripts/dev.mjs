@@ -1,9 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { storageEnv } from './env.mjs';
 process.chdir(fileURLToPath(new URL('..', import.meta.url)));
 const wrangler = fileURLToPath(new URL('./bin/wrangler.js', import.meta.resolve('wrangler/package.json')));
 const vite = fileURLToPath(new URL('./bin/vite.js', import.meta.resolve('vite/package.json')));
-const migrated = spawnSync(process.execPath, [wrangler, 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', '.data'], { stdio: 'inherit' });
+const env = await storageEnv(new URL('../', import.meta.url));
+const provider = env.DATABASE_PROVIDER;
+const migrated = provider === 'd1'
+  ? spawnSync(process.execPath, [wrangler, 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', '.data'], { stdio: 'inherit' })
+  : spawnSync(process.execPath, [fileURLToPath(new URL('./migrate.mjs', import.meta.url))], { stdio: 'inherit' });
 if (migrated.status !== 0) process.exit(migrated.status || 1);
 const children = [
   spawn(process.execPath, [wrangler, 'dev', '--local', '--port', '8787', '--persist-to', '.data', '--var', 'DEMO_MODE:true'], { stdio: 'inherit' }),

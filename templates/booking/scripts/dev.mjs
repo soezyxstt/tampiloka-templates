@@ -44,20 +44,7 @@ try {
       "<p>Use the Vite preview on port 5176.</p>",
     );
   }
-  await run(
-    [
-      "exec",
-      "wrangler",
-      "d1",
-      "migrations",
-      "apply",
-      "DB",
-      "--local",
-      "--config",
-      config,
-    ],
-    true,
-  );
+  await run(["exec", "node", "scripts/migrate.mjs", ...(demo ? ["--demo"] : [])], true);
   await run([
     "exec",
     "wrangler",

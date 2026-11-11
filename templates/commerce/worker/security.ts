@@ -72,7 +72,7 @@ export function sameOrigin(request: Request, env: Env) {
 }
 export async function rateLimit(env: Env, key: string, limit: number, seconds = 900) {
   const stamp = now(); const expires = new Date(Date.now() + seconds * 1000).toISOString();
-  await env.DB.prepare('INSERT INTO rate_limits(key,count,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN expires_at<=? THEN 1 ELSE count+1 END, expires_at=CASE WHEN expires_at<=? THEN excluded.expires_at ELSE expires_at END').bind(key, expires, stamp, stamp).run();
+  await env.DB.prepare('INSERT INTO rate_limits(key,count,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN rate_limits.expires_at<=? THEN 1 ELSE rate_limits.count+1 END, expires_at=CASE WHEN rate_limits.expires_at<=? THEN excluded.expires_at ELSE rate_limits.expires_at END').bind(key, expires, stamp, stamp).run();
   const row = await env.DB.prepare('SELECT count FROM rate_limits WHERE key=?').bind(key).first<{ count: number }>();
   if (row && row.count > limit) fail(429, 'RATE_LIMIT', 'Terlalu banyak percobaan. Coba lagi beberapa saat nanti.');
 }

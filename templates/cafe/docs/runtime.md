@@ -64,3 +64,45 @@ These are integration boundaries, not hidden options enabled by a CLI flag. Do n
 ## Verification
 
 Run `npm run typecheck` and the project test commands. Catalog validation tests run with `node --experimental-strip-types --test src/catalog/static-catalog.test.ts`. Domain tests cover package gates, receipt math, forward kitchen transitions, pricing/stock rules and safe exports. The integration suite uses a temporary, isolated database; it does not reset a client demo. The browser verification record describes the customer and staff flows actually exercised for this revision.
+
+## Database provider status
+
+The server database connection and Drizzle configuration accept `DATABASE_PROVIDER=postgresql` and `DATABASE_URL` (or the legacy `SQL_*` settings). This is PostgreSQL plumbing only: live transactions remain disabled until real authentication, customer sessions, and payment integration exist. The demo continues to use its isolated PGlite database.
+
+
+
+## Media storage API
+
+Configure `OBJECT_STORAGE_PROVIDER=s3` and `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (optionally `S3_REGION`), or use `OBJECT_STORAGE_PROVIDER=uploadthing` with `UPLOADTHING_TOKEN`. Set a unique random `CAFE_MEDIA_SECRET` of at least 32 bytes in the server environment. Keep credentials out of client code and use HTTPS. This secret grants upload and deletion access and signs public image links; changing it or the provider invalidates existing links. Use a dedicated bucket or UploadThing account for this cafe.
+
+A trusted administrator sends the raw JPEG, PNG or WebP body to `POST /api/v1/media` with `Authorization: Bearer <CAFE_MEDIA_SECRET>`. The limit is 5 MiB. The response contains an opaque `key` and a public relative `url`; save the returned URL as an absolute HTTPS URL in catalog content. The returned key encapsulates the actual provider-issued key, including UploadThing keys. `GET` on that URL serves the image publicly. Send `DELETE /api/v1/media?key=<encoded-key>` with the same authorization to remove it. Images may remain in caches briefly after deletion. The API is independent of demo mode and does not enable staff, ordering, or payment routes. There is no built-in media management UI or automatic cleanup of unused files.
+
+### SQLite providers
+
+`DATABASE_PROVIDER=turso` uses `TURSO_DATABASE_URL` and optional `TURSO_AUTH_TOKEN`.
+`DATABASE_PROVIDER=d1` uses `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_DATABASE_ID`,
+and `CLOUDFLARE_API_TOKEN`. On a new, empty database run `npm run db:migrate:sqlite`.
+For D1 this creates only `cafe_state`; for Turso it creates the relational schema.
+Neither command upgrades an existing database. Version mismatches are rejected; future
+changes require an explicit, non-destructive migration and backup strategy.
+
+Replace `content/menu.json` with the validated client catalog and set `sample` to
+`false`, then run `npm run db:seed:sqlite`. The initializer refuses an existing
+outlet, leaves ordering disabled and creates no demo staff, sessions, orders or payment
+accounts. It is an initial import, not synchronization; floor tables, stock, additional
+photos and service stations are not initialized. Do not run demo seed/reset on client data.
+
+Turso uses libSQL write transactions. D1 stores the complete canonical Cafe state as
+one JSON snapshot per configured outlet in `cafe_state`, the sole source of truth.
+Each operation materializes the snapshot in Node SQLite; writes run locally and use a
+revision-checked atomic update, retrying the entire DB-only callback at most five times.
+No external effects may be added inside these callbacks: deliver integrations through
+an outbox after commit. Contention can fail after the retry limit. The serialized state
+is limited to 1,500,000 UTF-8 bytes; exceeding it fails without committing. Every write
+copies the full state, so this approach is intended for bounded small outlets, not
+unlimited transaction history or high write throughput. Monitor capacity and plan a
+migration before reaching the limit. Hosted D1 limits, latency and concurrency have not
+been validated. D1 requires a Node.js runtime with `node:sqlite` (Node 22.13 or later;
+Node 22.18+ recommended), not an Edge runtime. The live route gate still blocks
+transactions until real authentication, sessions and payment integration exist. Demo
+mode always uses isolated PGlite and never targets remote providers.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { constants as fsConstants } from 'node:fs';
-import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { basename, dirname, extname, join, posix, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -252,7 +252,11 @@ function clientLockfile(source, pkg) {
   while (pending.length) {
     const path = pending.pop();
     const entry = lock.packages[path];
-    if (entry.link) throw new Error('Client generation cannot copy linked npm dependencies. Use published dependencies and regenerate the lockfile.');
+    if (entry.link) {
+      if (!entry.resolved?.startsWith('packages/')) throw new Error('Unexpected linked npm dependency in Cafe lockfile.');
+      if (!retained.has(entry.resolved)) { retained.add(entry.resolved); pending.push(entry.resolved); }
+      continue;
+    }
     const dependencies = new Set([
       ...Object.keys(entry.dependencies || {}),
       ...Object.keys(entry.optionalDependencies || {}),
@@ -329,6 +333,15 @@ async function init(target, options) {
   const staticCatalog = config.modules.length === 1 && config.modules[0] === 'catalog';
   const files = (await sourceFiles()).filter(path => path !== logo?.relativePath);
   const pkg = clientPackage(JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package.json'), 'utf8')), config.venue.tenantSlug);
+  const shared = [];
+  for (const group of DEPENDENCY_GROUPS) for (const name of Object.keys(pkg[group] || {})) {
+    if (name.startsWith('@tampiloka/')) {
+      const id = name.slice('@tampiloka/'.length);
+      if (id !== 'storage') throw new Error(`Missing standalone shared package: ${id}`);
+      if (!shared.includes(id)) shared.push(id);
+      pkg[group][name] = `file:./packages/${id}`;
+    }
+  }
   const lock = await exists(join(TEMPLATE_ROOT, 'package-lock.json'))
     ? clientLockfile(JSON.parse(await readFile(join(TEMPLATE_ROOT, 'package-lock.json'), 'utf8')), pkg)
     : null;
@@ -340,6 +353,11 @@ async function init(target, options) {
   await mkdir(dirname(destination), { recursive: true });
   await mkdir(destination); // Atomic refusal when another process has created it.
   try {
+    for (const id of shared) {
+      const local = join(TEMPLATE_ROOT, 'packages', id);
+      const sourcePackage = await exists(local) ? local : resolve(TEMPLATE_ROOT, '../../packages', id);
+      await cp(sourcePackage, join(destination, 'packages', id), { recursive: true, filter: path => !['node_modules', '.git', 'dist'].includes(basename(path)) });
+    }
     for (const path of files) {
       const targetPath = join(destination, path);
       await mkdir(dirname(targetPath), { recursive: true });

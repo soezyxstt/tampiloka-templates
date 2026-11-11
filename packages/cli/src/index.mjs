@@ -12,7 +12,7 @@ import { parseJsonc } from './jsonc.mjs';
 const VERSION = '1.0.0';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BOOL = new Set(['yes', 'json', 'dry-run', 'help', 'version']);
-const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir','typography','modules']);
+const VALUES = new Set(['template','preset','level','layout','theme','card','button','name','phone','whatsapp','color','features','out','dir','typography','modules','database','object-storage']);
 const HELP = `Tampiloka ${VERSION}
 
 Usage:
@@ -32,6 +32,8 @@ Pilihan create:
   --card <id>      commerce: open, framed, soft
   --button <id>    commerce: solid, outline
   --typography <id> school: editorial, modern, humanist
+  --database <id>  turso, d1, postgresql (cafe: postgresql; lainnya: d1)
+  --object-storage <id>  uploadthing atau s3 (default: s3)
   --name <text>    Nama brand
   --whatsapp <text> WhatsApp bisnis, format 628... (--phone juga diterima)
   --color <hex>    Warna brand cafe, contoh '#234C39'
@@ -124,6 +126,8 @@ async function interactive(options, registry) {
       if(!result.layout)result.layout=await choose('Susunan halaman',registry.bookingLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
       if(!result.theme)result.theme=await choose('Palet contoh',registry.bookingPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
     } else if(!result.theme)result.theme=await choose('Tema cafe',[['boxy','Tegas'],['rounded','Sudut lembut'],['editorial','Tipografi editorial'],['playful','Garis dan bayangan kuat'],['airy','Ruang longgar']],'rounded');
+    if(!result.database)result.database=await choose('Database',[['turso','Turso SQLite'],['d1','Cloudflare D1'],['postgresql','PostgreSQL']],template.id==='cafe'?'postgresql':'d1');
+    if(!result['object-storage'])result['object-storage']=await choose('Penyimpanan objek',[['s3','S3-compatible'],['uploadthing','UploadThing']],'s3');
     if(!result.name)result.name=(await prompt.question('Nama brand (Enter memakai nama proyek): ')).trim()||undefined;
     if(!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
     return result;
@@ -131,7 +135,7 @@ async function interactive(options, registry) {
 }
 
 const EXCLUDE_DIRS=new Set(['node_modules','.git','.next','.local','.data','.wrangler','.turbo','dist','dist-demos','dist-worker','build','coverage','test-results','playwright-report','design-runs','payload']);
-const ROOT_DIRS=new Set(['src','worker','migrations','content','config','public','scripts','tests','docs']);
+const ROOT_DIRS=new Set(['src','worker','migrations','migrations-postgresql','content','config','public','scripts','tests','docs']);
 const ROOT_FILES=new Set(['package.json','components.json','tsconfig.json','tsconfig.node.json','vite.config.ts','vite.config.mts','wrangler.json','wrangler.jsonc','wrangler.toml','index.html','README.md','eslint.config.mjs','.gitignore','.env.example','.dev.vars.example']);
 export async function copyTree(source,destination,{template=false}={}) {
   async function walk(from,to,depth){
@@ -205,7 +209,7 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
     await writeJson(wranglerPath,wrangler);
   }
   await writeFile(join(temp,'.dev.vars.example'),'# Salin ke .dev.vars untuk menjalankan demo lokal. Jangan commit rahasia.\nDEMO_MODE=true\n# STAFF_OWNER_PASSWORD=gunakan-password-panjang-dan-unik\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# RESEND_API_KEY=\n# MEMBER_EMAIL_FROM=Halo Toko <member@domain-toko.com>\n');
-  await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nTemplate commerce Tampiloka. Level: ${options.level}. Preset: ${options.preset}.\n\n## Jalankan lokal\n\n1. \`pnpm install\`\n2. \`cp .dev.vars.example .dev.vars\`\n3. \`pnpm dev\`\n\nDemo lokal terpisah dari produksi. Data produk awal adalah contoh. Ganti konten, foto, nomor WhatsApp, bank, dan ongkir sebelum menerima pesanan nyata.\n\n## Deploy toko\n\nBuat database D1 milik klien, isi ID-nya di wrangler.jsonc, lalu jalankan migrasi. Set DEMO_MODE=false pada deploy produksi. Simpan password staf dan kunci gateway dengan \`wrangler secret put\`. Jangan masukkan kunci ke config/commerce.json. Baca docs/api.md dan README.md untuk perintah deploy serta batas integrasi.\n\nPaket bersama ada di packages/ milik proyek ini. Proyek tidak bergantung pada checkout monorepo atau paket workspace tersembunyi.\n`);
+  await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nTemplate commerce Tampiloka. Level: ${options.level}. Preset: ${options.preset}.\n\n## Jalankan lokal\n\n1. \`pnpm install\`\n2. \`cp .dev.vars.example .dev.vars\`\n3. \`pnpm dev\`\n\nDemo lokal terpisah dari produksi. Data produk awal adalah contoh. Ganti konten, foto, nomor WhatsApp, bank, dan ongkir sebelum menerima pesanan nyata.\n\n## Deploy toko\n\nSiapkan database pilihan milik klien dan jalankan migrasi sesuai provider. Set DEMO_MODE=false pada deploy produksi. Simpan password staf dan kunci gateway dengan \`wrangler secret put\`. Jangan masukkan kunci ke config/commerce.json. Baca docs/api.md dan README.md untuk perintah deploy serta batas integrasi.\n\nPaket bersama ada di packages/ milik proyek ini. Proyek tidak bergantung pada checkout monorepo atau paket workspace tersembunyi.\n`);
   return config;
 }
 
@@ -270,7 +274,7 @@ async function createBooking(sourceRoot,temp,target,options,template) {
   await rm(join(temp,'tests'),{recursive:true,force:true});await mkdir(join(temp,'tests'));
   await writeFile(join(temp,'tests/client.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';\nconst root=new URL('../',import.meta.url);test('client deployment excludes public demo mode and workspace dependencies',()=>{const c=JSON.parse(readFileSync(new URL('wrangler.jsonc',root)));assert.equal(c.vars.DEMO_MODE,'false');const p=JSON.parse(readFileSync(new URL('package.json',root)));assert.ok(!Object.values({...p.dependencies,...p.devDependencies}).some(v=>v.startsWith('workspace:')));});\n");
   await writeFile(join(temp,'.dev.vars.example'),'# Copy to .dev.vars. Set unique secrets; never commit this file.\nDEMO_MODE=false\n# STAFF_OWNER_PASSWORD=\n# STAFF_OPERATIONS_PASSWORD=\n# STAFF_VIEWER_PASSWORD=\n# TICKET_SECRET=\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# NOTIFICATION_API_KEY=\n# NOTIFICATION_FROM=\n');
-  await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nPreset: ${options.preset}. Level: ${options.level}. Layout: ${config.layout}. Palette: ${config.palette}.\n\nRun \`pnpm install\`, copy \`.dev.vars.example\` to \`.dev.vars\`, configure a unique staff password, then \`pnpm dev\`. Local migrations run automatically. This is client mode, not a public demo. Never set DEMO_MODE=true.\n\nThis project owns its packages, content, assets, settings, and database. Change \`config/booking.json\` and \`content/client.json\` before initializing a new database. After initialization use the authenticated staff CMS. Example services and fictional professionals remain clearly marked until you replace and verify them.\n\nSee \`docs/client-setup.md\`, \`docs/deployment.md\`, and \`docs/limitations.md\`. Cloudflare deployment requires a client-owned D1 database and secret configuration. Online payments require provider credentials and real sandbox verification; this generator does not certify live payments.\n`);
+  await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nPreset: ${options.preset}. Level: ${options.level}. Layout: ${config.layout}. Palette: ${config.palette}.\n\nRun \`pnpm install\`, copy \`.dev.vars.example\` to \`.dev.vars\`, configure a unique staff password, then \`pnpm dev\`. Local migrations run automatically. This is client mode, not a public demo. Never set DEMO_MODE=true.\n\nThis project owns its packages, content, assets, settings, and database. Change \`config/booking.json\` and \`content/client.json\` before initializing a new database. After initialization use the authenticated staff CMS. Example services and fictional professionals remain clearly marked until you replace and verify them.\n\nSee \`docs/client-setup.md\`, \`docs/deployment.md\`, and \`docs/limitations.md\`. Cloudflare deployment requires the selected client-owned database, object storage and server-side secrets. Online payments require provider credentials and real sandbox verification; this generator does not certify live payments.\n`);
   await writeFile(join(temp,'README.md'),`# ${options.name||target}\n\nClient-owned appointment website and staff workspace. Start with [CLIENT_SETUP.md](CLIENT_SETUP.md), then [deployment](docs/deployment.md).\n\nPreset: ${options.preset}. Level: ${options.level}. Public demo controls are excluded.\n\nRun: pnpm install, pnpm dev, pnpm typecheck, pnpm test, pnpm build.\n\nConfigure the client database, staff secrets, verified content and policy before launch. Full requires merchant-specific sandbox verification before accepting live payments.\n`);
   return config;
 }
@@ -280,6 +284,10 @@ export async function createProject(target,initial,sourceRoot,registry) {
   if(initial.phone&&initial.whatsapp)throw new Error('Gunakan --whatsapp atau --phone, bukan keduanya.');
   const options=await interactive({...initial,phone:initial.whatsapp||initial.phone},registry);
   const template=registry.getTemplate(options.template||'commerce',{availableOnly:true});
+  options.database ||= template.id==='cafe'?'postgresql':'d1';
+  options['object-storage'] ||= 's3';
+  assertChoice(options.database,['turso','d1','postgresql'],'Database');
+  assertChoice(options['object-storage'],['uploadthing','s3'],'Object storage');
   if(options.modules&&(template.id!=='cafe'||options.modules!=='catalog'))throw new Error('--modules hanya mendukung catalog untuk menu Cafe hanya-baca.');
   if(options.modules&&options.preset)throw new Error('Gunakan --preset atau --modules, bukan keduanya.');
   options.template=template.id;options.preset=options.modules?null:(options.preset||template.defaultPreset);
@@ -313,7 +321,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
   let ancestor=parent;while(!await exists(ancestor))ancestor=dirname(ancestor);
   const canonical=join(await realpath(ancestor),relative(ancestor,parent),target),source=await realpath(sourceRoot);
   if(canonical===source||canonical.startsWith(join(source,'templates')+sep)||canonical.startsWith(join(source,'packages')+sep))throw new Error('Buat proyek klien di luar folder sumber templates/ dan packages/.');
-  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,...(options.level?{level:options.level}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),...(options.modules?{modules:[options.modules]}:{}),directory:destination};
+  const result={command:'create',dryRun:Boolean(options['dry-run']),template:template.id,preset:options.preset,database:options.database,objectStorage:options['object-storage'],...(options.level?{level:options.level}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),...(options.modules?{modules:[options.modules]}:{}),directory:destination};
   if(options['dry-run']){emit(options,result,`Rencana proyek ${destination}\n${template.id} / ${options.modules?'modules: '+options.modules:options.preset}${options.level?` / ${options.level}`:''}\nTidak ada file yang ditulis.`);return result;}
   await mkdir(parent,{recursive:true});
   const temp=join(parent,`.tampiloka-${target}-${randomUUID()}`);
@@ -328,7 +336,8 @@ export async function createProject(target,initial,sourceRoot,registry) {
     }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
-    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,level:options.level||null,...(options.modules?{modules:[options.modules]}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
+    await configureStorage(temp,template.id,options);
+    await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,database:options.database,objectStorage:options['object-storage'],level:options.level||null,...(options.modules?{modules:[options.modules]}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
     // Windows rename refuses an existing directory; POSIX needs a reservation.
     if(process.platform!=='win32'){await mkdir(destination);reservedDestination=true;}
     await rename(temp,destination);
@@ -339,6 +348,53 @@ export async function createProject(target,initial,sourceRoot,registry) {
   return result;
 }
 
+async function configureStorage(directory, family, options) {
+  const database=options.database, objectStorage=options['object-storage'];
+  await writeJson(join(directory,'config/storage.json'),{database,objectStorage});
+  const envNames=database==='turso'?['TURSO_DATABASE_URL','TURSO_AUTH_TOKEN']:database==='postgresql'?['DATABASE_URL']:family==='cafe'?['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_DATABASE_ID','CLOUDFLARE_API_TOKEN']:[];
+  envNames.push(...(objectStorage==='s3'?['S3_ENDPOINT','S3_BUCKET','S3_ACCESS_KEY_ID','S3_SECRET_ACCESS_KEY','S3_REGION','S3_PUBLIC_URL']:['UPLOADTHING_TOKEN']));
+  const envFile=join(directory,family==='cafe'?'.env.example':'.dev.vars.example');
+  if(family==='cafe') {
+    const path=join(directory,'.env');
+    const existing=await exists(path)?await readFile(path,'utf8'):'';
+    await writeFile(path,existing.replace(/\s*$/, '\n')+`DATABASE_PROVIDER=${database}\nOBJECT_STORAGE_PROVIDER=${objectStorage}\n`);
+  }
+  let original=await exists(envFile)?await readFile(envFile,'utf8'):'';
+  for(const [name,value] of Object.entries({DATABASE_PROVIDER:database,OBJECT_STORAGE_PROVIDER:objectStorage})) {
+    original=original.replace(new RegExp(`^[ \\t]*#?[ \\t]*${name}=.*(?:\\r?\\n|$)`, 'gm'),'');
+    original+=`\n${name}=${value}\n`;
+  }
+  const add=envNames.map(name=>`# ${name}=`).filter(line=>!new RegExp(`^[ \\t]*#?[ \\t]*${line.slice(2).split('=')[0]}=`, 'm').test(original));
+  await writeFile(envFile,original.replace(/\s*$/, '\n')+add.join('\n')+'\n');
+  if(family!=='cafe') {
+    const path=join(directory,'wrangler.jsonc');
+    const config=await json(path);config.vars={...config.vars,DATABASE_PROVIDER:database,OBJECT_STORAGE_PROVIDER:objectStorage};
+    if(database!=='d1')delete config.d1_databases;
+    delete config.r2_buckets;
+    await writeJson(path,config);
+  }
+  const setup=join(directory,family==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md');
+  const existing=await exists(setup)?await readFile(setup,'utf8'):'';
+  await writeFile(setup,existing+`\n\n## Storage providers\n\nDatabase: ${database}; object storage: ${objectStorage}. Configure the variables in ${family==='cafe'?'.env.example':'.dev.vars.example'} as server-side secrets. See the family migration and deployment documentation; apply the migration for the selected database before serving traffic. Do not commit credentials.\n`);
+}
+async function storageChecks(directory,family) {
+  const path=join(directory,'config/storage.json');
+  if(!await exists(path))return [{name:'Storage',status:'warn',detail:'Provider belum dikonfigurasi; proyek lama.'}];
+  let config;try{config=await json(path);assertChoice(config.database,['turso','d1','postgresql'],'Database');assertChoice(config.objectStorage,['uploadthing','s3'],'Object storage');}catch(error){return [{name:'Storage',status:'fail',detail:error.message}];}
+  const checks=[{name:'Storage providers',status:'pass',detail:`${config.database} / ${config.objectStorage}`}];
+  if(family!=='cafe'){
+    const w=await json(join(directory,'wrangler.jsonc'));
+    const valid=w.vars?.DATABASE_PROVIDER===config.database&&w.vars?.OBJECT_STORAGE_PROVIDER===config.objectStorage;
+    checks.push({name:'Storage runtime',status:valid?'pass':'fail',detail:'Provider vars di wrangler harus sesuai config/storage.json.'});
+    if(config.database==='d1')checks.push({name:'D1 binding',status:w.d1_databases?.some(d=>d.binding==='DB'&&d.database_id&&d.database_id!=='00000000-0000-0000-0000-000000000000')?'pass':'warn',detail:'Isi binding DB dengan database milik klien.'});
+    else if(w.d1_databases?.some(d=>d.binding==='DB'))checks.push({name:'D1 binding',status:'fail',detail:'Hapus binding DB untuk provider lain.'});
+  }
+  const names=config.database==='turso'?['TURSO_DATABASE_URL']:config.database==='postgresql'?['DATABASE_URL']:family==='cafe'?['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_DATABASE_ID','CLOUDFLARE_API_TOKEN']:[];
+  names.push(...(config.objectStorage==='s3'?['S3_ENDPOINT','S3_BUCKET','S3_ACCESS_KEY_ID','S3_SECRET_ACCESS_KEY']:['UPLOADTHING_TOKEN']));
+  // Environment presence is checked without exposing secret values; deployed secrets cannot be inspected here.
+  for(const name of names)checks.push({name,status:process.env[name]?'pass':'warn',detail:process.env[name]?'Tersedia di environment proses.':'Belum tersedia di environment proses; periksa secret deployment juga.'});
+  return checks;
+}
 export async function doctor(options,sourceRoot,registry) {
   const directory=resolve(options.dir||process.cwd()),checks=[];
   if(directory===resolve(sourceRoot)&&await exists(join(directory,'pnpm-workspace.yaml'))){
@@ -350,20 +406,22 @@ export async function doctor(options,sourceRoot,registry) {
   }
   if(!await exists(join(directory,'tampiloka.project.json')))throw new Error('tampiloka.project.json tidak ditemukan. Jalankan di proyek hasil tampiloka create atau beri --dir.');
   const project=await json(join(directory,'tampiloka.project.json')),template=registry.getTemplate(project.template,{availableOnly:true});
+  checks.push(...await storageChecks(directory,template.id));
   if(template.id==='cafe'){
     const child=spawnSync(process.execPath,[join(directory,'scripts/cafe.mjs'),'doctor','--dir',directory,'--json'],{encoding:'utf8'});
     if(child.error)throw child.error;
     let result;try{result=JSON.parse(child.stdout);}catch{throw new Error(child.stderr||'Pemeriksaan cafe gagal.');}
-    emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status)process.exitCode=child.status;return result;
+    result.checks.push(...checks);result.ok=result.ok&&checks.every(c=>c.status!=='fail');
+    emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status||!result.ok)process.exitCode=child.status||1;return result;
   }
-  if(template.id==='school'){const result=await doctorSchool(directory,registry);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
+  if(template.id==='school'){const result=await doctorSchool(directory,registry);result.checks.push(...checks);result.ok=result.ok&&checks.every(c=>c.status!=='fail');emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
   if(template.id==='booking'){
     const config=await json(join(directory,'config/booking.json')),pkg=await json(join(directory,'package.json')),wrangler=await json(join(directory,'wrangler.jsonc'));
     try{assertChoice(config.level,Object.keys(registry.bookingLevels),'Level');assertChoice(config.preset,Object.keys(registry.bookingPresets),'Preset');assertChoice(config.layout,registry.bookingLayouts,'Layout');assertChoice(config.palette,registry.bookingPalettes,'Palette');new Intl.DateTimeFormat('en',{timeZone:config.timezone});checks.push({name:'Konfigurasi booking',status:'pass',detail:`${config.preset} / ${config.level} / ${config.layout} / ${config.palette}`});}catch(e){checks.push({name:'Konfigurasi booking',status:'fail',detail:e.message});}
     const dependencies={...pkg.dependencies,...pkg.devDependencies};checks.push({name:'Proyek mandiri',status:Object.values(dependencies).some(v=>v.startsWith('workspace:'))?'fail':'pass',detail:'Paket bersama berada dalam proyek klien.'});
     for(const [name,value]of Object.entries(dependencies))if(value.startsWith('file:'))checks.push({name,status:await exists(join(directory,value.slice(5),'package.json'))?'pass':'fail',detail:value});
     checks.push({name:'Mode klien',status:wrangler.vars?.DEMO_MODE==='false'?'pass':'fail',detail:'DEMO_MODE harus false; tidak ada pemilih demo publik.'});
-    checks.push({name:'Database D1',status:wrangler.d1_databases?.[0]?.database_id==='00000000-0000-0000-0000-000000000000'?'warn':'pass',detail:'Gunakan database milik klien, lalu jalankan migrasi.'});
+
     checks.push({name:'Konten contoh',status:config.brand.example?'warn':'pass',detail:'Ganti layanan, profil fiktif, gambar, kontak, dan kebijakan sebelum peluncuran.'});
     if(config.level!=='catalog')checks.push({name:'WhatsApp',status:config.brand.whatsapp?'pass':'warn',detail:'Isi nomor bisnis sebelum membuka tautan WhatsApp.'});
     if(config.level==='full')checks.push({name:'Pembayaran dan tiket',status:'warn',detail:'Pasang TICKET_SECRET dan kunci Midtrans. Verifikasi sandbox, callback, dan pengembalian dana sebelum produksi.'});
@@ -379,7 +437,7 @@ export async function doctor(options,sourceRoot,registry) {
   if(['store','advanced'].includes(config.level))checks.push({name:'Bank transfer',status:config.bank.accountNumber?'pass':'warn',detail:config.bank.accountNumber?'Periksa nama dan nomor rekening sebelum menerima pembayaran.':'Isi bank atau gunakan COD; transfer belum siap.'});
   if(config.modules?.customerAccounts)checks.push({name:'Email member',status:'warn',detail:'Pasang RESEND_API_KEY dan MEMBER_EMAIL_FROM dari domain pengirim terverifikasi sebelum menggunakan akun member produksi.'});
   if(config.modules?.taxes && !(config.pricing?.taxBps>0))checks.push({name:'Tarif pajak',status:'warn',detail:'Modul pajak aktif, tetapi tarif masih nol. Periksa kewajiban pajak merchant.'});
-  checks.push({name:'Produksi',status:'warn',detail:'Verifikasi database D1, DEMO_MODE=false, password staf, data produk, pengiriman, dan kunci gateway sebelum menerima transaksi nyata.'});
+  checks.push({name:'Produksi',status:'warn',detail:'Verifikasi database pilihan, DEMO_MODE=false, password staf, data produk, pengiriman, dan kunci gateway sebelum menerima transaksi nyata.'});
   const ok=checks.every(check=>check.status!=='fail'),result={command:'doctor',ok,directory,template:template.id,checks};
   emit(options,result,checks.map(c=>`${c.status.toUpperCase().padEnd(4)} ${c.name}: ${c.detail}`).join('\n'));if(!ok)process.exitCode=1;return result;
 }

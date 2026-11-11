@@ -1,3 +1,4 @@
+import { resolveDatabase, resolveObjectStorage } from '@tampiloka/storage';
 import configJson from '../config/school.json' with { type: 'json' };
 import { seed } from '../content/seed.ts';
 import type { Command, Context, Level, Preset, SchoolConfig, User, Json, SchoolState } from '../src/domain/types.ts';
@@ -13,6 +14,17 @@ export interface Bucket {
 }
 export interface Env {
     DB: Database;
+    DATABASE_PROVIDER?: string;
+    OBJECT_STORAGE_PROVIDER?: string;
+    TURSO_DATABASE_URL?: string;
+    TURSO_AUTH_TOKEN?: string;
+    DATABASE_URL?: string;
+    S3_ENDPOINT?: string;
+    S3_BUCKET?: string;
+    S3_ACCESS_KEY_ID?: string;
+    S3_SECRET_ACCESS_KEY?: string;
+    S3_REGION?: string;
+    UPLOADTHING_TOKEN?: string;
     MEDIA?: Bucket;
     ASSETS?: {
         fetch(r: Request): Promise<Response>;
@@ -26,6 +38,25 @@ export interface Env {
     NOTIFICATION_URL?: string;
     NOTIFICATION_SECRET?: string;
     CONFIG?: SchoolConfig;
+}
+// Native R2 remains the default for existing demos and clients. Explicit provider
+// selections always use the shared server-side adapter.
+function mediaStorage(env: Env) {
+    if (!env.OBJECT_STORAGE_PROVIDER && env.MEDIA) {
+        const bucket = env.MEDIA;
+        return {
+            async put(key: string, body: Uint8Array, _options?: { contentType?: string }) { await bucket.put(key, Uint8Array.from(body).buffer); return { key }; },
+            async get(key: string) { const file = await bucket.get(key); return file ? { body: new Uint8Array(await file.arrayBuffer()) } : null; },
+        };
+    }
+    if (!env.OBJECT_STORAGE_PROVIDER) return null;
+    return resolveObjectStorage(env);
+}
+const databaseCache = new WeakMap<Env, Database>();
+function databaseEnv(env: Env): Env {
+    let db = databaseCache.get(env);
+    if (!db) { db = resolveDatabase(env) as Database; databaseCache.set(env, db); }
+    return { ...env, DB: db };
 }
 const response = (data: unknown, status = 200, cookies: string[] = []) => { const headers = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); for (const c of cookies)
     headers.append('Set-Cookie', c); return new Response(JSON.stringify(data), { status, headers }); };
@@ -134,11 +165,12 @@ async function sendOutbox(store: Store, env: Env, state: SchoolState): Promise<n
     return sent;
 }
 export async function dispatchNotifications(env: Env) { const config = configuration(env); if (env.DEMO_MODE === 'true' || !['enrollment', 'full'].includes(config.level))
-    return; const store = new Store(env.DB, 'production', () => seed(config.preset, config, false)); const state = (await store.load()).state; await sendOutbox(store, env, state); }
+    return; env = databaseEnv(env); const store = new Store(env.DB, 'production', () => seed(config.preset, config, false)); const state = (await store.load()).state; await sendOutbox(store, env, state); }
 export async function handle(request: Request, env: Env, execution?: {
     waitUntil(promise: Promise<unknown>): void;
 }): Promise<Response> {
     try {
+        env = databaseEnv(env);
         const url = new URL(request.url), path = url.pathname;
         if (path === '/api/payments/callback' && request.method === 'POST')
             return await callback(request, env);
@@ -267,7 +299,7 @@ export async function handle(request: Request, env: Env, execution?: {
             }
             const order = previous?.reference ?? `school-${crypto.randomUUID()}`;
             const startingUntil = Date.now() + 60000;
-            await env.DB.prepare('INSERT OR IGNORE INTO school_payment_routes(order_id,namespace) VALUES(?,?)').bind(order, 'production').run();
+            await env.DB.prepare('INSERT INTO school_payment_routes(order_id,namespace) VALUES(?,?) ON CONFLICT(order_id) DO NOTHING').bind(order, 'production').run();
             if (!previous) await store.mutate(s => { const current = s.invoices.find(x => x.id === invoice.id); check(current?.status === 'unpaid', 'invoice_unavailable', 409); check(!s.payments.some(x => x.invoiceId === invoice.id && x.provider === 'midtrans' && x.status === 'pending'), 'payment_start_reconcile', 409); s.payments.push({ id: `pay-${order}`, invoiceId: invoice.id, reference: order, provider: 'midtrans', amountIdr: invoice.totalIdr, status: 'pending', at: ctx.now, startingUntil }); });
             else await store.mutate(s => { const pay = s.payments.find(x => x.reference === order); check(s.invoices.find(x => x.id === invoice.id)?.status === 'unpaid', 'invoice_unavailable', 409); check(pay?.status === 'pending' && (pay.startingUntil ?? 0) <= Date.now() && pay.checkoutUrl === previous?.checkoutUrl, 'payment_start_reconcile', 409); pay.startingUntil = startingUntil; });
             const host = env.MIDTRANS_ENVIRONMENT === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
@@ -287,7 +319,8 @@ export async function handle(request: Request, env: Env, execution?: {
             check(ctx.actor && (canEdit(ctx.actor.role) || ctx.actor.role === 'tutor'), 'forbidden', 403);
             if (ctx.actor.role === 'tutor')
                 need(ctx.level, 'materials');
-            check(env.MEDIA, 'storage_not_configured', 503);
+            const media = mediaStorage(env);
+            check(media, 'storage_not_configured', 503);
             await rateLimit(env.DB, request, 'upload', 20);
             check(Number(request.headers.get('content-length') ?? 0) <= 5000000, 'file_too_large', 413);
             const bytes = await request.arrayBuffer();
@@ -299,31 +332,36 @@ export async function handle(request: Request, env: Env, execution?: {
             check(valid, 'file_type_not_allowed');
             const publicAsset = url.searchParams.get('public') === 'true';
             check(!publicAsset || canEdit(ctx.actor.role) && type.startsWith('image/'), 'forbidden', 403);
+            // Do not send private material to a provider unless its adapter promises private uploads.
+            if (!publicAsset && env.OBJECT_STORAGE_PROVIDER === 'uploadthing')
+                check((media as { privateUploads?: boolean }).privateUploads === true, 'storage_not_configured', 503);
             const id = crypto.randomUUID(), key = `${store.namespace}/${id}`;
-            await env.MEDIA.put(key, bytes);
-            await store.mutate(s => command(s, ctx, { action: 'media.add', key: `media_${id}`, payload: { media: { id, key, name: (request.headers.get('X-File-Name') ?? 'resource').replace(/[^\w. -]/g, '').slice(0, 100), type, size: bytes.byteLength, public: publicAsset } } }));
+            const stored = await media.put(key, new Uint8Array(bytes), { contentType: type });
+            await store.mutate(s => command(s, ctx, { action: 'media.add', key: `media_${id}`, payload: { media: { id, key: stored.key, name: (request.headers.get('X-File-Name') ?? 'resource').replace(/[^\w. -]/g, '').slice(0, 100), type, size: bytes.byteLength, public: publicAsset } } }));
             return response({ id, url: `/api/media/${id}` }, 201);
         }
         if (path.startsWith('/api/media/') && request.method === 'GET') {
             const s = (await store.load()).state;
             const asset = s.media.find(x => x.id === path.split('/').at(-1));
             check(asset && asset.public, 'not_found', 404);
-            check(env.MEDIA, 'storage_not_configured', 503);
-            const file = await env.MEDIA.get(asset.key);
+            const media = mediaStorage(env);
+            check(media, 'storage_not_configured', 503);
+            const file = await media.get(asset.key);
             check(file, 'not_found', 404);
-            return new Response(await file.arrayBuffer(), { headers: { 'Content-Type': asset.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=60' } });
+            return new Response(Uint8Array.from(file.body).buffer, { headers: { 'Content-Type': asset.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=60' } });
         }
         if (path.startsWith('/api/materials/') && request.method === 'GET') {
             const s = (await store.load()).state;
             const m = canDownload(s, ctx, path.split('/').at(-1)!);
             let data: ArrayBuffer | string = m.sampleText ?? '', type = 'text/plain', name = 'learning-notes.txt';
             if (m.assetId) {
-                check(env.MEDIA, 'storage_not_configured', 503);
+                const media = mediaStorage(env);
+                check(media, 'storage_not_configured', 503);
                 const asset = s.media.find(x => x.id === m.assetId);
                 check(asset && !asset.public, 'not_found', 404);
-                const file = await env.MEDIA.get(asset.key);
+                const file = await media.get(asset.key);
                 check(file, 'not_found', 404);
-                data = await file.arrayBuffer();
+                data = Uint8Array.from(file.body).buffer;
                 type = asset.type;
                 name = asset.name;
             }
@@ -349,5 +387,5 @@ export async function handle(request: Request, env: Env, execution?: {
         return result;
     }
 }
-export async function cleanup(env: Env) { for (const table of ['school_sessions', 'school_visitors', 'school_limits', 'school_state'])
+export async function cleanup(env: Env) { env = databaseEnv(env); for (const table of ['school_sessions', 'school_visitors', 'school_limits', 'school_state'])
     await env.DB.prepare(`DELETE FROM ${table} WHERE expires_at IS NOT NULL AND expires_at<?`).bind(Date.now()).run(); }

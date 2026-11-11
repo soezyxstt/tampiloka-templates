@@ -32,7 +32,7 @@ export class Store {
     }> {
         let row = await this.db.prepare('SELECT revision,data FROM school_state WHERE namespace=?').bind(this.namespace).first<Row>();
         if (!row) {
-            await this.db.prepare('INSERT OR IGNORE INTO school_state(namespace,revision,data,expires_at) VALUES(?,0,?,?)').bind(this.namespace, JSON.stringify(this.initial()), this.expiry).run();
+            await this.db.prepare('INSERT INTO school_state(namespace,revision,data,expires_at) VALUES(?,0,?,?) ON CONFLICT(namespace) DO NOTHING').bind(this.namespace, JSON.stringify(this.initial()), this.expiry).run();
             row = await this.db.prepare('SELECT revision,data FROM school_state WHERE namespace=?').bind(this.namespace).first<Row>();
         }
         check(row, 'storage_unavailable', 503);

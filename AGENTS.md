@@ -221,6 +221,12 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 - Give each destination one clear target within a product, program or service entry. A named image or row can open details. Keep a separate button when it performs a different action, such as saving a favorite or booking a visit.
 - Check the opening, catalog and detail view with real images at phone and desktop widths. Refresh the 1280 × 800 gallery covers from the running demo after a visual change.
 
+## Generated storage providers
+
+The CLI selects database (`turso`, `d1`, `postgresql`) independently of object storage (`uploadthing`, `s3`) and persists these choices in `config/storage.json`. Credentials remain server-side. Use `packages/storage` for shared Worker database/object adapters; maintain matching standalone dependencies and locks when adding providers. Keep public D1 demos isolated from generated client credentials.
+
+PostgreSQL needs family-specific migrations and transaction tests; placeholder translation alone does not establish SQLite parity. UploadThing keys are opaque and returned uploads are private; enable ACL overrides in its dashboard. S3-compatible buckets must be private. Provider tests must preserve authorization, conflict detection, rollback and numeric precision. Cafe live-route authentication/payment gates remain independent of storage selection. Record local engine checks separately from hosted transport/deployment checks, and respect requested resource limits.
+
 ## School template
 
 `templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
@@ -235,6 +241,8 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 - Production workflows run independently of CI; configure repository branch protection or rulesets to require the `verify` CI check before merging to `main` and prevent bypasses as appropriate. Workflow YAML alone does not enforce that protection. Review required check names before renaming or removing jobs; do not require path-filtered workflows, which can leave checks pending on unrelated changes.
 
 ## Change log
+
+- **2026-11-11**: Added independent CLI database/object-storage selection, shared provider adapters, standalone packaging and provider-specific backend checks.
 
 - **2026-11-10**: Cafe copy removes redundant guidance and demo commentary from operational screens; only actionable blockers, costs and essential financial scope remain.
 

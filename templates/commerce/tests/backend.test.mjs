@@ -364,3 +364,18 @@ test('returning demos adopt untouched photo sets once and keep staff edits and s
   await store.get('/api/bootstrap');
   assert.equal(db.prepare("SELECT images_json AS photos FROM products WHERE scope='store' AND id='canvas-tote'").get().photos, stockShot);
 });
+
+test('staff uploads enforce role and image validation before accessing storage', async t => {
+  const {env,c}=fixture(t);
+  await c.get('/api/bootstrap');
+  await c.post('/api/demo/role',{role:'viewer'});
+  const request = (type, bytes) => workerRequest(type, bytes);
+  async function workerRequest(type, bytes) {
+    const { default: worker } = await import('../worker/index.ts');
+    return worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':type},body:bytes}), env);
+  }
+  assert.equal((await request('image/png',new Uint8Array([1]))).status,403);
+  await c.post('/api/demo/role',{role:'operations'});
+  assert.equal((await request('text/html',new Uint8Array([1]))).status,422);
+  assert.equal((await request('image/png',new Uint8Array([1]))).status,422);
+});
