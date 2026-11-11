@@ -36,6 +36,7 @@ export function AttendancePage({ tenantSlug, outletSlug }: { tenantSlug: string;
 function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: string; review: boolean; captureAllowed: boolean }) {
   const { t } = useCafeLanguage();
   const [status, setStatus] = useState<Status | null>(null);
+  const [historyRevision, setHistoryRevision] = useState(0);
   const [message, setMessage] = useState('');
   const [location, setLocation] = useState<Location | null>(null);
   const [photo, setPhoto] = useState<Blob | null>(null);
@@ -111,7 +112,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
         savePending(command);
       } else {
         const reconciled = await refresh(command.idempotencyKey);
-        if (reconciled.operation) { savePending(null); setPhoto(null); setLocation(null); setMessage('saved'); return; }
+        if (reconciled.operation) { savePending(null); setPhoto(null); setLocation(null); setMessage('saved'); setHistoryRevision(value => value + 1); return; }
       }
       const response = await fetch('/api/attendance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command), cache: 'no-store' });
       if (!response.ok) {
@@ -125,7 +126,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
       if (!result || typeof result.id !== 'string' || !result.id) { setMessage('unknown'); return; }
       const confirmed = await refresh(command.idempotencyKey);
       if (!confirmed.operation || confirmed.operation.id !== result.id) { setMessage('unknown'); return; }
-      savePending(null); setPhoto(null); setLocation(null); setMessage('saved');
+      savePending(null); setPhoto(null); setLocation(null); setMessage('saved'); setHistoryRevision(value => value + 1);
     } catch { setMessage('unknown'); } finally { setBusy(false); }
   }
   async function finalize() {
@@ -136,7 +137,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
       if (!response.ok) { setMessage('finalize-unknown'); return; }
       const result = await response.json();
       if (result.outcome === 'committed' && typeof result.event?.id === 'string') {
-        savePending(null); setPhoto(null); setLocation(null); setMessage('saved');
+        savePending(null); setPhoto(null); setLocation(null); setMessage('saved'); setHistoryRevision(value => value + 1);
         void refresh().catch(() => {});
       } else if (result.outcome === 'canceled') {
         savePending(null); setPhoto(null); setLocation(null); setMessage('canceled');
@@ -185,6 +186,6 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
       {pending && <Button variant="secondary" onClick={finalize} disabled={busy}>{t('Pulihkan percobaan sebelumnya', 'Recover previous attempt')}</Button>}
       {!pending && (!photo || !location) && <p>{t('Ambil lokasi dan foto sebelum mengirim.', 'Capture your location and photo before submitting.')}</p>}
     </section>}
-    {status && <AttendanceHistory outletId={outletId} review={status.capabilities.review} />}
+    {status && <AttendanceHistory key={historyRevision} outletId={outletId} review={status.capabilities.review} />}
   </main>;
 }

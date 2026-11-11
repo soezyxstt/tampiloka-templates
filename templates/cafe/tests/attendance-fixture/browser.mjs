@@ -30,6 +30,7 @@ try {
  await page.getByRole('button', { name: 'Open camera' }).click(); await page.getByRole('button', { name: 'Take photo' }).click();
  await page.getByRole('button', { name: 'Submit check-in' }).click();
  await page.getByText('Attendance saved.').waitFor();
+ await page.locator('article').filter({ hasText: 'Check-in' }).waitFor({ timeout: 5000 });
  for (const width of [360, 390, 1024]) { await page.setViewportSize({ width, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true); }
  await page.getByRole('button', { name: 'Switch language to Indonesian' }).click(); await page.getByRole('heading', { name: 'Absensi', exact: true }).waitFor(); await page.reload(); await page.getByRole('heading', { name: 'Absensi', exact: true }).waitFor(); await page.getByRole('button', { name: 'Ganti bahasa ke Inggris' }).click();
  const result = await page.evaluate(async () => (await (await fetch('/api/attendance?resource=history&outletId=canonical-outlet')).json()).events.length);
@@ -68,6 +69,7 @@ try {
  await page.evaluate(() => fetch('/fixture/expire', { method: 'POST' }));
  assert.equal(await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')), pending);
  await page.reload(); await page.getByRole('button', { name: 'Recover previous attempt' }).click(); await page.getByText('Attendance saved.').waitFor();
+ await page.waitForFunction(() => document.querySelectorAll('article').length === 3);
  await page.evaluate(() => fetch('/fixture/unexpire', { method: 'POST' }));
  const count = await page.evaluate(async () => (await (await fetch('/api/attendance?resource=history&outletId=canonical-outlet')).json()).events.length); assert.equal(count, 3); assert.equal(await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')), null);
  console.log('PASS lost response reconciled after reload without duplicate');
