@@ -4,9 +4,10 @@ import { readReleaseEvidence } from '../../../scripts/read-release-evidence.mjs'
 import { releaseFingerprint, stampRelease, verifyHostedRelease, demoFamilies } from '../../../scripts/demo-release.mjs';
 import { buildPublicCatalog } from '../src/public-catalog.mjs';
 import { reconcileCatalogPromotion } from '../../../scripts/check-catalog-promotion.mjs';
-import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
+import { execFileSync } from 'node:child_process';
 const registry = JSON.parse(await readFile(new URL('../templates.json', import.meta.url)));
 const source = JSON.parse(await readFile(new URL('../public-demos.json', import.meta.url)));
 const sha = 'a'.repeat(40), release = 'b'.repeat(40);
@@ -54,6 +55,29 @@ test('fingerprints are stable source identities for every supported family', () 
   assert.equal(new Set(fingerprints).size, 4);
   assert.equal(releaseFingerprint('school'), releaseFingerprint('school'));
   assert.throws(() => releaseFingerprint('../private'));
+});
+test('shared storage changes invalidate every family fingerprint and trigger its release and verification', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'release-storage-'));
+  const git = (...args) => execFileSync('git', args, { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  try {
+    git('init', '-q');
+    await mkdir(join(directory, 'packages/storage'), { recursive: true });
+    const file = join(directory, 'packages/storage/index.mjs');
+    await writeFile(file, 'export const version = 1;\n');
+    git('add', '.');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'first');
+    const first = git('rev-parse', 'HEAD');
+    await writeFile(file, 'export const version = 2;\n');
+    git('add', '.');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'second');
+    const second = git('rev-parse', 'HEAD');
+    for (const family of demoFamilies) assert.notEqual(releaseFingerprint(family, first, directory), releaseFingerprint(family, second, directory), family);
+
+    for (const [workflow, expected] of [['release-demos.yml', 1], ['booking-validation.yml', 1], ['school.yml', 2]]) {
+      const contents = await readFile(new URL(`../../../.github/workflows/${workflow}`, import.meta.url), 'utf8');
+      assert.equal((contents.match(/^\s+- 'packages\/storage\/\*\*'$/gm) ?? []).length, expected, workflow);
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 test('stamped asset bytes change the hosted identity even when filenames stay the same', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'release-stamp-'));

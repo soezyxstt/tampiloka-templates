@@ -7,6 +7,7 @@ on:
       - 'packages/ui-core/**'
       - 'packages/theme-engine/**'
       - 'packages/shared-utils/**'
+      - 'packages/storage/**'
       - 'packages/config/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'

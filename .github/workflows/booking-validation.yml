@@ -9,6 +9,7 @@ on:
       - 'packages/registry/**'
       - 'packages/ui-core/**'
       - 'packages/shared-utils/**'
+      - 'packages/storage/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
