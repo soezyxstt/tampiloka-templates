@@ -199,7 +199,7 @@ function clientPackage(source, name) {
   pkg.private = true;
   const excludedScripts = new Set();
   for (const [id, command] of Object.entries(pkg.scripts || {})) {
-    if (id.startsWith('demos:') || id.startsWith('test:demo-') || /(?:^|[\s"'])demos\//.test(command) || /(?:src\/demo-runtime\/|tests\/(?:browser-runtime|demos[.-])|scripts\/generate-demo-schema)/.test(command)) {
+    if (id === 'test:attendance:browser' || id.startsWith('demos:') || id.startsWith('test:demo-') || /(?:^|[\s"'])demos\//.test(command) || /(?:src\/demo-runtime\/|tests\/(?:browser-runtime|demos[.-])|scripts\/generate-demo-schema)/.test(command)) {
       excludedScripts.add(id);
       delete pkg.scripts[id];
     }
@@ -285,7 +285,7 @@ function includeFile(path) {
   const name = parts[parts.length - 1];
   if (parts[0] === '.github') return CI_PATHS.has(path);
   if (parts[0] === 'src' && parts[1] === 'demo-runtime') return false;
-  if (parts[0] === 'tests' && /^(?:browser-runtime|demos)(?:[.-]|$)/.test(parts[1] || '')) return false;
+  if (parts[0] === 'tests' && (parts[1] === 'attendance-fixture' || /^(?:browser-runtime|demos)(?:[.-]|$)/.test(parts[1] || ''))) return false;
   if (parts[0] === 'scripts' && /^(?:demos[.-]|(?:build|deploy)-demos[.-]|generate-demo-schema[.-])/.test(name)) return false;
   if (parts.some(part => EXCLUDED_DIRECTORIES.has(part))) return false;
   if (parts.some(part => part.startsWith('.') && !['.gitignore', '.env.example'].includes(part))) return false;

@@ -1,0 +1,2 @@
+CREATE TABLE attendance_evidence (id text PRIMARY KEY, tenant_id text NOT NULL, outlet_id text NOT NULL, staff_id text NOT NULL, content_type text, size integer, created_at timestamptz NOT NULL, expires_at timestamptz NOT NULL, state text NOT NULL, claimed_event_id text, attempts integer NOT NULL DEFAULT 0, last_error_at timestamptz, deleted_at timestamptz, deleted_by text);
+CREATE INDEX attendance_evidence_retention ON attendance_evidence (state, expires_at);

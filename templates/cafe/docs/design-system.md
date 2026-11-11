@@ -1,5 +1,11 @@
 # Cafe template design system
 
+## Attendance interface, 11 November 2026
+
+Attendance uses the existing Button, Input and Radix Dialog wrappers and Cafe semantic tokens. The correction dialog labels its time and reason fields, validates input and returns focus to its trigger. The camera action waits for a video frame before capture; access, loading and permission failures are localized. The isolated browser fixture documented in `attendance.md` covers the real API with private test storage; it does not replace production authentication or hosted verification.
+
+
+
 ## Manager periods and six-tab simulation, 10 November 2026
 
 Reports support daily, Monday–Sunday weekly, calendar-month and inclusive custom periods. Selected bills, daily rollups, shift records and localized CSV use the same range. The report is based on bill business dates; receipt/refund totals are the current totals of those bills, including later settlements. It does not calculate profit or replace a transaction-date cash-flow ledger.

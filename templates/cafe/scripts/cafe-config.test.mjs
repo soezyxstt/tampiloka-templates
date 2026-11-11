@@ -32,6 +32,7 @@ const fixturePackage = {
     'test:config': 'node --test scripts/cafe-config.test.mjs',
     'test:browser-runtime': 'node --test tests/browser-runtime-crypto.test.mjs',
     'test:demo-browser': 'node tests/demos-browser.mjs',
+    'test:attendance:browser': 'node tests/attendance-fixture/run.mjs',
     test: 'npm run test:config && npm run test:browser-runtime',
     'demos:dev': 'vite --config demos/vite.config.ts',
     'demos:build': 'vite build --config demos/vite.config.ts',
@@ -59,7 +60,7 @@ const fixtureLock = {
 };
 await writeFile(join(fixture, 'package.json'), JSON.stringify(fixturePackage));
 await writeFile(join(fixture, 'package-lock.json'), JSON.stringify(fixtureLock));
-for (const directory of ['app', '.local/cafe-db', '.git', '.github/workflows/nested', '.github/private', 'node_modules/private-package', 'public/benchmarks', 'public/images', 'src/nested', 'src/demo-runtime', 'demos', 'tests/browser-runtime-harness']) await mkdir(join(fixture, directory), { recursive: true });
+for (const directory of ['app', '.local/cafe-db', '.git', '.github/workflows/nested', '.github/private', 'node_modules/private-package', 'public/benchmarks', 'public/images', 'src/nested', 'src/demo-runtime', 'demos', 'tests/browser-runtime-harness', 'tests/attendance-fixture']) await mkdir(join(fixture, directory), { recursive: true });
 await writeFile(join(fixture, 'app', 'page.tsx'), 'export default function Page() { return null; }');
 await writeFile(join(fixture, '.env.local'), 'SECRET_PAYMENT_KEY=must-not-copy');
 await writeFile(join(fixture, '.env.production'), 'LIVE_DATABASE_PASSWORD=must-not-copy');
@@ -82,6 +83,7 @@ await writeFile(join(fixture, 'src/demo-runtime/index.ts'), 'browser-only databa
 await writeFile(join(fixture, 'tests/browser-runtime.integration.mjs'), 'browser runtime integration');
 await writeFile(join(fixture, 'tests/browser-runtime-crypto.test.mjs'), 'browser runtime crypto checks');
 await writeFile(join(fixture, 'tests/browser-runtime-harness/main.ts'), 'browser runtime test harness');
+await writeFile(join(fixture, 'tests/attendance-fixture/run.mjs'), 'repository fixture');
 await writeFile(join(fixture, 'tests/demos-browser.mjs'), 'public portfolio browser tests');
 await writeFile(join(fixture, 'tests/preset-integration.mjs'), 'normal client integration');
 await writeFile(join(fixture, 'scripts/generate-demo-schema.ts'), 'browser-only schema generator');
@@ -213,7 +215,7 @@ test('init creates a reusable client with selected modules and no old secrets or
   assert.equal(await readFile(join(destination, 'content/menu.json'), 'utf8'), await readFile(join(fixture, 'content/menu.json'), 'utf8'));
   assert.equal(await readFile(join(destination, 'content/tables.json'), 'utf8'), await readFile(join(fixture, 'content/tables.json'), 'utf8'));
   assert.equal(await readFile(join(destination, '.github/workflows/ci.yml'), 'utf8'), await readFile(join(fixture, '.github/workflows/ci.yml'), 'utf8'));
-  for (const path of ['.env.production', '.local', '.git', '.github/workflows/deploy.yml', '.github/workflows/nested', '.github/private', '.github/deployment.json', 'node_modules', 'public/benchmarks', 'src/nested/.env.local', 'src/nested/service-account.json', 'src/nested/linked-secret.txt', 'demos', 'src/demo-runtime', 'tests/browser-runtime.integration.mjs', 'tests/browser-runtime-crypto.test.mjs', 'tests/browser-runtime-harness', 'tests/demos-browser.mjs', 'scripts/generate-demo-schema.ts']) assert.equal(await exists(join(destination, path)), false, path);
+  for (const path of ['.env.production', '.local', '.git', '.github/workflows/deploy.yml', '.github/workflows/nested', '.github/private', '.github/deployment.json', 'node_modules', 'public/benchmarks', 'src/nested/.env.local', 'src/nested/service-account.json', 'src/nested/linked-secret.txt', 'demos', 'src/demo-runtime', 'tests/browser-runtime.integration.mjs', 'tests/browser-runtime-crypto.test.mjs', 'tests/browser-runtime-harness', 'tests/demos-browser.mjs', 'tests/attendance-fixture', 'scripts/generate-demo-schema.ts']) assert.equal(await exists(join(destination, path)), false, path);
   assert.equal(await exists(join(destination, 'tests/preset-integration.mjs')), true);
   assert.match(await readFile(join(destination, '.github/workflows/ci.yml'), 'utf8'), /npm run demos:build --if-present/);
   const env = await readFile(join(destination, '.env.local'), 'utf8');
@@ -231,6 +233,7 @@ test('client package and npm lock omit showcase tooling while retaining shared, 
   assert.equal(pkg.scripts.test, 'npm run test:config');
   assert.equal(pkg.scripts['test:browser-runtime'], undefined);
   assert.equal(pkg.scripts['test:demo-browser'], undefined);
+  assert.equal(pkg.scripts['test:attendance:browser'], undefined);
   assert.equal(Object.keys(pkg.scripts).some(name => name.startsWith('demos:')), false);
   assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
   assert.deepEqual(lock.packages[''].devDependencies, pkg.devDependencies);
@@ -327,6 +330,10 @@ test('the real generated client retains notification code and an installable run
   assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
   for (const name of Object.keys(pkg.dependencies)) assert.ok(lock.packages[`node_modules/${name}`], `Missing standalone npm lock entry: ${name}`);
   assert.equal(pkg.dependencies.sonner, '2.0.7');
+  assert.equal(pkg.dependencies.sharp, '0.35.5');
+  assert.equal(await exists(join(destination, 'src', 'plugins', 'attendance', 'storage', 'index.mjs')), true);
+  assert.equal(await exists(join(destination, 'src', 'plugins', 'attendance', 'migrations', '0001_attendance.sql')), true);
+  for (const file of ['app/api/attendance/route.ts', 'src/plugins/attendance/server-config.ts', 'src/plugins/attendance/accessor.ts', 'src/plugins/attendance/route-handler.ts', 'src/plugins/attendance/migrations/0002_evidence.sql', 'src/plugins/attendance/migrations/0003_retention_schedule.sql', 'src/plugins/attendance/migrations/0004_canceled.sql']) assert.equal(await exists(join(destination, file)), true, file);
   assert.equal(await exists(join(destination, 'lib', 'order-notification-tracker.ts')), true);
   assert.equal(await exists(join(destination, 'src', 'demo-runtime')), false);
   const component = await readFile(join(destination, 'components', 'cafe', 'order-notifications.tsx'), 'utf8');

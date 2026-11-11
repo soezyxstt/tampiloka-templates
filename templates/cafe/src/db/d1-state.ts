@@ -1,9 +1,40 @@
+import { getTableConfig } from 'drizzle-orm/pg-core';
+import * as attendanceSchema from '../plugins/attendance/schema.ts';
 import { createSqliteDatabase, sqliteSchema, sqliteTableNames } from './sqlite.ts';
 
 export const D1_STATE_VERSION = 1;
 export const D1_STATE_MAX_BYTES = 1_500_000;
 export const D1_STATE_SCHEMA = 'CREATE TABLE cafe_state (outlet_id TEXT PRIMARY KEY, schema_version INTEGER NOT NULL, revision INTEGER NOT NULL, state_json TEXT NOT NULL)';
 const MAX_ATTEMPTS = 5;
+
+// Version 1 existed before attendance. Freeze its exact table sets; only additions
+// belonging to the attendance schema may be initialized empty by this migration.
+const V1_BUSINESS_TABLES = [
+  'users', 'tenants', 'outlets', 'staff_outlet_roles', 'staff_session_assurances',
+  'customer_memberships', 'wifi_networks', 'payment_accounts', 'rooms', 'layout_versions',
+  'tables', 'visits', 'table_assignments', 'seating_groups', 'guest_sessions',
+  'visit_participants', 'presence_checks', 'join_codes', 'waitlist_entries', 'stations',
+  'menu_categories', 'stock_pools', 'menu_items', 'menu_variants', 'modifier_groups',
+  'modifier_options', 'stock_movements', 'quotes', 'order_requests', 'orders', 'order_lines',
+  'order_item_units', 'bills', 'bill_unit_allocations', 'payment_attempts', 'payment_receipts',
+  'financial_adjustments', 'refunds', 'reconciliation_cases', 'promotion_rules',
+  'reward_entitlements', 'loyalty_qualifications', 'service_requests', 'feedback_entries',
+  'cash_shifts', 'cash_movements', 'import_batches', 'audit_events', 'idempotency_records', 'outbox_events',
+];
+const V1_INITIAL_ATTENDANCE = ['attendance_events', 'attendance_corrections', 'attendance_locks', 'attendance_evidence'];
+const V1_LEGACY_TABLE_SETS = [V1_BUSINESS_TABLES, [...V1_BUSINESS_TABLES, ...V1_INITIAL_ATTENDANCE]];
+
+function normalizeV1State(state: Record<string, any[]>) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) throw new Error('Invalid Cafe D1 state tables');
+  const matches = (names: string[]) => Object.keys(state).length === names.length && names.every(name => Object.hasOwn(state, name) && Array.isArray(state[name]));
+  if (matches(sqliteTableNames)) return state;
+  const attendanceNames = new Set(Object.values(attendanceSchema).map(table => getTableConfig(table).name));
+  const legacy = V1_LEGACY_TABLE_SETS.find(names => matches(names)
+    && names.every(name => sqliteTableNames.includes(name))
+    && sqliteTableNames.every(name => names.includes(name) || attendanceNames.has(name)));
+  if (!legacy) throw new Error('Invalid Cafe D1 state tables');
+  return Object.fromEntries(sqliteTableNames.map(name => [name, Object.hasOwn(state, name) ? state[name] : []]));
+}
 
 // D1 has no interactive transaction API. Each attempt runs locally and publishes one
 // complete snapshot with a compare-and-swap; callers must keep callbacks DB-only.
@@ -12,9 +43,9 @@ export async function materializeCafeState(state?: Record<string, any[]>) {
   const sql = new DatabaseSync(':memory:');
   try {
     for (const statement of sqliteSchema()) sql.exec(statement);
-    if (state) {
-      if (Object.keys(state).length !== sqliteTableNames.length || sqliteTableNames.some(name => !Array.isArray(state[name]))) throw new Error('Invalid Cafe D1 state tables');
-      for (const name of sqliteTableNames) for (const row of state[name]) {
+    if (state !== undefined) {
+      const normalized = normalizeV1State(state);
+      for (const name of sqliteTableNames) for (const row of normalized[name]) {
         const columns = Object.keys(row);
         const quoted = columns.map(c => `"${c.replaceAll('"', '""')}"`).join(', ');
         sql.prepare(`INSERT INTO "${name}" (${quoted}) VALUES (${columns.map(() => '?').join(', ')})`).run(...columns.map(c => row[c]));
