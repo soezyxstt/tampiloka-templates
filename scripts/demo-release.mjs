@@ -6,11 +6,11 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 export const demoFamilies = ['cafe', 'commerce', 'school', 'booking'];
-export function releaseFingerprint(family, revision = 'HEAD') {
+export function releaseFingerprint(family, revision = 'HEAD', cwd = fileURLToPath(new URL('../', import.meta.url))) {
   assert.ok(demoFamilies.includes(family), 'Unknown demo family');
   assert.ok(revision === 'HEAD' || /^[a-f0-9]{40}$/.test(revision), 'Invalid source revision');
   // Include every shared runtime input, but leave registry copy and CLI changes independent.
-  const tree = execFileSync('git', ['ls-tree', '-r', revision, '--', `templates/${family}`, 'packages/ui-core', 'packages/theme-engine', 'packages/shared-utils', 'packages/config', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json', 'scripts/demo-release.mjs', '.github/workflows/release-demos.yml'], { cwd: fileURLToPath(new URL('../', import.meta.url)) });
+  const tree = execFileSync('git', ['ls-tree', '-r', revision, '--', `templates/${family}`, 'packages/ui-core', 'packages/theme-engine', 'packages/shared-utils', 'packages/storage', 'packages/config', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json', 'scripts/demo-release.mjs', '.github/workflows/release-demos.yml'], { cwd });
   assert.ok(tree.length, 'Missing release source');
   return createHash('sha1').update(tree).digest('hex');
 }

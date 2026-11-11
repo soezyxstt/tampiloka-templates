@@ -129,6 +129,28 @@ test('upload sniffing rejects executable input and private materials require act
     assert.equal(denied.status, 403);
     db.raw.close();
 });
+test('explicit object providers never fall back to local media for private uploads', async () => {
+    const { db, env, client } = await setup();
+    const originalError = console.error;
+    try {
+        const c = client();
+        await c.call('/api/bootstrap', undefined, 'admin');
+        let writes = 0;
+        env.MEDIA = { async put() { writes++; }, async get() { return null; } };
+        const upload = () => handle(new Request('https://school.test/api/media', {
+            method: 'POST', headers: { Cookie: c.cookie, 'Content-Type': 'text/plain', 'X-School-Request': '1', 'X-Demo-Role': 'admin', Origin: 'https://school.test' }, body: 'private material',
+        }), env);
+        console.error = () => {};
+        for (const provider of ['s3', 'uploadthing', 'invalid']) {
+            env.OBJECT_STORAGE_PROVIDER = provider;
+            assert.equal((await upload()).status, 500, provider);
+            assert.equal(writes, 0, provider);
+        }
+        delete env.OBJECT_STORAGE_PROVIDER;
+        assert.equal((await upload()).status, 201);
+        assert.equal(writes, 1);
+    } finally { console.error = originalError; db.raw.close(); }
+});
 test('media uploads stop reading an oversized stream before storage', async () => {
     const { db, env, client } = await setup();
     try {
