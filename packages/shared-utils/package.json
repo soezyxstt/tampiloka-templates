@@ -1,5 +1,28 @@
 {
-  "name": "@tampiloka/shared-utils", "version": "1.0.0", "private": true,
-  "type": "module", "exports": { ".": { "types": "./src/index.d.mts", "import": "./src/index.mjs" } },
-  "files": ["src"]
+  "name": "@tampiloka/shared-utils",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.mts",
+      "import": "./src/index.mjs"
+    },
+    "./turso": {
+      "types": "./src/turso.d.mts",
+      "import": "./src/turso.mjs"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "bin": {
+    "tampiloka-db": "./src/db-cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "0.18.0"
+  }
 }

@@ -58,7 +58,7 @@ const ids = []; for (let i = 0; i < 6; i++) ids.push((await c.command('student.c
 await Promise.all(ids.map(studentId => c.command('application.submit', { studentId, cohortId: cohort.id, answers: answers(s) }, 'admin')));
 s = await c.state('admin');
 const relevant = s.enrollments.filter(e => e.cohortId === cohort.id); const reserved = new Set(['submitted', 'under_review', 'accepted', 'awaiting_payment', 'active']);
-expect(relevant.filter(e => reserved.has(e.status)).length === 3 && relevant.filter(e => e.status === 'waitlisted').length === 4, 'D1: concurrent registrations cannot oversubscribe three seats');
+expect(relevant.filter(e => reserved.has(e.status)).length === 3 && relevant.filter(e => e.status === 'waitlisted').length === 4, 'Turso: concurrent registrations cannot oversubscribe three seats');
 for (const level of ['profile', 'whatsapp']) {
   const blocked = await c.request(`/api/command?level=${level}`, { role: 'admin', data: { action: 'application.submit', payload: {}, key: crypto.randomUUID() } });
   expect(blocked.status === 403, `${level}: server rejects enrollment even for demo staff`);

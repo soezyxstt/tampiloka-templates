@@ -2,13 +2,13 @@
 
 ## Client-owned Cloudflare deployment
 
-The generated `wrangler.jsonc` starts with a placeholder database ID and `DEMO_MODE=false`. Use the client's Cloudflare account, not the public demo's database. Keep `.dev.vars`, tokens and staff passwords out of source control.
+The generated Worker uses `DEMO_MODE=false`. Create a dedicated Turso database for the client. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the same URL and a read/write token for that database as Worker secrets. An organization token is unnecessary for SQL access. Use a separate migration token if the runtime token restricts schema changes.
 
 ```sh
 pnpm exec wrangler login
-pnpm exec wrangler d1 create YOUR_CLIENT_DATABASE
-# Copy its database ID/name into wrangler.jsonc.
 pnpm db:migrate:remote
+pnpm exec wrangler secret put TURSO_DATABASE_URL
+pnpm exec wrangler secret put TURSO_AUTH_TOKEN
 pnpm exec wrangler secret put STAFF_OWNER_PASSWORD
 pnpm exec wrangler secret put STAFF_OPERATIONS_PASSWORD
 pnpm exec wrangler secret put STAFF_VIEWER_PASSWORD
@@ -23,7 +23,7 @@ Scheduled cleanup runs every five minutes. It expires holds and sessions, reconc
 
 ## Public demonstration
 
-Use `wrangler.demo.jsonc` with a **different** D1 ID and `DEMO_MODE=true`. Never add live payment or notification credentials to this deployment. Build with `pnpm build:demo`, apply its migrations with the explicit demo config, then deploy with that config. Preview screenshots are real browser captures, not design mockups.
+Use a dedicated Turso database for `wrangler.demo.jsonc`, which enables demo mode. The config pins the database URL. Store the database-scoped token in the GitHub Actions secret `TURSO_BOOKING_AUTH_TOKEN`. Run `pnpm db:migrate:remote` with the demo database credentials before deployment. The release workflow verifies the Turso schema before deploying the demo build with its runtime token. Keep live payment and notification credentials separate. Preview screenshots are real browser captures, not design mockups.
 
 Before publishing the catalog entry, verify the deployed origin, isolated visitor sessions, every level, customer/staff switching, a simulated deposit, ticket validation, and the preview image URLs. Each preview must be a 1280×800 WebP. Keep catalog `ready` false until that gate passes. A successful local test is not a live-URL check.
 
@@ -50,5 +50,3 @@ Primary provider references:
 ## Notifications
 
 The optional Resend adapter needs `NOTIFICATION_API_KEY` and `NOTIFICATION_FROM`. Use a verified sender/domain. Jobs are persisted transactionally, use an idempotency key, and retry with a lease. Provider acceptance is not proof of recipient delivery. Without credentials, no email sends; the customer must retain the appointment reference/access key. Public demos never send notifications.
-
-No Vercel deployment is required: this template uses a Worker and D1. Vercel may be used for isolated development/testing, not as an implied production database host.

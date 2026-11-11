@@ -14,6 +14,15 @@ async function setup(demo = true, level = 'full') {
 }
 const answers = s => Object.fromEntries(s.registrationFields.filter(f => f.required).map(f => [f.name, f.type === 'checkbox' ? true : f.type === 'select' ? f.options[0] : 'Sample']));
 async function command(c, action, payload, role = 'student', level = 'full', key = crypto.randomUUID()) { return c.call(`/api/command?level=${level}`, { action, payload, key }, role); }
+test('health checks the deployed database schema before reporting ready', async () => {
+    const { db, client } = await setup();
+    const c = client();
+    try {
+        assert.equal((await c.call('/api/health')).status, 200);
+        db.raw.exec('DROP TABLE school_sessions');
+        assert.equal((await c.call('/api/health')).status, 500);
+    } finally { db.raw.close(); }
+});
 test('demo roles share a server namespace; unrelated visitors remain isolated', async () => {
     const { db, client } = await setup();
     const a = client(), b = client();
@@ -282,14 +291,14 @@ test('saved checkout URLs reconcile terminal notifications and preserve active u
     }
 });
 
-test('D1 account capacity failures return a retryable error without logging answers', async () => {
+test('Turso capacity failures return a retryable error without logging answers', async () => {
     const { db, env, client } = await setup();
     const c = client();
     const s = (await c.call('/api/bootstrap', undefined, 'student')).data;
     const before = (await c.call('/api/bootstrap', undefined, 'admin')).data.enrollments.length;
     const prepare = db.prepare.bind(db), messages = [], original = console.error;
     db.prepare = sql => {
-        if (sql.startsWith('INSERT INTO school_limits')) throw Error("D1_ERROR: Your account has exceeded D1's free tier daily row write limit.");
+        if (sql.startsWith('INSERT INTO school_limits')) throw new Error('SERVER_ERROR', {cause: Object.assign(new Error('Rate limit'), {status: 429})});
         return prepare(sql);
     };
     console.error = (...args) => messages.push(args);

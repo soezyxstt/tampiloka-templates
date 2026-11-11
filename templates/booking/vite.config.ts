@@ -7,18 +7,6 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: 5176,
     strictPort: true,
-    proxy: {
-      "/api": {
-        target: "http://127.0.0.1:8788",
-        changeOrigin: true,
-        configure(proxy) {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (req.headers.origin)
-              proxyReq.setHeader("Origin", "http://127.0.0.1:8788");
-          });
-        },
-      },
-    },
   },
   build: { target: "es2022" },
 }));

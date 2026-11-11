@@ -15,17 +15,18 @@ For real client-mode validation, set three environment variables in your shell b
 
 `.dev.vars.example` documents Worker secrets. The Node local server reads the process environment, not `.dev.vars`. Never put secrets in `config/school.json`, `VITE_` variables, client source or Git.
 
-## Independent Cloudflare resources
+## Database and private media
 
 ```sh
-pnpm exec wrangler d1 create client-school-db
 pnpm exec wrangler r2 bucket create client-school-private
 ```
 
-Put the returned D1 ID and the client-owned bucket name in `wrangler.jsonc`. Keep `DEMO_MODE=false`. The CLI removes Tampiloka routes/account IDs and copies no credentials. Then:
+Set the client-owned bucket name in `wrangler.jsonc` and keep `DEMO_MODE=false`. Create a dedicated Turso database. Set `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` in the migration environment. Supply the Worker with the same URL and a read/write token scoped to that database. Use a separate migration token if schema changes require broader access.
 
 ```sh
 pnpm db:remote
+pnpm exec wrangler secret put TURSO_DATABASE_URL
+pnpm exec wrangler secret put TURSO_AUTH_TOKEN
 pnpm exec wrangler secret put AUTH_SECRET
 pnpm exec wrangler secret put BOOTSTRAP_ADMIN_EMAIL
 pnpm exec wrangler secret put BOOTSTRAP_ADMIN_PASSWORD
@@ -57,7 +58,7 @@ The scheduled handler runs daily for expiry cleanup and retries; command executi
 
 ## Operations and limits
 
-Back up D1 before migrations and configure R2 retention. Monitor errors, provider failures, outbox age and `length(data)` in `school_state`. Keep the aggregate far below its 1.5 MB safety limit; archive historical cohorts or migrate to normalized tables before growth reaches it. Keep idempotency/event history long enough for retries and finance reconciliation. Do not delete financial audit rows casually.
+Back up the Turso database before migrations and configure R2 retention. Monitor errors, provider failures, outbox age and `length(data)` in `school_state`. Keep the aggregate far below its 1.5 MB safety limit; archive historical cohorts or migrate to normalized tables before growth reaches it. Keep idempotency/event history long enough for retries and finance reconciliation. Do not delete financial audit rows casually.
 
 The demo namespace expires after 24 hours. Cleanup removes expired DB sessions and states. R2 objects require a matching retention policy for public demo uploads; the database cleanup does not delete orphaned R2 bytes. Do not share the production R2 bucket with demos.
 

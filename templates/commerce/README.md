@@ -1,6 +1,6 @@
 # Tampiloka Commerce
 
-Template toko untuk satu usaha, dari katalog sederhana sampai toko dengan operasional penjualan lengkap. Pembeli dan staf memakai API yang sama; harga, stok, pembayaran, dan hak akses diperiksa di server. Data tersimpan di Cloudflare D1.
+Template toko untuk satu usaha, dari katalog sederhana sampai toko dengan operasional penjualan lengkap. Pembeli dan staf memakai API yang sama; harga, stok, pembayaran, dan hak akses diperiksa di server. Worker menyimpan data di Turso.
 
 Demo publik: [ecommerce.tampiloka.site](https://ecommerce.tampiloka.site). Rupa adalah brand contoh. Pembayaran demo tidak memindahkan uang dan setiap pengunjung memiliki ruang data tersendiri.
 
@@ -32,7 +32,7 @@ pnpm install
 pnpm dev:commerce
 ```
 
-Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal selalu demo. Database lokal berada di `.data/` dan tidak masuk git.
+Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal selalu demo. Database SQLite lokal ada di `.data/commerce.sqlite`. Mode ini tidak memerlukan token.
 
 Untuk mencoba build produksi dengan API lokal:
 
@@ -71,17 +71,17 @@ Simpan nomor pesanan dan kode akses untuk melihat pesanan dari perangkat lain. K
 
 ## Deploy toko klien ke Cloudflare
 
-Jalankan dari folder proyek klien. Login memakai akun Cloudflare milik klien atau token deployment yang dikelola sendiri.
+Jalankan dari folder proyek klien. Beri setiap toko database Turso sendiri. Ganti `nama-grup-libsql` dengan nama grup libSQL Anda. Pilih nama Worker dan domain toko di `wrangler.jsonc` dan gunakan `DEMO_MODE: "false"`.
 
 ```sh
+turso db create nama-toko --group nama-grup-libsql --wait
+export TURSO_DATABASE_URL="$(turso db show nama-toko --http-url)"
+export TURSO_AUTH_TOKEN="$(turso db tokens create nama-toko)"
+pnpm db:remote
 pnpm exec wrangler login
-pnpm exec wrangler d1 create nama-toko
-```
-
-Masukkan UUID database yang dihasilkan ke `d1_databases[0].database_id` di `wrangler.jsonc`, lalu sesuaikan `database_name` dengan nama database tersebut. Pilih nama Worker dan domain milik klien. Pertahankan `DEMO_MODE: "false"` untuk toko sebenarnya. Konfigurasi demo Tampiloka tidak disalin oleh generator.
-
-```sh
-pnpm exec wrangler d1 migrations apply DB --remote
+printf '%s' "$TURSO_DATABASE_URL" | pnpm exec wrangler secret put TURSO_DATABASE_URL
+printf '%s' "$TURSO_AUTH_TOKEN" | pnpm exec wrangler secret put TURSO_AUTH_TOKEN
+unset TURSO_AUTH_TOKEN
 pnpm exec wrangler secret put STAFF_OWNER_PASSWORD
 pnpm exec wrangler secret put STAFF_OPERATIONS_PASSWORD
 pnpm exec wrangler secret put STAFF_VIEWER_PASSWORD
@@ -104,7 +104,7 @@ Set `MIDTRANS_ENVIRONMENT` ke `sandbox` atau `production` melalui vars Worker. A
 
 Atur rekening, nomor WhatsApp, kebijakan retur, serta layanan/tarif pengiriman milik klien. Tarif pengiriman saat ini tarif tetap per layanan, dapat diatur di ruang staf; tidak mengambil ongkir/resi dari API kurir. Staf memasukkan nomor resi. Pengembalian dana manual dicatat setelah dana benar-benar dikirim di luar aplikasi. Integrasi gateway mengikuti status dari provider.
 
-Worker memiliki jadwal per jam untuk menutup reservasi kedaluwarsa dan membersihkan data demo. Database produksi tidak direset oleh jadwal ini. Tetap gunakan backup D1 dan prosedur operasional merchant sesuai kebutuhan usaha.
+Worker memiliki jadwal per jam untuk menutup reservasi kedaluwarsa dan membersihkan data demo. Database produksi tidak direset oleh jadwal ini. Atur cadangan Turso sesuai kebutuhan toko.
 
 ## Pengujian
 
@@ -118,7 +118,7 @@ pnpm test:e2e
 node tests/backend-live.mjs http://127.0.0.1:4174
 ```
 
-`tests/backend.test.mjs` memakai SQLite nyata dengan schema dan trigger produksi, serta adapter D1. Uji browser dan `backend-live.mjs` memanggil Worker/D1 yang berjalan dan menolak target yang bukan demo. Untuk menguji demo publik:
+`tests/backend.test.mjs` memakai SQLite lokal dengan skema dan pemicu transaksi yang sama dengan produksi. Uji browser dan `backend-live.mjs` memanggil API yang berjalan dan menolak target yang bukan demo. Untuk menguji demo publik:
 
 ```sh
 COMMERCE_BASE_URL=https://ecommerce.tampiloka.site pnpm test:e2e
@@ -132,3 +132,5 @@ Bukti pengujian browser ditulis ke `test-results/`. Referensi endpoint, status, 
 Ini template satu merchant dengan pengalaman belanja dan ruang staf. `advanced` bukan marketplace multi-penjual: belum mencakup onboarding seller, komisi/split settlement, escrow, langganan, sinkronisasi ERP, atau integrasi kurir. Pembeli menggunakan sesi tamu dan kode pelacakan, belum akun pelanggan dengan pemulihan password. Konfirmasi transfer menggunakan referensi teks; tidak ada upload bukti transfer yang disajikan sebagai verifikasi otomatis.
 
 Integrasi Midtrans tersedia di kode dan diuji dengan respons provider terkontrol. Transaksi nyata perlu pengujian sandbox dengan kredensial merchant sebelum toko menerima uang. Dokumentasi ini tidak mengklaim adanya transaksi merchant nyata yang telah diuji pada demo.
+
+Local API membaca variabel Worker yang didukung dari environment proses dan `.dev.vars`; nilai `.dev.vars` diprioritaskan. `DEMO_MODE` secara default `false` sesuai konfigurasi proyek klien. Database lokal selalu memakai SQLite lokal.

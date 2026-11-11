@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { defaultOptions } from "../src/domain/adapters.ts";
 
-// Exercises the built application and its real Worker/D1 API. No mocked business results.
+// Exercises the built application and its real booking API. No mocked business results.
 // A latency regression holds an actual API response to verify stale permission handling.
 // A remote target is permitted only after its health endpoint confirms isolated demo mode.
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -25,7 +25,7 @@ const port = external ? null : await new Promise((resolve, reject) => {
 });
 const base = external || `http://127.0.0.1:${port}`;
 const processes = [];
-let browser;
+let browser, state;
 const report = {
   checkedAt: new Date().toISOString(),
   base,
@@ -48,7 +48,7 @@ async function command(bin, args) {
   });
 }
 const checkFilter = process.env.BOOKING_CHECK_FILTER ? new RegExp(process.env.BOOKING_CHECK_FILTER) : null;
-if (external && !checkFilter) throw new Error("Set BOOKING_CHECK_FILTER explicitly for a hosted browser run to avoid unexpected D1 usage.");
+if (external && !checkFilter) throw new Error("Set BOOKING_CHECK_FILTER explicitly for a hosted browser run to avoid unexpected live database usage.");
 if (checkFilter) report.filter = process.env.BOOKING_CHECK_FILTER;
 async function check(name, fn) {
   if (checkFilter && !checkFilter.test(name)) { report.checks.push({ name, status: "skipped" }); return; }
@@ -167,40 +167,14 @@ async function prepareSameDay(context) {
 try {
   if (!external) {
     await command("pnpm", ["exec", "vite", "build", "--mode", "demo"]);
-    const state = await mkdtemp(join(tmpdir(), "booking-browser-"));
-    report.persistence = "Temporary local D1 database, real SQL migrations";
-    await command("pnpm", [
-      "exec",
-      "wrangler",
-      "d1",
-      "migrations",
-      "apply",
-      "DB",
-      "--local",
-      "--config",
-      "wrangler.demo.jsonc",
-      "--persist-to",
-      state,
-    ]);
+    state = await mkdtemp(join(tmpdir(), "booking-browser-"));
+    report.persistence = "Temporary local SQLite database, real SQL migrations";
     const child = spawn(
-      "pnpm",
-      [
-        "exec",
-        "wrangler",
-        "dev",
-        "--local",
-        "--config",
-        "wrangler.demo.jsonc",
-        "--port",
-        String(port),
-        "--ip",
-        "127.0.0.1",
-        "--persist-to",
-        state,
-      ],
+      process.execPath,
+      ["scripts/dev.mjs", "--demo", "--preview"],
       {
         cwd: root,
-        env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
+        env: { ...process.env, BOOKING_DATA_DIR: state, PORT: String(port) },
         stdio: ["ignore", "pipe", "pipe"],
         detached: process.platform !== "win32",
       },
@@ -669,6 +643,7 @@ try {
     try { if (process.platform === "win32") p.kill("SIGTERM"); else process.kill(-p.pid,"SIGTERM"); } catch {}
     p.stdout?.destroy(); p.stderr?.destroy(); p.unref();
   }
+  if (state) await rm(state, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
   report.passed = report.checks.filter((x) => x.status === "passed").length;
   report.failed = report.checks.filter((x) => x.status === "failed").length;
   report.skipped = report.checks.filter((x) => x.status === "skipped").length;

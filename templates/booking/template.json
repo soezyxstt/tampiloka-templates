@@ -9,5 +9,5 @@
   "defaultLevel": "booking",
   "presets": ["medical", "aesthetic", "detailing", "consulting"],
   "levels": ["catalog", "whatsapp", "booking", "full"],
-  "sharedPackages": ["ui-core"]
+  "sharedPackages": ["ui-core", "shared-utils"]
 }

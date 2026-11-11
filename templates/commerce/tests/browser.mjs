@@ -101,7 +101,7 @@ try {
   assert.equal(initial.config.level, 'advanced');
   assert.equal(initial.products.length, 8);
   const initialStock = initial.products.find(p => p.id === 'linen-shirt').variants.find(v => v.id === 'linen-shirt-m').stock;
-  check('Actual Worker and D1 respond; a new visitor receives an isolated demo');
+  check('The Worker and database respond; a new visitor receives an isolated demo');
 
   const hero = page.getByRole('region', { name: 'Produk pilihan' });
   const firstHeroProduct = await hero.locator('.campaign-copy h1').textContent();

@@ -14,7 +14,7 @@ pnpm test
 pnpm build
 ```
 
-The dev script applies local migrations automatically. `pnpm db:migrate` also applies them explicitly. Local data lives in `.wrangler/` and never belongs in Git. A generated project defaults to `DEMO_MODE=false` even during development; no public role switch or simulated payment endpoint becomes available. Use the monorepo's separate demo for payment simulation.
+The dev script applies local migrations automatically. `pnpm db:migrate` also applies them explicitly. Local data lives in `.data/` and never belongs in Git. A generated project defaults to `DEMO_MODE=false` even during development; no public role switch or simulated payment endpoint becomes available. Use the monorepo's separate demo for payment simulation.
 
 ## Configure the business
 
@@ -42,4 +42,4 @@ Policy text and numeric rules must agree. The seed is an example, not legal advi
 
 Customers receive private session history and a reference/access-key recovery option. Advise customers to save both after creating an appointment; sharing them grants control of that one appointment. These are bearer credentials, not a verified identity account. Staff initially uses owner/operations/viewer server secrets. A studio with individual staff accountability or MFA should replace the supplied identity adapter before launch.
 
-`pnpm tampiloka doctor --dir ...` checks structure and config. Warnings about placeholder DB IDs, sample content, missing WhatsApp numbers or payment credentials are launch blockers to resolve; a valid structural result does not certify live deployment.
+`pnpm tampiloka doctor --dir ...` checks structure and config. Warnings about missing Turso credentials, sample content, missing WhatsApp numbers or payment credentials are launch blockers to resolve; a valid structural result does not certify live deployment.

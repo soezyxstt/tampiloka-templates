@@ -27,7 +27,8 @@ test('commerce generation keeps feature level independent of all four preset com
     assert.equal((await read(join(output,'components.json'))).aliases.ui,'@/components/shadcn');
     assert.ok(!JSON.stringify(pkg).includes('workspace:'));
     assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
-    assert.equal((await read(join(output,'wrangler.jsonc'))).d1_databases[0].database_id,'00000000-0000-0000-0000-000000000000');
+    assert.equal((await read(join(output,'wrangler.jsonc'))).d1_databases,undefined);
+    assert.equal(pkg.dependencies['@tampiloka/shared-utils'],'file:./packages/shared-utils');
     assert.equal((await read(join(output,'tampiloka.project.json'))).template,'commerce');
     await assert.rejects(lstat(join(output,'wrangler.demo.jsonc')),{code:'ENOENT'});
     await assert.rejects(lstat(join(output,'node_modules')),{code:'ENOENT'});
@@ -135,6 +136,8 @@ test('booking generation supports every independent business and feature level w
   assert.equal(cfg.preset,preset);assert.equal(cfg.level,level);assert.equal(cfg.layout,'minimal-professional');assert.equal(cfg.palette,'ochre');assert.equal(cfg.brand.whatsapp,'');assert.equal(cfg.brand.example,true);
   assert.ok(!JSON.stringify(pkg).includes('workspace:'));assert.equal((await read(join(output,'wrangler.jsonc'))).vars.DEMO_MODE,'false');
   assert.doesNotMatch(await readFile(join(output,'src/components/DemoToolbar.tsx'),'utf8'),/DemoToolbarShell/);assert.doesNotMatch(await readFile(join(output,'src/main.tsx'),'utf8'),/ui-core\/demo/);
+  assert.equal((await read(join(output,'wrangler.jsonc'))).d1_databases,undefined);
+  assert.equal(pkg.dependencies['@tampiloka/shared-utils'],'file:./packages/shared-utils');
   assert.doesNotMatch(await readFile(join(output,'worker/demo.ts'),'utf8'),/scopeRow|UPDATE|INSERT/);
   if(['catalog','whatsapp'].includes(level)){
     const {rawBooking}=await import(pathToFileURL(join(output,'worker/services/bookings.ts')).href);

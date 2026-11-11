@@ -8,3 +8,6 @@ DEMO_MODE=false
 MIDTRANS_ENVIRONMENT=sandbox
 # NOTIFICATION_URL=https://your-notification-adapter.example/events
 # NOTIFICATION_SECRET=
+# Hosted Worker secrets (dedicated database per deployment).
+# TURSO_DATABASE_URL=
+# TURSO_AUTH_TOKEN=
