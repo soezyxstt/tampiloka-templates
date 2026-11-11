@@ -2,12 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { environment, client, create, orderInput, scopeFor } from './backend-harness.mjs';
-import { cleanup } from '../worker/index.ts';
+import { cleanup, handleRequest } from '../worker/index.ts';
 import { digest } from '../worker/security.ts';
 
 function fixture(t,overrides) { const env=environment(overrides);t.after(()=>env.DB.close());return {env,c:client(env)}; }
 const action=(c,id,action,extra={})=>c.post(`/api/staff/orders/${id}/actions`,{action,...extra});
 const customerAction=(c,id,action,extra={})=>c.post(`/api/orders/${id}/actions`,{action,...extra});
+
+test('provider failures do not put credentials or customer data in logs',async()=>{
+  const original=console.error, logs=[]; console.error=(...args)=>logs.push(args.join(' '));
+  try {
+    const DB={prepare(){return {bind(){return this;},async first(){throw new Error('postgres://user:secret@example.test/private customer-data');}};}};
+    const response=await handleRequest(new Request('https://store.test/api/health'),{DB});
+    assert.equal(response.status,500);
+    assert.equal(logs.length,1);
+    assert.doesNotMatch(logs[0],/secret|customer-data|postgres:/);
+  } finally { console.error=original; }
+});
 
 test('demo session is durable, HttpOnly, secure, isolated and cannot spoof a scope',async t=>{
   const {env,c}=fixture(t);const first=await c.get('/api/bootstrap');assert.equal(first.status,200);assert.match(first.headers.get('set-cookie'),/HttpOnly/);assert.match(first.headers.get('set-cookie'),/Secure/);assert.equal(first.data.config.brand.whatsapp,'');assert.equal(first.data.products.length,8);

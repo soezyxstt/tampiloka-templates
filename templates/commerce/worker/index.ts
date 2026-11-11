@@ -136,7 +136,7 @@ export async function handleRequest(request:Request,env:Env):Promise<Response> {
     if(error instanceof HttpError){status=error.status;code=error.code;message=error.message;}
     else if((typeof error==='object' && error!==null && 'code' in error && ['23505','23503','23514'].includes(String(error.code))) || /CHECK constraint|mutation_guards|UNIQUE constraint|FOREIGN KEY|PRICE_CHANGED|COUPON_(?:CHANGED|UNAVAILABLE|EXPIRED)|PRODUCT_UNAVAILABLE|INVALID_DISCOUNT|POINTS_UNAVAILABLE/i.test(String(error))){status=409;code='CONFLICT';message='Data berubah atau stok tidak cukup. Muat ulang dan coba lagi.';}
     // Log only identifiers and error classes; never customer input, cookies or credentials.
-    if(status===500)console.error(JSON.stringify({requestId,code,name:error instanceof Error?error.name:'Error',message:String(error).slice(0,180)}));
+    if(status===500)console.error(JSON.stringify({requestId,code,name:error instanceof Error?error.name:'Error'}));
     return json({error:{code,message},requestId},status,session?.cookie);
   }
 }

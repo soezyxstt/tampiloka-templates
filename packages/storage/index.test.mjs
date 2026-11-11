@@ -39,8 +39,13 @@ test('PostgreSQL worker expressions preserve binding order and reject unsupporte
   assert.match(seed.sql, /jsonb_array_elements_text\(\(\$2\)::jsonb\) AS _tampiloka_json_each\(value\)/);
   assert.match(seed.sql, /ON CONFLICT DO NOTHING$/);
   assert.equal(seed.count, 2);
-  assert.match(postgresSQL("SELECT json_extract(state_json,'$.photoVersion') FROM scopes").sql, /::integer/);
+  assert.match(postgresSQL("SELECT json_extract(state_json,'$.photoVersion') FROM scopes").sql, /::bigint/);
   assert.match(postgresSQL("UPDATE x SET data=json_set(json_insert(data,'$.brand.photo',json(?)),'$.brand.name',?)").sql, /jsonb_set/);
+  const repeated = postgresSQL("SELECT json_insert(json(?), '$.item', ?) AS value, ? AS marker");
+  assert.equal(repeated.count, 3);
+  assert.equal((repeated.sql.match(/\$1\b/g) || []).length, 3);
+  assert.match(repeated.sql, /\$2/);
+  assert.match(repeated.sql, /\$3/);
   assert.match(postgresSQL("SELECT instr(lower(name),lower(?))").sql, /strpos/);
   assert.throws(() => postgresSQL('SELECT changes()'), /Unsupported SQLite function/);
   assert.throws(() => postgresSQL("SELECT json_extract(data,'$[0]')"), /path/);
@@ -63,6 +68,11 @@ test('known worker SQL runs against PGlite when already installed', async t => {
     assert.equal((await run(insert, values)).affectedRows, 1);
     assert.equal((await run(insert, values)).affectedRows, 0);
     await run("UPDATE entities SET data=json_set(data,'$.image',?) WHERE id=?", ['image','1']);
+    const repeated = await run("SELECT json_insert(json(?), '$.item', ?) AS value, ? AS marker", ['{}', 'inserted', 'marker']);
+    assert.deepEqual(JSON.parse(repeated.rows[0].value), {item:'inserted'});
+    assert.equal(repeated.rows[0].marker, 'marker');
+    const bigTick = await run("SELECT json_extract(?, '$.tick') AS tick", [JSON.stringify({tick: 3_000_000_000})]);
+    assert.equal(Number(bigTick.rows[0].tick), 3_000_000_000);
     const row = (await run("SELECT data,instr(lower(json_extract(data,'$.name')),lower(?)) AS found FROM entities", ['hi'])).rows[0];
     assert.deepEqual(JSON.parse(row.data), {name:'Hi', image:'image'}); assert.equal(row.found, 1);
     await db.exec('BEGIN');
@@ -77,7 +87,15 @@ test('known worker SQL runs against PGlite when already installed', async t => {
 test('provider adapters invoke their SDKs and PostgreSQL parsers fail closed', async () => {
   const { registerHooks } = await import('node:module');
   const modules = {
-    'pg': `export const types = { getTypeParser: (oid, format) => value => 'fallback:' + oid + ':' + format + ':' + value };`,
+    'pg': `
+      export const types = { getTypeParser: (oid, format) => value => 'fallback:' + oid + ':' + format + ':' + value };
+      export class Client {
+        constructor(options) { this.options = options; globalThis.__storageMocks.pgClients.push(this); }
+        async connect() { this.connected = true; }
+        async query(q) { if (typeof q === 'string') return {}; return { rows: [{ value: q.values[0] }], rowCount: 1 }; }
+        async end() { this.ended = true; }
+      }
+    `,
     '@aws-sdk/client-s3': `
       export class S3Client { constructor(options) { globalThis.__storageMocks.s3Options = options; } send(command) { return globalThis.__storageMocks.send(command); } }
       export class PutObjectCommand { constructor(input) { this.input = input; this.kind = 'put'; } }
@@ -93,6 +111,7 @@ test('provider adapters invoke their SDKs and PostgreSQL parsers fail closed', a
   const originalFetch = globalThis.fetch;
   const calls = [];
   globalThis.__storageMocks = {
+    pgClients: [],
     async send(command) { calls.push(command); if (this.s3Error) throw this.s3Error; return command.kind === 'get' ? { Body: { transformToByteArray: async () => new Uint8Array([7]) }, ContentType: 'image/png' } : {}; },
     ut: {
       async uploadFiles(file, options) { calls.push({ file, options }); return this.uploadResult || { data: { key: 'opaque/provider-key' } }; },
@@ -135,6 +154,12 @@ test('provider adapters invoke their SDKs and PostgreSQL parsers fail closed', a
     globalThis.__storageMocks.ut.deleteResult = { success: false }; await assert.rejects(ut.delete(uploaded.key), /delete failed/);
 
     const { createPostgresDatabase } = await import('./index.mjs');
+    const runtimeDb = resolveDatabase({DATABASE_PROVIDER:'postgresql', DATABASE_URL:'postgresql://example/db'});
+    assert.equal(await runtimeDb.prepare('SELECT ?').bind(1).first('value'), 1);
+    assert.equal(await runtimeDb.prepare('SELECT ?').bind(2).first('value'), 2);
+    assert.equal(globalThis.__storageMocks.pgClients.length, 2);
+    assert.ok(globalThis.__storageMocks.pgClients.every(client => client.connected && client.ended));
+    assert.notEqual(globalThis.__storageMocks.pgClients[0], globalThis.__storageMocks.pgClients[1]);
     const queries = []; let mode = 'success';
     const sqlError = Object.assign(new Error('constraint'), { code: '23505' });
     const db = createPostgresDatabase({ async connect() { return { async query(q) {

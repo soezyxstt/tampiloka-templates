@@ -2,15 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { createPostgresDatabase, resolveDatabase } from '@tampiloka/storage';
+import { createPostgresDatabase, resolveDatabase, runMigrations } from '@tampiloka/storage';
+import { splitPostgresMigration } from '../scripts/postgresql-migrations.mjs';
 import { client, orderInput } from './backend-harness.mjs';
 
 test('PostgreSQL migrations and Worker checkout, payment, inventory and stale changes', async () => {
   const pg = new PGlite();
   try {
-    for (const file of ['0001_schema.sql','0002_triggers.sql']) await pg.exec(readFileSync(new URL(`../migrations-postgresql/${file}`, import.meta.url),'utf8'));
     const pool = { async connect() { return { async query(q) { const r = await (typeof q === 'string' ? pg.query(q) : pg.query(q.text,q.values)); return {...r, rowCount:r.affectedRows}; }, release() {} }; } };
     const db = createPostgresDatabase(pool);
+    const migrations=['0001_schema.sql','0002_triggers.sql'].map(file => ({id:file,statements:splitPostgresMigration(readFileSync(new URL(`../migrations-postgresql/${file}`, import.meta.url),'utf8'),file)}));
+    await runMigrations(db,migrations);
+    await runMigrations(db,migrations);
     assert.equal(resolveDatabase({DB:db}),db);
     assert.throws(() => resolveDatabase({DATABASE_PROVIDER:'postgresql',DB:db}), /DATABASE_URL/);
     assert.notEqual(resolveDatabase({DATABASE_PROVIDER:'postgresql',DATABASE_URL:'postgresql://localhost/test',DB:db}),db);
@@ -32,5 +35,11 @@ test('PostgreSQL migrations and Worker checkout, payment, inventory and stale ch
     assert.equal((await db.prepare('SELECT stock FROM variants WHERE id=?').bind('linen-shirt-m').first()).stock,19);
     const snapshot=await c.get('/api/staff/snapshot'); assert.equal(snapshot.status,200,JSON.stringify(snapshot.data));
     assert.equal(snapshot.data.metrics.orders,1);
+    // SQLite INTEGER is 64-bit; accumulated lifetime spend must exceed int32.
+    const savedOrder=await db.prepare('SELECT scope FROM orders WHERE id=?').bind(order.data.id).first();
+    await db.prepare('INSERT INTO members(scope,id,email,name,completed_spend,created_at) VALUES(?,?,?,?,?,?)').bind(savedOrder.scope,'member-big','big@example.test','Member',2_147_483_640,'2026-01-01').run();
+    await db.prepare("UPDATE orders SET member_id=?, loyalty_eligible=1, status='completed' WHERE id=?").bind('member-big',order.data.id).run();
+    const member=await db.prepare('SELECT completed_spend FROM members WHERE scope=? AND id=?').bind(savedOrder.scope,'member-big').first();
+    assert.ok(Number(member.completed_spend)>2_147_483_647);
   } finally { await pg.close(); }
 });

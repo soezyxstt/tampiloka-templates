@@ -79,7 +79,7 @@ export function postgresSQL(sql) {
         if (a.length !== 2) throw new Error('Unsupported json_extract');
         const p = path(a[1]);
         const numeric = /\.(?:photoVersion|sampleGalleryVersion|tick|unit)'$/.test(a[1]);
-        out += `(((${a[0]})::jsonb #>> ${p})${numeric ? '::integer' : ''})`;
+        out += `(((${a[0]})::jsonb #>> ${p})${numeric ? '::bigint' : ''})`;
       } else if (name === 'json_each') {
         if (a.length !== 1) throw new Error('Unsupported json_each');
         out += `jsonb_array_elements_text((${a[0]})::jsonb) AS _tampiloka_json_each(value)`;
@@ -103,13 +103,16 @@ export function postgresSQL(sql) {
     }
     return out;
   }
-  let translated = translate(sql);
+  // Number the original bindings before rewriting: json_insert can repeat its
+  // input expression, and those repetitions must refer to the same parameters.
+  const parameterized = postgresParameters(sql);
+  let translated = translate(parameterized.sql);
   if (/\b(?:INSERT\s+OR\s+(?!IGNORE\b)|REPLACE\s+INTO|PRAGMA|COLLATE\s+NOCASE)\b/i.test(translated)) throw new Error('Unsupported SQLite SQL');
   if (/^\s*INSERT\s+OR\s+IGNORE\s+INTO\b/i.test(translated)) {
     if (/\bON\s+CONFLICT\b/i.test(translated) || /;\s*\S/.test(translated)) throw new Error('Unsupported INSERT OR IGNORE');
     translated = translated.replace(/INSERT\s+OR\s+IGNORE\s+INTO/i, 'INSERT INTO').replace(/;?\s*$/, ' ON CONFLICT DO NOTHING');
   }
-  return postgresParameters(translated);
+  return { sql: translated, count: parameterized.count };
 }
 
 function result(rows, changes = 0, extra = {}) { return { success: true, results: rows, meta: { changes, ...extra } }; }
@@ -149,7 +152,6 @@ function turso(env) {
     return rows.map(r => result(r.rows.map(row => ({ ...row })), r.rowsAffected, { last_row_id: r.lastInsertRowid == null ? undefined : Number(r.lastInsertRowid) }));
   });
 }
-const postgresPools = new Map();
 function postgresNumber(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) throw new RangeError('PostgreSQL numeric value is not finite');
@@ -163,14 +165,15 @@ function postgresNumber(value) {
 }
 function postgres(env) {
   const connectionString = required(env, 'DATABASE_URL');
-  async function getPool() {
-    if (!postgresPools.has(connectionString)) {
-      const pool = import('pg').then(m => new (m.Pool || m.default.Pool)({ connectionString, max: 2, idleTimeoutMillis: 30000 }));
-      postgresPools.set(connectionString, pool); pool.catch(() => postgresPools.delete(connectionString));
-    }
-    return postgresPools.get(connectionString);
-  }
-  return createPostgresDatabase({ connect: async () => (await getPool()).connect() });
+  // A Worker socket belongs to the invocation that created it. Never cache a
+  // driver pool across invocations; use an external pooler for connection reuse.
+  return createPostgresDatabase({ async connect() {
+    const pg = await import('pg');
+    const client = new (pg.Client || pg.default.Client)({ connectionString });
+    try { await client.connect(); }
+    catch (error) { await client.end().catch(() => {}); throw error; }
+    return { query: (...args) => client.query(...args), release: () => client.end() };
+  } });
 }
 // Accept a pg-compatible pool so the production execution path can be tested in process.
 export function createPostgresDatabase(pool) {
@@ -193,7 +196,7 @@ export function createPostgresDatabase(pool) {
       for (const query of queries) { const r = await client.query({ text: query.text, values: query.guard ? [...query.values, results.at(-1).meta.changes] : query.values, types }); results.push(result(r.rows, r.rowCount || 0)); }
       await client.query('COMMIT'); return results;
     } catch (error) { try { await client.query('ROLLBACK'); } catch {} throw error; }
-    finally { client.release(); }
+    finally { await client.release(); }
   });
 }
 export function resolveDatabase(env) {

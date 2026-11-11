@@ -47,12 +47,16 @@ export function sqliteQuery(sql: string, params: unknown[], inTransaction: boole
     if (!table) throw new Error('Unknown SQLite insert table');
     const columns = insert[2].split(', ').map(c => c.slice(1, -1));
     const prefix = `insert into "${insert[1]}" (${insert[2]}) values `;
-    const tail = insert[3].replace(/\(([^()]*)\)/g, (group, contents: string) => {
+    // Only rewrite VALUES tuples. An ON CONFLICT target or a RETURNING
+    // expression also contains parentheses but is not an inserted row.
+    const values = insert[3].match(/^(\([^()]*\)(?:,\s*\([^()]*\))*)([\s\S]*)$/);
+    if (!values) throw new Error('Unsupported SQLite insert values');
+    const tuples = values[1].replace(/\(([^()]*)\)/g, (_group, contents: string) => {
       const values = contents.split(', ');
       if (columns.length !== values.length) throw new Error('Unsupported SQLite insert');
       return `(${values.map((v, i) => v === 'default' ? defaultSQL(table.columns.find(c => c.name === columns[i])!) : v).join(', ')})`;
     });
-    sql = prefix + tail;
+    sql = prefix + tuples + values[2];
   }
   // Positional PG parameters are numbered; SQLite accepts ?NNN and preserves their order.
   sql = sql.replace(/\$(\d+)/g, '?$1');

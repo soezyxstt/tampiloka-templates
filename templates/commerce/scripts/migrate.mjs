@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { resolveDatabase, runMigrations } from '@tampiloka/storage';
 import { storageEnv } from './env.mjs';
+import { splitPostgresMigration } from './postgresql-migrations.mjs';
 
 // Wrangler owns the native D1 migration ledger; never apply both ledgers to one database.
 const env = await storageEnv(new URL('../', import.meta.url));
@@ -12,15 +13,7 @@ const migrations = [];
 for (const name of files) {
   const sql = await readFile(new URL(name, directory), 'utf8');
   if (provider === 'postgresql') {
-    // Statements are terminated outside the dollar-quoted PL/pgSQL function bodies.
-    const statements = sql.split(/(\$\$)/).reduce((state, part) => {
-      if (part === '$$') { state.current += part; state.quoted = !state.quoted; }
-      else if (state.quoted) state.current += part;
-      else { const chunks = part.split(';'); state.current += chunks.shift(); for (const chunk of chunks) { if (state.current.trim()) state.statements.push(state.current.trim()); state.current = chunk; } }
-      return state;
-    }, { statements: [], current: '', quoted: false });
-    if (statements.quoted || statements.current.trim()) throw new Error(`Unterminated SQL in ${name}`);
-    migrations.push({id:name, statements:statements.statements});
+    migrations.push({id:name, statements:splitPostgresMigration(sql, name)});
     continue;
   }
   const statements = [];

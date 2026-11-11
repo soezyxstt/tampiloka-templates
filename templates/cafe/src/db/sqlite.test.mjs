@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { eq } from 'drizzle-orm';
 import { createSqliteDatabase, sqliteSchema } from './sqlite.ts';
-import { outlets, staffOutletRoles, stockPools } from './schema.ts';
+import { outlets, staffOutletRoles, stockPools, users } from './schema.ts';
 
 function setup() {
   const sql = new DatabaseSync(':memory:');
@@ -62,6 +62,18 @@ test('multi-row inserts use defaults and D1 rejects writes before execution', as
   sql.close();
 });
 
+test('SQLite upsert preserves the conflict target and updates the existing user', async () => {
+  const { db, sql } = setup();
+  try {
+    const upsert = (email) => db.insert(users).values({ uid: 'same-user', email, name: 'Test' })
+      .onConflictDoUpdate({ target: users.uid, set: { email, updatedAt: new Date('2026-11-11T12:00:00Z') } }).returning();
+    await upsert('first@example.test');
+    const [user] = await upsert('second@example.test');
+    assert.equal(user.email, 'second@example.test');
+    assert.equal((await db.select().from(users)).length, 1);
+  } finally { sql.close(); }
+});
+
 test('isolated SQLite runs the real demo seed and service lifecycle', async () => {
   const { registerHooks } = await import('node:module');
   const { createD1StateDatabase, materializeCafeState, encodeCafeState, D1_STATE_SCHEMA } = await import('./d1-state.ts');
@@ -71,9 +83,16 @@ test('isolated SQLite runs the real demo seed and service lifecycle', async () =
   const indexes = initial.sql.prepare("SELECT name FROM sqlite_master WHERE type = 'index'").all();
   sql.prepare('INSERT INTO cafe_state VALUES (?, 1, 0, ?)').run('test', encodeCafeState(initial.exportState()));
   initial.sql.close();
+  let rejectNextWrite = false, rejectedWrites = 0;
   const remote = { prepare(query) { return { bind(...args) { return {
     async first() { return sql.prepare(query).get(...args); },
-    async run() { return { meta: { changes: Number(sql.prepare(query).run(...args).changes) } }; },
+    async run() {
+      if (rejectNextWrite && query.startsWith('UPDATE')) {
+        rejectNextWrite = false; rejectedWrites++;
+        sql.prepare('UPDATE cafe_state SET revision = revision + 1 WHERE outlet_id = ?').run('test');
+      }
+      return { meta: { changes: Number(sql.prepare(query).run(...args).changes) } };
+    },
   }; } }; } };
   const db = createD1StateDatabase(async () => remote, 'test');
   globalThis.__cafeSqliteTestDb = db;
@@ -101,7 +120,9 @@ test('isolated SQLite runs the real demo seed and service lifecycle', async () =
     const request = await service.submitCustomerOrderRequest({ quoteId: quote.quoteId, principalId: 'guest-test', customerName: 'Test', mode: 'DINE_IN', tableId: 'tbl_m06', presenceVerified: true, idempotencyKey: 'request-test' });
     const order = await service.acceptOrderRequestByStaff({ orderRequestId: request.orderRequestId, actorName: 'Tester', actorRole: 'CASHIER', paymentPolicyOverride: 'PREPAY' });
     assert.equal(order.visitId, visit.visitId);
+    rejectNextWrite = true;
     await service.recordBillPayment({ billId: order.billId, method: 'CASH', amountIdr: quote.totalIdr, tenderedIdr: quote.totalIdr, actorName: 'Tester', idempotencyKey: 'payment-test' });
+    assert.equal(rejectedWrites, 1);
     await service.recordBillPayment({ billId: order.billId, method: 'CASH', amountIdr: quote.totalIdr, tenderedIdr: quote.totalIdr, actorName: 'Tester', idempotencyKey: 'payment-test' });
     let snapshot = await service.getFullApplicationSnapshot();
     assert.equal(snapshot.bills.find(b => b.id === order.billId).paymentState, 'SETTLED');

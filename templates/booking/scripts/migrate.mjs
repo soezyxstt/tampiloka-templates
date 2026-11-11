@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { resolveDatabase, runMigrations } from '@tampiloka/storage';
 import { localEnv } from './env.mjs';
+import { parseSQLiteMigration } from './sqlite-migrations.mjs';
 
 const root = new URL('../', import.meta.url);
 let selected = {};
@@ -26,19 +27,7 @@ for (const file of files) {
     migrations.push({ id: file, statements: sql.split(/^-- @statement\s*$/m).map(x => x.trim()).filter(Boolean) });
     continue;
   }
-  // The checked-in migration format ends each statement on its own line; trigger
-  // bodies contain semicolons and terminate only at END;.
-  const statements = []; let current = '', trigger = false;
-  for (const line of sql.split('\n')) {
-    if (!current.trim() && /^CREATE TRIGGER\b/i.test(line.trim())) trigger = true;
-    current += line + '\n';
-    if ((!trigger && /;\s*$/.test(line)) || (trigger && /^END;\s*$/i.test(line.trim()))) {
-      if (!/^\s*PRAGMA\s/i.test(current)) statements.push(current.trim());
-      current = ''; trigger = false;
-    }
-  }
-  if (current.trim()) throw new Error(`Incomplete SQL in ${file}`);
-  migrations.push({ id: file, statements });
+  migrations.push({ id: file, statements: parseSQLiteMigration(sql, file) });
 }
 await runMigrations(db, migrations);
 console.log(`Applied Booking migrations to ${provider}.`);
