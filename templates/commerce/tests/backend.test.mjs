@@ -2,12 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { environment, client, create, orderInput, scopeFor } from './backend-harness.mjs';
-import { cleanup, handleRequest } from '../worker/index.ts';
+import worker, { cleanup, handleRequest } from '../worker/index.ts';
 import { digest } from '../worker/security.ts';
 
 function fixture(t,overrides) { const env=environment(overrides);t.after(()=>env.DB.close());return {env,c:client(env)}; }
 const action=(c,id,action,extra={})=>c.post(`/api/staff/orders/${id}/actions`,{action,...extra});
 const customerAction=(c,id,action,extra={})=>c.post(`/api/orders/${id}/actions`,{action,...extra});
+
+test('hosted Worker serves assets and rejects API calls if Turso secrets are missing', async () => {
+  const env = { ASSETS: { fetch: () => new Response('storefront') } };
+  assert.equal(await (await worker.fetch(new Request('https://commerce.test/'), env)).text(), 'storefront');
+  const response = await worker.fetch(new Request('https://commerce.test/api/health'), env);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error.code, 'DATABASE_NOT_CONFIGURED');
+});
+
+test('hosted provider selection ignores an unrelated DB binding and permits explicit D1', async t => {
+  const { env } = fixture(t);
+  for (const provider of [undefined, 'turso', 'postgresql']) {
+    const response = await worker.fetch(new Request('https://commerce.test/api/health'), { ...env, DATABASE_PROVIDER: provider });
+    assert.equal(response.status, 503, provider ?? 'default');
+  }
+  const response = await worker.fetch(new Request('https://commerce.test/api/health'), { ...env, DATABASE_PROVIDER: 'd1' });
+  assert.equal(response.status, 200);
+});
 
 test('provider failures do not put credentials or customer data in logs',async()=>{
   const original=console.error, logs=[]; console.error=(...args)=>logs.push(args.join(' '));
@@ -45,7 +63,7 @@ test('parallel customers cannot oversell the last stock',async t=>{
 
 test('multi-line checkout rolls back earlier reservations if a later line loses stock',async t=>{
   const {env,c}=fixture(t);await c.get('/api/bootstrap');const scope=await scopeFor(env,c);
-  env.DB.beforeBatch=statements=>{if(statements.some(s=>s._sql.startsWith('INSERT INTO orders'))){env.DB.beforeBatch=null;env.DB.db.prepare('UPDATE variants SET stock=0 WHERE scope=? AND id=?').run(scope,'linen-shirt-m');}};
+  env.DB.beforeBatch=statements=>{if(statements.some(s=>s.sql.startsWith('INSERT INTO orders'))){env.DB.beforeBatch=null;env.DB.db.prepare('UPDATE variants SET stock=0 WHERE scope=? AND id=?').run(scope,'linen-shirt-m');}};
   const result=await c.post('/api/orders',orderInput({items:[{variantId:'everyday-tee-m',quantity:2},{variantId:'linen-shirt-m',quantity:1}]}));assert.equal(result.status,409);
   assert.equal(env.DB.db.prepare('SELECT stock FROM variants WHERE scope=? AND id=?').get(scope,'everyday-tee-m').stock,20);assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM orders').get().n,0);assert.equal(env.DB.db.prepare('SELECT count(*) AS n FROM inventory_movements').get().n,0);
 });
@@ -383,7 +401,7 @@ test('staff uploads enforce role and image validation before accessing storage',
   const request = (type, bytes) => workerRequest(type, bytes);
   async function workerRequest(type, bytes) {
     const { default: worker } = await import('../worker/index.ts');
-    return worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':type},body:bytes}), env);
+    return worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':type},body:bytes}), { ...env, DATABASE_PROVIDER: 'd1' });
   }
   assert.equal((await request('image/png',new Uint8Array([1]))).status,403);
   await c.post('/api/demo/role',{role:'operations'});
@@ -392,7 +410,7 @@ test('staff uploads enforce role and image validation before accessing storage',
   let pulls=0, cancelled=false;
   const stream=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(1024*1024));},cancel(){cancelled=true;}});
   const { default: worker } = await import('../worker/index.ts');
-  const oversized=await worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':'image/png'},body:stream,duplex:'half'}), env);
+  const oversized=await worker.fetch(new Request('https://commerce.test/api/staff/uploads', {method:'POST', headers:{Origin:'https://commerce.test',Cookie:c.cookie,'Content-Type':'image/png'},body:stream,duplex:'half'}), { ...env, DATABASE_PROVIDER: 'd1' });
   assert.equal(oversized.status,413);
   assert.equal(cancelled,true);
   assert.ok(pulls<10, `stream consumed ${pulls} chunks`);

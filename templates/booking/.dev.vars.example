@@ -10,7 +10,7 @@ DEMO_MODE=false
 # NOTIFICATION_FROM=
 
 # Storage provider settings; keep secrets out of source control.
-# DATABASE_PROVIDER=d1
+# DATABASE_PROVIDER=turso
 # DATABASE_URL=
 # TURSO_DATABASE_URL=
 # TURSO_AUTH_TOKEN=

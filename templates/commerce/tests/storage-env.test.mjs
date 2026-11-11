@@ -2,13 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { storageEnv } from '../scripts/env.mjs';
 
 test('development and migrations resolve generated provider and private local credentials', async t => {
-  const directory = await mkdtemp('/data/workspace/commerce-storage-env-');
+  const directory = await mkdtemp(join(tmpdir(),'commerce-storage-env-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const root = pathToFileURL(directory + '/');
-  assert.equal((await storageEnv(root, {})).DATABASE_PROVIDER, 'd1');
+  assert.equal((await storageEnv(root, {})).DATABASE_PROVIDER, 'turso');
   await mkdir(new URL('config/', root));
   await writeFile(new URL('config/storage.json', root), JSON.stringify({ database: 'turso' }));
   assert.equal((await storageEnv(root, {})).DATABASE_PROVIDER, 'turso');

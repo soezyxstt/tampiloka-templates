@@ -14,7 +14,7 @@ test('PostgreSQL migrations and Worker checkout, payment, inventory and stale ch
     const migrations=['0001_schema.sql','0002_triggers.sql'].map(file => ({id:file,statements:splitPostgresMigration(readFileSync(new URL(`../migrations-postgresql/${file}`, import.meta.url),'utf8'),file)}));
     await runMigrations(db,migrations);
     await runMigrations(db,migrations);
-    assert.equal(resolveDatabase({DB:db}),db);
+    assert.equal(resolveDatabase({DATABASE_PROVIDER:'d1',DB:db}),db);
     assert.throws(() => resolveDatabase({DATABASE_PROVIDER:'postgresql',DB:db}), /DATABASE_URL/);
     assert.notEqual(resolveDatabase({DATABASE_PROVIDER:'postgresql',DATABASE_URL:'postgresql://localhost/test',DB:db}),db);
     await assert.rejects(db.batch([db.prepare('INSERT INTO mutation_guards(id,ok) VALUES(?,?)').bind('rollback',1),db.prepare('INSERT INTO mutation_guards(id,ok) VALUES(?,?)').bind('rollback',1)]), e=>e.code==='23505');

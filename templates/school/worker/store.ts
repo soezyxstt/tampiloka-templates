@@ -14,7 +14,6 @@ export interface Statement {
 }
 export interface Database {
     prepare(sql: string): Statement;
-    withSession?(constraint: string): Database;
 }
 interface Row {
     revision: number;
@@ -25,7 +24,7 @@ export class Store {
     namespace: string;
     initial: () => SchoolState;
     expiry: number | null;
-    constructor(db: Database, namespace: string, initial: () => SchoolState, expiry: number | null = null) { this.db = db.withSession?.('first-primary') ?? db; this.namespace = namespace; this.initial = initial; this.expiry = expiry; }
+    constructor(db: Database, namespace: string, initial: () => SchoolState, expiry: number | null = null) { this.db = db; this.namespace = namespace; this.initial = initial; this.expiry = expiry; }
     async load(): Promise<{
         state: SchoolState;
         revision: number;

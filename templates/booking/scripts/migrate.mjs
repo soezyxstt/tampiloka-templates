@@ -1,3 +1,6 @@
+import { fileURLToPath } from 'node:url';
+import { tursoClient } from '@tampiloka/shared-utils/turso';
+import { manageSchema } from '@tampiloka/shared-utils/db-cli';
 import { readFile, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { resolveDatabase, runMigrations } from '@tampiloka/storage';
@@ -9,12 +12,18 @@ let selected = {};
 try { selected = JSON.parse(await readFile(new URL('config/storage.json', root), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const vars = await localEnv(root);
 const demo = process.argv.includes('--demo');
-const provider = demo ? 'd1' : (vars.DATABASE_PROVIDER || selected.database || 'd1');
+const provider = demo ? 'd1' : (vars.DATABASE_PROVIDER || selected.database || 'turso');
 if (provider === 'd1') {
   const args = ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', process.argv.includes('--remote') ? '--remote' : '--local', '--config', demo ? 'wrangler.demo.jsonc' : 'wrangler.jsonc'];
   const result = spawnSync('pnpm', args, { cwd: root, stdio: 'inherit' });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);
+}
+if (provider === 'turso') {
+  const client = tursoClient(vars);
+  try { await manageSchema(client, 'migrate', fileURLToPath(new URL('../migrations/', import.meta.url))); } finally { client.close(); }
+  console.log('Turso schema verified.');
+  process.exit(0);
 }
 if (provider !== 'turso' && provider !== 'postgresql') throw new Error(`Unknown database provider: ${provider}`);
 const db = resolveDatabase({ ...vars, DATABASE_PROVIDER: provider });

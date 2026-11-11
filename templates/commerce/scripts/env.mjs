@@ -13,6 +13,6 @@ export async function storageEnv(root, processEnv = process.env) {
   try { selected = JSON.parse(await readFile(new URL('config/storage.json', root), 'utf8')); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   const env = { ...vars, ...processEnv };
-  env.DATABASE_PROVIDER ||= selected.database || 'd1';
+  env.DATABASE_PROVIDER ||= selected.database || 'turso';
   return env;
 }

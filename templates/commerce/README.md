@@ -1,6 +1,6 @@
 # Tampiloka Commerce
 
-Template toko untuk satu usaha, dari katalog sederhana sampai toko dengan operasional penjualan lengkap. Pembeli dan staf memakai API yang sama; harga, stok, pembayaran, dan hak akses diperiksa di server. Data tersimpan di Cloudflare D1.
+Template toko untuk satu usaha, dari katalog sederhana sampai toko dengan operasional penjualan lengkap. Pembeli dan staf memakai API yang sama; harga, stok, pembayaran, dan hak akses diperiksa di server. Worker menyimpan data di Turso.
 
 Demo publik: [ecommerce.tampiloka.site](https://ecommerce.tampiloka.site). Rupa adalah brand contoh. Pembayaran demo tidak memindahkan uang dan setiap pengunjung memiliki ruang data tersendiri.
 
@@ -32,7 +32,7 @@ pnpm install
 pnpm dev:commerce
 ```
 
-Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal selalu demo. Database lokal berada di `.data/` dan tidak masuk git.
+Buka `http://127.0.0.1:5174`. Perintah ini membuat database lokal, menerapkan migrasi, lalu menjalankan Vite dan Worker. Mode lokal mengikuti `DEMO_MODE` di `.dev.vars`; proyek hasil generator memulai dalam mode klien. Database SQLite lokal ada di `.data/commerce.sqlite`. Mode ini tidak memerlukan token.
 
 Untuk mencoba build produksi dengan API lokal:
 
@@ -71,17 +71,17 @@ Simpan nomor pesanan dan kode akses untuk melihat pesanan dari perangkat lain. K
 
 ## Deploy toko klien ke Cloudflare
 
-Jalankan dari folder proyek klien. Login memakai akun Cloudflare milik klien atau token deployment yang dikelola sendiri.
+Contoh berikut untuk pilihan default Turso; untuk D1 atau PostgreSQL ikuti bagian Storage providers. Jalankan dari folder proyek klien. Beri setiap toko database Turso sendiri. Ganti `nama-grup-libsql` dengan nama grup libSQL Anda. Pilih nama Worker dan domain toko di `wrangler.jsonc` dan gunakan `DEMO_MODE: "false"`.
 
 ```sh
+turso db create nama-toko --group nama-grup-libsql --wait
+export TURSO_DATABASE_URL="$(turso db show nama-toko --http-url)"
+export TURSO_AUTH_TOKEN="$(turso db tokens create nama-toko)"
+pnpm db:remote
 pnpm exec wrangler login
-pnpm exec wrangler d1 create nama-toko
-```
-
-Masukkan UUID database yang dihasilkan ke `d1_databases[0].database_id` di `wrangler.jsonc`, lalu sesuaikan `database_name` dengan nama database tersebut. Pilih nama Worker dan domain milik klien. Pertahankan `DEMO_MODE: "false"` untuk toko sebenarnya. Konfigurasi demo Tampiloka tidak disalin oleh generator.
-
-```sh
-pnpm exec wrangler d1 migrations apply DB --remote
+printf '%s' "$TURSO_DATABASE_URL" | pnpm exec wrangler secret put TURSO_DATABASE_URL
+printf '%s' "$TURSO_AUTH_TOKEN" | pnpm exec wrangler secret put TURSO_AUTH_TOKEN
+unset TURSO_AUTH_TOKEN
 pnpm exec wrangler secret put STAFF_OWNER_PASSWORD
 pnpm exec wrangler secret put STAFF_OPERATIONS_PASSWORD
 pnpm exec wrangler secret put STAFF_VIEWER_PASSWORD
@@ -104,7 +104,7 @@ Set `MIDTRANS_ENVIRONMENT` ke `sandbox` atau `production` melalui vars Worker. A
 
 Atur rekening, nomor WhatsApp, kebijakan retur, serta layanan/tarif pengiriman milik klien. Tarif pengiriman saat ini tarif tetap per layanan, dapat diatur di ruang staf; tidak mengambil ongkir/resi dari API kurir. Staf memasukkan nomor resi. Pengembalian dana manual dicatat setelah dana benar-benar dikirim di luar aplikasi. Integrasi gateway mengikuti status dari provider.
 
-Worker memiliki jadwal per jam untuk menutup reservasi kedaluwarsa dan membersihkan data demo. Database produksi tidak direset oleh jadwal ini. Tetap gunakan backup D1 dan prosedur operasional merchant sesuai kebutuhan usaha.
+Worker memiliki jadwal per jam untuk menutup reservasi kedaluwarsa dan membersihkan data demo. Database produksi tidak direset oleh jadwal ini. Atur cadangan Turso sesuai kebutuhan toko.
 
 ## Pengujian
 
@@ -118,7 +118,7 @@ pnpm test:e2e
 node tests/backend-live.mjs http://127.0.0.1:4174
 ```
 
-`tests/backend.test.mjs` memakai SQLite nyata dengan schema dan trigger produksi, serta adapter D1. Uji browser dan `backend-live.mjs` memanggil Worker/D1 yang berjalan dan menolak target yang bukan demo. Untuk menguji demo publik:
+`tests/backend.test.mjs` memakai SQLite lokal dengan skema dan pemicu transaksi yang sama dengan produksi. Uji browser dan `backend-live.mjs` memanggil API yang berjalan dan menolak target yang bukan demo. Untuk menguji demo publik:
 
 ```sh
 COMMERCE_BASE_URL=https://ecommerce.tampiloka.site pnpm test:e2e
@@ -135,6 +135,6 @@ Integrasi Midtrans tersedia di kode dan diuji dengan respons provider terkontrol
 
 ### Storage providers
 
-D1 remains the default (`DATABASE_PROVIDER=d1`), using the Worker `DB` binding and the existing `pnpm db:local` / `pnpm db:remote` Wrangler migration commands. For Turso, set `DATABASE_PROVIDER=turso`, `TURSO_DATABASE_URL`, and `TURSO_AUTH_TOKEN` as Worker secrets, then run `DATABASE_PROVIDER=turso TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... pnpm db:migrate` in a secure shell before serving traffic. The Turso runner owns its migration ledger; do not run it against a database already migrated by Wrangler. Migrations must be coordinated between deployments. PostgreSQL has separate migrations (`DATABASE_PROVIDER=postgresql DATABASE_URL=... pnpm db:migrate`), including stock, coupon and loyalty triggers. The Worker supports PostgreSQL through the shared adapter; the focused PGlite integration test covers bootstrap, checkout, payment, inventory and stale mutations. Verify your deployed PostgreSQL transport and environment before production use. Do not use this migration runner on an existing D1 database. For local development with a remote provider, configure the same provider and credentials in both the shell used for migration and Wrangler’s private `.dev.vars`; do not put secrets in command-line arguments.
+Turso is the Worker default. Configure `TURSO_DATABASE_URL` and a database-scoped `TURSO_AUTH_TOKEN` as Worker secrets, then run `pnpm db:remote` with the same migration environment. Its migration ledger verifies schema and detects drift; adopt a restored database only after the cutover checks. For D1 select `DATABASE_PROVIDER=d1`, configure the client-owned `DB` binding, and run `pnpm db:remote`. PostgreSQL uses `DATABASE_PROVIDER=postgresql`, `DATABASE_URL`, and its separate migrations with `pnpm db:remote`. Coordinate migrations and verify hosted transport before production. `pnpm dev`, `pnpm preview`, and `pnpm db:local` use isolated local SQLite, independently of the deployed provider. Do not put secrets in command-line arguments.
 
 Staff can upload JPEG, PNG, or WebP images up to 5 MiB through `POST /api/staff/uploads` with the image as the request body and its MIME type in `Content-Type`. The response gives a scoped staff-only URL; authenticated staff can GET it, and owner or operations can DELETE it. Configure `OBJECT_STORAGE_PROVIDER=s3` with `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and optionally `S3_REGION` and `S3_PUBLIC_URL`; or set `OBJECT_STORAGE_PROVIDER=uploadthing` and `UPLOADTHING_TOKEN`. Keep credentials in Worker secrets. Deleting demo data does not remove objects from the provider; configure provider lifecycle cleanup for abandoned uploads.

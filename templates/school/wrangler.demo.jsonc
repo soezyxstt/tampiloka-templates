@@ -11,13 +11,7 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  "vars": { "DEMO_MODE": "true" },
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "tampiloka-school-demo",
-    "database_id": "5f81449b-a3c9-435d-bdae-ecf86d47ba89",
-    "migrations_dir": "migrations"
-  }],
+  "vars": { "DEMO_MODE": "true", "TURSO_DATABASE_URL": "libsql://tampiloka-school-demo-soezyxstt.aws-ap-south-1.turso.io" },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "tampiloka-school-demo-media" }],
   "triggers": { "crons": ["0 3 * * *"] }
 }

@@ -34,7 +34,7 @@ Pilihan create:
   --card <id>      commerce: open, framed, soft
   --button <id>    commerce: solid, outline
   --typography <id> school: editorial, modern, humanist
-  --database <id>  turso, d1, postgresql (cafe: postgresql; lainnya: d1)
+  --database <id>  turso, d1, postgresql (cafe: postgresql; lainnya: turso)
   --object-storage <id>  uploadthing atau s3 (default: s3)
   --name <text>    Nama brand
   --whatsapp <text> WhatsApp bisnis, format 628... (--phone juga diterima)
@@ -131,7 +131,7 @@ async function interactive(options, registry) {
       if(!result.layout)result.layout=await choose('Susunan halaman',registry.bookingLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
       if(!result.theme)result.theme=await choose('Palet contoh',registry.bookingPalettes.map(id=>[id,id]),template.presets[result.preset].palette);
     } else if(!result.theme)result.theme=await choose('Tema cafe',[['boxy','Tegas'],['rounded','Sudut lembut'],['editorial','Tipografi editorial'],['playful','Garis dan bayangan kuat'],['airy','Ruang longgar']],'rounded');
-    if(!result.database)result.database=await choose('Database',[['turso','Turso SQLite'],['d1','Cloudflare D1'],['postgresql','PostgreSQL']],template.id==='cafe'?'postgresql':'d1');
+    if(!result.database)result.database=await choose('Database',[['turso','Turso SQLite'],['d1','Cloudflare D1'],['postgresql','PostgreSQL']],template.id==='cafe'?'postgresql':'turso');
     if(!result['object-storage'])result['object-storage']=await choose('Penyimpanan objek',[['s3','S3-compatible'],['uploadthing','UploadThing']],'s3');
     if(!result.name)result.name=(await prompt.question('Nama brand (Enter memakai nama proyek): ')).trim()||undefined;
     if(template.id!=='operations'&&!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
@@ -209,11 +209,10 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
     const raw=await readFile(wranglerPath,'utf8');
     let wrangler;try{wrangler=JSON.parse(raw);}catch{throw new Error('wrangler config harus JSON tanpa komentar untuk generator.');}
     wrangler.name=target;delete wrangler.routes;delete wrangler.account_id;
-    wrangler.vars={...wrangler.vars,DEMO_MODE:'false'};delete wrangler.vars.COMMERCE_LEVEL;
-    if(wrangler.d1_databases)wrangler.d1_databases=wrangler.d1_databases.map(db=>({...db,database_name:`${target}-db`,database_id:'00000000-0000-0000-0000-000000000000'}));
+    wrangler.vars={DEMO_MODE:'false'};
     await writeJson(wranglerPath,wrangler);
   }
-  await writeFile(join(temp,'.dev.vars.example'),'# Salin ke .dev.vars untuk menjalankan demo lokal. Jangan commit rahasia.\nDEMO_MODE=true\n# STAFF_OWNER_PASSWORD=gunakan-password-panjang-dan-unik\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# RESEND_API_KEY=\n# MEMBER_EMAIL_FROM=Halo Toko <member@domain-toko.com>\n');
+  await writeFile(join(temp,'.dev.vars.example'),'# Salin ke .dev.vars untuk menjalankan mode klien lokal. Jangan commit rahasia.\nDEMO_MODE=false\n# STAFF_OWNER_PASSWORD=gunakan-password-panjang-dan-unik\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# RESEND_API_KEY=\n# MEMBER_EMAIL_FROM=Halo Toko <member@domain-toko.com>\n');
   await writeFile(join(temp,'CLIENT_SETUP.md'),`# ${options.name||target}\n\nTemplate commerce Tampiloka. Level: ${options.level}. Preset: ${options.preset}.\n\n## Jalankan lokal\n\n1. \`pnpm install\`\n2. \`cp .dev.vars.example .dev.vars\`\n3. \`pnpm dev\`\n\nDemo lokal terpisah dari produksi. Data produk awal adalah contoh. Ganti konten, foto, nomor WhatsApp, bank, dan ongkir sebelum menerima pesanan nyata.\n\n## Deploy toko\n\nSiapkan database pilihan milik klien dan jalankan migrasi sesuai provider. Set DEMO_MODE=false pada deploy produksi. Simpan password staf dan kunci gateway dengan \`wrangler secret put\`. Jangan masukkan kunci ke config/commerce.json. Baca docs/api.md dan README.md untuk perintah deploy serta batas integrasi.\n\nPaket bersama ada di packages/ milik proyek ini. Proyek tidak bergantung pada checkout monorepo atau paket workspace tersembunyi.\n`);
   return config;
 }
@@ -275,7 +274,7 @@ async function createBooking(sourceRoot,temp,target,options,template) {
     await writeFile(join(temp,'worker/services/bookings.ts'),"import {fail} from '../../src/domain/validation.ts';\nconst disabled=async(..._args:unknown[]):Promise<any>=>fail(403,'FEATURE_DISABLED','This project does not create or expose online booking records.');\nexport const accessToken=disabled,bookingAction=disabled,createBooking=disabled,listBookings=disabled,rawBooking=disabled,restoreAccess=disabled;\nexport const bookingDetail=async(...args:unknown[]):Promise<import('../../src/domain/model.ts').Booking>=>disabled(...args);\n");
   }
   await normalizeDependencies(temp,pkg,manifest.sharedPackages);
-  const wrangler=await json(join(temp,'wrangler.jsonc'));wrangler.name=target;delete wrangler.routes;delete wrangler.account_id;wrangler.vars={DEMO_MODE:'false'};wrangler.d1_databases=wrangler.d1_databases.map(db=>({...db,database_name:`${target}-db`,database_id:'00000000-0000-0000-0000-000000000000'}));await writeJson(join(temp,'wrangler.jsonc'),wrangler);
+  const wrangler=await json(join(temp,'wrangler.jsonc'));wrangler.name=target;delete wrangler.routes;delete wrangler.account_id;wrangler.vars={DEMO_MODE:'false'};await writeJson(join(temp,'wrangler.jsonc'),wrangler);
   await rm(join(temp,'tests'),{recursive:true,force:true});await mkdir(join(temp,'tests'));
   await writeFile(join(temp,'tests/client.test.mjs'),"import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';\nconst root=new URL('../',import.meta.url);test('client deployment excludes public demo mode and workspace dependencies',()=>{const c=JSON.parse(readFileSync(new URL('wrangler.jsonc',root)));assert.equal(c.vars.DEMO_MODE,'false');const p=JSON.parse(readFileSync(new URL('package.json',root)));assert.ok(!Object.values({...p.dependencies,...p.devDependencies}).some(v=>v.startsWith('workspace:')));});\n");
   await writeFile(join(temp,'.dev.vars.example'),'# Copy to .dev.vars. Set unique secrets; never commit this file.\nDEMO_MODE=false\n# STAFF_OWNER_PASSWORD=\n# STAFF_OPERATIONS_PASSWORD=\n# STAFF_VIEWER_PASSWORD=\n# TICKET_SECRET=\n# MIDTRANS_SERVER_KEY=\n# MIDTRANS_ENVIRONMENT=sandbox\n# NOTIFICATION_API_KEY=\n# NOTIFICATION_FROM=\n');
@@ -289,7 +288,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
   if(initial.phone&&initial.whatsapp)throw new Error('Gunakan --whatsapp atau --phone, bukan keduanya.');
   const options=await interactive({...initial,phone:initial.whatsapp||initial.phone},registry);
   const template=registry.getTemplate(options.template||'commerce',{availableOnly:true});
-  options.database ||= template.id==='cafe'?'postgresql':'d1';
+  options.database ||= template.id==='cafe'?'postgresql':'turso';
   options['object-storage'] ||= 's3';
   assertChoice(options.database,['turso','d1','postgresql'],'Database');
   assertChoice(options['object-storage'],['uploadthing','s3'],'Object storage');
@@ -343,7 +342,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
     else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
-    await configureStorage(temp,template.id,options);
+    await configureStorage(temp,template.id,{...options,target});
     await writeJson(join(temp,'tampiloka.project.json'),{schemaVersion:1,template:template.id,preset:options.preset,database:options.database,objectStorage:options['object-storage'],level:options.level||null,...(options.modules?{modules:[options.modules]}:{}),...(template.id==='school'?{layout:options.layout,palette:options.theme,typography:options.typography,modules:registry.schoolModulesFor(options.level,options.features)}:{}),...(template.id==='commerce'?{modules:registry.commerceModulesFor(options.level,options.features)}:{}),cliVersion:VERSION,createdAt:new Date().toISOString(),source:'soezyxstt/tampiloka-templates'});
     // Windows rename refuses an existing directory; POSIX needs a reservation.
     if(process.platform!=='win32'){await mkdir(destination);reservedDestination=true;}
@@ -376,7 +375,8 @@ async function configureStorage(directory, family, options) {
   if(family!=='cafe') {
     const path=join(directory,'wrangler.jsonc');
     const config=await json(path);config.vars={...config.vars,DATABASE_PROVIDER:database,OBJECT_STORAGE_PROVIDER:objectStorage};
-    if(database!=='d1')delete config.d1_databases;
+    if(database==='d1')config.d1_databases=[{binding:'DB',database_name:`${options.target}-db`,database_id:'00000000-0000-0000-0000-000000000000',migrations_dir:'migrations'}];
+    else delete config.d1_databases;
     delete config.r2_buckets;
     await writeJson(path,config);
   }

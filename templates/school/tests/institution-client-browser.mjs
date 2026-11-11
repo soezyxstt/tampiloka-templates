@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
-// Exercise the generated client itself, including the built Worker and its asset fallback.
+// Exercise the generated client through its built Worker and HTTPS libSQL backend.
 const root = resolve(process.cwd(), '../..');
 const temp = await mkdtemp(join(tmpdir(), 'school-client-browser-'));
 const client = join(temp, 'school-client');
@@ -23,7 +23,7 @@ try {
   const brand = JSON.parse(await readFile(configPath, 'utf8'));
   Object.assign(brand, { name: 'Sekolah Cakra Uji', address: 'Jalan Uji 12', email: 'test@example.test', logo: '/images/client/logo.jpg', heroImage: '/images/client/hero.jpg' });
   await writeFile(configPath, JSON.stringify(brand, null, 2));
-  await writeFile(join(client, '.dev.vars'), ['AUTH_SECRET', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD'].map(key => `${key}=${JSON.stringify(env[key])}`).join('\n'));
+  await writeFile(join(client, '.dev.vars'), ['AUTH_SECRET', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD', 'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN'].map(key => `${key}=${JSON.stringify(env[key])}`).join('\n'));
   await mkdir(join(client, 'public/images/client'), { recursive: true });
   await copyFile(join(root, 'templates/school/public/images/institution/classroom.jpg'), join(client, 'public/images/client/logo.jpg'));
   await copyFile(join(root, 'templates/school/public/images/institution/students.jpg'), join(client, 'public/images/client/hero.jpg'));
@@ -31,12 +31,20 @@ try {
   else run('pnpm', ['install', '--no-frozen-lockfile'], client);
   run(process.execPath, [join(client, 'node_modules/vite/bin/vite.js'), 'build'], client);
   run(process.execPath, ['scripts/build-worker.mjs'], client);
-  const wrangler = join(client, 'node_modules/wrangler/bin/wrangler.js');
-  run(process.execPath, [wrangler, 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist], client);
-  server = spawn(process.execPath, [wrangler, 'dev', '--no-bundle', '--local', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
-  let ready = false;
-  for (let i = 0; i < 100; i++) { try { if ((await fetch(`${base}/api/health`)).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 300)); }
-  assert.ok(ready, 'Built local Worker did not become ready');
+  assert.ok(env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN, 'HTTPS libSQL fixture configuration is required');
+  // Use the generated client's production migration tool and its own migration files.
+  run('pnpm', ['db:remote'], client);
+  run('pnpm', ['exec', 'tampiloka-db', 'verify'], client);
+  // Re-running migrate proves the recorded history is accepted without replaying SQL.
+  run('pnpm', ['db:remote'], client);
+  server = spawn(process.execPath, [join(client, 'node_modules/wrangler/bin/wrangler.js'), 'dev', '--local', '--no-bundle', '--ip', '127.0.0.1', '--port', '5185', '--persist-to', persist], { cwd: client, env, stdio: 'inherit' });
+  let ready = false, healthFailure = 'no response';
+  for (let i = 0; i < 100; i++) {
+    if (server.exitCode !== null) throw new Error(`Wrangler exited before readiness (${server.exitCode})`);
+    try { const response = await fetch(`${base}/api/health`); if (response.ok) { ready = true; break; } healthFailure = `HTTP ${response.status}: ${await response.text()}`; } catch (error) { healthFailure = String(error); }
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  assert.ok(ready, `Local client backend did not become ready: ${healthFailure}`);
   const snapshot = await (await fetch(`${base}/api/bootstrap`, { headers: { 'X-Demo-Role': 'admin' } })).json();
   assert.equal(snapshot.demo, false);
   assert.equal(snapshot.institution.name, 'Sekolah Cakra Uji');
@@ -109,7 +117,7 @@ try {
     assert.doesNotMatch(await page.locator('.institution-gallery').innerText(), /fiktif|fictional|illustrative|ilustrasi/i);
   }
   assert.deepEqual(errors, []);
-  console.log('Generated institution client: built Worker routes, branding, isolation and staff authorization PASS');
+  console.log('Generated institution client: client routes, branding, isolation and staff authorization PASS');
 } finally {
   await browser?.close();
   if (server) { server.kill(); await new Promise(resolve => { if (server.exitCode !== null) resolve(); else server.once('exit', resolve); }); }

@@ -1,6 +1,6 @@
 # Tampiloka Booking
 
-A reusable, single-business appointment application: React/TypeScript customer site and staff workspace, Cloudflare Worker API, and client-owned D1 database. This is an implemented template, not a static mockup. Live payment processing is **not verified** until the client's credentials pass the sandbox checklist.
+A reusable, single-business appointment application: React/TypeScript customer site and staff workspace, Cloudflare Worker API, and client-owned Turso database. This is an implemented template, not a static mockup. Live payment processing is **not verified** until the client's credentials pass the sandbox checklist.
 
 ## Start the public demo locally
 
@@ -11,7 +11,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @tampiloka/template-booking dev
 ```
 
-The development script applies local migrations, starts the Worker on 8788, and opens the frontend server on 5176. Visit `http://localhost:5176`. Customer and staff views share one private, server-backed demo session. Other visitors receive different data. Demo sessions expire after 24 hours. Payments never move real money, and demo notifications never send email or WhatsApp messages.
+The development script applies migrations to local SQLite and serves the API and frontend together on port 5176. Visit `http://localhost:5176`. Customer and staff views share one private, server-backed demo session. Other visitors receive different data. Demo sessions expire after 24 hours. Payments never move real money, and demo notifications never send email or WhatsApp messages.
 
 Select the business, feature level, and palette at the top. Appearance contains independent layout choices, staff roles, reset, and sample bookings. The language switch stays at the bottom right. The default URL opens the working customer site.
 
@@ -23,7 +23,7 @@ pnpm tampiloka create atelier-care --template booking --preset aesthetic --level
 pnpm tampiloka doctor --dir ./nova-clinic
 ```
 
-The output owns its configuration, source, shared UI copy, database binding, and selected business content. It does not depend on the original monorepo. Public demo controls and configuration endpoints are removed or replaced with fail-closed implementations. Below Full, payment-provider and QR modules/dependencies are omitted. Catalog and WhatsApp builds cannot create customer appointment records.
+The output owns its configuration, source, shared UI copy, database configuration, and selected business content. It does not depend on the original monorepo. Public demo controls and configuration endpoints are removed or replaced with fail-closed implementations. Below Full, payment-provider and QR modules/dependencies are omitted. Catalog and WhatsApp builds cannot create customer appointment records.
 
 | Axis                    | Supported IDs                                                              |
 | ----------------------- | -------------------------------------------------------------------------- |
@@ -61,4 +61,4 @@ pnpm catalog:test
 node packages/cli/tests/booking-standalone.mjs
 ```
 
-The browser suite uses a temporary local D1 database by default. A hosted run with `BOOKING_TEST_URL` requires an explicit `BOOKING_CHECK_FILTER` to prevent accidentally running the full suite against the shared live database. The release and manual live workflows select the customer booking and staff check-in scenario. Browser evidence goes in `test-results/`. Public catalog readiness is a separate publication gate, not a claim inferred from a successful local build. Do not set `ready: true` until the deployed origin, API flow, and all 1280×800 preview images have been checked.
+The browser suite uses a temporary local SQLite database by default. A hosted run with `BOOKING_TEST_URL` requires an explicit `BOOKING_CHECK_FILTER` to prevent accidentally running the full suite against the shared live database. The release and manual live workflows select the customer booking and staff check-in scenario. Browser evidence goes in `test-results/`. Public catalog readiness is a separate publication gate, not a claim inferred from a successful local build. Do not set `ready: true` until the deployed origin, API flow, and all 1280×800 preview images have been checked.

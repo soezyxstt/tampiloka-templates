@@ -8,10 +8,10 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 | --- | --- |
 | `templates/cafe` | Next.js cafe ordering + staff/POS template. Tailwind v4, Radix, `motion`. |
 | `templates/commerce` | Vite + Cloudflare Worker storefront and staff workspace. Plain CSS + shadcn (Radix) wrappers. |
-| `templates/school` | React/Vite + Worker/D1 education, admissions and learning workspace. |
+| `templates/school` | React/Vite + Worker/Turso education, admissions and learning workspace. |
 | `templates/operations` | Planned multilocation operations template; verification is pending. |
 | `templates/dashboard` | Planned; not offered by the CLI. |
-| `templates/booking` | Vite + Worker/D1 appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
+| `templates/booking` | Vite + Worker/Turso appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
 | `packages/theme-engine` | Commerce palettes (`sand`, `ink`, `forest`), layouts, `brandVariables()`. |
 | `packages/ui-core` | Shared `Button`, `Input`, `NativeSelect`, `Textarea`, `Dialog`, `MotionProvider` (`.tl-*` classes). |
 | `packages/cli`, `packages/registry` | Project generator and template registry. Palette/theme IDs here are a public contract. |
@@ -225,13 +225,13 @@ Run design-token lint, affected template typechecks, catalog validation/tests, a
 
 ## Generated storage providers
 
-The CLI selects database (`turso`, `d1`, `postgresql`) independently of object storage (`uploadthing`, `s3`) and persists these choices in `config/storage.json`. Credentials remain server-side. Use `packages/storage` for shared Worker database/object adapters; maintain matching standalone dependencies and locks when adding providers. Keep public D1 demos isolated from generated client credentials.
+The CLI selects database (`turso`, `d1`, `postgresql`) independently of object storage (`uploadthing`, `s3`) and persists these choices in `config/storage.json`. Credentials remain server-side. Use `packages/storage` for shared Worker database/object adapters; maintain matching standalone dependencies and locks when adding providers. Keep public Turso demos isolated from generated client credentials.
 
 PostgreSQL needs family-specific migrations and transaction tests; placeholder translation alone does not establish SQLite parity. UploadThing keys are opaque and returned uploads are private; enable ACL overrides in its dashboard. S3-compatible buckets must be private. Provider tests must preserve authorization, conflict detection, rollback and numeric precision. Cafe live-route authentication/payment gates remain independent of storage selection. Record local engine checks separately from hosted transport/deployment checks, and respect requested resource limits.
 
 ## School template
 
-`templates/school` uses React/Vite + Worker/D1, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
+`templates/school` uses React/Vite + Worker/Turso, with a typed CMS and a purpose-built staff workspace. Its token definitions live in `src/styles/school.css`. The four stable palette IDs are cobalt, forest, neutral, burgundy; layout, typography, preset and level are independent. Keep financial/admissions commands separate from content editing. Run school domain/API/palette tests, typecheck, build, standalone verification and browser coverage when changing this family. Public catalog readiness remains separate from CLI availability.
 
 ## CI and deployment maintenance
 

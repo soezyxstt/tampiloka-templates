@@ -1,65 +1,44 @@
-import { spawn } from "node:child_process";
-import { mkdir, writeFile, access } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-const root = fileURLToPath(new URL("../", import.meta.url));
+import { existsSync } from "node:fs";
+import { Readable } from "node:stream";
+import { createServer, preview } from "vite";
+import { localDatabase } from "./sqlite.mjs";
+import { assetHeaders, handleRequest } from "../worker/index.ts";
+
+if (existsSync(".dev.vars")) process.loadEnvFile(".dev.vars");
 const demo = process.argv.includes("--demo");
-const config = demo ? "wrangler.demo.jsonc" : "wrangler.jsonc";
-const children = [];
-function run(args, wait = false) {
-  return new Promise((resolve, reject) => {
-    const child = spawn("pnpm", args, {
-      cwd: root,
-      stdio: "inherit",
-      env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
-    });
-    children.push(child);
-    child.on("error", reject);
-    if (wait)
-      child.on("exit", (code) =>
-        code === 0
-          ? resolve(child)
-          : reject(new Error(`${args.join(" ")} exited ${code}`)),
-      );
-    else resolve(child);
+const db = localDatabase(demo);
+const env = { ...process.env, DEMO_MODE: String(demo), DB: db };
+function mountAPI(server) {
+  server.middlewares.use(async (req, res, next) => {
+    if (!req.url.startsWith("/api/")) return next();
+    try {
+      const request = new Request(new URL(req.url, `http://${req.headers.host}`), {
+        method: req.method,
+        headers: req.headers,
+        ...(["GET", "HEAD"].includes(req.method) ? {} : { body: Readable.toWeb(req), duplex: "half" }),
+      });
+      const response = await handleRequest(request, env);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(Buffer.from(await response.arrayBuffer()));
+    } catch (error) {
+      next(error);
+    }
   });
 }
-function close() {
-  for (const child of children) child.kill("SIGTERM");
-}
-process.on("SIGINT", () => {
-  close();
-  process.exit(0);
-});
-process.on("SIGTERM", () => {
-  close();
-  process.exit(0);
-});
-try {
-  await mkdir(new URL("../dist/", import.meta.url), { recursive: true });
-  try {
-    await access(new URL("../dist/index.html", import.meta.url));
-  } catch {
-    await writeFile(
-      new URL("../dist/index.html", import.meta.url),
-      "<p>Use the Vite preview on port 5176.</p>",
-    );
-  }
-  await run(["exec", "node", "scripts/migrate.mjs", ...(demo ? ["--demo"] : [])], true);
-  await run([
-    "exec",
-    "wrangler",
-    "dev",
-    "--local",
-    "--config",
-    config,
-    "--port",
-    "8788",
-    "--ip",
-    "127.0.0.1",
-  ]);
-  await run(["exec", "vite", "--mode", demo ? "demo" : "development"]);
-} catch (error) {
-  console.error(error.message);
-  close();
-  process.exit(1);
+const address = { host: "127.0.0.1", port: Number(process.env.PORT || 5176), strictPort: true };
+const options = {
+  mode: demo ? "demo" : "development",
+  server: address,
+  preview: { ...address, headers: assetHeaders },
+  plugins: [{ name: "local-booking-api", configureServer: mountAPI, configurePreviewServer: mountAPI }],
+};
+const server = process.argv.includes("--preview") ? await preview(options) : await createServer(options);
+if (server.listen) await server.listen();
+server.printUrls();
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, async () => {
+    await server.close();
+    db.close();
+    process.exit(0);
+  });
 }

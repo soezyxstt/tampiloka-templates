@@ -21,6 +21,7 @@
   ],
   "sharedPackages": [
     "ui-core",
-    "storage"
+    "storage",
+    "shared-utils"
   ]
 }

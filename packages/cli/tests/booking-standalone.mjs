@@ -16,11 +16,11 @@ const output = join(root, "templates/booking/test-results/standalone");
 await mkdir(output, { recursive: true });
 const report = { checkedAt: new Date().toISOString(), projects: [] };
 const staging = await mkdtemp(join(tmpdir(), "tampiloka-booking-clients-"));
-function run(bin, args, cwd) {
+function run(bin, args, cwd, env = {}) {
   return new Promise((resolve, reject) => {
     const p = spawn(bin, args, {
       cwd,
-      env: { ...process.env, CI: "true", WRANGLER_SEND_METRICS: "false" },
+      env: { ...process.env, CI: "true", WRANGLER_SEND_METRICS: "false", ...env },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let text = "";
@@ -87,6 +87,12 @@ for (const [level, preset] of [
       await run("pnpm", ["install", "--no-frozen-lockfile"], dir),
     );
     record.steps.push("Fresh independent dependency installation");
+    // An installed bin may be reached through a pnpm symlink. A silent exit would skip the release gate.
+    await assert.rejects(
+      run("pnpm", ["exec", "tampiloka-db", "verify"], dir, { TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "" }),
+      /Turso database credentials are missing/,
+    );
+    record.steps.push("Installed Turso verifier rejects missing credentials");
     await writeFile(
       join(output, `${level}-build.log`),
       await run("pnpm", ["build"], dir),
@@ -112,26 +118,17 @@ for (const [level, preset] of [
       join(output, `${level}-migration.log`),
       await run("pnpm", ["db:migrate"], dir),
     );
-    record.steps.push("Local D1 migration");
+    record.steps.push("Local SQLite migration");
     const port = 8800 + report.projects.length,
       origin = `http://127.0.0.1:${port}`,
       secret = "standalone-test-password-" + crypto.randomUUID();
     await writeFile(join(dir, ".dev.vars"), `STAFF_OWNER_PASSWORD=${secret}\n`);
     server = spawn(
-      "pnpm",
-      [
-        "exec",
-        "wrangler",
-        "dev",
-        "--local",
-        "--ip",
-        "127.0.0.1",
-        "--port",
-        String(port),
-      ],
+      process.execPath,
+      ["scripts/dev.mjs", "--preview"],
       {
         cwd: dir,
-        env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
+        env: { ...process.env, PORT: String(port) },
         stdio: ["ignore", "ignore", "pipe"],
         detached: process.platform !== "win32",
       },

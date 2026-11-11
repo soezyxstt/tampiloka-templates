@@ -2,7 +2,7 @@ import { sampleFinishes } from '../content/finishes.ts';
 import configured from '../config/commerce.json' with { type: 'json' };
 import { categories, defaultConfig, levels, seedCoupons, seedProducts, shippingMethods } from '../content/store.ts';
 import type { Bootstrap, CommerceLevel, Coupon, Order, Product, Review, StoreConfig } from '../src/shared/contracts.ts';
-import type { D1Statement, Env, Row, Session } from './types.ts';
+import type { SqlStatement, Env, Row, Session } from './types.ts';
 import { capabilities, digest, fail, id, isDemo, now, rateLimit, validateModules } from './security.ts';
 
 export const q = (env: Env, sql: string, ...args: unknown[]) => env.DB.prepare(sql).bind(...args);
@@ -18,8 +18,8 @@ export function getDefaultConfig(env: Env): StoreConfig {
   validateModules(result);
   return result;
 }
-function seedStatements(env: Env, scope: string, demo: boolean, config: StoreConfig): D1Statement[] {
-  const stmts: D1Statement[] = [q(env, 'INSERT OR IGNORE INTO scopes(id,demo,level,preset,config_json,created_at) VALUES(?,?,?,?,?,?)', scope, Number(demo), config.level, config.preset, JSON.stringify(demo ? { ...config, sampleGalleryVersion: 2 } : config), now())];
+function seedStatements(env: Env, scope: string, demo: boolean, config: StoreConfig): SqlStatement[] {
+  const stmts: SqlStatement[] = [q(env, 'INSERT OR IGNORE INTO scopes(id,demo,level,preset,config_json,created_at) VALUES(?,?,?,?,?,?)', scope, Number(demo), config.level, config.preset, JSON.stringify(demo ? { ...config, sampleGalleryVersion: 2 } : config), now())];
   for (const p of seedProducts) {
     stmts.push(q(env, 'INSERT OR IGNORE INTO products(scope,id,slug,name,description,category,price,compare_at_price,images_json,material,featured,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', scope,p.id,p.slug,p.name,p.description,p.category,p.price,p.compareAtPrice ?? null,JSON.stringify(p.images),p.material,Number(p.featured),Number(p.active),p.createdAt));
     for (const v of p.variants) stmts.push(q(env, 'INSERT OR IGNORE INTO variants(scope,id,product_id,name,sku,price,stock,options_json) VALUES(?,?,?,?,?,?,?,?)',scope,v.id,p.id,v.name,v.sku,v.price,v.stock,JSON.stringify(v.options)));
@@ -109,7 +109,7 @@ export async function productsFor(env: Env, scope: string, includeInactive = fal
 export function couponFrom(row: Row): Coupon { return {code:row.code,kind:row.kind,value:row.value,minSpend:row.min_spend,maxDiscount:row.max_discount,active:Boolean(row.active),useLimit:row.use_limit,usedCount:row.used_count,expiresAt:row.expires_at}; }
 export function auditStatement(env: Env, session: Session, action: string, entityId: string, detail: string) { return q(env,'INSERT INTO audit_events(scope,id,action,entity_id,detail,actor,created_at) VALUES(?,?,?,?,?,?,?)',session.scope,id(),action,entityId,detail,session.role,now()); }
 export function eventStatement(env: Env, session: Session, orderId: string, action: string, label: string, note = '', actor: string = session.role) { return q(env,'INSERT INTO order_events(scope,id,order_id,action,label,note,actor,created_at) VALUES(?,?,?,?,?,?,?,?)',session.scope,id(),orderId,action,label,note,actor,now()); }
-export function versionGuard(env: Env, operationId: string): D1Statement[] { return [q(env,'INSERT INTO mutation_guards(id,ok) VALUES(?,changes())',operationId),q(env,'DELETE FROM mutation_guards WHERE id=?',operationId)]; }
+export function versionGuard(env: Env, operationId: string): SqlStatement[] { return [q(env,'INSERT INTO mutation_guards(id,ok) VALUES(?,changes())',operationId),q(env,'DELETE FROM mutation_guards WHERE id=?',operationId)]; }
 export async function orderFor(env: Env, session: Session, orderId: string, internal = false): Promise<Order> {
   const row = await q(env,`SELECT * FROM orders WHERE scope=? AND id=? ${internal ? '' : 'AND session_id=?'}`,session.scope,orderId,...(internal ? [] : [session.tokenHash])).first<Row>();
   if (!row) fail(404,'ORDER_NOT_FOUND','Pesanan tidak ditemukan.'); return orderFrom(env,row);

@@ -2,7 +2,7 @@
 
 ## Choice of CMS
 
-The template uses React/Vite, a typed content registry and a Cloudflare Worker. D1 stores server state, identities and audit data. R2 stores media. The local adapter runs the same Web Request/Response handlers against SQLite. Shared UI core supplies Radix dialogs, controls, motion and the Tampiloka demo shell.
+The template uses React/Vite, a typed content registry and a Cloudflare Worker. Turso stores server state, identities and audit data. R2 stores media. The local adapter runs the same Web Request/Response handlers against SQLite. Shared UI core supplies Radix dialogs, controls, motion and the Tampiloka demo shell.
 
 Payload was considered. It supports typed collections, access control, blocks and database adapters, including a documented D1 adapter. This is **not** a claim that Payload cannot run with D1. The choice here avoids introducing a second Next.js admin runtime into the existing Vite/Worker generation path and allows one small, purpose-built staff experience. The tradeoff is explicit: this focused CMS does not provide Payload's complete ecosystem, collaborative editor, relationship query API or automatic migration generation. Do not describe it as a drop-in replacement for Payload.
 
@@ -16,9 +16,9 @@ References reviewed: https://payloadcms.com/docs/database/sqlite and https://dev
 
 ## Persistence and concurrency
 
-A D1 row stores a versioned `SchoolState` aggregate per client/demo namespace. The aggregate contains separately typed arrays rather than a generic content document masquerading as finance. Each command loads a revision, computes and validates a new state, then updates with `WHERE revision = expected`. A failed comparison retries the pure command against current data. Only the successful update produces a result. The same mechanism makes capacity checks, event writes, invoice creation and idempotency recording atomic.
+A SQLite row stores a versioned `SchoolState` aggregate per client/demo namespace. The aggregate contains separately typed arrays rather than a generic content document masquerading as finance. Each command loads a revision, computes and validates a new state, then updates with `WHERE revision = expected`. A failed comparison retries the pure command against current data. Only the successful update produces a result. The same mechanism makes capacity checks, event writes, invoice creation and idempotency recording atomic.
 
-`school_sessions`, `school_visitors`, `school_limits` and `school_payment_routes` are separate SQL tables. D1 reads use a first-primary session where available. No SQLite `BEGIN` assumptions leak into the Worker implementation.
+`school_sessions`, `school_visitors`, `school_limits` and `school_payment_routes` are separate SQL tables. The Worker talks to Turso over HTTP and checks the affected row count after each conditional update.
 
 This is intentionally a **small-center** storage strategy. One institution serializes writes. The adapter rejects aggregates larger than 1.5 MB instead of risking truncated records. Revisions are bounded to 20 per content record. Enrollment events and idempotency records are not automatically purged. Track aggregate size and archive or migrate to normalized transactional tables well before the limit. This is not a high-volume school ERP. Changing storage must preserve compare-and-swap/transactional guarantees, not replace them with an in-memory mutex.
 

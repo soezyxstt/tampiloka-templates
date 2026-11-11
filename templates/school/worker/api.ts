@@ -1,4 +1,4 @@
-import { resolveDatabase, resolveObjectStorage } from '@tampiloka/storage';
+import { resolveObjectStorage } from '@tampiloka/storage';
 import configJson from '../config/school.json' with { type: 'json' };
 import { seed } from '../content/seed.ts';
 import type { Command, Context, Level, Preset, SchoolConfig, User, Json, SchoolState } from '../src/domain/types.ts';
@@ -52,11 +52,12 @@ function mediaStorage(env: Env) {
     if (!env.OBJECT_STORAGE_PROVIDER) return null;
     return resolveObjectStorage(env);
 }
-const databaseCache = new WeakMap<Env, Database>();
-function databaseEnv(env: Env): Env {
-    let db = databaseCache.get(env);
-    if (!db) { db = resolveDatabase(env) as Database; databaseCache.set(env, db); }
-    return { ...env, DB: db };
+function storageLimit(error: unknown) {
+    for (let cause = error; cause instanceof Error; cause = cause.cause) {
+        if ('code' in cause && cause.code === 'SQLITE_FULL') return true;
+        if ('status' in cause && (cause.status === 429 || cause.status === 507)) return true;
+    }
+    return false;
 }
 const response = (data: unknown, status = 200, cookies: string[] = []) => { const headers = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); for (const c of cookies)
     headers.append('Set-Cookie', c); return new Response(JSON.stringify(data), { status, headers }); };
@@ -191,12 +192,11 @@ async function sendOutbox(store: Store, env: Env, state: SchoolState): Promise<n
     return sent;
 }
 export async function dispatchNotifications(env: Env) { const config = configuration(env); if (env.DEMO_MODE === 'true' || !['enrollment', 'full'].includes(config.level))
-    return; env = databaseEnv(env); const store = new Store(env.DB, 'production', () => seed(config.preset, config, false)); const state = (await store.load()).state; await sendOutbox(store, env, state); }
+    return; const store = new Store(env.DB, 'production', () => seed(config.preset, config, false)); const state = (await store.load()).state; await sendOutbox(store, env, state); }
 export async function handle(request: Request, env: Env, execution?: {
     waitUntil(promise: Promise<unknown>): void;
 }): Promise<Response> {
     try {
-        env = databaseEnv(env);
         const url = new URL(request.url), path = url.pathname;
         if (path === '/api/payments/callback' && request.method === 'POST')
             return await callback(request, env);
@@ -204,8 +204,12 @@ export async function handle(request: Request, env: Env, execution?: {
             throw new DomainError('method_not_allowed', 405);
         if (request.method === 'POST')
             csrf(request);
-        if (path === '/api/health')
+        if (path === '/api/health') {
+            await env.DB.prepare(`SELECT s.revision, s.data, u.user_id, v.token_hash, l.count, p.order_id
+                FROM school_state s LEFT JOIN school_sessions u ON 0 LEFT JOIN school_visitors v ON 0
+                LEFT JOIN school_limits l ON 0 LEFT JOIN school_payment_routes p ON 0 LIMIT 0`).first();
             return response({ ok: true, template: 'school' });
+        }
         const { store, config, preset, cookies, ctx } = await context(request, env);
         if (request.method === 'GET' && path === '/api/bootstrap')
             return response({ ...snapshot((await store.load()).state, ctx, preset), paymentProvider: config.payment.provider }, 200, cookies);
@@ -403,13 +407,13 @@ export async function handle(request: Request, env: Env, execution?: {
         throw new DomainError('not_found', 404);
     }
     catch (error) {
-        const capacity = error instanceof Error && /D1.*exceeded.*(?:daily|limit)|D1.*free tier.*limit/i.test(error.message);
-        if (!(error instanceof DomainError)) console.error('school_internal_error', { name: error instanceof Error ? error.name : 'UnknownError', reason: capacity ? 'd1_capacity_exceeded' : 'unexpected', frames: error instanceof Error ? error.stack?.split('\n').slice(1, 4) : [] });
+        const capacity = storageLimit(error);
+        if (!(error instanceof DomainError)) console.error('school_internal_error', { name: error instanceof Error ? error.name : 'UnknownError', reason: capacity ? 'storage_capacity_exceeded' : 'unexpected', frames: error instanceof Error ? error.stack?.split('\n').slice(1, 4) : [] });
         const e = error instanceof DomainError ? error : new DomainError(capacity ? 'storage_capacity_exceeded' : 'internal_error', capacity ? 503 : 500);
         const result = response({ error: e.code }, e.status);
         if (capacity) result.headers.set('Retry-After', '3600');
         return result;
     }
 }
-export async function cleanup(env: Env) { env = databaseEnv(env); for (const table of ['school_sessions', 'school_visitors', 'school_limits', 'school_state'])
+export async function cleanup(env: Env) { for (const table of ['school_sessions', 'school_visitors', 'school_limits', 'school_state'])
     await env.DB.prepare(`DELETE FROM ${table} WHERE expires_at IS NOT NULL AND expires_at<?`).bind(Date.now()).run(); }

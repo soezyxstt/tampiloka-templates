@@ -61,7 +61,7 @@ jobs:
           pnpm test:school:browser
           mkdir -p templates/school/dist/previews
           cp templates/school/test-results/school/*-preview.jpg templates/school/dist/previews/
-      - name: Exercise Booking with local D1 before deployment
+      - name: Exercise Booking with local SQLite before deployment
         if: matrix.family == 'booking'
         run: pnpm --filter @tampiloka/template-booking test:e2e
       - name: Set deployment paths
@@ -75,25 +75,30 @@ jobs:
           echo "RELEASE_ORIGIN=$origin" >> "$GITHUB_ENV"
       - name: Stamp the built assets
         run: node scripts/demo-release.mjs stamp '${{ matrix.family }}' "$RELEASE_DIRECTORY"
-      - name: Check the pre-provisioned School demo schema
-        if: matrix.family == 'school'
-        working-directory: templates/school
-        run: node scripts/check-demo-schema.mjs
-      - name: Check the pre-provisioned Booking demo schema
-        if: matrix.family == 'booking'
-        working-directory: templates/booking
-        run: node scripts/check-demo-schema.mjs
-      - name: Deploy the stamped build
+      - name: Deploy Cafe Pages
+        if: matrix.family == 'cafe'
+        working-directory: templates/cafe
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos --branch main
+      - name: Verify Turso and deploy Worker
+        if: matrix.family != 'cafe'
+        working-directory: templates/${{ matrix.family }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURSO_AUTH_TOKEN: ${{ secrets[format('TURSO_{0}_AUTH_TOKEN', matrix.family)] }}
         run: |
-          cd templates/${{ matrix.family }}
-          if [ '${{ matrix.family }}' = cafe ]; then
-            pnpm exec wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos --branch main
-          else
-            pnpm exec wrangler deploy --config wrangler.demo.jsonc
-          fi
+          set -euo pipefail
+          : "${TURSO_AUTH_TOKEN:?Set the database token for this demo in GitHub Secrets}"
+          # Read the same URL Wrangler sends to the Worker.
+          export TURSO_DATABASE_URL=$(node --input-type=module -e "import {readFileSync} from 'node:fs'; import {parseJsonc} from '../../packages/cli/src/jsonc.mjs'; console.log(parseJsonc(readFileSync('wrangler.demo.jsonc','utf8')).vars.TURSO_DATABASE_URL)")
+          pnpm exec tampiloka-db verify
+          secret_file=$(mktemp)
+          trap 'rm -f "$secret_file"' EXIT
+          node -e "require('node:fs').writeFileSync(process.argv[1], JSON.stringify({TURSO_AUTH_TOKEN:process.env.TURSO_AUTH_TOKEN}))" "$secret_file"
+          pnpm exec wrangler deploy --config wrangler.demo.jsonc --secrets-file "$secret_file"
       - name: Check the actual hosted customer and staff flows
         env:
           CAFE_DEMO_BASE_URL: https://cafe.tampiloka.site

@@ -1,6 +1,6 @@
 import { resolveDatabase, resolveObjectStorage } from '@tampiloka/storage';
 import type { CommerceLevel, StaffRole } from '../src/shared/contracts.ts';
-import type { Env, Row, Session } from './types.ts';
+import type { Bindings, Env, Row, Session } from './types.ts';
 import { levels } from '../content/store.ts';
 import { all, auditStatement, bootstrap, configFor, orderFor, orderFrom, ordersFrom, q, reviewsFor, sessionFor, wishlistFor } from './db.ts';
 import { createOrder, customerAction, expireManualOrders, quoteFor, rawOrder, staffAction } from './orders.ts';
@@ -9,7 +9,7 @@ import { adjustInventory, exportOrders, saveCoupon, saveProduct, saveSettings, s
 import { beginMemberLogin, verifyMemberLogin, signOutMember } from './loyalty.ts';
 import { rotateTrackingCode, trackOrder } from './tracking.ts';
 import { body, capabilities, digest, fail, HttpError, id, isDemo, now, rateLimit, requireFeature, safeEqual, sameOrigin, staff, text } from './security.ts';
-export type { Env } from './types.ts';
+export type { Bindings, Env } from './types.ts';
 
 const apiHeaders = { 'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin' };
 function json(value:unknown,status=200,cookie?:string) { const headers:Record<string,string>={...apiHeaders,'Content-Type':'application/json; charset=utf-8'};if(cookie)headers['Set-Cookie']=cookie;return new Response(JSON.stringify(value),{status,headers}); }
@@ -134,10 +134,9 @@ async function route(request:Request,env:Env,session:Session,path:string) {
   return fail(404,'NOT_FOUND','Halaman API tidak ditemukan.');
 }
 export async function handleRequest(request:Request,env:Env):Promise<Response> {
-  const url=new URL(request.url);if(!url.pathname.startsWith('/api/'))return env.ASSETS?env.ASSETS.fetch(request):new Response('Commerce API. Run the Vite storefront to open the shop.',{status:404});
+  const url=new URL(request.url);
   const requestId=id();let session:Session|undefined;
   try{
-    env={...env,DB:resolveDatabase(env as unknown as Parameters<typeof resolveDatabase>[0]) as Env['DB']};
     if(url.pathname==='/api/health'&&request.method==='GET'){await q(env,'SELECT 1 AS ready').first();return json({ok:true,service:'tampiloka-commerce',demo:isDemo(env)});}
     if(url.pathname==='/api/webhooks/midtrans'&&request.method==='POST')return json(await paymentWebhook(env,await body(request)));
     sameOrigin(request,env);session=await sessionFor(request,env);
@@ -154,10 +153,26 @@ export async function handleRequest(request:Request,env:Env):Promise<Response> {
   }
 }
 export async function cleanup(env:Env) {
-  env={...env,DB:resolveDatabase(env as unknown as Parameters<typeof resolveDatabase>[0]) as Env['DB']};
   await expireManualOrders(env);
   // A real gateway reservation is released only after a verified provider status.
   if(env.MIDTRANS_SERVER_KEY){const due=await all(env,"SELECT o.scope,o.id FROM orders o JOIN scopes s ON s.id=o.scope WHERE s.demo=0 AND o.payment_method='midtrans' AND o.status='awaiting_payment' AND o.expires_at<? LIMIT 25",now());for(const row of due){try{await reconcilePayment(env,{scope:row.scope,demo:false,role:'owner',tokenHash:'scheduled'},row.id);}catch{/* Next schedule or a staff reconcile retries provider failures. */}}}
   await env.DB.batch([q(env,'DELETE FROM sessions WHERE expires_at<=?',now()),q(env,'DELETE FROM rate_limits WHERE expires_at<=?',now()),q(env,"DELETE FROM scopes WHERE demo=1 AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.scope=scopes.id AND s.expires_at>?)",now())]);
 }
-export default {fetch:handleRequest,async scheduled(_controller:unknown,env:Env){await cleanup(env);}};
+function connect(bindings: Bindings): Env {
+  return { ...bindings, DB: resolveDatabase(bindings) as Env['DB'] };
+}
+
+export default {
+  fetch(request: Request, bindings: Bindings) {
+    if (!new URL(request.url).pathname.startsWith('/api/')) {
+      return bindings.ASSETS?.fetch(request) ?? new Response('Commerce API.', { status: 404 });
+    }
+    let env: Env;
+    try { env = connect(bindings); }
+    catch { return json({ error: { code: 'DATABASE_NOT_CONFIGURED', message: 'Basis data belum terpasang.' } }, 503); }
+    return handleRequest(request, env);
+  },
+  async scheduled(_controller: unknown, bindings: Bindings) {
+    await cleanup(connect(bindings));
+  },
+};

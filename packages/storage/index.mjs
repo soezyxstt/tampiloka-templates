@@ -1,3 +1,5 @@
+import { createTursoDatabase } from './turso.mjs';
+
 const required = (env, key) => {
   const value = env[key];
   if (typeof value !== 'string' || !value.trim()) throw new Error(`Missing ${key}`);
@@ -141,17 +143,6 @@ function restD1(env) {
     return data.result;
   });
 }
-function turso(env) {
-  const url = required(env, 'TURSO_DATABASE_URL'), authToken = env.TURSO_AUTH_TOKEN;
-  let client;
-  async function getClient() { return client ||= import('@libsql/client/web').then(m => m.createClient({ url, authToken })); }
-  return database(async statements => {
-    if (!statements.length) return [];
-    const c = await getClient();
-    const rows = await c.batch(statements.map(s => ({ sql: s.sql, args: s.values })), 'write');
-    return rows.map(r => result(r.rows.map(row => ({ ...row })), r.rowsAffected, { last_row_id: r.lastInsertRowid == null ? undefined : Number(r.lastInsertRowid) }));
-  });
-}
 function postgresNumber(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) throw new RangeError('PostgreSQL numeric value is not finite');
@@ -200,9 +191,9 @@ export function createPostgresDatabase(pool) {
   });
 }
 export function resolveDatabase(env) {
-  switch (env.DATABASE_PROVIDER || 'd1') {
+  switch (env.DATABASE_PROVIDER || 'turso') {
     case 'd1': return env.DB || restD1(env);
-    case 'turso': return turso(env);
+    case 'turso': return createTursoDatabase(env);
     case 'postgresql': return postgres(env);
     default: throw new Error(`Unknown DATABASE_PROVIDER: ${env.DATABASE_PROVIDER}`);
   }

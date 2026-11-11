@@ -1,72 +1,17 @@
-import { DatabaseSync } from "node:sqlite";
-import { readFileSync, readdirSync } from "node:fs";
-import worker from "../worker/index.ts";
+import { LocalDatabase } from "../scripts/sqlite.mjs";
+import { handleRequest } from "../worker/index.ts";
 import { defaultOptions } from "../src/domain/adapters.ts";
-export class SQLiteD1 {
-  constructor(path = ":memory:") {
-    this.db = new DatabaseSync(path);
-    this.db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
-    for (const name of readdirSync(new URL("../migrations/", import.meta.url))
-      .filter((x) => x.endsWith(".sql"))
-      .sort())
-      this.db.exec(
-        readFileSync(new URL("../migrations/" + name, import.meta.url), "utf8"),
-      );
-  }
-  prepare(sql) {
-    const make = (args = []) => ({
-      bind: (...values) => make(values),
-      first: async (column) => {
-        const row = this.db.prepare(sql).get(...args);
-        return column ? (row?.[column] ?? null) : (row ?? null);
-      },
-      all: async () => ({
-        results: this.db.prepare(sql).all(...args),
-        success: true,
-      }),
-      run: async () => {
-        const r = this.db.prepare(sql).run(...args);
-        return { success: true, meta: { changes: Number(r.changes) } };
-      },
-      execute: () => {
-        const st = this.db.prepare(sql);
-        if (st.columns().length)
-          return {
-            success: true,
-            results: st.all(...args),
-            meta: { changes: 0 },
-          };
-        const r = st.run(...args);
-        return {
-          success: true,
-          results: [],
-          meta: { changes: Number(r.changes) },
-        };
-      },
-      sql,
-    });
-    return make();
-  }
-  async batch(statements) {
+
+class TestDatabase extends LocalDatabase {
+  batch(statements) {
     this.beforeBatch?.(statements);
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
-      const r = statements.map((s) => s.execute());
-      this.db.exec("COMMIT");
-      return r;
-    } catch (e) {
-      this.db.exec("ROLLBACK");
-      throw e;
-    }
-  }
-  close() {
-    this.db.close();
+    return super.batch(statements);
   }
 }
 export function fixture(t, overrides = {}) {
   let clock = Date.parse("2026-11-01T12:00:00Z");
   const env = {
-    DB: new SQLiteD1(),
+    DB: new TestDatabase(),
     DEMO_MODE: "true",
     NOW: () => clock,
     ...overrides,
@@ -89,7 +34,7 @@ export function client(env, ip = crypto.randomUUID()) {
       cookie = v;
     },
     async request(path, method = "GET", body, extra = {}) {
-      const response = await worker.fetch(
+      const response = await handleRequest(
         new Request("https://booking.test" + path, {
           method,
           headers: {

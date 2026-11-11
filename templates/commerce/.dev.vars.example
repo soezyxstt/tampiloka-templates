@@ -1,12 +1,16 @@
 # Local development only. Never commit .dev.vars.
 DEMO_MODE=true
+# For a Worker started directly with Wrangler, supply development database credentials here.
+# pnpm dev and pnpm preview use .data/commerce.sqlite without credentials.
+# TURSO_DATABASE_URL=libsql://your-dev-database.turso.io
+# TURSO_AUTH_TOKEN=
 # Production: set DEMO_MODE=false and set unique staff passwords via wrangler secret put.
 # STAFF_OWNER_PASSWORD=choose-a-unique-long-password
 # STAFF_OPERATIONS_PASSWORD=choose-another-long-password
 # STAFF_VIEWER_PASSWORD=choose-a-third-long-password
 # MIDTRANS_SERVER_KEY=
 # MIDTRANS_ENVIRONMENT=sandbox
-# DATABASE_PROVIDER=d1
+# DATABASE_PROVIDER=turso
 # DATABASE_URL=
 # TURSO_DATABASE_URL=
 # TURSO_AUTH_TOKEN=
@@ -17,3 +21,6 @@ DEMO_MODE=true
 # S3_SECRET_ACCESS_KEY=
 # S3_REGION=auto
 # UPLOADTHING_TOKEN=
+
+# RESEND_API_KEY=
+# MEMBER_EMAIL_FROM=Halo Toko <member@domain-toko.com>

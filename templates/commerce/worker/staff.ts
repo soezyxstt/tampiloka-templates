@@ -1,5 +1,5 @@
 import type { Coupon, Product, StaffSnapshot, StoreConfig } from '../src/shared/contracts.ts';
-import type { D1Statement, Env, Row, Session } from './types.ts';
+import type { SqlStatement, Env, Row, Session } from './types.ts';
 import { all, auditStatement, configFor, couponFrom, ordersFrom, productsFor, q, reviewsFor, wishlistFor } from './db.ts';
 import { capabilities, fail, featureKeys, id, integer, now, requireFeature, staff, text, validateModules } from './security.ts';
 
@@ -11,7 +11,7 @@ export async function snapshot(env:Env,session:Session):Promise<StaffSnapshot> {
     cap.inventory?all(env,'SELECT m.*,v.name AS variant_name,p.name AS product_name FROM inventory_movements m JOIN variants v ON v.scope=m.scope AND v.id=m.variant_id JOIN products p ON p.scope=v.scope AND p.id=v.product_id WHERE m.scope=? ORDER BY m.created_at DESC,m.rowid DESC LIMIT 250',session.scope):Promise.resolve([]),
     all(env,'SELECT * FROM audit_events WHERE scope=? ORDER BY created_at DESC,rowid DESC LIMIT 250',session.scope),
     cap.orders?q(env,"SELECT COUNT(*) AS orders,COALESCE(SUM(CASE WHEN status NOT IN ('completed','cancelled') THEN 1 ELSE 0 END),0) AS pending,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) AS revenue,COALESCE(AVG(CASE WHEN payment_status='paid' THEN total END),0) AS average,COALESCE(SUM(CASE WHEN payment_status='refunded' THEN total ELSE 0 END),0) AS refunded,COUNT(DISTINCT json_extract(customer_json,'$.phone')) AS customers FROM orders WHERE scope=?",session.scope).first<Row>():Promise.resolve(null),
-    cap.orders?all(env,"SELECT MAX(customer_json) AS customer_json,COUNT(*) AS order_count,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) AS total_spent,MAX(created_at) AS last_order_at FROM orders WHERE scope=? GROUP BY json_extract(customer_json,'$.phone') ORDER BY last_order_at DESC",session.scope):Promise.resolve([]),
+    cap.orders?all(env,"SELECT (SELECT latest.customer_json FROM orders latest WHERE latest.scope=grouped.scope AND COALESCE(json_extract(latest.customer_json,'$.phone'),'')=grouped.phone ORDER BY latest.created_at DESC,latest.id DESC LIMIT 1) AS customer_json,grouped.order_count,grouped.total_spent,grouped.last_order_at FROM (SELECT scope,COALESCE(json_extract(customer_json,'$.phone'),'') AS phone,COUNT(*) AS order_count,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) AS total_spent,MAX(created_at) AS last_order_at FROM orders WHERE scope=? GROUP BY scope,COALESCE(json_extract(customer_json,'$.phone'),'')) grouped ORDER BY grouped.last_order_at DESC",session.scope):Promise.resolve([]),
   ]);
   const orders=await ordersFrom(env,rows);
   const customers=customerRows.map(r=>({...JSON.parse(r.customer_json),orderCount:r.order_count,totalSpent:r.total_spent,lastOrderAt:r.last_order_at}));
@@ -52,7 +52,7 @@ export async function saveProduct(env:Env,session:Session,productId:string|null,
   const compareAt=candidate.compareAtPrice==null?null:integer(candidate.compareAtPrice,'Harga pembanding',price,100_000_000);
   const variants=candidate.variants||[{id:`${pid}-default`,name:'Standar',sku:pid.toUpperCase(),price,stock:0,options:{}}];
   if(!Array.isArray(variants)||variants.length<1||variants.length>30) fail(422,'INVALID_VARIANTS','Gunakan 1 hingga 30 varian.');
-  const ids=new Set<string>(); const stmts:D1Statement[]=[];
+  const ids=new Set<string>(); const stmts:SqlStatement[]=[];
   const normalized=variants.map((v:Row)=>{
     const vid=text(v.id||`${pid}-${id().slice(0,6)}`,'ID varian',100,true);if(!/^[a-z0-9][a-z0-9_-]{0,99}$/.test(vid)||ids.has(vid)) fail(422,'INVALID_VARIANT','ID varian tidak valid atau berulang.');ids.add(vid);
     const old=existing?.variants.find(x=>x.id===vid); const stock=integer(v.stock??old?.stock??0,'Stok',0,1_000_000);

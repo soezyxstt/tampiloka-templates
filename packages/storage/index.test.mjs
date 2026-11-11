@@ -8,7 +8,8 @@ test('placeholder conversion leaves literals, comments and dollar quotes alone',
   assert.throws(() => postgresParameters("select 'unterminated"));
 });
 test('D1 binding passes through and unknown providers fail closed', () => {
-  const db = {}; assert.equal(resolveDatabase({ DB: db }), db);
+  const db = {}; assert.equal(resolveDatabase({ DATABASE_PROVIDER: 'd1', DB: db }), db);
+  assert.throws(() => resolveDatabase({ DB: db }), /Turso database credentials/);
   assert.throws(() => resolveDatabase({ DATABASE_PROVIDER: 'other' }));
   assert.throws(() => resolveObjectStorage({ OBJECT_STORAGE_PROVIDER: 'other' }));
 });
@@ -16,10 +17,10 @@ test('D1 REST batch sends bound values and reports errors', async () => {
   const original = globalThis.fetch; let request;
   globalThis.fetch = async (url, init) => { request = JSON.parse(init.body); return Response.json({ success: true, result: [{success: true, results: [{id: 4}], meta: {changes: 1}}] }); };
   try {
-    const db = resolveDatabase({CLOUDFLARE_ACCOUNT_ID:'a', CLOUDFLARE_DATABASE_ID:'b', CLOUDFLARE_API_TOKEN:'c'});
+    const db = resolveDatabase({DATABASE_PROVIDER:'d1',CLOUDFLARE_ACCOUNT_ID:'a', CLOUDFLARE_DATABASE_ID:'b', CLOUDFLARE_API_TOKEN:'c'});
     assert.equal(await db.prepare('select ? as id').bind(4).first('id'), 4);
     assert.deepEqual(request.batch, [{sql:'select ? as id', params:[4]}]);
-    await assert.rejects(db.batch([resolveDatabase({DB:{}})]));
+    await assert.rejects(db.batch([resolveDatabase({DATABASE_PROVIDER:'d1',DB:{}})]));
     globalThis.fetch = async () => Response.json({success:false, errors:[{message:'failed'}]}, {status:400});
     await assert.rejects(db.prepare('select 1').run(), /D1 query failed/);
   } finally { globalThis.fetch = original; }

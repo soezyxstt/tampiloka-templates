@@ -334,31 +334,34 @@ async function route(request: Request, env: Env, s: Session, url: URL) {
     });
   return fail(404, "NOT_FOUND", "API route not found.");
 }
+type Bindings = Omit<Env, "DB"> & { DB?: Env["DB"] };
+
+export const assetHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+};
+
+async function serveAssets(request: Request, env: Pick<Env, "ASSETS">) {
+  if (!env.ASSETS)
+    return new Response(
+      "Booking API: start the frontend to open the website.",
+      { status: 404 },
+    );
+  const source = await env.ASSETS.fetch(request),
+    response = new Response(source.body, source);
+  for (const [name, value] of Object.entries(assetHeaders)) response.headers.set(name, value);
+  return response;
+}
 export async function handleRequest(
   request: Request,
   env: Env,
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (!url.pathname.startsWith("/api/")) {
-    if (!env.ASSETS)
-      return new Response(
-        "Booking API: start the frontend to open the website.",
-        { status: 404 },
-      );
-    const source = await env.ASSETS.fetch(request),
-      response = new Response(source.body, source);
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "no-referrer");
-    response.headers.set(
-      "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
-    );
-    return response;
-  }
+  if (!url.pathname.startsWith("/api/")) return serveAssets(request, env);
   const requestId = uid();
   let s: Session | undefined;
   try {
-    env = { ...env, DB: resolveDatabase(env) as Env["DB"] };
     if (url.pathname === "/api/health" && request.method === "GET") {
       // Check the tables and columns needed to create a fresh demo session.
       // A scopes-only probe can succeed even when the deployment is incomplete.
@@ -414,7 +417,6 @@ export async function handleRequest(
   }
 }
 export async function cleanup(env: Env) {
-  env = { ...env, DB: resolveDatabase(env) as Env["DB"] };
   await expire(env);
   if (env.DEMO_MODE !== "true" && env.MIDTRANS_SERVER_KEY) {
     const pending = await all<PaymentRow>(
@@ -440,8 +442,14 @@ export async function cleanup(env: Env) {
   ]);
 }
 export default {
-  fetch: handleRequest,
-  async scheduled(_controller: unknown, env: Env) {
-    await cleanup(env);
+  fetch(request: Request, bindings: Bindings) {
+    if (!new URL(request.url).pathname.startsWith("/api/")) return serveAssets(request, bindings);
+    let db: Env["DB"];
+    try { db = resolveDatabase(bindings) as Env["DB"]; }
+    catch { return json({error: {code: "DATABASE_NOT_CONFIGURED", message: "Configure the selected database."}}, 503); }
+    return handleRequest(request, { ...bindings, DB: db });
+  },
+  async scheduled(_controller: unknown, bindings: Bindings) {
+    await cleanup({ ...bindings, DB: resolveDatabase(bindings) as Env["DB"] });
   },
 };
