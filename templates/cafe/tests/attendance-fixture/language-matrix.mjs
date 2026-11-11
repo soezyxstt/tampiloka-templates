@@ -23,7 +23,7 @@ async function setup(o = {}) {
   const req = route.request(), url = new URL(req.url()), resource = url.searchParams.get('resource');
   const send = (status, body) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   if (resource === 'capabilities') return send(200, { tenantId: 'tenant', outletId: 'outlet', employee: !o.supervisor, supervisor: !!o.supervisor, capabilities: { capture: !o.supervisor, review: !!o.supervisor } });
-  if (resource === 'status') { if (o.stallStatus && url.searchParams.has('idempotencyKey')) { o.stallStatus.arrive(); await o.stallStatus.wait; } return send(200, { capabilities: { capture: true, review: false }, current: null, operation: null }); }
+  if (resource === 'status') { if (o.stallStatus && url.searchParams.has('idempotencyKey')) { o.stallStatus.arrive(); await o.stallStatus.wait; } return send(200, { capabilities: { capture: true, review: false }, current: null, operation: null, pendingOwned: true }); }
   if (resource === 'history' || resource === 'review') return o.review403 ? send(403, { error: 'FORBIDDEN' }) : send(200, { events: o.supervisor ? [event] : [], nextCursor: null });
   if (resource === 'evidence' && req.method() === 'GET') return send(403, { error: 'FORBIDDEN' });
   if (resource === 'evidence') { if (o.stallUpload) { o.stallUpload.arrive(); await o.stallUpload.wait; } return o.uploadFailure ? send(422, { error: 'INVALID_IMAGE' }) : send(200, { evidenceKey: 'mock-evidence' }); }

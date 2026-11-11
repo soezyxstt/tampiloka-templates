@@ -68,7 +68,15 @@ try {
  await page.getByText(/The result is unknown/).waitFor(); const pending = await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')); assert.ok(pending);
  await page.evaluate(() => fetch('/fixture/expire', { method: 'POST' }));
  assert.equal(await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')), pending);
- await page.reload(); await page.getByRole('button', { name: 'Recover previous attempt' }).click(); await page.getByText('Attendance saved.').waitFor();
+ await context.addCookies([{ name: 'fixture', value: cookie('other'), url: 'http://127.0.0.1:4189' }]); await page.reload();
+ await page.getByText('The saved attempt cannot be verified for this session. Contact your administrator.').waitFor();
+ assert.equal(await page.getByRole('button', { name: 'Recover previous attempt' }).count(), 0); assert.equal(await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')), pending);
+ await context.addCookies([{ name: 'fixture', value: cookie('lost'), url: 'http://127.0.0.1:4189' }]);
+ await page.evaluate(() => fetch('/fixture/biometric-on', { method: 'POST' }));
+ await page.reload(); await page.getByText('Attendance capture is unavailable for this session.').waitFor();
+ assert.equal(await page.getByRole('button', { name: 'Open camera' }).count(), 0); assert.equal(await page.getByRole('button', { name: /Submit check-(in|out)/ }).count(), 0);
+ await page.getByRole('button', { name: 'Recover previous attempt' }).click(); await page.getByText('Attendance saved.').waitFor();
+ await page.evaluate(() => fetch('/fixture/biometric-off', { method: 'POST' }));
  await page.waitForFunction(() => document.querySelectorAll('article').length === 3);
  await page.evaluate(() => fetch('/fixture/unexpire', { method: 'POST' }));
  const count = await page.evaluate(async () => (await (await fetch('/api/attendance?resource=history&outletId=canonical-outlet')).json()).events.length); assert.equal(count, 3); assert.equal(await page.evaluate(() => sessionStorage.getItem('attendance-pending:canonical-outlet')), null);

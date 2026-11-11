@@ -10,7 +10,7 @@ export function AttendanceLink({ tenant, outlet }: { tenant: string; outlet: str
   useEffect(() => {
     const controller = new AbortController();
     const query = new URLSearchParams({ resource: 'capabilities', tenantSlug: tenant, outletSlug: outlet });
-    void fetch(`/api/attendance?${query}`, { cache: 'no-store', signal: controller.signal }).then(async response => response.ok ? response.json() : null).then(data => setAllowed(typeof data?.outletId === 'string' && !!data.outletId && ((data.employee === true && data.capabilities?.capture === true) || (data.supervisor === true && data.capabilities?.review === true)))).catch(() => {});
+    void fetch(`/api/attendance?${query}`, { cache: 'no-store', signal: controller.signal }).then(async response => response.ok ? response.json() : null).then(data => setAllowed(typeof data?.outletId === 'string' && !!data.outletId && ((data.employee === true) || (data.supervisor === true && data.capabilities?.review === true)))).catch(() => {});
     return () => controller.abort();
   }, [tenant, outlet]);
   if (!allowed) return null;

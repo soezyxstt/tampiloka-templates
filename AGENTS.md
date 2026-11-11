@@ -244,6 +244,8 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 
 ## Change log
 
+- **2026-11-11**: Cafe attendance retains recovery access when a policy disables new capture.
+
 - **2026-11-11**: Added opt-in Cafe attendance with private evidence, supervisor review and safe submission recovery.
 
 - **2026-11-11**: Added independent CLI database/object-storage selection, shared provider adapters, standalone packaging and provider-specific backend checks.

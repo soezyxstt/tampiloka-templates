@@ -44,6 +44,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
   const [camera, setCamera] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingBlocked, setPendingBlocked] = useState(true);
   const [pending, setPending] = useState<Pending | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -63,9 +64,24 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
     data.capabilities.capture = data.capabilities.capture && captureAllowed; data.capabilities.review = data.capabilities.review && review; setStatus(data); return data;
   }, [endpoint, captureAllowed, review]);
   useEffect(() => {
-    try { const saved = sessionStorage.getItem(`attendance-pending:${outletId}`); if (saved) setPending(JSON.parse(saved) as Pending); } catch { /* Storage may be unavailable. */ }
-    void refresh().catch(() => setMessage('unavailable'));
-  }, [refresh, outletId]);
+    let active = true;
+    setPending(null); setPendingBlocked(true);
+    void (async () => {
+      try {
+        const saved = sessionStorage.getItem(`attendance-pending:${outletId}`);
+        if (saved) {
+          const command = JSON.parse(saved) as Pending;
+          if (command.outletId !== outletId || typeof command.evidenceKey !== 'string') throw new Error('pending');
+          const response = await fetch(endpoint('status', `&${new URLSearchParams({ pendingEvidenceKey: command.evidenceKey })}`), { cache: 'no-store' });
+          if (!response.ok || (await response.json()).pendingOwned !== true) throw new Error('pending');
+          if (active) setPending(command);
+        }
+        if (active) setPendingBlocked(false);
+      } catch { if (active) setMessage('pending-unavailable'); }
+    })();
+    void refresh().catch(() => { if (active) setMessage('unavailable'); });
+    return () => { active = false; };
+  }, [refresh, outletId, endpoint]);
   function savePending(value: Pending | null) {
     setPending(value);
     try { if (value) sessionStorage.setItem(`attendance-pending:${outletId}`, JSON.stringify(value)); else sessionStorage.removeItem(`attendance-pending:${outletId}`); } catch { /* The open page still retains the operation. */ }
@@ -146,6 +162,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
     } catch { setMessage('finalize-unknown'); } finally { setBusy(false); }
   }
   const messages: Record<string, [string, string]> = {
+    'pending-unavailable': ['Percobaan tersimpan tidak dapat diverifikasi untuk sesi ini. Hubungi pengelola.', 'The saved attempt cannot be verified for this session. Contact your administrator.'],
     unavailable: ['Absensi belum tersedia. Hubungi pengelola untuk mengatur autentikasi dan kebijakan server.', 'Attendance is unavailable. Ask your administrator to configure server authentication and policy.'],
     'camera-unavailable': ['Kamera tidak tersedia. Gunakan koneksi aman dan periksa perangkat.', 'Camera unavailable. Use a secure connection and check your device.'],
     'camera-denied': ['Izin kamera ditolak. Aktifkan izin kamera lalu coba lagi.', 'Camera permission denied. Enable camera permission and try again.'],
@@ -172,7 +189,7 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
     {message && <p role="status" className={styles.notice}>{t(error[0], error[1])}</p>}
     {!status && !message && <p>{t('Memuat status…', 'Loading status…')}</p>}
     {status && !status.capabilities.capture && <p>{t('Pencatatan absensi tidak tersedia untuk sesi ini.', 'Attendance capture is unavailable for this session.')}</p>}
-    {status?.capabilities.capture && <section className={styles.panel}>
+    {status?.capabilities.capture && !pendingBlocked && <section className={styles.panel}>
       <h2>{t('Status saat ini', 'Current status')}</h2>
       <p>{status.current ? `${status.current.kind === 'IN' ? t('Sudah masuk', 'Checked in') : t('Sudah pulang', 'Checked out')} · ${new Date(status.current.occurredAt).toLocaleString()}` : t('Belum ada catatan', 'No attendance recorded')}</p>
       {!pending && <>
@@ -183,9 +200,9 @@ function AttendanceEmployee({ outletId, review, captureAllowed }: { outletId: st
         {preview && <img className={styles.media} src={preview} alt={t('Pratinjau foto absensi', 'Attendance photo preview')} />}
       </>}
       <Button onClick={submit} disabled={busy || (!pending && (!photo || !location))}>{busy ? t('Memproses…', 'Processing…') : pending ? t('Periksa dan coba lagi', 'Check and retry') : status.current?.kind === 'IN' ? t('Kirim absensi pulang', 'Submit check-out') : t('Kirim absensi masuk', 'Submit check-in')}</Button>
-      {pending && <Button variant="secondary" onClick={finalize} disabled={busy}>{t('Pulihkan percobaan sebelumnya', 'Recover previous attempt')}</Button>}
       {!pending && (!photo || !location) && <p>{t('Ambil lokasi dan foto sebelum mengirim.', 'Capture your location and photo before submitting.')}</p>}
     </section>}
+    {status && pending && !pendingBlocked && <section className={styles.panel}><Button variant="secondary" onClick={finalize} disabled={busy}>{t('Pulihkan percobaan sebelumnya', 'Recover previous attempt')}</Button></section>}
     {status && <AttendanceHistory key={historyRevision} outletId={outletId} review={status.capabilities.review} />}
   </main>;
 }

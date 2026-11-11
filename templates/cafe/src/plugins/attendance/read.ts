@@ -26,8 +26,11 @@ export async function readAttendance(request: Request, deps: { database: Databas
     if (key !== null && !/^[A-Za-z0-9_-]{16,128}$/.test(key)) return json({ error: 'INVALID_REQUEST' }, 400);
     const [latest] = await database.select().from(attendanceEvents).where(scope).orderBy(desc(attendanceEvents.sequence)).limit(1);
     const [operation] = key ? await database.select().from(attendanceEvents).where(and(scope, eq(attendanceEvents.idempotencyKey, key))).limit(1) : [];
+    const evidenceKey = q.get('pendingEvidenceKey');
+    if (evidenceKey !== null && !/^[A-Za-z0-9_-]{1,128}$/.test(evidenceKey)) return json({ error: 'INVALID_REQUEST' }, 400);
+    const [pendingEvidence] = evidenceKey ? await database.select({ id: attendanceEvidence.id }).from(attendanceEvidence).where(and(eq(attendanceEvidence.id, evidenceKey), eq(attendanceEvidence.tenantId, principal.tenantId), eq(attendanceEvidence.outletId, outlet), eq(attendanceEvidence.staffId, principal.staffId))).limit(1) : [];
     const now = new Date();
-    return json({ serverTime: now.toISOString(), businessDate: businessDate(now, policy.timezone, policy.businessCutoff), policy: { timezone: policy.timezone, businessCutoff: policy.businessCutoff, maxAccuracyMeters: policy.maxAccuracyMeters, maxLocationAgeMs: policy.maxLocationAgeMs, requireFace: policy.requireFace, requireLiveness: policy.requireLiveness }, capabilities: { capture: employee && (!(policy.requireFace || policy.requireLiveness) || deps.biometricAvailable), review: supervisor }, current: latest ? await render(latest) : null, operation: operation ? await render(operation) : null });
+    return json({ pendingOwned: evidenceKey ? !!pendingEvidence : undefined, serverTime: now.toISOString(), businessDate: businessDate(now, policy.timezone, policy.businessCutoff), policy: { timezone: policy.timezone, businessCutoff: policy.businessCutoff, maxAccuracyMeters: policy.maxAccuracyMeters, maxLocationAgeMs: policy.maxLocationAgeMs, requireFace: policy.requireFace, requireLiveness: policy.requireLiveness }, capabilities: { capture: employee && (!(policy.requireFace || policy.requireLiveness) || deps.biometricAvailable), review: supervisor }, current: latest ? await render(latest) : null, operation: operation ? await render(operation) : null });
   }
   const rawLimit = q.get('limit') ?? '20'; if (!/^(?:[1-9]|[1-4][0-9]|50)$/.test(rawLimit)) return json({ error: 'INVALID_REQUEST' }, 400);
   let cursor: { time: string; id: string } | undefined;
