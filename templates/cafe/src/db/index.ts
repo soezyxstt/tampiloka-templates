@@ -40,6 +40,7 @@ function getDemoDatabase() {
 }
 
 const provider = process.env.DATABASE_PROVIDER || 'postgresql';
+export const selectedDatabaseProvider = usingDemoDatabase ? 'pglite' : provider;
 if (!['postgresql', 'turso', 'd1'].includes(provider)) throw new Error(`Unknown DATABASE_PROVIDER: ${provider}`);
 export const pool = usingDemoDatabase || provider !== 'postgresql' ? undefined : createPool();
 

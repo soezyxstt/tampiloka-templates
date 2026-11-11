@@ -1,0 +1,11 @@
+.page { max-width: 48rem; margin: 0 auto; padding: 1.5rem 1rem 5rem; display: grid; gap: 1rem; }
+.page h1 { font-size: 1.75rem; font-weight: 700; }
+.page h2 { font-size: 1.25rem; font-weight: 700; }
+.panel { display: grid; gap: 1rem; padding: var(--card-padding); border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--surface); }
+.notice { padding: 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-control); }
+.media { display: block; width: 100%; max-width: 30rem; max-height: 24rem; object-fit: contain; border-radius: var(--radius-image); }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.record { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-control); overflow-wrap: anywhere; }
+.record label { display: grid; gap: 0.25rem; }
+
+.dialog { max-width: 36rem; padding: var(--card-padding); gap: 1rem; overflow-y: auto; }

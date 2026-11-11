@@ -865,3 +865,6 @@ export const outboxEvents = pgTable('outbox_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   processedAt: timestamp('processed_at', { withTimezone: true }),
 });
+
+// Optional attendance plugin tables; no existing transaction tables are changed.
+export { attendanceEvents, attendanceCorrections, attendanceLocks, attendanceEvidence } from '../plugins/attendance/schema.ts';

@@ -14,7 +14,7 @@
     "test:config": "node --test scripts/cafe-config.test.mjs",
     "test:media": "node --test src/media/media.test.mjs src/db/provider.test.mjs",
     "test:domain": "node --experimental-strip-types --test src/domain/rules.test.ts src/domain/capabilities.test.ts src/domain/order-billing.test.ts lib/reporting.test.ts",
-    "test": "npm run test:config && npm run test:media && npm run test:catalog && npm run test:domain && npm run test:integration && npm run test:ui-contracts && npm run test:sqlite",
+    "test": "npm run test:config && npm run test:media && npm run test:catalog && npm run test:domain && npm run test:attendance && npm run test:integration && npm run test:ui-contracts && npm run test:sqlite",
     "test:integration": "node --experimental-strip-types --test --test-concurrency=1 src/db/service.integration.test.ts src/db/service.lifecycle.test.ts",
     "test:presets": "node tests/preset-integration.mjs",
     "test:browser": "node tests/browser-workflows.mjs",
@@ -33,7 +33,9 @@
     "test:ui-contracts": "node --test tests/ui-contracts.test.mjs",
     "db:migrate:sqlite": "node --experimental-strip-types scripts/migrate-sqlite.ts",
     "test:sqlite": "node --experimental-strip-types --test src/db/sqlite.test.mjs",
-    "db:seed:sqlite": "node --experimental-strip-types scripts/seed-client-sqlite.ts"
+    "db:seed:sqlite": "node --experimental-strip-types scripts/seed-client-sqlite.ts",
+    "test:attendance:browser": "node tests/attendance-fixture/run.mjs",
+    "test:attendance": "node --experimental-strip-types --test --test-concurrency=1 src/plugins/attendance/*.test.ts src/plugins/attendance/storage/*.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.3.16",
@@ -61,6 +63,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "sharp": "0.35.5",
     "sonner": "2.0.7",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.6.7"
