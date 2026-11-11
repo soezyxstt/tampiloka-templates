@@ -9,6 +9,7 @@ Instructions for AI agents and contributors working in this monorepo. Read this 
 | `templates/cafe` | Next.js cafe ordering + staff/POS template. Tailwind v4, Radix, `motion`. |
 | `templates/commerce` | Vite + Cloudflare Worker storefront and staff workspace. Plain CSS + shadcn (Radix) wrappers. |
 | `templates/school` | React/Vite + Worker/D1 education, admissions and learning workspace. |
+| `templates/operations` | Planned multilocation operations template; verification is pending. |
 | `templates/dashboard` | Planned; not offered by the CLI. |
 | `templates/booking` | Vite + Worker/D1 appointment site and staff workspace. Shared UI, Radix Select, domain adapters and independent feature/layout/palette choices. |
 | `packages/theme-engine` | Commerce palettes (`sand`, `ink`, `forest`), layouts, `brandVariables()`. |
@@ -48,6 +49,7 @@ When onboarding a family:
   - cafe: the `:root` block in `templates/cafe/app/globals.css`, demo chrome tokens at the top of `demos/components/demo-portal.css` / `demos/showcase.css`, and `src/config/catalog.mjs` (default brand color).
   - commerce: the `:root` token block at the top of `templates/commerce/src/styles/base.css`.
   - school: semantic definitions in `templates/school/src/styles/school.css`; see `templates/school/docs/design.md`.
+  - operations: semantic definitions in `templates/operations/src/styles/tokens.css`; see `templates/operations/docs/design.md`.
   - booking: semantic definitions in `templates/booking/src/styles/tokens.css`; see `templates/booking/docs/design.md` for palettes, compositions and staff overrides.
   - packages: `packages/theme-engine/src/index.mjs` **and** `styles.css` (keep the two in sync); shared demo chrome tokens in `packages/ui-core/src/demo.css`.
 - `var(--token, #fallback)` fallbacks are fine; pure `#fff`/`#000` are allowed only as ink on a solid fill.
@@ -179,7 +181,7 @@ These rules apply to **every current and future public template demo**, includin
 
 1. Use `DemoToolbarShell` from `@tampiloka/ui-core/demo` and the shared `@tampiloka/ui-core/demo.css`. Keep its brand link, control group, view navigation, selected states, focus treatment, and responsive order shared. Extend this primitive for a missing capability rather than copy its markup into another template.
    Import `demo.css` after the app styles. Use the shared `--demo-control-height`, `--demo-control-radius`, `--demo-option-radius`, and `--demo-gap` tokens; chrome colors use `--demo-chrome-*` / `--demo-panel-*`. Select accessible names are `Tema demo` / `Demo theme` and `Mode demo` / `Demo mode`. Reserve `--demo-height` for the measured toolbar offset.
-2. Put **theme and mode selectors at the top of the running demo**. A visitor must be able to change either immediately. A grid of mode cards farther down a portal is not the primary mode switch. The default demo entry opens a working preview.
+2. Put **theme and mode selectors at the top of the running demo**. A visitor must be able to change either immediately. For a compact staff demo, an explicit top-row settings disclosure may reveal both selectors and role navigation in one activation. A grid of mode cards farther down a portal is not the primary mode switch. The default demo entry opens a working preview.
 3. Keep theme/style and feature mode independent. A theme changes presentation; a mode changes enabled features. Do not silently change the chosen mode when changing the theme, or the theme when changing the mode.
 4. Keep customer/staff or equivalent role navigation in the same toolbar. Show the current view with text and a selected state. Only offer views supported by the active mode; switching to a staff-only mode must select a valid view. In-app links that switch views must also update the toolbar state.
 5. Link the Tampiloka brand back to the shared `/templates` gallery, using `/en/templates` for English. Use the verified brand artwork and preserve its proportions and surface-appropriate variant. Template brand colors and layout may vary; the exploration controls must remain recognizable as Tampiloka.
@@ -243,6 +245,26 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 ## Change log
 
 - **2026-11-11**: Added independent CLI database/object-storage selection, shared provider adapters, standalone packaging and provider-specific backend checks.
+
+- **2026-11-10**: Operations menyatukan konteks/status halaman, menempatkan tindakan di header tabel, melipat filter audit dan draf kasir, serta merapatkan lokasi/navigasi ponsel.
+
+- **2026-11-10**: Operations memakai navbar demo satu baris yang tertutup secara default; pengaturan tema, mode, dan peran dibuka lewat Radix Collapsible pada shell bersama.
+
+- **2026-11-10**: Operations merapikan bahasa kerja ID/EN, memusatkan tindakan dalam dialog bersama, dan membuka rincian lewat Radix Collapsible; toolbar bersama mendukung tombol berlabel dan baris peran yang membungkus.
+
+- **2026-11-10**: Browser checks fix Operations integer quantity validation and cashier JSX; shared demo toolbars with five or more views wrap role navigation on a separate row up to 1200px.
+
+- **2026-11-10**: Operations menampilkan pratinjau hak efektif akun memakai aturan domain dan mengunci ID akun yang sudah ada saat mengedit.
+
+- **2026-11-10**: Operations audit mendukung filter tanggal pencatatan UTC dan membuka catatan lebih lama melalui kontrol bersama berlabel ID/EN.
+
+- **2026-11-10**: Operations menambahkan status backup terjadwal khusus pengelola dengan ID/EN dan panduan pemulihan; client hasil generator memulai tanpa binding backup atau cron sumber.
+
+- **2026-11-10**: Operations adds an owner-only bilingual scheduled-backup status panel with explicit verification and recovery limits.
+
+- **2026-11-10**: Added planned Operations scaffolding, configuration contract and unverified requirements mapping.
+
+- **2026-11-10**: Cafe views recheck after subscribing and retain cross-tab refreshes during commands; same-origin preset data remains shared across roles and themes.
 
 - **2026-11-10**: Cafe copy removes redundant guidance and demo commentary from operational screens; only actionable blockers, costs and essential financial scope remain.
 

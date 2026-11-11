@@ -71,6 +71,7 @@
 .tl-demo-views > :hover, .tl-demo-actions > button:hover { background: var(--demo-chrome-hover); color: var(--demo-chrome-fg); }
 .tl-demo-views > .is-selected, .tl-demo-views > .is-selected:hover { background: var(--demo-chrome-fg); color: var(--demo-chrome-bg); }
 .tl-demo-actions > button { width: 44px; min-width: 44px; padding: 10px; }
+.tl-demo-actions > button.tl-demo-action-label { width: auto; padding: 10px 12px; }
 .tl-demo-toolbar :is(a,button):focus-visible { outline: 2px solid var(--demo-chrome-fg); outline-offset: 3px; }
 .tl-demo-toolbar button:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -178,3 +179,39 @@
 @media(max-width:360px) {
   .tl-demo-views svg { display: none; }
 }
+/* Families with many roles need a separate wrapping row for view navigation. */
+@media(max-width:1600px) {
+  .tl-demo-toolbar:has(.tl-demo-views > :nth-child(5)) {
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: var(--demo-gap);
+  }
+  .tl-demo-toolbar:has(.tl-demo-views > :nth-child(5)) .tl-demo-controls {
+    grid-column: 1/-1;
+    grid-row: 2;
+    min-width: 0;
+    max-width: none;
+  }
+  .tl-demo-toolbar:has(.tl-demo-views > :nth-child(5)) .tl-demo-views {
+    grid-column: 1/-1;
+    grid-row: 3;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .tl-demo-toolbar:has(.tl-demo-views > :nth-child(5)) .tl-demo-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* Opt-in compact shell: one row closed, settings remain in the same toolbar. */
+.tl-demo-toolbar.tl-demo-collapsible { display:block; padding:8px 16px; }
+.tl-demo-compact-row { display:flex; align-items:center; justify-content:space-between; gap:var(--demo-gap); min-width:0; }
+.tl-demo-toggle { display:inline-flex; align-items:center; justify-content:center; gap:var(--demo-gap); min-height:var(--demo-control-height); padding:8px 12px; border:1px solid var(--demo-chrome-border); border-radius:var(--demo-control-radius); color:var(--demo-chrome-fg); background:transparent; font:inherit; cursor:pointer; }
+.tl-demo-toggle:hover { background:var(--demo-chrome-hover); }
+.tl-demo-toggle svg { display:block; flex-shrink:0; transition:transform .16s ease; }
+.tl-demo-toggle[data-state=open] svg { transform:rotate(180deg); }
+.tl-demo-settings { padding-top:var(--demo-gap); }
+.tl-demo-settings .tl-demo-controls { max-width:none; margin-bottom:var(--demo-gap); }
+.tl-demo-settings .tl-demo-views { flex-wrap:wrap; }
+.tl-demo-settings .tl-demo-actions { margin-top:var(--demo-gap); }
+@media(prefers-reduced-motion:reduce) { .tl-demo-toggle svg { transition:none; } }

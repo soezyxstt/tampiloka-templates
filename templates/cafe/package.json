@@ -25,7 +25,7 @@
     "demos:build": "vite build --config demos/vite.config.mts",
     "demos:preview": "vite preview --config demos/vite.config.mts",
     "demos:deploy": "npm run demos:build && wrangler pages deploy dist-demos --project-name tampiloka-cafe-demos",
-    "test:demo-runtime": "node --experimental-strip-types --test --test-concurrency=1 tests/browser-runtime-coordination.test.mjs tests/browser-runtime-order-notifications.test.mjs tests/browser-runtime-crypto.test.mjs tests/browser-runtime-schema.test.mjs tests/browser-runtime-durability.test.mjs tests/browser-runtime-scenarios.test.mjs",
+    "test:demo-runtime": "node --experimental-strip-types --test --test-concurrency=1 tests/browser-runtime-coordination.test.mjs tests/browser-runtime-scope.test.mjs tests/snapshot-refresh-gate.test.mjs tests/browser-runtime-order-notifications.test.mjs tests/browser-runtime-crypto.test.mjs tests/browser-runtime-schema.test.mjs tests/browser-runtime-durability.test.mjs tests/browser-runtime-scenarios.test.mjs",
     "test:demo-browser": "node --experimental-strip-types tests/demos-browser.mjs",
     "test:language-browser": "node tests/language-browser.mjs",
     "test:demo-lifecycle": "node --experimental-strip-types tests/demos-lifecycle.mjs",

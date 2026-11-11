@@ -10,6 +10,7 @@ Demo template tersedia melalui tautan berikut.
 | `cafe` | `available` | Ada: [demo](https://cafe.tampiloka.site) |
 | `school` | `available` | Ada: [demo](https://school.tampiloka.site) |
 | `booking` | `available` | Ada: [demo](https://booking.tampiloka.site) |
+| `operations` | `planned` | Belum ada |
 | `dashboard` | `planned` | Belum ada |
 
 Status CLI berasal dari registry; entri katalog menunjukkan konfigurasi publikasi, bukan jaminan kesehatan demo yang sedang berjalan. Galeri publik ada di [tampiloka.site/templates](https://tampiloka.site/templates); sumber dan aturan publikasinya dijelaskan di [panduan katalog demo](docs/public-demo-catalog.md).
@@ -206,3 +207,5 @@ lifecycle SQLite/D1 Cafe. Typecheck keempat keluarga dan lint desain juga lulus.
 Build penuh, browser suite, transport provider hosted dan deployment tidak dijalankan
 dalam pekerjaan ini untuk membatasi penggunaan resource. Tes lokal tidak menggantikan
 verifikasi layanan dan deployment milik klien.
+
+Operations (`templates/operations`) is planned; its implementation is present, while standalone and runtime verification remain pending. See [Operations](templates/operations/README.md).

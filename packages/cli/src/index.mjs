@@ -1,4 +1,5 @@
 import {validateSchool,createSchool,doctorSchool} from './school.mjs';
+import {validateOperations,createOperations,doctorOperations} from './operations.mjs';
 import { readFile, writeFile, readdir, mkdir, lstat, realpath, rename, rm, rmdir, copyFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, basename, resolve, join, relative, sep } from 'node:path';
@@ -24,7 +25,8 @@ Usage:
 Pilihan create:
   --template <id>  cafe, commerce, school, atau booking
   --preset <id>    commerce: susunan; cafe: paket; booking: medical, aesthetic, detailing, consulting
-  --level <id>     commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
+  --level <id>     operations: inventory (stok saja), retail (stok + harga + kasir), full
+                  commerce: catalog, whatsapp, store, advanced; booking: catalog, whatsapp, booking, full
   --modules catalog Cafe: menu publik hanya-baca tanpa database
   --features <ids> commerce: promotions,taxes,service-fees,customer-accounts,loyalty-points,membership-tiers; none atau all
   --layout <id>    commerce: editorial, market, atelier, compact; booking: appointment-first, editorial, service-market, minimal-professional
@@ -116,6 +118,9 @@ async function interactive(options, registry) {
       if(!result.card)result.card=await choose('Kartu produk',[['open','Tanpa bingkai'],['framed','Garis tepi'],['soft','Permukaan lembut']],template.presets[result.preset].card);
       if(!result.button)result.button=await choose('Tombol utama',[['solid','Warna isi'],['outline','Garis tepi']],template.presets[result.preset].button);
       if(!result.features)result.features=(await prompt.question('Modul tambahan (pisahkan koma; Enter memakai bawaan level): ')).trim()||undefined;
+    } else if(template.id==='operations'){
+      if(!result.level)result.level=await choose('Tingkatan Operations',Object.entries(template.levels).map(([id,item])=>[id,item.description]),template.defaultLevel);
+      if(!result.theme)result.theme=await choose('Tema Operations',[['sand','Netral hangat'],['forest','Hijau'],['ink','Monokrom']],'sand');
     } else if(template.id==='school'){
       if(!result.level)result.level=await choose('Level school',Object.entries(registry.schoolLevels).map(([id,v])=>[id,v.description]),'profile');
       if(!result.layout)result.layout=await choose('Layout school',registry.schoolLayouts.map(id=>[id,id]),template.presets[result.preset].layout);
@@ -129,7 +134,7 @@ async function interactive(options, registry) {
     if(!result.database)result.database=await choose('Database',[['turso','Turso SQLite'],['d1','Cloudflare D1'],['postgresql','PostgreSQL']],template.id==='cafe'?'postgresql':'d1');
     if(!result['object-storage'])result['object-storage']=await choose('Penyimpanan objek',[['s3','S3-compatible'],['uploadthing','UploadThing']],'s3');
     if(!result.name)result.name=(await prompt.question('Nama brand (Enter memakai nama proyek): ')).trim()||undefined;
-    if(!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
+    if(template.id!=='operations'&&!result.phone)result.phone=(await prompt.question('WhatsApp bisnis 628... (boleh kosong): ')).trim()||undefined;
     return result;
   } finally {prompt.close();}
 }
@@ -304,6 +309,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
     if(options.card)assertChoice(options.card,['open','framed','soft'],'Kartu');
     if(options.button)assertChoice(options.button,['solid','outline'],'Tombol');
     if(options.color)throw new Error('--color hanya untuk cafe. Untuk commerce ubah token brand di config dan CSS proyek.');
+  } else if(template.id==='operations'){validateOperations(options);
   } else if(template.id==='school'){validateSchool(options,registry);
   } else if(template.id==='booking'){
     options.level=options.level||template.defaultLevel;assertChoice(options.level,Object.keys(registry.bookingLevels),'Level');
@@ -333,7 +339,8 @@ export async function createProject(target,initial,sourceRoot,registry) {
       const run=spawnSync(process.execPath,args,{encoding:'utf8'});
       if(run.error)throw run.error;
       if(run.status!==0)throw new Error(run.stderr.trim()||'Pembuatan cafe gagal.');
-    }else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
+    }else if(template.id==='operations')await createOperations(sourceRoot,temp,target,options,template,copyTree,normalizeDependencies);
+    else if(template.id==='school')await createSchool(sourceRoot,temp,target,options,template,registry,copyTree,normalizeDependencies);
     else if(template.id==='booking')await createBooking(sourceRoot,temp,target,options,template);
     else await createCommerce(sourceRoot,temp,target,options,template);
     await configureStorage(temp,template.id,options);
@@ -344,7 +351,7 @@ export async function createProject(target,initial,sourceRoot,registry) {
     reservedDestination=false;
   }catch(error){await rm(temp,{recursive:true,force:true});if(reservedDestination)await rmdir(destination).catch(()=>{});throw error;}
   const shellDestination = "'" + destination.replaceAll("'", "'\"'\"'") + "'";
-  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?`npm ci\n  npm run ${options.modules?'dev':'demo'}`:template.id==='school'?'pnpm install\n  pnpm demo':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
+  emit(options,result,`Proyek siap: ${destination}\nTemplate: ${template.id} · Preset: ${options.preset}${options.level?` · Level: ${options.level}`:''}\n\nBerikutnya:\n  cd ${shellDestination}\n  ${template.id==='cafe'?`npm ci\n  npm run ${options.modules?'dev':'demo'}`:template.id==='school'?'pnpm install\n  pnpm demo':template.id==='operations'?'pnpm install\n  pnpm dev':'pnpm install\n  cp .dev.vars.example .dev.vars\n  pnpm dev'}\n\nPeriksa: tampiloka doctor --dir ${shellDestination}\nPanduan klien ada di ${template.id==='cafe'?'docs/client-setup.md':'CLIENT_SETUP.md'}.`);
   return result;
 }
 
@@ -415,6 +422,7 @@ export async function doctor(options,sourceRoot,registry) {
     emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(child.status||!result.ok)process.exitCode=child.status||1;return result;
   }
   if(template.id==='school'){const result=await doctorSchool(directory,registry);result.checks.push(...checks);result.ok=result.ok&&checks.every(c=>c.status!=='fail');emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
+  if(template.id==='operations'){const result=await doctorOperations(directory);emit(options,result,result.checks.map(c=>`${c.status.toUpperCase()} ${c.name}: ${c.detail}`).join('\n'));if(!result.ok)process.exitCode=1;return result;}
   if(template.id==='booking'){
     const config=await json(join(directory,'config/booking.json')),pkg=await json(join(directory,'package.json')),wrangler=await json(join(directory,'wrangler.jsonc'));
     try{assertChoice(config.level,Object.keys(registry.bookingLevels),'Level');assertChoice(config.preset,Object.keys(registry.bookingPresets),'Preset');assertChoice(config.layout,registry.bookingLayouts,'Layout');assertChoice(config.palette,registry.bookingPalettes,'Palette');new Intl.DateTimeFormat('en',{timeZone:config.timezone});checks.push({name:'Konfigurasi booking',status:'pass',detail:`${config.preset} / ${config.level} / ${config.layout} / ${config.palette}`});}catch(e){checks.push({name:'Konfigurasi booking',status:'fail',detail:e.message});}

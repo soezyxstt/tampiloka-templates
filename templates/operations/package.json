@@ -1,0 +1,38 @@
+{
+  "name": "@tampiloka/template-operations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs --demo",
+    "dev:client": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && vite build --mode demo",
+    "typecheck": "tsc --noEmit",
+    "deploy": "pnpm build && wrangler deploy",
+    "deploy:demo": "pnpm build:demo && wrangler deploy --config wrangler.demo.jsonc",
+    "test": "node --max-old-space-size=64 --experimental-transform-types tests/run.mjs"
+  },
+  "dependencies": {
+    "@fontsource/manrope": "5.3.0",
+    "@radix-ui/react-collapsible": "1.2.1",
+    "@radix-ui/react-select": "2.4.1",
+    "@tampiloka/ui-core": "workspace:*",
+    "lucide-react": "0.553.0",
+    "motion": "12.43.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "wrangler": "4.154.0"
+  }
+}
