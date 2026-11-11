@@ -13,3 +13,11 @@ export async function localEnv(root, processEnv = process.env) {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   return { ...vars, ...processEnv };
 }
+
+export async function localObjectStorageProvider(root, vars, demo) {
+  if (demo) return undefined;
+  let selection = {};
+  try { selection = JSON.parse(await readFile(new URL('config/storage.json', root), 'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  return vars.OBJECT_STORAGE_PROVIDER || selection.objectStorage;
+}

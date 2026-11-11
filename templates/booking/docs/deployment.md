@@ -23,7 +23,7 @@ Scheduled cleanup runs every five minutes. It expires holds and sessions, reconc
 
 ## Public demonstration
 
-Use a dedicated Turso database for `wrangler.demo.jsonc`, which enables demo mode. The config pins the database URL. Store the database-scoped token in the GitHub Actions secret `TURSO_BOOKING_AUTH_TOKEN`. Run `pnpm db:migrate:remote` with the demo database credentials before deployment. The release workflow verifies the Turso schema before deploying the demo build with its runtime token. Keep live payment and notification credentials separate. Preview screenshots are real browser captures, not design mockups.
+Use a dedicated Turso database for `wrangler.demo.jsonc`, which enables demo mode. The config pins the database URL. Store the database-scoped token in the GitHub Actions secret `TURSO_BOOKING_AUTH_TOKEN`. Before deployment, run `pnpm db:migrate:remote` with `DATABASE_PROVIDER=turso` and the demo database URL and token explicitly set in the migration environment. The migration runner does not infer a database from `--demo`; confirm the URL matches `wrangler.demo.jsonc`. The release workflow verifies the Turso schema before deploying the demo build with its runtime token. Keep live payment and notification credentials separate. Preview screenshots are real browser captures, not design mockups.
 
 Before publishing the catalog entry, verify the deployed origin, isolated visitor sessions, every level, customer/staff switching, a simulated deposit, ticket validation, and the preview image URLs. Each preview must be a 1280×800 WebP. Keep catalog `ready` false until that gate passes. A successful local test is not a live-URL check.
 

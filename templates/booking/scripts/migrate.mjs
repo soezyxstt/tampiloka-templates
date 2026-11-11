@@ -4,7 +4,7 @@ import { manageSchema } from '@tampiloka/shared-utils/db-cli';
 import { readFile, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { resolveDatabase, runMigrations } from '@tampiloka/storage';
-import { localEnv } from './env.mjs';
+import { localEnv, migrationProvider } from './env.mjs';
 import { parseSQLiteMigration } from './sqlite-migrations.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -12,9 +12,9 @@ let selected = {};
 try { selected = JSON.parse(await readFile(new URL('config/storage.json', root), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const vars = await localEnv(root);
 const demo = process.argv.includes('--demo');
-const provider = demo ? 'd1' : (vars.DATABASE_PROVIDER || selected.database || 'turso');
+const provider = migrationProvider(vars, selected, demo);
 if (provider === 'd1') {
-  const args = ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', process.argv.includes('--remote') ? '--remote' : '--local', '--config', demo ? 'wrangler.demo.jsonc' : 'wrangler.jsonc'];
+  const args = ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', process.argv.includes('--remote') ? '--remote' : '--local', '--config', 'wrangler.jsonc'];
   const result = spawnSync('pnpm', args, { cwd: root, stdio: 'inherit' });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);

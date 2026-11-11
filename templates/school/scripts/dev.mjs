@@ -4,8 +4,9 @@ import { resolve, basename, join } from 'node:path';
 import { createServer } from 'vite';
 import { database } from './sqlite.mjs';
 import { handle } from '../worker/api.ts';
-import { localEnv } from './env.mjs';
-const vars = await localEnv(new URL('../', import.meta.url));
+import { localEnv, localObjectStorageProvider } from './env.mjs';
+const root = new URL('../', import.meta.url);
+const vars = await localEnv(root);
 // Tests use a temporary directory; ordinary client development keeps its own .data.
 const dataDir = resolve(process.env.SCHOOL_DATA_DIR || '.data');
 const filesDir = join(dataDir, 'files');
@@ -13,7 +14,7 @@ await mkdir(filesDir, { recursive: true });
 const demo = process.argv.includes('--demo') || vars.DEMO_MODE === 'true';
 const db = await database(join(dataDir, 'school.sqlite'));
 // Only explicit, server-controlled configuration can enable local demo identities.
-const env = { ...vars, OBJECT_STORAGE_PROVIDER: demo ? undefined : (vars.OBJECT_STORAGE_PROVIDER || selection.objectStorage), DB: db, DEMO_MODE: String(demo), MEDIA: { async put(key, bytes) { await writeFile(resolve(filesDir, basename(key)), new Uint8Array(bytes)); }, async get(key) { try {
+const env = { ...vars, OBJECT_STORAGE_PROVIDER: await localObjectStorageProvider(root, vars, demo), DB: db, DEMO_MODE: String(demo), MEDIA: { async put(key, bytes) { await writeFile(resolve(filesDir, basename(key)), new Uint8Array(bytes)); }, async get(key) { try {
             const b = await readFile(resolve(filesDir, basename(key)));
             return { async arrayBuffer() { return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); } };
         }

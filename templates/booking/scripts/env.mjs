@@ -13,3 +13,10 @@ export async function localEnv(root, processEnv = process.env) {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   return { ...vars, ...processEnv };
 }
+
+export function migrationProvider(vars, selected, demo) {
+  // A flag alone cannot identify the demo database safely. Require operators
+  // to supply its actual Turso credentials, as documented for deployment.
+  if (demo) throw new Error('For the demo, set DATABASE_PROVIDER=turso and the demo TURSO_DATABASE_URL and TURSO_AUTH_TOKEN explicitly; omit --demo.');
+  return vars.DATABASE_PROVIDER || selected.database || 'turso';
+}
