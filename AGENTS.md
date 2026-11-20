@@ -244,6 +244,8 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 
 ## Change log
 
+- **2026-11-20**: Cafe memeriksa peran untuk pembaruan stok, dan menangani pilihan meja yang tidak lagi tersedia.
+
 - **2026-11-20**: Ruang staf Cafe mengurutkan navigasi sesuai peran dan melipat pilihan tambahan pada pesanan kasir, antrean dapur, detail meja, dan laporan.
 
 - **2026-11-20**: Cafe memperbarui navigasi keranjang, pemilihan meja, penempatan tamu antrean, tinjauan kepulangan, akses peran dan pilihan item saat memisahkan tagihan.

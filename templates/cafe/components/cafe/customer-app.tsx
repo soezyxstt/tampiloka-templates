@@ -306,6 +306,7 @@ export function CustomerApp({
   const canOrderAtOccupiedTable = selectedTable.physicalState === 'OCCUPIED' && !selectedTable.heldForWaitlist &&
     (hasTableQrContext || hasOrderInVisit);
   const tableUnavailable = orderMode === 'DINE_IN' && !canChooseCustomerTable(selectedTable) && !canOrderAtOccupiedTable;
+  const tableUnavailableMessage = t('Pilih meja yang tersedia atau ubah layanan ke bawa pulang.', 'Choose an available table or switch to takeaway.');
 
   useEffect(() => () => {
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
@@ -583,7 +584,7 @@ export function CustomerApp({
       }
       updateCart([]);
       setConfirmOrderOpen(false);
-      setActiveScreen('pesanan');
+      setScreenHistory(['menu', 'pesanan']);
     } catch (err: any) {
       setCheckoutError(err.message);
     }
@@ -692,7 +693,7 @@ export function CustomerApp({
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
-              {snapshot?.tables?.length > 0 ? <button
+              {canOrder || snapshot?.tables?.length > 0 ? <button
                 type="button"
                 onClick={() => setTableModalOpen(true)}
                 className="mt-0.5 inline-flex items-center gap-1 text-[13px] leading-[18px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer max-w-full"
@@ -1085,7 +1086,7 @@ export function CustomerApp({
                       )}
                     </div>
 
-                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pilih meja yang tersedia atau ubah layanan ke bawa pulang.", "Choose an available table or switch to takeaway.")}</p>}
+                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
                     <InlineError message={checkoutError} />
 
                     <Button
@@ -1883,6 +1884,7 @@ export function CustomerApp({
 
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
+          {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
           <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length || tableUnavailable} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
         </div>
       </DialogModal>
@@ -2043,10 +2045,10 @@ export function CustomerApp({
               <Label htmlFor="modal-select-table">{t("Pilih meja", "Choose a table")}</Label>
               <SelectField
                 id="modal-select-table"
-                value={selectedTableId}
+                value={selectedTable.physicalState === 'OUT_OF_SERVICE' ? '' : selectedTable.id}
                 onChange={(e) => { setSelectedTableId(e.target.value); setActiveQuote(null); setPresenceVerified(false); }}
               >
-                {!selectedTableId && <option value="" disabled>{t("Pilih meja", "Choose a table")}</option>}
+                <option value="" disabled>{t("Pilih meja", "Choose a table")}</option>
                 {(snapshot?.tables || [])
                   .filter((t: any) => t.physicalState !== 'OUT_OF_SERVICE')
                   .map((table: any) => (
@@ -2058,6 +2060,7 @@ export function CustomerApp({
             </div>
           )}
 
+          {tableUnavailable && canOrder && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
           <Button
             variant="primary"
             className="w-full"

@@ -2104,7 +2104,7 @@ export function StaffApp({
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
       <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title={t("Pesanan baru", "New orders")} maxWidth="max-w-5xl">
-        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={onCommand} onComplete={(billId) => { if (billId) { setSelectedBillId(billId); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onComplete={(billId) => { if (billId) { setSelectedBillId(billId); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}

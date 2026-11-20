@@ -39,11 +39,12 @@ export function assertCommandAllowed(
     if (context.surface !== 'staff') throw new CapabilityError('STAFF_SURFACE_REQUIRED', 'Tindakan ini tersedia di ruang staf.');
   };
 
+  const departureException = command === 'TABLE_OR_VISIT_ACTION' && payload.action === 'DEPART_VISIT_EXCEPTION';
   if (context.surface === 'staff' && supervisesOperations(payload.actorRole) && operationalWrites.has(command)
       && !(command === 'WAITLIST_ACTION' && payload.action === 'GET_STATUS')) {
     throw new CapabilityError('READ_ONLY_ROLE', 'Bagian operasional ini hanya dapat dilihat oleh pemilik dan manajer.');
   }
-  if (command === 'MENU_STOCK_ACTION' && payload.actorRole && !supervisesOperations(payload.actorRole)) {
+  if (command === 'MENU_STOCK_ACTION' && context.surface === 'staff' && !supervisesOperations(payload.actorRole)) {
     if (!['CASHIER', 'BAR', 'KITCHEN'].includes(String(payload.actorRole)) || payload.action !== 'TOGGLE_SOLD_OUT') {
       throw new CapabilityError('ROLE_REQUIRED', 'Perubahan katalog ini memerlukan akses pemilik atau manajer.');
     }
@@ -102,6 +103,9 @@ export function assertCommandAllowed(
       break;
     case 'TABLE_OR_VISIT_ACTION':
       staff();
+      if (departureException && !supervisesOperations(payload.actorRole)) {
+        throw new CapabilityError('MANAGER_REQUIRED', 'Pulang dengan masalah terbuka harus disahkan manajer atau pemilik.');
+      }
       // Minimal ordering and POS packages still finish visits without a floor plan.
       if (payload.action === 'DEPART_VISIT' || payload.action === 'DEPART_VISIT_EXCEPTION') requireAny('tables', 'cashier', 'ordering');
       else requireAny('tables');

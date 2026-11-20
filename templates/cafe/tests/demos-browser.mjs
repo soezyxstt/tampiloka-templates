@@ -175,6 +175,7 @@ async function checkStaff(page, demo) {
     [/^Meja & Antrean/, modules.has('tables')],
     [/^Katalog & Stok/, modules.has('catalog') || modules.has('cashier')],
     [/^Laporan & Shift/, modules.has('dashboard')],
+    [/^Shift kasir/, modules.has('cashier') && !modules.has('dashboard')],
   ];
   for (const [name, enabled] of expectedSections) {
     await assertPresence(nav.getByRole('button', { name }), enabled, `${demo.id}: ${name} capability navigation.`);

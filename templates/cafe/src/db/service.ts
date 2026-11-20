@@ -2109,7 +2109,7 @@ export async function cancelUnitAndRefundOrCredit(input: {
     const creditAmount = alreadyCancelled ? 0 : Math.max(0, unit.netIdr - unit.refundedCreditIdr);
     let adjustmentId: string | null = null;
     if (!alreadyCancelled) {
-      const recordWaste = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(unit.fulfillmentStatus) || input.restockChoice === 'WASTE';
+      const recordWaste = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP', 'SERVED'].includes(unit.fulfillmentStatus) || input.restockChoice === 'WASTE';
       await tx.update(orderItemUnits).set({ fulfillmentStatus: 'CANCELLED', cancelReason: reason, cancelledBy: input.actorName, wasteRecorded: recordWaste, refundedCreditIdr: unit.netIdr, cancelledAt: new Date(), version: unit.version + 1 }).where(eq(orderItemUnits.id, unit.id));
       for (const requirement of await unitStockRequirements(tx, unit)) {
         const [pool] = await tx.select().from(stockPools).where(eq(stockPools.id, requirement.poolId));
