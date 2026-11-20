@@ -12,6 +12,17 @@ export class CapabilityError extends Error {
   }
 }
 
+export function supervisesOperations(role: unknown) {
+  return role === 'OWNER' || role === 'MANAGER';
+}
+
+const operationalWrites = new Set([
+  'CREATE_QUOTE', 'SUBMIT_ORDER_REQUEST', 'ACCEPT_ORDER_REQUEST', 'REJECT_ORDER_REQUEST',
+  'TRANSITION_UNITS', 'SPLIT_BILL', 'MERGE_BILLS', 'CANCEL_UNIT_OR_REFUND',
+  'RECORD_PAYMENT', 'SETTLE_OR_CANCEL_ATTEMPT', 'TABLE_OR_VISIT_ACTION',
+  'FLOOR_PLAN_ACTION', 'WAITLIST_ACTION', 'SERVICE_REQUEST_ACTION',
+]);
+
 export function assertCommandAllowed(
   command: string,
   payload: Record<string, unknown>,
@@ -27,6 +38,16 @@ export function assertCommandAllowed(
   const staff = () => {
     if (context.surface !== 'staff') throw new CapabilityError('STAFF_SURFACE_REQUIRED', 'Tindakan ini tersedia di ruang staf.');
   };
+
+  if (context.surface === 'staff' && supervisesOperations(payload.actorRole) && operationalWrites.has(command)
+      && !(command === 'WAITLIST_ACTION' && payload.action === 'GET_STATUS')) {
+    throw new CapabilityError('READ_ONLY_ROLE', 'Bagian operasional ini hanya dapat dilihat oleh pemilik dan manajer.');
+  }
+  if (command === 'MENU_STOCK_ACTION' && payload.actorRole && !supervisesOperations(payload.actorRole)) {
+    if (!['CASHIER', 'BAR', 'KITCHEN'].includes(String(payload.actorRole)) || payload.action !== 'TOGGLE_SOLD_OUT') {
+      throw new CapabilityError('ROLE_REQUIRED', 'Perubahan katalog ini memerlukan akses pemilik atau manajer.');
+    }
+  }
 
   switch (command) {
     case 'CREATE_PRESENCE_CHALLENGE':

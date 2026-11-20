@@ -52,7 +52,7 @@ try {
   const manager = await context.newPage();
   manager.on('pageerror', error => errors.push(error.message));
   await manager.setViewportSize({ width: 1024, height: 850 });
-  await manager.goto(`${base}/p/full/staff?staff=staff_owner&lang=id`);
+  await manager.goto(`${base}/p/full/staff?staff=staff_waiter&lang=id`);
   await manager.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({ timeout: 120000 });
   await manager.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ }).click();
   await manager.getByRole('button', { name: 'Atur denah', exact: true }).click();
@@ -91,6 +91,13 @@ try {
   const toolbar = await page.locator('.tl-demo-toolbar').boundingBox();
   assert.ok(Math.abs(header.y - (toolbar.y + toolbar.height)) < 1.5, 'Customer header stays visible below demo controls.');
 
+  await page.locator('[data-ui="customer-cart-bar"]').getByRole('button', { name: 'View cart' }).click();
+  for (const service of ['Cafe info', 'Call staff']) {
+    await page.locator('footer').getByRole('button', { name: service, exact: true }).click();
+    await page.getByRole('button', { name: 'Back to cart', exact: true }).click();
+    await page.getByRole('heading', { name: 'Cart', exact: true }).waitFor();
+    await page.getByText('Iced Jasmine Leaf Tea', { exact: true }).first().waitFor();
+  }
   await page.getByRole('combobox', { name: 'Demo theme', exact: true }).focus();
   await page.keyboard.press('Enter');
   await page.getByRole('listbox').waitFor();

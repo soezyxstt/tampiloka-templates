@@ -244,6 +244,10 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 
 ## Change log
 
+- **2026-11-20**: Ruang staf Cafe mengurutkan navigasi sesuai peran dan melipat pilihan tambahan pada pesanan kasir, antrean dapur, detail meja, dan laporan.
+
+- **2026-11-20**: Cafe memperbarui navigasi keranjang, pemilihan meja, penempatan tamu antrean, tinjauan kepulangan, akses peran dan pilihan item saat memisahkan tagihan.
+
 - **2026-11-11**: Cafe attendance retains recovery access when a policy disables new capture.
 
 - **2026-11-11**: Added opt-in Cafe attendance with private evidence, supervisor review and safe submission recovery.

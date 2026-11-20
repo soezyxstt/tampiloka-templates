@@ -344,6 +344,7 @@ test('Fulfillment moves forward and standalone packages can finish accepted orde
   assert.equal(canTransitionUnit('QUEUED', 'DELIVERED', true), true);
   assert.equal(canTransitionUnit('HELD_FOR_PAYMENT', 'DELIVERED', true), false);
   assert.equal(canTransitionUnit('CANCELLED', 'READY'), false);
+  assert.equal(canTransitionUnit('SERVED', 'DELIVERED', true), false);
   assert.equal(canTransitionUnit('READY', 'ARBITRARY'), false);
 });
 
@@ -377,7 +378,7 @@ test('Departure sees pending payments, pending refunds, live requests and unreso
 
 test('Served/cancelled units and resolved attempts permit departure, independently of eating time', () => {
   const summary = summarizeVisitLifecycle({ visitId: 'visit', bills: [{ id: 'bill', visitId: 'visit', lifecycle: 'FINALIZED', balanceIdr: 0 }],
-    orderUnits: ['DELIVERED', 'PICKED_UP', 'CANCELLED'].map(fulfillmentStatus => ({ visitId: 'visit', fulfillmentStatus })),
+    orderUnits: ['DELIVERED', 'PICKED_UP', 'SERVED', 'CANCELLED'].map(fulfillmentStatus => ({ visitId: 'visit', fulfillmentStatus })),
     orderRequests: [], paymentAttempts: [{ billId: 'bill', status: 'CANCELLED' }], serviceRequests: [{ visitId: 'visit', state: 'RESOLVED' }],
   });
   assert.equal(summary.canDepart, true);

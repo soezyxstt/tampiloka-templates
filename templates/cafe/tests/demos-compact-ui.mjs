@@ -49,7 +49,7 @@ async function run(id,fn){const ctx=await context();try{await fn(ctx);}catch(e){
 try{
  await run('payment-notice',async ctx=>{
   const page=await ctx.newPage();await ready(page,url('full','/staff'));
-  await chooseDemoStaff(page);await page.locator('.staff-header').waitFor();
+  await chooseDemoStaff(page, 'staff_cashier');await page.locator('.staff-header').waitFor();
   assert.equal(await page.locator('[data-ui="stat-strip"]').count(),0,'Summary cards must not compete with cashier tasks.');
   await page.getByRole('navigation',{name:'Tugas kasir dan pesanan'}).getByRole('button',{name:/^Tagihan/}).click();
   await geometry(page,'staff-390-compact');
@@ -75,6 +75,9 @@ try{
   await nav.getByRole('button',{name:/^Kasir/}).focus();await page.keyboard.press('ArrowRight');
   await page.getByRole('heading',{name:'Dapur & Bar',exact:true}).waitFor();
   assert.equal(await nav.getAttribute('data-ui'),'choice-strip');
+  const filters = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Tampilkan pesanan' }) });
+  assert.equal(await filters.evaluate(element => element.open), false);
+  await filters.locator('summary').click();
   assert.equal(await page.getByRole('group',{name:'Status pesanan dapur'}).getAttribute('data-ui'),'choice-strip');
   await geometry(page,'kitchen-390-shared-controls');
  });

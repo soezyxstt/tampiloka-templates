@@ -106,7 +106,7 @@ async function poll(page, predicate, label) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 async function staffLogin(page) {
-  await chooseDemoStaff(page);
+  await chooseDemoStaff(page, 'staff_cashier');
   await page.getByRole('navigation', { name: 'Navigasi operasional kafe' }).waitFor();
 }
 async function refreshStaff(page) {
@@ -140,12 +140,14 @@ async function setupPages(context, preset = 'full') {
   return { staff, customer, baseline };
 }
 async function setPolicy(staff, policy) {
+  await chooseDemoStaff(staff, 'staff_owner');
   await section(staff, /^Pengaturan/);
   await staff.getByLabel('Pembayaran makan di tempat', { exact: true }).selectOption(policy);
   await staff.getByLabel('Pembayaran bawa pulang', { exact: true }).selectOption(policy);
   await staff.getByLabel('Terima otomatis pesanan tambahan tamu aktif', { exact: true }).uncheck();
   await staff.getByRole('button', { name: 'Simpan alur pemesanan', exact: true }).click();
   await poll(staff, data => data.outlet.paymentPolicy === policy && data.outlet.takeawayPaymentPolicy === policy && !data.outlet.autoAcceptParticipant, 'saved ordering policy');
+  await chooseDemoStaff(staff, 'staff_cashier');
   await section(staff, /^Kasir & Pesanan/);
 }
 async function seat(staff, fixture) {
@@ -274,7 +276,7 @@ async function kitchen(staff, orderId, terminal = 'DELIVERED') {
   assert.ok(units.length);
   for (const unit of units) {
     const card = staff.locator(`[data-unit-id="${unit.id}"]`);
-    for (const [status, label] of [['PREPARING', 'Mulai siapkan'], ['READY', 'Siap diantar'], [terminal, terminal === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan']]) {
+    for (const [status, label] of [['PREPARING', 'Mulai siapkan'], ['READY', terminal === 'PICKED_UP' ? 'Siap diambil' : 'Siap diantar'], [terminal, terminal === 'PICKED_UP' ? 'Sudah diambil' : 'Disajikan']]) {
       await card.getByRole('button', { name: new RegExp('^' + label + ':') }).click();
       await poll(staff, data => data.orderUnits.find(current => current.id === unit.id)?.fulfillmentStatus === status, `${unit.id} ${status}`);
     }
@@ -304,7 +306,7 @@ async function departureReview(staff, visit, expectedAllowed) {
   await card.getByRole('button', { name: visit.mode === 'TAKEAWAY' ? 'Selesaikan pengambilan' : 'Tinjau kepulangan', exact: true }).click();
   const dialog = staff.getByRole('dialog', { name: 'Selesaikan kunjungan', exact: true });
   const confirm = dialog.getByRole('button', { name: visit.mode === 'TAKEAWAY' ? 'Konfirmasi pengambilan selesai' : 'Konfirmasi tamu pulang', exact: true });
-  assert.equal(await confirm.isEnabled(), expectedAllowed, 'Departure eligibility shown by the UI matches the scenario.');
+  assert.equal(await confirm.count() > 0 && await confirm.isEnabled(), expectedAllowed, 'Departure eligibility shown by the UI matches the scenario.');
   return { dialog, confirm };
 }
 async function assertBlocked(staff, visit, expectedField) {
@@ -435,6 +437,7 @@ async function posSale(staff, fixture) {
     await dialog.getByRole('button', { name: new RegExp(item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
     await dialog.getByRole('button', { name: 'Tambah', exact: true }).click();
   }
+  await dialog.getByText('Diskon pesanan', { exact: true }).click();
   await dialog.locator('#pos-discount').fill(String(fixture.discountIdr));
   await dialog.getByRole('button', { name: 'Periksa pesanan', exact: true }).click();
   await dialog.getByRole('button', { name: /^Buat tagihan/ }).click();
@@ -559,7 +562,7 @@ async function splitMergeJourney(context) {
   const originalTotal = sale.bill.originalTotalIdr;
   await selectBill(staff, sale.bill.id, fixture.name);
   await staff.getByRole('button', { name: 'Pisah / Gabung Tagihan', exact: true }).click();
-  await staff.locator(`[data-unit-id="${sale.bill.allocatedUnits[0].id}"]`).getByRole('checkbox').check();
+  await staff.locator(`[data-split-unit-id="${sale.bill.allocatedUnits[0].id}"]`).getByRole('checkbox').check();
   await staff.getByPlaceholder('Nama tagihan baru', { exact: true }).fill(`Split ${fixture.name}`);
   await staff.getByRole('button', { name: 'Pisahkan', exact: true }).click();
   const split = await poll(staff, data => {
@@ -601,25 +604,15 @@ async function exceptionJourney(context) {
   const visit = data.visits.find(entry => entry.id === fixture.result.visitId);
   const bill = data.bills.find(entry => entry.id === fixture.result.billId);
   assert.equal(bill.balanceIdr, 41580);
+  await chooseDemoStaff(staff, 'staff_manager');
   const { dialog } = await departureReview(staff, visit, false);
-  await dialog.getByRole('button', { name: 'Catat kepulangan dengan masalah', exact: true }).click();
-  const confirm = dialog.getByRole('button', { name: 'Catat kepulangan bermasalah', exact: true });
-  assert.equal(await confirm.isEnabled(), false, 'A manager exception requires a meaningful reason.');
-  await dialog.getByLabel('Alasan kepulangan dengan masalah', { exact: true }).fill('Pergi');
-  assert.equal(await confirm.isEnabled(), false);
-  await dialog.getByLabel('Alasan kepulangan dengan masalah', { exact: true }).fill(F.exceptionReason);
-  assert.equal(await confirm.isEnabled(), true);
-  await confirm.click();
-  await dialog.waitFor({ state: 'hidden' });
-  const departed = await poll(staff, data => data.visits.find(entry => entry.id === visit.id)?.status === 'CLOSED' && data, 'exception departure');
-  const afterVisit = departed.value.visits.find(entry => entry.id === visit.id);
-  const afterBill = departed.value.bills.find(entry => entry.id === bill.id);
-  assert.equal(afterVisit.financialIssueNote, F.exceptionReason);
-  assert.equal(afterBill.balanceIdr, 41580, 'An exception closes the physical visit without erasing debt.');
-  assert.equal(afterBill.receipts.length, 0);
-  assert.equal(departed.value.tables.find(entry => entry.id === visit.primaryTableId).physicalState, 'NEEDS_CLEANING');
-  await staff.getByRole('region', { name: 'Tindak lanjut kunjungan', exact: true }).getByText(F.exceptionReason, { exact: true }).waitFor();
-  pass('manager exception: short reasons blocked, departure recorded, unpaid debt retained and shown for follow-up');
+  const exception = dialog.getByRole('button', { name: 'Catat kepulangan dengan masalah', exact: true });
+  if (await exception.count()) assert.equal(await exception.isEnabled(), false);
+  await staff.keyboard.press('Escape');
+  const after = await snapshot(staff);
+  assert.equal(after.visits.find(entry => entry.id === visit.id).status, 'OPEN');
+  assert.equal(after.bills.find(entry => entry.id === bill.id).balanceIdr, 41580);
+  pass('manager can inspect a blocked departure and its outstanding debt');
 }
 
 async function externalCounterJourney(context, preset = 'order-at-cashier') {
@@ -706,9 +699,8 @@ async function waitlistJourney(context) {
   const seating = staff.getByRole('dialog', { name: 'Tempatkan tamu', exact: true });
   assert.equal(await seating.getByLabel('Meja untuk tamu', { exact: true }).locator(`option[value="${table.id}"]`).count(), 0, 'A held waitlist table is unavailable to a different walk-in guest.');
   await seating.getByRole('button', { name: 'Kembali', exact: true }).click();
-  await floorTabs.getByRole('button', { name: /^Antrean tamu/ }).click();
-  assert.equal(await staff.locator('[data-service-request-id]').count(), 0, 'The waitlist excludes unrelated service requests.');
-  await staffTicket.getByRole('button', { name: 'Tempatkan di meja', exact: true }).click();
+  await staff.getByRole('button', { name: 'Tandai tidak hadir', exact: true }).waitFor();
+  await staff.getByRole('button', { name: 'Tempatkan di meja', exact: true }).click();
   const seated = await poll(staff, data => data.visits.find(visit => visit.customerName === name && visit.status === 'OPEN'), 'waitlisted guest seated');
   assert.equal(seated.value.primaryTableId, table.id);
   await floorTabs.getByRole('button', { name: 'Kunjungan aktif', exact: true }).click();

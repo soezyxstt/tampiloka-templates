@@ -129,7 +129,7 @@ async function createSale(base, surface, discount = 0) {
   const first = (await command('SUBMIT_ORDER_REQUEST', submission, { surface })).data.result;
   const repeated = (await command('SUBMIT_ORDER_REQUEST', submission, { surface })).data.result;
   assert.equal(repeated.orderRequestId, first.orderRequestId, 'Retry must reuse the original order request.');
-  const accepted = (await command('ACCEPT_ORDER_REQUEST', { orderRequestId: first.orderRequestId, actorName: 'Integration', actorRole: 'OWNER' })).data.result;
+  const accepted = (await command('ACCEPT_ORDER_REQUEST', { orderRequestId: first.orderRequestId, actorName: 'Integration', actorRole: 'CASHIER' })).data.result;
   assert.ok(accepted.billId, 'Accepting an order must return a payable bill.');
   return { quote, accepted, principalId };
 }
@@ -150,7 +150,7 @@ async function checkOnlineSale(base) {
   assert.equal(bill.paymentState, 'SETTLED'); assert.equal(bill.balanceIdr, 0); assert.equal(bill.receipts.length, 1, 'Repeat settlement must not create another receipt.');
   const units = state.orderUnits.filter(unit => unit.orderId === accepted.orderId);
   assert.ok(units.length > 0 && units.every(unit => unit.fulfillmentStatus === 'QUEUED'));
-  await command('TRANSITION_UNITS', { unitIds: units.map(unit => unit.id), targetStatus: 'PICKED_UP', actorName: 'Integration', actorRole: 'OWNER' });
+  await command('TRANSITION_UNITS', { unitIds: units.map(unit => unit.id), targetStatus: 'PICKED_UP', actorName: 'Integration', actorRole: 'CASHIER' });
   state = await snapshot(base);
   assert.ok(state.orderUnits.filter(unit => unit.orderId === accepted.orderId).every(unit => unit.fulfillmentStatus === 'PICKED_UP'));
   return { quoteId: quote.quoteId, totalIdr: quote.totalIdr, onlineSettlement: true, settlementIdempotent: true, noKitchenFulfillment: true };

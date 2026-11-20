@@ -3,6 +3,10 @@ export interface UnitAllocationInput {
   weightIdr: number;
 }
 
+export function isFinishedOrderUnit(status: string): boolean {
+  return ['DELIVERED', 'PICKED_UP', 'SERVED', 'CANCELLED'].includes(status);
+}
+
 /** A visit is complete only when both service and its financial obligations are resolved. */
 export function summarizeVisitLifecycle(input: {
   visitId: string;
@@ -22,7 +26,7 @@ export function summarizeVisitLifecycle(input: {
   const pendingPaymentCount = (input.paymentAttempts || []).filter(attempt => billIds.has(attempt.billId) && ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status)).length;
   const pendingRefundCount = (input.refunds || []).filter(refund => billIds.has(refund.billId) && !['SUCCEEDED', 'CANCELLED', 'FAILED'].includes(refund.state)).length;
   const pendingRequestCount = input.orderRequests.filter(request => request.visitId === input.visitId && request.state === 'REQUESTED' && new Date(request.expiresAt).getTime() > now).length;
-  const unfinishedUnitCount = input.orderUnits.filter(unit => unit.visitId === input.visitId && !['DELIVERED', 'PICKED_UP', 'CANCELLED'].includes(unit.fulfillmentStatus)).length;
+  const unfinishedUnitCount = input.orderUnits.filter(unit => unit.visitId === input.visitId && !isFinishedOrderUnit(unit.fulfillmentStatus)).length;
   const unresolvedServiceCount = (input.serviceRequests || []).filter(request => request.visitId === input.visitId && ['OPEN', 'ACKNOWLEDGED'].includes(request.state)).length;
   const blockers: Array<{ code: string; message: string; count: number }> = [];
   if (outstandingBalanceIdr) blockers.push({ code: 'UNPAID_BILLS', message: 'Masih ada tagihan yang belum lunas.', count: activeBills.filter(bill => bill.balanceIdr > 0).length });
@@ -742,7 +746,7 @@ export function isValidOrderQuantity(quantity: number): boolean {
 export function canTransitionUnit(current: string, next: string, withoutKitchen = false): boolean {
   if (!['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(next)) return false;
   if (current === next) return true;
-  if (['CANCELLED', 'HELD_FOR_PAYMENT', 'DELIVERED', 'PICKED_UP'].includes(current)) return false;
+  if (current === 'HELD_FOR_PAYMENT' || isFinishedOrderUnit(current)) return false;
   if (withoutKitchen && ['DELIVERED', 'PICKED_UP'].includes(next)) return true;
   return (current === 'QUEUED' && next === 'PREPARING') ||
     (current === 'PREPARING' && next === 'READY') ||

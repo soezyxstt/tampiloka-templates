@@ -1,5 +1,7 @@
 'use client';
 
+import { canChooseCustomerTable } from '../../src/domain/customer-tables';
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCafeLanguage } from '@/lib/language';
 import { localizeSystemMessage } from '@/lib/system-messages';
@@ -129,13 +131,20 @@ export function CustomerApp({
   };
 
   // Navigation & Drawer state
-  const [activeScreen, setActiveScreen] = useState<CustomerScreenView>(initialBillId && canOrder ? 'pembayaran' : 'menu');
+  const [screenHistory, setScreenHistory] = useState<CustomerScreenView[]>(initialBillId && canOrder ? ['menu', 'pembayaran'] : ['menu']);
+  const activeScreen = screenHistory[screenHistory.length - 1];
+  const previousScreen = screenHistory[screenHistory.length - 2];
+  const setActiveScreen = (screen: CustomerScreenView) => setScreenHistory(history => {
+    if (screen === 'menu') return ['menu'];
+    return history[history.length - 1] === screen ? history : [...history, screen];
+  });
+  const goBack = () => setScreenHistory(history => history.length > 1 ? history.slice(0, -1) : history);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState<boolean>(false);
   const [tableModalOpen, setTableModalOpen] = useState<boolean>(false);
 
   // Table & Order Mode context
   const [orderMode, setOrderMode] = useState<'DINE_IN' | 'TAKEAWAY'>('DINE_IN');
-  const [selectedTableId, setSelectedTableId] = useState<string>(initialTableId || snapshot?.tables?.[0]?.id || '');
+  const [selectedTableId, setSelectedTableId] = useState<string>(initialTableId || snapshot?.tables?.find(canChooseCustomerTable)?.id || '');
 
   // Menu Filtering (Shadcn SelectField Category + Search + Favorites filter)
   const [activeCategoryId, setActiveCategoryId] = useState<string>('ALL');
@@ -227,7 +236,7 @@ export function CustomerApp({
   const selectedTable = useMemo(() => {
     return (
       snapshot?.tables?.find((t: any) => t.id === selectedTableId) ||
-      snapshot?.tables?.[0] || { id: '', label: '', areaName: '' }
+      { id: '', label: '', areaName: '' }
     );
   }, [snapshot, selectedTableId]);
 
@@ -292,7 +301,11 @@ export function CustomerApp({
   const customerOrders = (snapshot?.orders || []).filter((order: any) => tableMatches(order) || (order.mode === orderMode && order.visitId === currentVisit?.id));
   const customerRequests = (snapshot?.orderRequests || []).filter(tableMatches);
   const customerBills = (snapshot?.bills || []).filter((bill: any) => bill.lifecycle !== 'VOID' && (tableMatches(bill) || customerOrders.some((order: any) => order.visitId === bill.visitId)));
-  const tableUnavailable = orderMode === 'DINE_IN' && ['NEEDS_CLEANING', 'OUT_OF_SERVICE'].includes(selectedTable.physicalState);
+  const hasOrderInVisit = currentVisit && customerPrincipalId && customerRequests.some((request: any) =>
+    request.principalId === customerPrincipalId && request.visitId === currentVisit.id);
+  const canOrderAtOccupiedTable = selectedTable.physicalState === 'OCCUPIED' && !selectedTable.heldForWaitlist &&
+    (hasTableQrContext || hasOrderInVisit);
+  const tableUnavailable = orderMode === 'DINE_IN' && !canChooseCustomerTable(selectedTable) && !canOrderAtOccupiedTable;
 
   useEffect(() => () => {
     if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
@@ -660,8 +673,8 @@ export function CustomerApp({
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setActiveScreen('menu')}
-                aria-label={t("Kembali ke menu utama", "Back to main menu")}
+                onClick={goBack}
+                aria-label={previousScreen === 'menu' ? t("Kembali ke menu utama", "Back to main menu") : t('Kembali', 'Back')}
                 className="w-11 h-11 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -679,7 +692,7 @@ export function CustomerApp({
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
-              {selectedTable.id ? <button
+              {snapshot?.tables?.length > 0 ? <button
                 type="button"
                 onClick={() => setTableModalOpen(true)}
                 className="mt-0.5 inline-flex items-center gap-1 text-[13px] leading-[18px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer max-w-full"
@@ -687,7 +700,7 @@ export function CustomerApp({
                 <MapPin className="w-3.5 h-3.5 text-[var(--primary-ink)] shrink-0" />
                 <span className="truncate">
                   {orderMode === 'DINE_IN'
-                    ? `${t('Meja', 'Table')} ${selectedTable.label} (${selectedTable.areaName})`
+                    ? selectedTable.id ? `${t('Meja', 'Table')} ${selectedTable.label} (${selectedTable.areaName})` : t('Pilih meja', 'Choose a table')
                     : t("Bawa pulang", "Takeaway")}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 shrink-0" />
@@ -844,7 +857,7 @@ export function CustomerApp({
                   })}
                 </AnimatePresence></div>
               )}
-              <p className="text-xs text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet, language)}</p>
+              <p className="text-center text-sm text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet, language)}</p>
             </MotionPanel>
           )}
 
@@ -1072,7 +1085,7 @@ export function CustomerApp({
                       )}
                     </div>
 
-                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Meja ini belum siap menerima pesanan. Hubungi staf untuk menyiapkan meja atau membantu memilih meja lain.", "This table is not ready for orders. Ask staff to prepare it or help you choose another.")}</p>}
+                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pilih meja yang tersedia atau ubah layanan ke bawa pulang.", "Choose an available table or switch to takeaway.")}</p>}
                     <InlineError message={checkoutError} />
 
                     <Button
@@ -1476,13 +1489,14 @@ export function CustomerApp({
               key="screen-bantuan"
               className="space-y-5"
             >
+              {previousScreen === 'keranjang' && <Button variant="ghost" onClick={goBack}><ArrowLeft size={16} aria-hidden="true" />{t('Kembali ke keranjang', 'Back to cart')}</Button>}
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
                 {t("Panggil pelayan", "Call staff")}
               </h1>
 
               <section className="space-y-4">
                 <h2 className="font-heading text-[16px] font-semibold">
-                  Kirim permintaan ke staf untuk Meja {selectedTable.label}
+                  {selectedTable.id ? t(`Kirim permintaan ke staf untuk Meja ${selectedTable.label}`, `Send a request for table ${selectedTable.label}`) : t('Pilih meja untuk menghubungi pelayan.', 'Choose a table to call staff.')}
                 </h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {[
@@ -1526,7 +1540,7 @@ export function CustomerApp({
 
                 <Button
                   variant="primary"
-                  disabled={busy}
+                  disabled={busy || !selectedTable.id}
                   onClick={async () => {
                     setHelpFeedback('');
                     try {
@@ -1559,6 +1573,7 @@ export function CustomerApp({
               key="screen-wifi"
               className="space-y-6"
             >
+              {previousScreen === 'keranjang' && <Button variant="ghost" onClick={goBack}><ArrowLeft size={16} aria-hidden="true" />{t('Kembali ke keranjang', 'Back to cart')}</Button>}
               <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
                 {t("Info kedai", "Cafe info")}
               </h1>
@@ -1868,7 +1883,7 @@ export function CustomerApp({
 
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
-          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
+          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length || tableUnavailable} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
         </div>
       </DialogModal>
 
@@ -2031,11 +2046,12 @@ export function CustomerApp({
                 value={selectedTableId}
                 onChange={(e) => { setSelectedTableId(e.target.value); setActiveQuote(null); setPresenceVerified(false); }}
               >
+                {!selectedTableId && <option value="" disabled>{t("Pilih meja", "Choose a table")}</option>}
                 {(snapshot?.tables || [])
                   .filter((t: any) => t.physicalState !== 'OUT_OF_SERVICE')
                   .map((table: any) => (
-                    <option key={table.id} value={table.id}>
-                      {t('Meja', 'Table')} {table.label} · {table.areaName} ({table.capacity} {t('kursi', 'seats')})
+                    <option key={table.id} value={table.id} disabled={!canChooseCustomerTable(table)}>
+                      {t('Meja', 'Table')} {table.label} · {table.areaName} ({table.capacity} {t('kursi', 'seats')}){!canChooseCustomerTable(table) && ` · ${t('Tidak tersedia', 'Unavailable')}`}
                     </option>
                   ))}
               </SelectField>
@@ -2046,6 +2062,7 @@ export function CustomerApp({
             variant="primary"
             className="w-full"
             onClick={() => setTableModalOpen(false)}
+            disabled={tableUnavailable}
           >
             {t("Simpan pilihan", "Save selection")}
           </Button>

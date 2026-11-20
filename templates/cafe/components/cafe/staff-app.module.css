@@ -2,12 +2,6 @@
 .workspace :global(.staff-sidebar) {
   padding: 20px 14px;
 }
-.sidebarLabel {
-  margin: 30px 12px 10px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  font-weight: 600;
-}
 .workspace :global(.staff-sidebar nav button) {
   min-height: 46px;
 }

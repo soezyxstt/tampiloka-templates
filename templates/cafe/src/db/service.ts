@@ -415,6 +415,9 @@ export function getSurfaceSnapshot(
   const ordersForGuest = snapshot.orders.filter(order => activeTableVisitIds.has(order.visitId) || requestIds.has(order.orderRequestId || ''));
   const visitIds = new Set([...activeTableVisitIds, ...ordersForGuest.map(order => order.visitId)]);
   const orderIds = new Set(ordersForGuest.map(order => order.id));
+  const heldTableIds = new Set(snapshot.waitlistEntries
+    .filter(entry => entry.status === 'CALLED' && entry.holdExpiresAt && entry.holdExpiresAt.getTime() > Date.parse(snapshot.serverTime))
+    .map(entry => entry.heldTableId));
   const visitsForGuest = snapshot.visits.filter(visit => visitIds.has(visit.id));
   return {
     runtime: snapshot.runtime,
@@ -425,7 +428,7 @@ export function getSurfaceSnapshot(
     } : null,
     categories: snapshot.categories,
     catalog: snapshot.catalog.filter((item) => item.active),
-    tables: snapshot.tables.filter((row) => row.active).map(({ id, label, areaName, qrToken, active, physicalState, capacity }) => ({ id, label, areaName, qrToken, active, physicalState, capacity })),
+    tables: snapshot.tables.filter((row) => row.active).map(({ id, label, areaName, qrToken, active, physicalState, capacity }) => ({ id, label, areaName, qrToken, active, physicalState, capacity, heldForWaitlist: heldTableIds.has(id) })),
     visits: visitsForGuest,
     participants: snapshot.participants.filter((row) => visitIds.has(row.visitId)),
     orderRequests: requests,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { canChooseCustomerTable } from '../../src/domain/customer-tables';
 import QRCode from 'qrcode';
 import { MapPin, QrCode } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -7,12 +8,12 @@ import { BrandMark } from '../../components/cafe/brand';
 import { cafeConfig } from '../config';
 import { useCafeLanguage } from '@/lib/language';
 
-type Table = { id: string; label: string; areaName?: string; qrToken: string; capacity?: number; active?: boolean; physicalState?: string };
+type Table = { id: string; label: string; areaName?: string; qrToken: string; capacity?: number; active?: boolean; physicalState?: string; heldForWaitlist?: boolean };
 
 /** A real table route is shared by the QR and the open action. */
-export function TableEntry({ tables, theme, staffId }: { tables: Table[]; theme: string; staffId?: string }) {
+export function TableEntry({ tables, theme, staffId, onBrowseMenu }: { tables: Table[]; theme: string; staffId?: string; onBrowseMenu: () => void }) {
   const { language, t } = useCafeLanguage();
-  const available = useMemo(() => tables.filter(table => table.active !== false && table.qrToken && table.physicalState !== 'OUT_OF_SERVICE'), [tables]);
+  const available = useMemo(() => tables.filter(table => table.qrToken && canChooseCustomerTable(table)), [tables]);
   const [tableId, setTableId] = useState(() => available[0]?.id || '');
   const [qrResult, setQrResult] = useState({ url: '', value: '', failed: false });
   const table = available.find(entry => entry.id === tableId) || available[0];
@@ -36,7 +37,10 @@ export function TableEntry({ tables, theme, staffId }: { tables: Table[]; theme:
 
   const qr = qrResult.url === tableUrl ? qrResult.value : '';
   const qrFailed = qrResult.url === tableUrl && qrResult.failed;
-  if (!table) return null;
+  if (!table) return <main className="demo-table-entry"><section className="demo-entry-card">
+    <p role="status">{t('Semua meja sedang digunakan atau belum siap.', 'All tables are in use or awaiting preparation.')}</p>
+    <Button onClick={onBrowseMenu}>{t('Lihat menu', 'View menu')}</Button>
+  </section></main>;
   return <main className="demo-table-entry">
     <div className="demo-entry-layout">
       <section className="demo-entry-intro" aria-labelledby="demo-entry-title">

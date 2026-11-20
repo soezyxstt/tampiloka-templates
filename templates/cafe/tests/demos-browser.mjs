@@ -179,6 +179,24 @@ async function checkStaff(page, demo) {
   for (const [name, enabled] of expectedSections) {
     await assertPresence(nav.getByRole('button', { name }), enabled, `${demo.id}: ${name} capability navigation.`);
   }
+  await assertPresence(page.getByRole('button', { name: /^Pesanan baru$/i }), false, 'Owners inspect cashier activity read-only.');
+  if (modules.has('dashboard')) {
+    await nav.getByRole('button', { name: /^Laporan & Shift/ }).click();
+    const breakdown = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Rincian penjualan & pembayaran' }) });
+    await breakdown.locator('summary').waitFor();
+    assert.equal(await breakdown.evaluate(element => element.open), false);
+    await breakdown.locator('summary').click();
+    await breakdown.getByRole('heading', { name: 'Rincian tagihan' }).waitFor();
+  }
+  if (modules.has('catalog') || modules.has('cashier')) {
+    await nav.getByRole('button', { name: /^Katalog & Stok/ }).click();
+    await page.getByRole('textbox', { name: 'Cari menu' }).waitFor();
+    const tools = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Impor & cetak' }) });
+    assert.equal(await tools.evaluate(element => element.open), false);
+    await tools.locator('summary').click();
+    await tools.getByRole('button', { name: 'Impor CSV' }).waitFor();
+  }
+  await chooseDemoStaff(page, 'staff_cashier');
   await assertPresence(page.getByRole('button', { name: /^Pesanan baru$/i }), modules.has('cashier'), `${demo.id}: POS creation is only available to cashier packages.`);
   if (modules.has('cashier')) await page.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   await assertPresence(page.getByRole('region', { name: 'Shift kasir', exact: true }), modules.has('cashier'), `${demo.id}: cash shift controls are available without requiring reports.`);
@@ -276,9 +294,10 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
     await pos.getByRole('button', { name: new RegExp(item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
     await pos.getByRole('button', { name: 'Tambah', exact: true }).click();
   }
+  await pos.getByText('Diskon pesanan', { exact: true }).click();
   await pos.locator('#pos-discount').fill('5000');
   await localClick(staff, pos.getByRole('button', { name: 'Periksa pesanan', exact: true }), 'before POS price review');
-  await pos.getByText('Pesanan siap dibuat', { exact: true }).waitFor();
+  await pos.getByRole('button', { name: 'Ubah pesanan', exact: true }).waitFor();
   await staff.screenshot({ path: join(out, 'full-pos-review-1024.png'), fullPage: false });
   await localClick(staff, pos.getByRole('button', { name: /^Buat tagihan/ }), 'before POS order creation');
   await pos.waitFor({ state: 'hidden' });
@@ -290,7 +309,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
 
   await staff.reload({ waitUntil: 'domcontentloaded' });
   await ready(staff);
-  await signInStaff(staff);
+  await chooseDemoStaff(staff, 'staff_cashier');
   const afterReload = await localSnapshot(staff, 'reload persistence');
   assert.equal(afterReload.bills.find(entry => entry.id === bill.id)?.paymentState, 'SETTLED');
   assert.equal(afterReload.bills.find(entry => entry.id === posBill.id)?.discountIdr, 5000);

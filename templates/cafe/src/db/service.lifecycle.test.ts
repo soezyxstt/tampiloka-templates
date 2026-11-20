@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { canChooseCustomerTable } from '../domain/customer-tables.ts';
 import { eq } from 'drizzle-orm';
 import { createLifecycleFixture } from './lifecycle-fixtures.ts';
 
@@ -176,13 +177,22 @@ test('full cafe lifecycle: isolated customer, cashier, kitchen, floor and except
       const first = await service.manageWaitlistEntry({ action: 'CREATE', customerName: 'Antrean Satu', partySize: 2, actorName: 'Host' });
       const second = await service.manageWaitlistEntry({ action: 'CREATE', customerName: 'Antrean Dua', partySize: 2, actorName: 'Host' });
       await service.manageWaitlistEntry({ action: 'CALL', waitlistId: first.id, tableId: 'tbl_m06', actorName: 'Host' });
+      const canSelectReservedTable = async () => {
+        const guest = service.getSurfaceSnapshot(await state(), 'customer');
+        const table = guest.tables.find(entry => entry.id === 'tbl_m06');
+        assert.ok(table);
+        return canChooseCustomerTable(table);
+      };
+      assert.equal(await canSelectReservedTable(), false);
       await assert.rejects(seat(), errorCode('TABLE_HELD'));
       await assert.rejects(service.manageWaitlistEntry({ action: 'CALL', waitlistId: second.id, tableId: 'tbl_m06', actorName: 'Host' }), errorCode('TABLE_HELD'));
       await assert.rejects(service.manageWaitlistEntry({ action: 'EXPIRE_HOLD', waitlistId: first.id, actorName: 'Host' }), errorCode('HOLD_NOT_EXPIRED'));
       await db.update(schema.waitlistEntries).set({ holdExpiresAt: new Date(0) }).where(eq(schema.waitlistEntries.id, first.id));
+      assert.equal(await canSelectReservedTable(), true);
       await assert.rejects(service.manageWaitlistEntry({ action: 'SEAT', waitlistId: first.id, actorName: 'Host' }), errorCode('HOLD_EXPIRED'));
       await service.manageWaitlistEntry({ action: 'EXPIRE_HOLD', waitlistId: first.id, actorName: 'Host' });
       const seated = await service.manageWaitlistEntry({ action: 'SEAT', waitlistId: first.id, tableId: 'tbl_m06', actorName: 'Host' });
+      assert.equal(await canSelectReservedTable(), false);
       const retry = await service.manageWaitlistEntry({ action: 'SEAT', waitlistId: first.id, tableId: 'tbl_m06', actorName: 'Host' });
       assert.ok('visitId' in seated && 'visitId' in retry); assert.equal(seated.visitId, retry.visitId);
       await assert.rejects(service.manageWaitlistEntry({ action: 'CALL', waitlistId: first.id, tableId: 'tbl_m02', actorName: 'Host' }), errorCode('WAITLIST_TERMINAL'));
