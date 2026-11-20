@@ -23,7 +23,7 @@ Bawa pulang memakai **Selesaikan pengambilan** dan tidak memerlukan langkah pemb
 - **Percobaan ulang:** pengiriman pesanan, penerimaan pesanan, pembukaan kunjungan, dan pencatatan pembayaran memakai kunci percobaan ulang untuk mencegah transaksi ganda.
 - **Pembatalan sebelum persiapan:** reservasi stok dilepas. Pembatalan setelah persiapan mencatat makanan terbuang; stok makanan matang tidak dikembalikan sebagai bahan tersedia.
 - **Refund:** pengembalian dapat mengambil dari beberapa bukti pembayaran. Jika pengembalian ditunda, kewajiban tetap muncul dan menghalangi kepulangan normal. Mencoba mengembalikan dana dua kali tidak boleh menggandakan uang keluar.
-- **Tamu pergi dengan kewajiban tersisa:** pemilik/manajer dapat mencatat kepulangan bermasalah dengan alasan. Tagihan dan pekerjaan yang tertinggal tetap muncul untuk tindak lanjut; tindakan ini tidak membuat tagihan lunas.
+- Pemilik dan manajer dapat meninjau kepulangan serta melihat sisa kewajiban. Pelayan atau kasir mengonfirmasi kepulangan setelah seluruh penghambat selesai.
 - **Kasir di luar sistem:** preset `order-at-cashier` menyediakan **Konfirmasi pembayaran kasir** dengan nomor referensi struk. Pencatatan ini menandai konfirmasi kasir eksternal dan tidak mengubah laci kas dalam aplikasi.
 - **Antrean:** meja yang ditahan untuk tamu yang dipanggil tidak dapat dipakai tamu lain. Tiket pribadi pelanggan menampilkan status antreannya sendiri sampai ditempatkan dan kunjungan selesai.
 

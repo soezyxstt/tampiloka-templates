@@ -44,7 +44,7 @@ try {
   const staffContext = await browser.newContext({ locale: 'id-ID', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const staff = await staffContext.newPage(); track(staff);
   await staff.goto(`${base}/staff/${config.venue.tenantSlug}/${config.venue.outletSlug}`, { waitUntil: 'networkidle' });
-  await staff.getByRole('button', { name: /Raka Pratama/ }).click();
+  await staff.getByRole('button', { name: /Sinta Maharani/ }).click();
   if (request.state === 'REQUESTED') {
     const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: unique });
     await row.getByRole('button', { name: 'Terima', exact: true }).click();
@@ -87,9 +87,10 @@ try {
   const second = initial.catalog.find(entry => entry.id === 'item_croissant');
   await pos.getByRole('button', { name: new RegExp(second.name) }).click();
   await pos.getByRole('button', { name: 'Tambah', exact: true }).click();
+  await pos.getByText('Diskon pesanan', { exact: true }).click();
   await pos.locator('#pos-discount').fill('5000');
   await pos.getByRole('button', { name: 'Periksa pesanan', exact: true }).click();
-  await pos.getByText('Pesanan siap dibuat', { exact: true }).waitFor();
+  await pos.getByRole('button', { name: 'Ubah pesanan', exact: true }).waitFor();
   await staff.screenshot({ path: `${out}/cashier-order-review.png`, fullPage: true });
   await pos.getByRole('button', { name: /Buat tagihan/ }).click();
   await pos.waitFor({ state: 'hidden' });

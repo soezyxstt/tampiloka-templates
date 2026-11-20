@@ -86,3 +86,28 @@ test('snapshot filters preserve cashier catalog and QR context while hiding disa
   assert.deepEqual(cashier.cashShifts, [1]);
   assert.deepEqual(initial.orders, [1]);
 });
+
+test('owners and managers can manage shifts and stock and inspect operational data', () => {
+  const modules = ['cashier', 'catalog', 'kitchen', 'tables', 'ordering', 'payments'];
+  for (const actorRole of ['OWNER', 'MANAGER']) {
+    for (const command of ['CREATE_QUOTE', 'ACCEPT_ORDER_REQUEST', 'RECORD_PAYMENT', 'SPLIT_BILL', 'TRANSITION_UNITS', 'FLOOR_PLAN_ACTION', 'SERVICE_REQUEST_ACTION', 'WAITLIST_ACTION', 'TABLE_OR_VISIT_ACTION']) {
+      assert.throws(() => run(command, modules, 'staff', { actorRole, action: 'DEPART_VISIT' }), { code: 'READ_ONLY_ROLE' });
+    }
+    for (const command of ['CASH_SHIFT_ACTION', 'MENU_STOCK_ACTION']) run(command, modules, 'staff', { actorRole });
+    assert.throws(() => run('TABLE_OR_VISIT_ACTION', modules, 'staff', { actorRole, action: 'DEPART_VISIT_EXCEPTION' }), { code: 'READ_ONLY_ROLE' });
+    run('WAITLIST_ACTION', modules, 'staff', { actorRole, action: 'GET_STATUS' });
+  }
+});
+
+test('cashiers, baristas and kitchen staff can change availability only in the catalogue', () => {
+  for (const actorRole of ['CASHIER', 'BAR', 'KITCHEN']) {
+    run('MENU_STOCK_ACTION', ['catalog'], 'staff', { actorRole, action: 'TOGGLE_SOLD_OUT' });
+    for (const action of ['ADJUST_STOCK', 'ADD_ITEM', 'UPDATE_PHOTOS']) {
+      assert.throws(() => run('MENU_STOCK_ACTION', ['catalog'], 'staff', { actorRole, action }), { code: 'ROLE_REQUIRED' });
+    }
+  }
+  for (const actorRole of ['WAITER', undefined]) {
+    assert.throws(() => run('MENU_STOCK_ACTION', ['catalog'], 'staff', { actorRole, action: 'TOGGLE_SOLD_OUT' }), { code: 'ROLE_REQUIRED' });
+    assert.throws(() => run('TABLE_OR_VISIT_ACTION', ['tables'], 'staff', { actorRole, action: 'DEPART_VISIT_EXCEPTION' }), { code: 'MANAGER_REQUIRED' });
+  }
+});

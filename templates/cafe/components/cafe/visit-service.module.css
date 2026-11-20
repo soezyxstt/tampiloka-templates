@@ -13,14 +13,13 @@
 .actions { display:flex;flex-wrap:wrap;gap:8px;align-items:center; }
 .inspector .selectedVisit,.dialogDetails .selectedVisit { padding:var(--section-gap) 0 0;border:0;border-radius:0;box-shadow:none;background:transparent; }
 .visitHeading { display:flex;flex-wrap:wrap;justify-content:space-between;align-items:start;gap:8px; }
-.facts { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:14px; }
 .takeaway { margin-top:var(--section-gap);padding-top:8px;border-top:1px solid var(--border); }
 .otherVisits { display:grid;gap:var(--card-padding); }
 .otherVisits article { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding-top:var(--card-padding); }
 .otherVisits h3 { font-weight:600; }
 .otherVisits p { font-size:14px;color:var(--muted-foreground); }
 @media(min-width:960px) { .layout { grid-template-columns:minmax(0,1fr) 300px; } }
-@media(min-width:1600px) { .layout { grid-template-columns:minmax(0,1fr) 380px; }.facts { gap:12px 24px; } }
+@media(min-width:1600px) { .layout { grid-template-columns:minmax(0,1fr) 380px; } }
 @media(max-width:639px) { .toolbar,.roomSelect { width:100%; }.toolbar { justify-content:space-between; }.roomSelect { flex:1 1 180px;min-width:0; }.headingLine h3 { font-size:18px; } }
 
 .mobileOnly { display:none; }

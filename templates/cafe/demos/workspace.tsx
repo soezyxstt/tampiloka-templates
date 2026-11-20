@@ -9,15 +9,11 @@ import type { DemoPreset } from './components/demo-portal';
 import { DemoTools } from './components/demo-tools';
 import { TableEntry } from './components/table-entry';
 import { LanguageToggle, useCafeLanguage } from '@/lib/language';
+import { staffRoleLabel } from '../lib/staff-role-label';
 import { toast } from 'sonner';
 
 type DemoStaff = { id: string; userName: string; role: string; active?: boolean };
 type Prepared = { snapshot: any; view: WorkspaceView; tableId?: string; billId?: string; staff: DemoStaff[] };
-
-const staffRoles: Record<string, [string, string]> = {
-  OWNER: ['Pemilik', 'Owner'], MANAGER: ['Manajer', 'Manager'], CASHIER: ['Kasir', 'Cashier'],
-  WAITER: ['Pelayan', 'Floor staff'], BAR: ['Barista', 'Barista'], KITCHEN: ['Dapur', 'Kitchen'],
-};
 
 function chooseStaff(staff: DemoStaff[], requested: string | null): string | undefined {
   const available = staff.filter(person => person.active !== false);
@@ -43,8 +39,9 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const gallery = language === 'en' ? 'https://tampiloka.site/en/templates' : 'https://tampiloka.site/templates';
   const localized = localizeDemo(demo, language);
   const isTableRoute = /\/m\/[^/]+\/?$/.test(location.pathname);
-  const showTableEntry = activeView === 'pelanggan' && !isTableRoute && !new URLSearchParams(location.search).has('bill')
-    && Boolean(prepared?.snapshot.tables?.some((table: any) => table.active !== false && table.qrToken && table.physicalState !== 'OUT_OF_SERVICE'));
+  const [browsingWithoutTable, setBrowsingWithoutTable] = useState(false);
+  const showTableEntry = !browsingWithoutTable && activeView === 'pelanggan' && !isTableRoute && !new URLSearchParams(location.search).has('bill')
+    && Boolean(prepared?.snapshot.tables?.some((table: any) => table.active !== false && table.qrToken));
   const href = useCallback((target: DemoPreset, view: WorkspaceView) => {
     const url = new URL(demoNavigationUrl(target, view, {
       currentUrl: location.href, currentDemoId: demo.id, theme, language, customerRoute,
@@ -215,8 +212,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
         {activeView === 'staf' && prepared && prepared.staff.length > 0 && demoStaffId && <Select value={demoStaffId} onValueChange={changeStaff}>
           <SelectTrigger className="tl-demo-select" aria-label={t('Identitas staf demo', 'Demo staff identity')}><SelectValue /></SelectTrigger>
           <SelectContent className="tl-demo-select-menu" position="popper" align="start" sideOffset={6}>{prepared.staff.map(person => {
-            const role = staffRoles[person.role];
-            return <SelectItem key={person.id} value={person.id}>{person.userName} · {role ? t(role[0], role[1]) : person.role}</SelectItem>;
+            return <SelectItem key={person.id} value={person.id}>{person.userName} · {staffRoleLabel(person.role, t)}</SelectItem>;
           })}</SelectContent>
         </Select>}
       </>}
@@ -228,8 +224,8 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       actions={<DemoTools snapshot={prepared?.snapshot} resetting={resetting} onReset={() => { void reset(); }} canUseScenarios={!readOnlyCatalog && hasStaffModules()} />}
     />
     {error ? <main className="demo-loading" role="alert"><h1>{t('Halaman belum dapat dibuka', 'Page unavailable')}</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>{t('Coba lagi', 'Try again')}</button><a href={gallery}>{t('Lihat template lain', 'View other templates')}</a></main>
-      : prepared ? showTableEntry ? <TableEntry tables={prepared.snapshot.tables} theme={theme} staffId={demoStaffId} />
-      : <KafeWorkspace initialSnapshot={prepared.snapshot} initialView={prepared.view} initialTableId={prepared.tableId} initialBillId={prepared.billId} demoStaffId={demoStaffId} onViewChange={viewChanged} />
+      : prepared ? showTableEntry ? <TableEntry tables={prepared.snapshot.tables} theme={theme} staffId={demoStaffId} onBrowseMenu={() => setBrowsingWithoutTable(true)} />
+      : <KafeWorkspace initialSnapshot={prepared.snapshot} initialView={prepared.view} initialTableId={isTableRoute || prepared.billId ? prepared.tableId : undefined} initialBillId={prepared.billId} demoStaffId={demoStaffId} onViewChange={viewChanged} />
       : <main className="demo-loading" aria-live="polite"><span className="demo-spinner" /><h1>{activeView === 'staf' ? t('Menyiapkan ruang kerja…', 'Preparing workspace…') : t('Menyiapkan menu…', 'Preparing menu…')}</h1></main>}
     <LanguageToggle floating />
   </div>;

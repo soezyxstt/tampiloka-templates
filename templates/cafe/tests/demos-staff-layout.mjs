@@ -124,7 +124,14 @@ async function verifyFloorService(page, context, demo) {
       assert.equal(await node.getAttribute('aria-pressed'), 'true');
       const details = page.locator('[aria-label="Detail meja terpilih"]');
       await details.getByRole('heading', { name: `Meja ${table.label}`, exact: true }).waitFor();
-      assert.ok((await details.innerText()).includes(`${Number(table.widthMm) / 10} × ${Number(table.heightMm) / 10} cm`));
+      assert.ok((await details.innerText()).includes(`${table.capacity} kursi`));
+      const tabletop = node.locator('[class*="furniture"] [class*="top"]');
+      if (table.shape === 'CIRCLE') {
+        assert.equal(Number(await tabletop.getAttribute('r')), Math.min(table.widthMm, table.heightMm) / 2);
+      } else {
+        assert.equal(Number(await tabletop.getAttribute('width')), Number(table.widthMm));
+        assert.equal(Number(await tabletop.getAttribute('height')), Number(table.heightMm));
+      }
     }
   }
   pass('Floor map: all nine table selections, configured chairs, dimensions and keyboard operation');
@@ -234,7 +241,7 @@ try {
       }, null, { timeout: 120000 });
       const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly);
       assert.equal(localOnly, true, 'Refusing interactive checks outside an isolated demo.');
-      await chooseDemoStaff(page, 'staff_manager');
+      await chooseDemoStaff(page, 'staff_cashier');
       await page.locator('.cafe-staff > header').waitFor();
       await page.evaluate(() => document.fonts.ready);
       await top(page);

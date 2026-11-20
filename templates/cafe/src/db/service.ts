@@ -415,6 +415,9 @@ export function getSurfaceSnapshot(
   const ordersForGuest = snapshot.orders.filter(order => activeTableVisitIds.has(order.visitId) || requestIds.has(order.orderRequestId || ''));
   const visitIds = new Set([...activeTableVisitIds, ...ordersForGuest.map(order => order.visitId)]);
   const orderIds = new Set(ordersForGuest.map(order => order.id));
+  const heldTableIds = new Set(snapshot.waitlistEntries
+    .filter(entry => entry.status === 'CALLED' && entry.holdExpiresAt && entry.holdExpiresAt.getTime() > Date.parse(snapshot.serverTime))
+    .map(entry => entry.heldTableId));
   const visitsForGuest = snapshot.visits.filter(visit => visitIds.has(visit.id));
   return {
     runtime: snapshot.runtime,
@@ -425,7 +428,7 @@ export function getSurfaceSnapshot(
     } : null,
     categories: snapshot.categories,
     catalog: snapshot.catalog.filter((item) => item.active),
-    tables: snapshot.tables.filter((row) => row.active).map(({ id, label, areaName, qrToken, active, physicalState, capacity }) => ({ id, label, areaName, qrToken, active, physicalState, capacity })),
+    tables: snapshot.tables.filter((row) => row.active).map(({ id, label, areaName, qrToken, active, physicalState, capacity }) => ({ id, label, areaName, qrToken, active, physicalState, capacity, heldForWaitlist: heldTableIds.has(id) })),
     visits: visitsForGuest,
     participants: snapshot.participants.filter((row) => visitIds.has(row.visitId)),
     orderRequests: requests,
@@ -2106,7 +2109,7 @@ export async function cancelUnitAndRefundOrCredit(input: {
     const creditAmount = alreadyCancelled ? 0 : Math.max(0, unit.netIdr - unit.refundedCreditIdr);
     let adjustmentId: string | null = null;
     if (!alreadyCancelled) {
-      const recordWaste = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP'].includes(unit.fulfillmentStatus) || input.restockChoice === 'WASTE';
+      const recordWaste = ['PREPARING', 'READY', 'DELIVERED', 'PICKED_UP', 'SERVED'].includes(unit.fulfillmentStatus) || input.restockChoice === 'WASTE';
       await tx.update(orderItemUnits).set({ fulfillmentStatus: 'CANCELLED', cancelReason: reason, cancelledBy: input.actorName, wasteRecorded: recordWaste, refundedCreditIdr: unit.netIdr, cancelledAt: new Date(), version: unit.version + 1 }).where(eq(orderItemUnits.id, unit.id));
       for (const requirement of await unitStockRequirements(tx, unit)) {
         const [pool] = await tx.select().from(stockPools).where(eq(stockPools.id, requirement.poolId));

@@ -89,7 +89,7 @@ try{
  });
  if(groups.has('staff')) for(const width of [390,1280])await run('staff-motion-'+width,width,false,async ctx=>{
   const page=await ctx.newPage();await ready(page,url('full','/staff'));
-  await chooseDemoStaff(page);await page.locator('.staff-header').waitFor();await page.waitForTimeout(350);
+  await chooseDemoStaff(page, 'staff_cashier');await page.locator('.staff-header').waitFor();await page.waitForTimeout(350);
   const nav=page.getByRole('navigation',{name:width>=1280?'Navigasi operasional desktop':'Navigasi operasional kafe',exact:true});
   const samples=await sampleAfterClick(nav.getByRole('button',{name:/^Dapur/}),'#staff-content>[data-ui="motion-panel"][data-motion-present="true"]');
   assert.ok(samples.some(s=>s.opacity>0.01&&s.opacity<0.99),'Staff screen switch must animate');

@@ -37,7 +37,7 @@ The ordering-only `catalog` preset and its `order-at-cashier` compatibility alia
 
 ## Visit lifecycle
 
-The [lifecycle guide](lifecycle.md) documents seating, payment policy, fulfillment, departure, table cleaning and reproducible test data. Backend transactions serialize changes per outlet so seating, acceptance, payment and departure cannot read an outdated lifecycle state during concurrent requests. Normal departure requires zero outstanding balances/refunds, no active payment instructions, no pending order requests, and all food/service requests completed. An explicit manager/owner exception records physical departure while retaining obligations for follow-up.
+The [lifecycle guide](lifecycle.md) documents seating, payment policy, fulfillment, departure, table cleaning and reproducible test data. Backend transactions serialize changes per outlet so seating, acceptance, payment and departure cannot read an outdated lifecycle state during concurrent requests. Normal departure requires zero outstanding balances/refunds, no active payment instructions, no pending order requests, and all food/service requests completed. Owners and managers can review these blockers. Operational staff confirm departure when the visit is ready.
 
 Order payment labels resolve current unit allocations, including split and merged bills. They never infer payment from another order at the same table. Closed visits invalidate participant admission and join codes. Quotes are bound to the seating generation, preventing an old cart review from silently entering a new party's visit.
 
