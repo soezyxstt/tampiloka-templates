@@ -3,6 +3,7 @@ import { useCafeLanguage } from '@/lib/language';
 
 import { useId, useMemo, useState } from 'react';
 import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
+import { supervisesOperations } from '@/src/domain/capabilities';
 import { canTransitionUnit, isFinishedOrderUnit } from '@/src/domain/rules';
 import { localizeSampleName } from '@/src/catalog/sample-menu';
 import { FloorMap, tableAvailability, tableAvailabilityLabel } from './floor-map';
