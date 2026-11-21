@@ -27,6 +27,12 @@ The menu, server-priced cart, order inbox, cashier, kitchen queue, table tools, 
 
 Set `CAFE_DEMO_EMPTY=1` before the first run for a clean demo. This keeps the fictional sample menu and tables, removes seeded sample orders, and opens a zero-balance demo cash shift when the cashier module is enabled. It does not erase a database that already exists. For an existing demo use the explicit reset action, or set a new `CAFE_DEMO_DATA_DIR`.
 
+## Browser storage recovery
+
+The static demo uses `RecoverableIdbFs` with the pinned PGlite 0.3.16. If a strict filesystem flush encounters an IndexedDB connection that is closing or closed, it discards that mount's cached handle and retries the flush once. It retains the in-memory PostgreSQL state and does not replay the domain command, reset data, or acknowledge an unpersisted order. Other storage errors and a failed retry still propagate. This uses PGlite's current IDBFS cache shape; recheck it when upgrading PGlite.
+
+Regression coverage lives in `tests/browser-runtime-durability.test.mjs`. A real-browser fault check on 2026-11-21 closed the cached handle immediately before an insert: stock `IdbFs` reproduced `The database connection is closing`; the recovery implementation persisted exactly one row, verified after closing and reopening PostgreSQL. This establishes recovery from a closed handle, not why a particular user's browser closed it.
+
 ## Package enforcement
 
 `src/domain/capabilities.ts` applies module checks before API commands. Disabling a module removes its navigation and rejects its API commands. Cashier-only still receives catalog data internally. Customer quoting needs `ordering`; staff POS quoting needs `cashier`. An ordering-only package has a staff inbox and can finish orders without a cashier screen or dedicated kitchen screen. Cash and manual-transfer recording need `cashier`; online instruction creation needs `payments`. The module checks do not replace authentication.

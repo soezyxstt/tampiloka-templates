@@ -1,6 +1,39 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDurableOperationBatch } from '../src/demo-runtime/durable-batch.ts';
+import { RecoverableIdbFs } from '../src/demo-runtime/recoverable-idbfs.ts';
+
+function disconnectedStorage(failures) {
+  const storage = new RecoverableIdbFs('test');
+  let calls = 0;
+  let closes = 0;
+  const databases = { '/pglite/test': { close() { closes++; } } };
+  storage.pg = { closed: false, Module: { FS: {
+    filesystems: { IDBFS: { dbs: databases } },
+    syncfs(populate, done) { assert.equal(populate, false); done(failures[calls++]); },
+  } } };
+  return { storage, databases, calls: () => calls, closes: () => closes };
+}
+
+test('closed IndexedDB reconnects once without replaying the command', async () => {
+  const fixture = disconnectedStorage([new DOMException("The database connection is closing.", 'InvalidStateError')]);
+  const run = createDurableOperationBatch(fixture.storage);
+  let commands = 0;
+  assert.equal(await run(async () => { commands++; await fixture.storage.syncToFs(); return 'saved'; }), 'saved');
+  assert.equal(commands, 1);
+  assert.equal(fixture.calls(), 2);
+  assert.equal(fixture.closes(), 1);
+  assert.equal(fixture.databases['/pglite/test'], undefined);
+});
+
+test('reconnect failures and other storage errors still fail closed', async () => {
+  const closed = new DOMException('The database connection is closing.', 'InvalidStateError');
+  for (const failures of [[closed, closed], [new DOMException('Storage full', 'QuotaExceededError')]]) {
+    const fixture = disconnectedStorage(failures);
+    await assert.rejects(fixture.storage.syncToFs(), error => error === failures.at(-1));
+    assert.equal(fixture.calls(), failures.length);
+  }
+});
 
 test('a browser command is not acknowledged until its single strict storage flush finishes', async () => {
   let release;
