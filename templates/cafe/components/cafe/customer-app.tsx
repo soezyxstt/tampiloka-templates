@@ -1085,7 +1085,7 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1.5 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] text-left hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
+                              className="min-h-[44px] inline-flex items-center px-3 py-1.5 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] text-left hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
@@ -1233,7 +1233,9 @@ export function CustomerApp({
                             <p className="text-[12px] text-[var(--muted-foreground)]">
                               {ord.mode === 'DINE_IN'
                                 ? t(`Meja ${ord.tableLabelSnapshot || ord.tableLabel}`, `Table ${ord.tableLabelSnapshot || ord.tableLabel}`)
-                                : `${t('Bawa pulang', 'Takeaway')} · ${ord.pickupNumber || ord.tableLabelSnapshot || ord.tableLabel || ''}`}
+                                : (ord.pickupNumber || ord.tableLabelSnapshot || ord.tableLabel)
+                                  ? `${t('Bawa pulang', 'Takeaway')} · ${ord.pickupNumber || ord.tableLabelSnapshot || ord.tableLabel}`
+                                  : t('Bawa pulang', 'Takeaway')}
                             </p>
                           </div>
 
@@ -1360,7 +1362,7 @@ export function CustomerApp({
                           aria-label={t("Salin nomor tagihan", "Copy bill number")}
                           className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-2 -ml-2 text-[var(--primary-ink)] hover:opacity-80 cursor-pointer shrink-0"
                         >
-                          {copiedKey === `bill_${selectedBill.id}` ? <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedKey === `bill_${selectedBill.id}` ? <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
                         </button>
                         <span className="font-semibold text-[var(--foreground)] tabular-nums break-all">{selectedBill.id}</span>
                       </div>
@@ -1428,11 +1430,11 @@ export function CustomerApp({
                             <span className="font-bold text-[var(--foreground)] tabular-nums shrink-0">{group.quantity}×</span>
                             <div className="min-w-0 space-y-0.5">
                               <p className="font-medium text-[var(--foreground)]">
-                                {group.unit.itemNameSnapshot || group.unit.itemName}
+                                {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}
                                 {group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}
                               </p>
                               <p className="text-[12px] text-[var(--muted-foreground)]">
-                                {group.unit.variantNameSnapshot || group.unit.variantName}
+                                {sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}
                                 {group.unit.modifiersSummary ? ` · ${group.unit.modifiersSummary}` : ''}
                               </p>
                               {group.unit.note && <p className="text-[12px] text-[var(--muted-foreground)]">{group.unit.note}</p>}
@@ -1463,8 +1465,8 @@ export function CustomerApp({
 
                     {!canPayOnline && selectedBill.balanceIdr > 0 && (
                       <InlineNotice tone="info">
-                        <p className="font-semibold text-[var(--foreground)]">{t("Bayar di kasir", "Pay at the counter")}</p>
-                        <p className="mt-0.5 text-[var(--muted-foreground)]">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p>
+                        <p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p>
+                        <p className="mt-0.5">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p>
                       </InlineNotice>
                     )}
 
@@ -1552,7 +1554,7 @@ export function CustomerApp({
                                 <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
                                   {new Date(receipt.receivedAt || receipt.createdAt).toLocaleString(language === "id" ? "id-ID" : "en-GB",{timeZone:cafeConfig.timezone})}
                                 </p>
-                                <p className="text-[12px] break-all text-[var(--muted-foreground)]">{t("Referensi:", "Reference:")} {receipt.referenceCode}</p>
+                                {receipt.referenceCode && <p className="text-[12px] break-all text-[var(--muted-foreground)]">{t("Referensi:", "Reference:")} {receipt.referenceCode}</p>}
                               </div>
                               <Money amount={receipt.amountIdr} className="font-semibold text-[var(--foreground)] shrink-0" />
                             </div>

@@ -966,7 +966,7 @@ export function StaffApp({
                           size="icon"
                           aria-label={t('Cetak struk', 'Print receipt')}
                           title={t('Cetak struk', 'Print receipt')}
-                          onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}
+                          onClick={() => { setPaymentError(''); try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}
                         >
                           <Printer className="w-4 h-4 text-[var(--foreground)]" aria-hidden="true" />
                         </Button>
@@ -984,12 +984,10 @@ export function StaffApp({
                       </div>
                     </div>
 
-                    {/* Collapsible Split / Merge Bill Bar */}
-                    <AnimatePresence>
-                      {!supervisor && showSplitMergePanel && selectedBill.lifecycle === 'OPEN' && (
-                        <DialogModal open onClose={() => { if (!busy) setShowSplitMergePanel(false); }} title={t('Pisah / Gabung', 'Split / merge')}>
-                          <InlineError message={actionError} />
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Split / Merge Bill Dialog (Mounted to preserve Radix focus return & exit motion) */}
+                    <DialogModal open={!supervisor && showSplitMergePanel && selectedBill.lifecycle === 'OPEN'} onClose={() => { if (!busy) setShowSplitMergePanel(false); }} title={t('Pisah / Gabung', 'Split / merge')}>
+                      <InlineError message={actionError} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                               <Label htmlFor="split-bill-name">{t("Nama tagihan baru", "New bill name")}</Label>
                               <Input
@@ -1080,8 +1078,6 @@ export function StaffApp({
                             </div>
                           </div>
                         </DialogModal>
-                      )}
-                    </AnimatePresence>
 
                     <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]" aria-label={t('Ringkasan menu', 'Menu summary')}>
                       {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3 py-3 text-sm"><div className="min-w-0"><p className="font-semibold">{group.quantity}× {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}{group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}</p><p className="text-[var(--muted-foreground)]">{sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}{group.unit.modifiersSummary && ` · ${group.unit.modifiersSummary}`}</p>{group.unit.note && <p>{group.unit.note}</p>}</div><Money amount={group.grossIdr} /></div>)}
@@ -1184,16 +1180,18 @@ export function StaffApp({
                                     {
                                       label: t("Uang Pas", "Exact amount"),
                                       val: effectiveTenderAmount,
+                                      disabled: !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr),
                                     },
-                                    { label: 'Rp50.000', val: 50000 },
-                                    { label: 'Rp100.000', val: 100000 },
-                                    { label: 'Rp200.000', val: 200000 },
+                                    { label: 'Rp50.000', val: 50000, disabled: false },
+                                    { label: 'Rp100.000', val: 100000, disabled: false },
+                                    { label: 'Rp200.000', val: 200000, disabled: false },
                                   ].map((preset) => (
                                     <button
                                       key={preset.label}
                                       type="button"
+                                      disabled={preset.disabled}
                                       onClick={() => setCashGivenInput(String(preset.val))}
-                                      className="min-h-10 px-3 py-1 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--accent-surface)] text-[var(--foreground)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors"
+                                      className="min-h-10 px-3 py-1 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--accent-surface)] text-[var(--foreground)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors disabled:opacity-50"
                                     >
                                       {preset.label}
                                     </button>
@@ -1206,9 +1204,13 @@ export function StaffApp({
                               </div>
                             )}
 
+                            {partialPayment && !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr) && (
+                              <p className="text-sm text-[var(--status-warning-fg)]">
+                                {t('Isi jumlah bayar bulat antara Rp1 hingga sisa tagihan.', 'Enter a whole payment amount between Rp1 and the balance due.')}
+                              </p>
+                            )}
                             {tenderMethod === 'CASH' && !cashGivenInput.trim() && <p className="text-sm text-[var(--muted-foreground)]">{t('Masukkan uang tunai yang diterima.', 'Enter the cash received.')}</p>}
                             {tenderMethod === 'CASH' && cashGivenInput.trim() !== '' && Number(cashGivenInput) < effectiveTenderAmount && <p className="text-sm text-[var(--status-warning-fg)]">{t('Uang tunai yang diterima kurang dari jumlah bayar.', 'Cash received is less than the amount to pay.')}</p>}
-                            <InlineError message={paymentError} />
                             <Button
                               variant="primary"
                               size="lg"
@@ -1231,7 +1233,7 @@ export function StaffApp({
                               }}
                             >
                               <Receipt className="w-4 h-4" />
-                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? t('Terima tunai', 'Accept cash') : tenderMethod === 'MANUAL_TRANSFER' ? t('Catat transfer', 'Record transfer') : t('Buat instruksi pembayaran', 'Create payment instructions')}</span><Money amount={effectiveTenderAmount} className="block" /></span>
+                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? t('Terima tunai', 'Accept cash') : tenderMethod === 'MANUAL_TRANSFER' ? t('Catat transfer', 'Record transfer') : t('Buat instruksi pembayaran', 'Create payment instructions')}</span>{Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr && <Money amount={effectiveTenderAmount} className="block" />}</span>
                             </Button>
                           </>
                         ) : (
@@ -1821,11 +1823,10 @@ export function StaffApp({
         {isModuleEnabled('dashboard') && currentSection === 'laporan' && (
           <div key="pos-laporan" className="space-y-4">
             <div className="space-y-2 border-b border-[var(--border)] pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className={styles.reportBar}>
                 <ChoiceStrip<ReportPeriod>
                   ariaLabel={t('Periode laporan', 'Reporting period')}
                   variant="underline"
-                  className="border-b-0"
                   items={[
                     { id: 'day', label: t('Harian', 'Day') },
                     { id: 'week', label: t('Mingguan', 'Week') },
@@ -1923,7 +1924,7 @@ export function StaffApp({
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left 6 cols: Tax & Service Charge Config */}
-              <section className="lg:col-span-6 lg:pr-8 lg:border-r lg:border-[var(--border)] space-y-4">
+              <section className={`lg:col-span-6 space-y-4 ${canMarketing ? 'lg:pr-8 lg:border-r lg:border-[var(--border)]' : ''}`}>
                 <div>
                   <h2 className="font-heading text-[17px] font-bold">
                     {t("Pajak & layanan", "Tax & service")}
@@ -1993,7 +1994,7 @@ export function StaffApp({
                         className={`w-full py-3 px-2 flex items-center justify-between text-left text-[14px] transition-colors cursor-pointer ${
                           isCurrent
                             ? 'bg-[var(--accent-surface)] font-semibold text-[var(--primary-ink)]'
-                            : 'rounded-xl hover:bg-[var(--background)]'
+                            : 'hover:bg-[var(--accent-surface)]'
                         }`}
                       >
                         <span>{preset.label}</span>

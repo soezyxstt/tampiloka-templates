@@ -54,9 +54,9 @@ test('partial receipts print text safely with modifiers, outlet time and the rem
   assert.match(text, /Large · Less sugar · No ice/);
   assert.match(text, /Payments received -Rp\s*10\.000/);
   assert.match(text, /Balance due Rp\s*31\.580/);
-  assert.match(text, /07:00:00/);
+  assert.match(text, /Cash · .*07:00:00/);
   assert.match(text, /Demo receipt/);
-  assert.doesNotMatch(text, /Invalid Date|undefined|NaN/);
+  assert.doesNotMatch(text, /Invalid Date|undefined|NaN|-Rp\s*0\b|CASH|·\s*$/);
   assert.equal(popup.opener, null);
   assert.equal(printed, 1);
 });

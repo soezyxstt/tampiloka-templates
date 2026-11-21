@@ -71,7 +71,8 @@
 }
 .floorNav { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;border-bottom:1px solid var(--border); }
 .sectionBar { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;border-bottom:1px solid var(--border); }
-.sectionBar :global(.choice-strip), .floorNav :global(.choice-strip[data-variant=underline]) { border-bottom:0; }
+.reportBar { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px; }
+.sectionBar :global(.choice-strip), .floorNav :global(.choice-strip[data-variant=underline]), .reportBar :global(.choice-strip) { border-bottom:0; }
 .reportSummary dt { color: var(--muted-foreground); font-size: 13px; }
 .reportSummary dd { margin-top: 4px; font-family: var(--font-heading); font-size: 20px; line-height: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .syncText {
