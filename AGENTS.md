@@ -244,6 +244,8 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 
 ## Change log
 
+- **2026-11-21**: Demo Cafe menyediakan reset ke data lengkap, data kafe tanpa aktivitas pelanggan, atau ruang kerja kosong.
+
 - **2026-11-21**: Cafe revamps customer and staff layouts to an open, minimal-card hairline architecture inspired by clean mobile order-summary flows, reserving bordered frames for a single order-type callout strip, scannable QR quiet zones, the floor map, and KDS tickets.
 - **2026-11-21**: Cafe groups menu prices in bills and printable receipts, focuses shift/split tasks in dialogs, and separates partial-payment controls from active payment instructions while preserving operational role restrictions.
 

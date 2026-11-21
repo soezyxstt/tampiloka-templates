@@ -1,6 +1,6 @@
 /** Reproducible starting points for demonstrations and lifecycle regression tests. */
 export const DEMO_SCENARIOS = [
-  { id: 'empty', label: 'Mulai dari kafe kosong', description: 'Menu, stok awal, dan meja tersedia. Belum ada pesanan atau pembayaran.', requires: [], expected: 'Tempatkan tamu, lalu jalankan alur dari awal.' },
+  { id: 'empty', label: 'Data kafe saja', description: 'Menu, stok awal, dan meja tersedia. Belum ada pesanan atau pembayaran.', requires: [], expected: 'Tempatkan tamu, lalu jalankan alur dari awal.' },
   { id: 'walk-in', label: 'Tamu baru duduk', description: 'Rani dan Dimas sudah menempati M06, belum memesan.', requires: ['tables', 'ordering', 'cashier'], expected: 'Kunjungan aktif, meja terisi, belum ada tagihan.' },
   { id: 'pending-request', label: 'Pesanan menunggu persetujuan', description: 'Pesanan teh masuk dari pelanggan M06.', requires: ['tables', 'ordering', 'cashier'], expected: 'Terima atau tolak permintaan. Kunjungan belum boleh ditutup.' },
   { id: 'rejected-request', label: 'Pesanan ditolak staf', description: 'Permintaan pelanggan ditolak dengan alasan yang tercatat.', requires: ['tables', 'ordering', 'cashier'], expected: 'Tidak terbentuk tagihan atau reservasi stok; pelanggan dapat memesan ulang.' },

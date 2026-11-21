@@ -2739,6 +2739,10 @@ export async function manageMenuAndStock(input: {
         if (price <= 0) {
           throw new Error('Harga menu harus lebih dari Rp0.');
         }
+        const categories = await tx.select().from(menuCategories).where(eq(menuCategories.outletId, DEFAULT_OUTLET_ID)).orderBy(asc(menuCategories.sortOrder));
+        const category = categories.find(entry => entry.id === (m.categoryId || 'cat_kopi')) || categories[0];
+        if (!category) throw new Error('Tambahkan kategori sebelum membuat menu.');
+        const [defaultPool] = await tx.select({ id: stockPools.id }).from(stockPools).where(eq(stockPools.id, 'pool_teh_melati'));
         const cleanPhotos = (m.photos || []).map((p) => String(p || '').trim()).filter(Boolean);
         const newItemId = makeId('item');
         await tx.insert(menuItems).values({
@@ -2746,7 +2750,7 @@ export async function manageMenuAndStock(input: {
           tenantId: DEFAULT_TENANT_ID,
           outletId: DEFAULT_OUTLET_ID,
           externalCode: cleanCode,
-          categoryId: m.categoryId || 'cat_kopi',
+          categoryId: category.id,
           stationId: m.stationCode === 'KITCHEN' ? 'st_kitchen' : m.stationCode === 'PASTRY' ? 'st_pastry' : 'st_bar',
           stationCode: m.stationCode || 'BAR',
           name: cleanName,
@@ -2774,7 +2778,7 @@ export async function manageMenuAndStock(input: {
           code: `${cleanCode}-STD`,
           name: String(m.variantName || 'Reguler').trim() || 'Reguler',
           priceIdr: price,
-          stockPoolId: 'pool_teh_melati',
+          stockPoolId: defaultPool?.id ?? null,
           consumptionUnits: 1,
           isDefault: true,
           active: true,
@@ -2896,6 +2900,8 @@ export async function manageMenuAndStock(input: {
           .select()
           .from(menuCategories)
           .where(eq(menuCategories.outletId, DEFAULT_OUTLET_ID));
+        if (rows.length && !cats.length) throw new Error('Tambahkan kategori sebelum mengimpor menu.');
+        const [defaultPool] = await tx.select({ id: stockPools.id }).from(stockPools).where(eq(stockPools.id, 'pool_teh_melati'));
         const existingItems = await tx
           .select()
           .from(menuItems)
@@ -2936,7 +2942,7 @@ export async function manageMenuAndStock(input: {
               code: `${r.externalCode}-STD`,
               name: r.variantName || 'Standar',
               priceIdr: r.priceIdr,
-              stockPoolId: 'pool_teh_melati',
+              stockPoolId: defaultPool?.id ?? null,
               consumptionUnits: 1,
               isDefault: true,
               active: true,

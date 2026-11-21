@@ -174,6 +174,7 @@ export function FloorPlanEditor({
     });
   }, [polygon, draftTables]);
 
+  if (!currentRoom) return <p className="text-sm text-[var(--muted-foreground)]">{tr('Belum ada denah ruang.', 'No floor plan yet.')}</p>;
 
   return (
     <div className="space-y-4">

@@ -30,6 +30,7 @@ test('every mock scenario creates its documented independent operational and fin
   await setup.exec(BROWSER_SCHEMA_SQL);
   await setup.close();
   const { loadDemoScenario } = await import('../src/demo-runtime/scenarios.ts');
+  const { executeBrowserCommand, getBrowserSnapshot } = await import('../src/demo-runtime/worker-service.ts');
   const { getFullApplicationSnapshot } = await import('../src/db/service.ts');
   try {
     for (const scenario of DEMO_SCENARIOS) await t.test(scenario.id, async () => {
@@ -94,6 +95,53 @@ test('every mock scenario creates its documented independent operational and fin
       await assert.rejects(loadDemoScenario('misspelled-scenario'), error => error.code === 'SCENARIO_UNAVAILABLE');
       const after = await getFullApplicationSnapshot();
       assert.deepEqual(after.waitlistEntries.map(entry => entry.id), before.waitlistEntries.map(entry => entry.id));
+    });
+    await t.test('browser reset switches between full, cafe-only, and blank data', async () => {
+      const reset = (level, surface = 'staff') => executeBrowserCommand({ command: 'RESET_DEMO_TO_LEVEL', payload: { level }, surface });
+      const full = (await reset('full')).snapshot;
+      assert.ok(full.members.length && full.visits.length && full.orders.length && full.bills.length);
+      assert.ok(full.bills.some(bill => bill.receipts.length));
+      assert.deepEqual(full.runtime.notificationBaselineIds, full.orderRequests.map(request => request.id));
+      await assert.rejects(reset('invalid'), error => error.code === 'INVALID_DEMO_SEED_LEVEL');
+      await assert.rejects(reset('blank', 'customer'));
+      assert.equal((await getBrowserSnapshot({ surface: 'staff' })).orders.length, full.orders.length);
+
+      const cafe = (await reset('cafe')).snapshot;
+      for (const field of ['catalog', 'stockPools', 'rooms', 'tables', 'layoutVersions']) {
+        assert.ok(cafe[field].length, field);
+      }
+      for (const field of ['members', 'rewardEntitlements', 'visits', 'waitlistEntries', 'orders', 'orderRequests', 'bills', 'feedbackEntries', 'cashMovements']) {
+        assert.deepEqual(cafe[field], [], field);
+      }
+      assert.ok(cafe.tables.every(table => table.physicalState === 'AVAILABLE'));
+      assert.ok(cafe.stockPools.every(pool => pool.reserved === 0));
+      assert.ok(cafe.promotionRules.every(rule => rule.quotaUsed === 0 && rule.quotaReserved === 0));
+      assert.deepEqual(cafe.runtime.notificationBaselineIds, []);
+
+      await reset('blank');
+      const blank = await getBrowserSnapshot({ surface: 'staff' });
+      for (const field of ['catalog', 'categories', 'stockPools', 'rooms', 'tables', 'layoutVersions', 'promotionRules', 'wifiNetworks', 'cashShifts', 'members', 'visits', 'orders', 'bills']) {
+        assert.deepEqual(blank[field], [], field);
+      }
+      assert.equal(blank.paymentAccount, null);
+      assert.ok(blank.staffRoles.length);
+      const customer = await getBrowserSnapshot({ surface: 'customer' });
+      assert.deepEqual(customer.catalog, []);
+      assert.deepEqual(customer.tables, []);
+
+      const menuCommand = payload => executeBrowserCommand({
+        command: 'MENU_STOCK_ACTION', payload: { ...payload, actorName: 'Tester', actorRole: 'OWNER' }, surface: 'staff',
+      });
+      const { result: category } = await menuCommand({ action: 'CREATE_CATEGORY', newCategoryName: 'Minuman' });
+      await menuCommand({ action: 'CREATE_MENU_ITEM', newMenuItem: {
+        name: 'Teh', externalCode: 'TEH', categoryId: category.categoryId, stationCode: 'BAR', priceIdr: 18000,
+      } });
+      const [item] = (await getBrowserSnapshot({ surface: 'customer' })).catalog;
+      assert.equal(item.categoryId, category.categoryId);
+      assert.equal(item.variants[0].stockPoolId, null, 'A blank demo has no sample stock pool to attach.');
+      const restored = (await reset('full')).snapshot;
+      assert.deepEqual(restored.orders.map(order => order.id), full.orders.map(order => order.id));
+      assert.ok(!restored.catalog.some(entry => entry.id === item.id));
     });
   } finally {
     await global._cafeDemoDatabase?.close();

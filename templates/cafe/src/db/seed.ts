@@ -64,6 +64,8 @@ export function getBusinessDate(now = new Date()): string {
 }
 export const TODAY_BUSINESS_DATE = getBusinessDate();
 
+export type DemoSeedLevel = 'blank' | 'cafe' | 'full';
+
 let seedingPromise: Promise<void> | null = null;
 
 export async function ensureSeeded(): Promise<void> {
@@ -71,26 +73,22 @@ export async function ensureSeeded(): Promise<void> {
   if (seedingPromise) {
     return seedingPromise;
   }
-  seedingPromise = runSeedInternal().finally(() => {
+  seedingPromise = seedIfNeeded().finally(() => {
     seedingPromise = null;
   });
   return seedingPromise;
 }
 
-async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPTY === '1'): Promise<void> {
+async function seedIfNeeded(): Promise<void> {
+  const existingOutlet = await db.select({ id: outlets.id }).from(outlets)
+    .where(eq(outlets.slug, DEFAULT_OUTLET_SLUG)).limit(1);
+  if (!existingOutlet.length) {
+    await db.transaction(tx => seedDemoData(tx, process.env.CAFE_DEMO_EMPTY === '1' ? 'cafe' : 'full'));
+  }
+}
+
+async function seedDemoData(db: Pick<typeof import('./index.ts').db, 'insert' | 'update'>, level: DemoSeedLevel): Promise<void> {
   try {
-    if (!force) {
-      const existingOutlet = await db
-        .select()
-        .from(outlets)
-        .where(eq(outlets.slug, DEFAULT_OUTLET_SLUG))
-        .limit(1);
-
-      if (existingOutlet.length > 0) {
-        return;
-      }
-    }
-
     const now = new Date();
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
     const inEightHours = new Date(now.getTime() + 8 * 60 * 60 * 1000);
@@ -109,8 +107,8 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       slug: DEFAULT_OUTLET_SLUG,
       name: cafeConfig.venue.name,
       address: cafeConfig.venue.address,
-      openHoursText: '07:00 – 22:00 WIB',
-      facilitiesText: 'Ruang Indoor AC, Teras Kebun, Mushola, Stopkontak tiap meja, Toilet bersih',
+      openHoursText: level === 'blank' ? '' : '07:00 – 22:00 WIB',
+      facilitiesText: level === 'blank' ? '' : 'Ruang Indoor AC, Teras Kebun, Mushola, Stopkontak tiap meja, Toilet bersih',
       timezone: cafeConfig.timezone,
       businessCutoff: '00:00',
       paymentPolicy: isModuleEnabled('payments') ? 'PREPAY' : 'PAY_LATER',
@@ -132,17 +130,6 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       catalogVersion: 3,
       policyVersion: 1,
       acceptingOrders: true,
-    }).onConflictDoNothing();
-
-    await db.insert(paymentAccounts).values({
-      id: 'payacc_meranti_midtrans',
-      tenantId: DEFAULT_TENANT_ID,
-      outletId: DEFAULT_OUTLET_ID,
-      provider: 'MIDTRANS',
-      merchantRef: `DEMO-${cafeConfig.venue.outletSlug.toUpperCase()}`,
-      bankManualInfo: `Rekening contoh ${cafeConfig.brand.name}. Jangan kirim uang.`,
-      methodsJson: ['QRIS', 'VIRTUAL_ACCOUNT', 'CASH', 'MANUAL_TRANSFER'],
-      status: 'ACTIVE',
     }).onConflictDoNothing();
 
     await db.insert(staffOutletRoles).values([
@@ -236,34 +223,24 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       expiresAt: inEightHours,
     }).onConflictDoNothing();
 
-    await db.insert(customerMemberships).values([
-      {
-        id: 'mem_anisa',
-        tenantId: DEFAULT_TENANT_ID,
-        userId: 'usr_anisa_member',
-        phone: '+6281234567890',
-        email: 'anisa.putri@contoh.id',
-        displayName: 'Anisa Putri',
-        status: 'ACTIVE',
-        qualifiedVisitsCount: 4,
-        loyaltyDeficitCount: 0,
-        marketingOptIn: true,
-        favoriteMenuIdsJson: ['item_kopi_aren', 'item_croissant'],
-      },
-      {
-        id: 'mem_hendra',
-        tenantId: DEFAULT_TENANT_ID,
-        userId: 'usr_hendra_member',
-        phone: '+6281987654321',
-        email: 'hendra.wijaya@contoh.id',
-        displayName: 'Hendra Wijaya',
-        status: 'ACTIVE',
-        qualifiedVisitsCount: 2,
-        loyaltyDeficitCount: 0,
-        marketingOptIn: false,
-        favoriteMenuIdsJson: ['item_v60_garut'],
-      },
+    await db.insert(stations).values([
+      { id: 'st_bar', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'BAR', name: 'Bar & Kopi', type: 'BAR', active: true },
+      { id: 'st_kitchen', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'KITCHEN', name: 'Dapur Utama', type: 'KITCHEN', active: true },
+      { id: 'st_pastry', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'PASTRY', name: 'Pastry & Roti', type: 'PASTRY', active: true },
     ]).onConflictDoNothing();
+
+    if (level === 'blank') return;
+
+    await db.insert(paymentAccounts).values({
+      id: 'payacc_meranti_midtrans',
+      tenantId: DEFAULT_TENANT_ID,
+      outletId: DEFAULT_OUTLET_ID,
+      provider: 'MIDTRANS',
+      merchantRef: `DEMO-${cafeConfig.venue.outletSlug.toUpperCase()}`,
+      bankManualInfo: `Rekening contoh ${cafeConfig.brand.name}. Jangan kirim uang.`,
+      methodsJson: ['QRIS', 'VIRTUAL_ACCOUNT', 'CASH', 'MANUAL_TRANSFER'],
+      status: 'ACTIVE',
+    }).onConflictDoNothing();
 
     await db.insert(wifiNetworks).values([
       {
@@ -353,7 +330,7 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       },
     ]).onConflictDoNothing();
 
-    const initialTables = [
+    const sampleTables = [
       {
         id: 'tbl_m01',
         tenantId: DEFAULT_TENANT_ID,
@@ -537,6 +514,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       },
     ];
 
+    const initialTables = level === 'cafe'
+      ? sampleTables.map(table => ({ ...table, physicalState: 'AVAILABLE', version: 1 }))
+      : sampleTables;
     await db.insert(cafeTables).values(initialTables).onConflictDoNothing();
 
     await db.insert(layoutVersions).values([
@@ -569,12 +549,6 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         warningsAcknowledged: false,
         createdBy: 'Raka Pratama',
       },
-    ]).onConflictDoNothing();
-
-    await db.insert(stations).values([
-      { id: 'st_bar', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'BAR', name: 'Bar & Kopi', type: 'BAR', active: true },
-      { id: 'st_kitchen', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'KITCHEN', name: 'Dapur Utama', type: 'KITCHEN', active: true },
-      { id: 'st_pastry', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, code: 'PASTRY', name: 'Pastry & Roti', type: 'PASTRY', active: true },
     ]).onConflictDoNothing();
 
     await db.insert(menuCategories).values([
@@ -890,22 +864,7 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       },
     ]).onConflictDoNothing();
 
-    await db.insert(rewardEntitlements).values({
-      id: 'rew_anisa_croissant',
-      tenantId: DEFAULT_TENANT_ID,
-      memberId: 'mem_anisa',
-      promotionRuleId: 'promo_reward_after3',
-      sourceVisitId: 'visit_past_anisa_3',
-      title: 'Gratis 1x Croissant Mentega Prancis (Hadiah 3 Kunjungan)',
-      benefitSnapshotJson: { freeMenuItemId: 'item_croissant', maxDiscountIdr: 24000 },
-      state: 'AVAILABLE',
-      expiresAt: inThirtyDays,
-    }).onConflictDoNothing();
-
-    // A clean client demo keeps the sample menu and floor plan, without sample sales.
-    // This flag only affects the first seed of a new database or an explicit reset.
-    if (empty) {
-      await db.update(cafeTables).set({ physicalState: 'AVAILABLE' }).where(eq(cafeTables.outletId, DEFAULT_OUTLET_ID));
+    if (level === 'cafe') {
       await db.update(stockPools).set({ reserved: 0 }).where(eq(stockPools.outletId, DEFAULT_OUTLET_ID));
       await db.update(promotionRules).set({ quotaUsed: 0, quotaReserved: 0 }).where(eq(promotionRules.outletId, DEFAULT_OUTLET_ID));
       if (isModuleEnabled('cashier')) {
@@ -918,6 +877,47 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       }
       return;
     }
+
+    await db.insert(customerMemberships).values([
+      {
+        id: 'mem_anisa',
+        tenantId: DEFAULT_TENANT_ID,
+        userId: 'usr_anisa_member',
+        phone: '+6281234567890',
+        email: 'anisa.putri@contoh.id',
+        displayName: 'Anisa Putri',
+        status: 'ACTIVE',
+        qualifiedVisitsCount: 4,
+        loyaltyDeficitCount: 0,
+        marketingOptIn: true,
+        favoriteMenuIdsJson: ['item_kopi_aren', 'item_croissant'],
+      },
+      {
+        id: 'mem_hendra',
+        tenantId: DEFAULT_TENANT_ID,
+        userId: 'usr_hendra_member',
+        phone: '+6281987654321',
+        email: 'hendra.wijaya@contoh.id',
+        displayName: 'Hendra Wijaya',
+        status: 'ACTIVE',
+        qualifiedVisitsCount: 2,
+        loyaltyDeficitCount: 0,
+        marketingOptIn: false,
+        favoriteMenuIdsJson: ['item_v60_garut'],
+      },
+    ]).onConflictDoNothing();
+
+    await db.insert(rewardEntitlements).values({
+      id: 'rew_anisa_croissant',
+      tenantId: DEFAULT_TENANT_ID,
+      memberId: 'mem_anisa',
+      promotionRuleId: 'promo_reward_after3',
+      sourceVisitId: 'visit_past_anisa_3',
+      title: 'Gratis 1x Croissant Mentega Prancis (Hadiah 3 Kunjungan)',
+      benefitSnapshotJson: { freeMenuItemId: 'item_croissant', maxDiscountIdr: 24000 },
+      state: 'AVAILABLE',
+      expiresAt: inThirtyDays,
+    }).onConflictDoNothing();
 
     // Seed Active Cash Shift (S15)
     await db.insert(cashShifts).values({
@@ -1669,8 +1669,9 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
   }
 }
 
-export async function resetDemoData(options: { empty?: boolean } = {}): Promise<{ ok: boolean }> {
+export async function resetDemoData(options: { level?: DemoSeedLevel; empty?: boolean } = {}): Promise<{ ok: boolean }> {
   assertDemoRuntime();
+  const level = options.level ?? ((options.empty ?? process.env.CAFE_DEMO_EMPTY === '1') ? 'cafe' : 'full');
   // A dedicated demo database contains one configured client. Clear the entire
   // fixture consistently; leaving receipts, idempotency keys or stock reservations
   // behind would corrupt a fresh demo.
@@ -1688,7 +1689,7 @@ export async function resetDemoData(options: { empty?: boolean } = {}): Promise<
       staffSessionAssurances, staffOutletRoles, customerMemberships, outlets, tenants,
     ];
     for (const table of tablesToReset) await tx.delete(table);
+    await seedDemoData(tx, level);
   });
-  await runSeedInternal(true, options.empty ?? process.env.CAFE_DEMO_EMPTY === '1');
   return { ok: true };
 }

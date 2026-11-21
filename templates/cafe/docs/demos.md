@@ -22,17 +22,27 @@ Add `/staff` to any package that includes staff functions. The public root opens
 
 Themes are intentionally varied across packages: editorial for the catalog, rounded for table ordering, airy for online checkout, boxy for POS/operations, and playful for cashier/kitchen. The hub previews all five treatments. A theme does not change which service modules are enabled.
 
+## Choose starting data
+
+Open **Opsi demo → Data awal saat reset** and select a starting point. Click **Reset data** and confirm to replace the current preset's data in this browser.
+
+- **Data lengkap** is the default for a fresh public demo. It includes the cafe setup and sample customer activity such as visits, orders, and payments.
+- **Data kafe saja** sets up the menu, stock, floor plan, and other cafe settings. Customer activity starts from zero.
+- **Kosong** opens the demo without sample menu, stock, layout, or customer activity. The outlet and demo staff access are available so both supported views can open.
+
+Reloading retains the resulting data. The reset keeps the current theme, language, preset, and view.
+
 ## Present a connected workflow
 
 1. Open the [full-service demo](https://cafe-full.tampiloka.site) on your presentation computer. Use a narrow browser window or device preview for the customer screen.
 2. Open its **Staf** link in another tab in the same browser. Choose the staff identity in the top demo toolbar and enable **Suara pesanan** before submitting an order. This showcase selector does not represent production authentication; the internal workspace contains no demo role switcher.
-3. In the top toolbar, open **Opsi demo**, expand **Data untuk mencoba alur operasional**, choose **Mulai dari kafe kosong**, and load the scenario. Close the dialog, then open **Meja & Antrean → Kunjungan aktif → Tempatkan tamu** to start a visit before ordering.
+3. In the top toolbar, open **Opsi demo**, choose **Data kafe saja**, and confirm **Reset data**. Then open **Meja & Antrean → Kunjungan aktif → Tempatkan tamu** to start a visit before ordering.
 4. Open the customer's table QR link in the other tab. Choose an item, select its options, add it to the cart, enter a customer name and submit the reviewed order. A valid table QR does not require location permission again.
 5. In the staff tab, accept the order under **Pesanan masuk**. Use **Tagihan** for payment and **Kunjungan aktif** for departure checks. Show the resulting order and bill. Under the default PREPAY policy, preparation remains held until payment settles.
 6. Return to the customer bill and start the simulated online payment. The QR is explicitly nonpayable. Open **Opsi demo → Simulasi pembayaran** in the staff tab to settle that attempt and show the updated bill. Under PAY_LATER, preparation may begin before settlement.
 7. Advance the kitchen/bar items through preparing, ready and delivered. Add another customer order to demonstrate its own unpaid bill within the same visit. The cashier can also enter multiple items, apply a discount, take a partial cash payment and calculate change.
 8. Use **Tinjau kepulangan** to show the remaining obligations. Confirm departure once all food, payments and service requests are resolved. Mark the table clean before seating the next party.
-9. Use **Opsi demo → Ulangi demo** to restore the sample state, or load one of the 14 scenarios to jump to a particular operational condition.
+9. Choose **Data lengkap** and confirm **Reset data** to restore the sample activity. Use **Data untuk mencoba alur operasional** to jump to a particular operational condition.
 
 For a smaller package, demonstrate only the included steps. `order-at-cashier` has an inbox without full POS; `menu-cashier` lets guests browse without placing their own orders. Reports show sales, receipts, refunds and outstanding amounts. They do not estimate operating costs or profit.
 
