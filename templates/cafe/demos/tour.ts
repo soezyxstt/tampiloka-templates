@@ -2,7 +2,7 @@ import type { DemoTourContent, DemoTourStep } from '@tampiloka/ui-core/demo';
 import { isModuleEnabled as enabled } from './config';
 
 export function customerTour(tableEntry: boolean): DemoTourContent['steps'] {
-  const steps: DemoTourContent['steps'] = [
+  const steps: [DemoTourStep, ...DemoTourStep[]] = [
     [['Lihat menu', 'Browse the menu'], ['Pilih kategori, lalu buka hidangan untuk melihat pilihan dan harganya.', 'Pick a category, then open a dish to see its options and price.']],
   ];
   if (tableEntry) steps.unshift(

@@ -1,4 +1,4 @@
-import type { DemoTourContent, DemoTourText } from '@tampiloka/ui-core/demo';
+import type { DemoTourContent, DemoTourStep, DemoTourText } from '@tampiloka/ui-core/demo';
 import type { Bootstrap, Role } from '../domain/model';
 
 const roles: Record<Role, DemoTourText> = {
@@ -10,7 +10,7 @@ const roles: Record<Role, DemoTourText> = {
 
 export function bookingTour(data: Bootstrap, role: Role, language: 'id' | 'en'): DemoTourContent {
   const { booking, whatsapp } = data.capabilities;
-  const steps: DemoTourContent['steps'] = role === 'customer'
+  const steps: [DemoTourStep, ...DemoTourStep[]] = role === 'customer'
     ? [[['Pilih layanan', 'Choose a service'], ['Buka layanan untuk melihat harga dan durasinya.', 'Open a service to see its price and duration.']]]
     : role === 'owner'
       ? [[['Atur layanan', 'Manage services'], ['Buka Layanan & harga untuk melihat dan mengubah layanan contoh.', 'Open Services & pricing to review and edit sample services.']]]

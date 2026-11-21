@@ -22,7 +22,7 @@ const firstSteps: Record<Role, DemoTourStep> = {
 };
 
 export function schoolTour({ capabilities, level }: Snapshot, role: Role, language: Locale): DemoTourContent {
-  const steps: DemoTourContent['steps'] = [firstSteps[role]];
+  const steps: [DemoTourStep, ...DemoTourStep[]] = [firstSteps[role]];
   if (role === 'visitor' && capabilities.includes('enrollment')) steps.push(
     [['Coba daftar', 'Try applying'], ['Pilih program dan kelas, lalu isi formulir dengan data contoh.', 'Choose a program and class, then fill out the form with sample details.']],
   );

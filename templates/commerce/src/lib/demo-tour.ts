@@ -1,4 +1,4 @@
-import type { DemoTourContent, DemoTourText } from '@tampiloka/ui-core/demo';
+import type { DemoTourContent, DemoTourStep, DemoTourText } from '@tampiloka/ui-core/demo';
 import type { Bootstrap, StaffRole } from '../shared/contracts';
 
 const staffRoles: Record<StaffRole, DemoTourText> = {
@@ -10,7 +10,7 @@ const staffRoles: Record<StaffRole, DemoTourText> = {
 export function commerceTour(data: Bootstrap, staff: boolean, language: 'id' | 'en'): DemoTourContent {
   const { capabilities, config, session } = data;
   const role = staff && session.role !== 'customer' ? session.role : null;
-  const steps: DemoTourContent['steps'] = !staff
+  const steps: [DemoTourStep, ...DemoTourStep[]] = !staff
     ? [[['Cari produk', 'Find a product'], ['Buka produk untuk melihat foto, harga, dan pilihan yang tersedia.', 'Open a product to see its photos, price, and available options.']]]
     : role === 'owner'
       ? [[['Kelola etalase', 'Manage the storefront'], ['Buka Produk untuk melihat katalog dan Pengaturan untuk meninjau informasi toko.', 'Open Products to review the catalog and Settings to review the store information.']]]
