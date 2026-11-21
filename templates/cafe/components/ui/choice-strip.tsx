@@ -65,7 +65,7 @@ export function ChoiceStrip<T extends string>({ items, value, onChange, ariaLabe
     {indicator && <motion.span aria-hidden="true" data-ui="choice-indicator" className="choice-indicator" initial={false} animate={indicator} transition={{ type: 'tween', duration: reduce ? 0 : MOTION.enter, ease: MOTION.ease }} />}
     {items.map(item => {
       const active = item.id === value, Icon = item.icon;
-      return <button key={item.id} type="button" data-choice data-active={active || undefined} aria-current={kind === 'navigation' && active ? 'page' : undefined} aria-pressed={kind === 'filter' ? active : undefined} onClick={() => onChange(item.id)} className="choice-item">
+      return <button key={item.id} type="button" data-choice={item.id} data-active={active || undefined} aria-current={kind === 'navigation' && active ? 'page' : undefined} aria-pressed={kind === 'filter' ? active : undefined} onClick={() => onChange(item.id)} className="choice-item">
         {Icon && <Icon className="h-4 w-4 shrink-0" />}<span>{item.label}</span>{typeof item.count === 'number' && item.count > 0 && <span className="choice-count">({item.count})</span>}
       </button>;
     })}

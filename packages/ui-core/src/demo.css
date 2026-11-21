@@ -92,6 +92,35 @@
 .tl-demo-tour-step h3 { font-size: 17px; font-weight: 650; }
 .tl-demo-tour-step .tl-demo-tour-progress { font-size: 13px; }
 .tl-demo-tour .tl-dialog-footer { flex-wrap: wrap; }
+.tl-dialog-overlay-custom { background: transparent; }
+.tl-demo-tour-spotlight {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--demo-panel-bg);
+  border-radius: var(--demo-control-radius);
+  box-shadow: 0 0 0 150vmax color-mix(in srgb, var(--demo-panel-fg) 64%, transparent),
+    inset 0 0 0 1px var(--demo-panel-fg);
+  pointer-events: none;
+  transition: top .24s ease, left .24s ease, width .24s ease, height .24s ease;
+}
+.tl-demo-tour:is(.tl-demo-tour-above, .tl-demo-tour-below) {
+  width: min(420px, calc(100% - 24px));
+  max-height: min(46dvh, calc(100dvh - 24px));
+  left: auto;
+  right: max(12px, env(safe-area-inset-right));
+  top: auto;
+  transform: none;
+  animation: tl-demo-tour-in .2s ease-out;
+}
+.tl-demo-tour.tl-demo-tour-above { top: max(12px, env(safe-area-inset-top)); }
+.tl-demo-tour.tl-demo-tour-below { bottom: max(12px, env(safe-area-inset-bottom)); }
+.tl-demo-tour:is(.tl-demo-tour-above, .tl-demo-tour-below)[data-state="closed"] { animation: tl-fade-out .15s ease-in; }
+.tl-demo-tour-copy { display: grid; gap: var(--demo-gap); animation: tl-demo-tour-in .2s ease-out; }
+@keyframes tl-demo-tour-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .tl-demo-tour-spotlight { transition: none; }
+  .tl-demo-tour-copy { animation: none; }
+}
 
 /* Tampiloka select treatment: aligned popup, quiet trigger, right-side check, soft motion. */
 .tl-demo-toolbar .tl-demo-select {

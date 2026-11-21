@@ -32,8 +32,18 @@ try {
   assert.equal(await guide.count(), 0, 'The guide opens only on request.');
   await guideButton.click();
   await guide.getByText('Step 1 of 3', { exact: true }).waitFor();
+  const spotlight = page.locator('.tl-demo-tour-spotlight');
+  const highlights = async selector => page.waitForFunction(value => {
+    const hole = document.querySelector('.tl-demo-tour-spotlight')?.getBoundingClientRect();
+    const target = document.querySelector(value)?.getBoundingClientRect();
+    return hole && target && Math.abs(hole.top - Math.max(0, target.top - 5)) < 1.5
+      && Math.abs(hole.left - Math.max(0, target.left - 5)) < 1.5;
+  }, selector);
+  await highlights('#demo-entry-table');
   await guide.getByRole('button', { name: 'Next', exact: true }).click();
   await guide.getByText('Step 2 of 3', { exact: true }).waitFor();
+  await highlights('.demo-entry-qr');
+  assert.equal(await spotlight.count(), 1, 'Only the current target is highlighted.');
   await guide.getByRole('button', { name: 'Skip', exact: true }).click();
   await guide.waitFor({ state: 'hidden' });
   await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Demo guide');

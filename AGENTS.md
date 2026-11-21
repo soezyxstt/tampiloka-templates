@@ -187,7 +187,7 @@ These rules apply to **every current and future public template demo**, includin
 5. Link the Tampiloka brand back to the shared `/templates` gallery, using `/en/templates` for English. Use the verified brand artwork and preserve its proportions and surface-appropriate variant. Template brand colors and layout may vary; the exploration controls must remain recognizable as Tampiloka.
 6. Preserve working demo subdomains and deep links. Keep supported theme, mode, view, and `lang=id|en` state in the URL. Build URLs with `URL`/`URLSearchParams`, preserve unrelated valid parameters and hashes, and test refresh, copied links, and browser back/forward. Never rename public preset/theme IDs merely to change their labels.
 7. Keep reset and sample-scenario actions secondary. Do not confuse demo reset with a purchase, staff operation, or navigation action. Reset affects demo data only. Payment simulation and sample-brand disclosures must remain clear.
-8. Provide an on-demand guide through the toolbar's `tour` prop. Match the active role and feature mode, use short ID/EN instructions for available tasks, and let visitors skip from any step or reopen the guide from the start.
+8. Provide an on-demand guide through the toolbar's `tour` prop. Match the active role and feature mode, use short ID/EN instructions, and highlight one available element per step. Use stable selectors with responsive alternatives, respect reduced motion, and let visitors skip or reopen the guide.
 
 ### Select fields, language, and small screens
 
@@ -244,6 +244,8 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 - Production workflows run independently of CI; configure repository branch protection or rulesets to require the `verify` CI check before merging to `main` and prevent bypasses as appropriate. Workflow YAML alone does not enforce that protection. Review required check names before renaming or removing jobs; do not require path-filtered workflows, which can leave checks pending on unrelated changes.
 
 ## Change log
+
+- **2026-11-21**: Panduan demo menyorot satu elemen per langkah dan mematikan animasi saat pengunjung memilih Kurangi gerakan.
 
 - **2026-11-21**: Demo Cafe menyediakan reset ke data lengkap, data kafe tanpa aktivitas pelanggan, atau ruang kerja kosong.
 - **2026-11-21**: Menambahkan panduan demo ID/EN yang bisa dilewati untuk setiap peran di Cafe, Commerce, Booking, School, dan Operations.

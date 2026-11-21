@@ -836,7 +836,7 @@ export function CustomerApp({
                 </button>
               )}
               {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
-              <div className={styles.menuToolbar}>
+              <div className={styles.menuToolbar} data-demo-target="cafe-menu-filters">
                 <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
                 <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
               </div>
@@ -861,11 +861,11 @@ export function CustomerApp({
                         {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} {t('di keranjang', 'in cart')}</span>}
                       </div>
                       <div className={styles.menuCardBody}>
-                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle}>{item.name}</button>
+                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle} data-demo-target="cafe-dish">{item.name}</button>
                         <p className={styles.menuDescription}>{item.description}</p>
                         <div className={styles.dishActions}>
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          {canOrder && <Button variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy || tableUnavailable} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
+                          {canOrder && <Button data-demo-target="cafe-add-dish" variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy || tableUnavailable} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
                         </div>
                       </div>
                     </MotionItem>;

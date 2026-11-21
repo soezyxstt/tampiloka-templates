@@ -8,7 +8,7 @@ Tema `sand`, `forest`, dan `ink` mengubah presentasi. Mode `inventory`, `retail`
 
 Toolbar menggunakan `DemoToolbarShell`, Radix Select, dan `demo.css` setelah CSS aplikasi. Tema, mode, dan peran berada di atas; ID/EN di kanan bawah. Offset sticky mengikuti tinggi toolbar terukur. URL mempertahankan pilihan demo, halaman, dokumen, lokasi, bahasa, parameter lain, dan hash.
 
-Buka Panduan dari Pengaturan demo untuk melihat langkah awal sesuai peran yang dipilih. Panduan tersedia dalam ID/EN dan bisa dilewati di setiap langkah.
+Buka Panduan dari Pengaturan demo untuk melihat langkah awal sesuai peran yang dipilih. Panduan tersedia dalam ID/EN dan bisa dilewati di setiap langkah. Sorotan berpindah ke satu elemen pada setiap langkah dan langsung berganti saat Kurangi gerakan aktif.
 
 ## Token dan kontrol
 

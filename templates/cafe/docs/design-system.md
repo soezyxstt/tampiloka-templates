@@ -66,7 +66,7 @@ The public cafe entry opens the full interactive demo. Visitors choose the theme
 
 `@tampiloka/ui-core/demo` supplies `DemoToolbarShell`, and `@tampiloka/ui-core/demo.css` supplies the shared layout, select treatment and floating language control. Commerce uses those exact exports too. Keep the CSS import after application styles. The shell accepts `family`, `label`, `galleryLabel`, `galleryUrl`, `controls`, `views`, `activeView`, `viewLabel`, and `actions`. `views` contains stable IDs, labels, optional icons, and either a local `href` or `onSelect`. It measures its height into `--demo-height`; sticky staff headers and sidebars sit below it.
 
-The toolbar's optional guide uses the active customer or staff role and the current feature mode. It can be skipped from any step and reopened from the toolbar.
+The toolbar's optional guide uses the active customer or staff role and the current feature mode. Each step highlights one visible control or section. The highlight moves between targets and updates immediately under reduced motion. It can be skipped from any step and reopened from the toolbar.
 
 The select appearance follows Tampiloka's existing form controls: a quiet outlined trigger, 8px corners, an aligned popup 6px below the trigger, a right-side check, and 200ms entrance/150ms exit motion. Existing Radix primitives retain keyboard, focus and popup behavior. All demo controls have 44px touch targets; mobile select text is 16px. The narrow layout keeps brand and role actions above two full-width selectors. Theme changes affect the cafe preview, while demo navigation retains the same Tampiloka treatment.
 

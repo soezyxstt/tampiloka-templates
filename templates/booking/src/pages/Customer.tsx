@@ -53,7 +53,7 @@ export function CustomerHeader() {
         className={open ? "is-open" : ""}
         onClick={() => setOpen(false)}
       >
-        <RouteLink to={{ page: "services" }}>
+        <RouteLink className="b-nav-services" to={{ page: "services" }}>
           {t("Layanan", "Services")}
         </RouteLink>
         {data.resources.some((r) => r.profile) && (

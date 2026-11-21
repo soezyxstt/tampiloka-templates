@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, useRef, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { MotionConfig, motion, useReducedMotion } from 'motion/react';
 
@@ -18,13 +18,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 export const NativeSelect = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function NativeSelect({ className, ...props }, ref) {
   return <select ref={ref} className={cx('tl-input', 'tl-select', className)} {...props} />;
 });
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; className?: string; closeLabel?: string }
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeLabel = 'Tutup dialog' }: DialogProps) {
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; className?: string; closeLabel?: string; overlay?: ReactNode; style?: CSSProperties }
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeLabel = 'Tutup dialog', overlay, style }: DialogProps) {
   const descriptionId = useId();
   const opener = useRef<HTMLElement | null>(null);
   return <RadixDialog.Root open={open} onOpenChange={onOpenChange}><RadixDialog.Portal>
-    <RadixDialog.Overlay className="tl-dialog-overlay" />
-    <RadixDialog.Content className={cx('tl-dialog', className)} aria-describedby={description ? descriptionId : undefined}
+    <RadixDialog.Overlay className={cx('tl-dialog-overlay', overlay != null && 'tl-dialog-overlay-custom')}>{overlay}</RadixDialog.Overlay>
+    <RadixDialog.Content className={cx('tl-dialog', className)} style={style} aria-describedby={description ? descriptionId : undefined}
       onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
       onCloseAutoFocus={event => {
         const target = opener.current;
