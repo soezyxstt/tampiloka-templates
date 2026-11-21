@@ -10,7 +10,6 @@ import { MotionPanel } from '@/components/ui/motion';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Button,
-  PageHeader,
   ChoiceStrip,
   Surface,
   Input,
@@ -750,9 +749,11 @@ export function StaffApp({
       </header>
       <a href="#staff-content" className="skip-link">{t("Ke ruang kerja", "Open workspace")}</a>
       <main id="staff-content" className="staff-main">
-        {currentSection !== 'meja' && <PageHeader title={navItems.find(item => item.id === currentSection)?.label || t('Operasional', 'Operations')} actions={!supervisor && canCashier && currentSection === 'kasir' ? <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />{t("Pesanan baru", "New order")}</Button> : undefined} />}
+        {currentSection !== 'kasir' && currentSection !== 'meja' && (
+          <h1 className="sr-only">{navItems.find(item => item.id === currentSection)?.label || t('Operasional', 'Operations')}</h1>
+        )}
         {supervisor && ['kasir', 'dapur', 'meja'].includes(currentSection) && (
-          <p className="text-sm text-[var(--muted-foreground)]">{t('Hanya lihat', 'View only')}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">{t('Hanya lihat', 'View only')}</p>
         )}
         <AnimatePresence>
           {actionError && (
@@ -775,17 +776,28 @@ export function StaffApp({
             key="pos-kasir"
             className="workspace-stack"
           >
-            <ChoiceStrip<'orders' | 'bills' | 'visits'>
-              ariaLabel={t('Tugas kasir dan pesanan', 'Cashier and order tasks')}
-              kind="navigation"
-              items={[
-                { id: 'orders', label: t('Pesanan masuk', 'Incoming orders'), count: pendingOrderRequests.length },
-                ...(canCashier ? [{ id: 'bills' as const, label: t('Tagihan', 'Bills'), count: activeBills.filter((bill: any) => bill.balanceIdr !== 0).length }] : []),
-                ...(!canTables ? [{ id: 'visits' as const, label: t('Kunjungan aktif', 'Active visits'), count: (snapshot?.visits || []).filter((visit: any) => visit.status === 'OPEN').length }] : []),
-              ]}
-              value={cashierTask}
-              onChange={task => { setCashierTask(task); setActionError(''); }}
-            />
+            <div className={styles.sectionBar}>
+              <h1 className="sr-only">{navItems.find(item => item.id === currentSection)?.label || t('Kasir', 'Cashier')}</h1>
+              <ChoiceStrip<'orders' | 'bills' | 'visits'>
+                ariaLabel={t('Tugas kasir dan pesanan', 'Cashier and order tasks')}
+                kind="navigation"
+                items={[
+                  { id: 'orders', label: t('Pesanan masuk', 'Incoming orders'), count: pendingOrderRequests.length },
+                  ...(canCashier ? [{ id: 'bills' as const, label: t('Tagihan', 'Bills'), count: activeBills.filter((bill: any) => bill.balanceIdr !== 0).length }] : []),
+                  ...(!canTables ? [{ id: 'visits' as const, label: t('Kunjungan aktif', 'Active visits'), count: (snapshot?.visits || []).filter((visit: any) => visit.status === 'OPEN').length }] : []),
+                ]}
+                value={cashierTask}
+                onChange={task => { setCashierTask(task); setActionError(''); }}
+              />
+              {!supervisor && canCashier && (
+                <div className="pb-1.5">
+                  <Button variant="primary" size="sm" onClick={() => setNewOrderModalOpen(true)}>
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    {t("Pesanan baru", "New order")}
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {cashierTask === 'orders' && <div className="workspace-stack">
               <Surface id="incoming-orders" variant="plain" className="space-y-3 scroll-mt-28">
@@ -851,8 +863,9 @@ export function StaffApp({
                           </Button>
 
                           <Button
-                            variant="danger"
+                            variant="ghost"
                             size="sm"
+                            className="text-[var(--status-danger-fg)] hover:bg-[var(--status-danger-bg)]"
                             disabled={busy}
                             onClick={() => { setRejectingRequest(req); setRejectReason(''); setModalActionError(''); }}
                           >
@@ -872,15 +885,9 @@ export function StaffApp({
             {canCashier && cashierTask === 'bills' && <div className="workspace-stack">
               {!supervisor && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* LEFT 4 COLS: Active Bills List (Flat Hairline Rows · No Outer Card) */}
-              <div className="lg:col-span-4 space-y-4 lg:pr-6 lg:border-r lg:border-[var(--border)]">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-heading text-[17px] font-bold">
-                    {t("Tagihan", "Bills")}
-                  </h2>
-                </div>
-
-                <div className="space-y-3">
+              {/* LEFT 4 COLS: Active Bills List (Flat Hairline Rows · No Redundant Title) */}
+              <div className="lg:col-span-4 space-y-3 lg:pr-6 lg:border-r lg:border-[var(--border)]">
+                <div className="space-y-2.5">
                   <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")} placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")} value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
                   <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
                 </div>
@@ -953,20 +960,25 @@ export function StaffApp({
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}><Printer className="w-4 h-4" />{t('Cetak struk', 'Print receipt')}</Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('Cetak struk', 'Print receipt')}
+                          title={t('Cetak struk', 'Print receipt')}
+                          onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}
+                        >
+                          <Printer className="w-4 h-4 text-[var(--foreground)]" aria-hidden="true" />
+                        </Button>
                         {!supervisor && selectedBill.lifecycle === 'OPEN' && (
                           <Button
-                            variant="secondary"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={showSplitMergePanel ? t("Tutup Pisah/Gabung", "Close split / merge") : t("Pisah / Gabung", "Split / merge")}
+                            title={showSplitMergePanel ? t("Tutup Pisah/Gabung", "Close split / merge") : t("Pisah / Gabung", "Split / merge")}
                             onClick={() => setShowSplitMergePanel(!showSplitMergePanel)}
                           >
-                            <Split className="w-4 h-4" />
-                            <span>
-                              {showSplitMergePanel
-                                ? t("Tutup Pisah/Gabung", "Close split / merge")
-                                : t("Pisah / Gabung", "Split / merge")}
-                            </span>
+                            <Split className="w-4 h-4 text-[var(--foreground)]" aria-hidden="true" />
                           </Button>
                         )}
                       </div>
@@ -1181,7 +1193,7 @@ export function StaffApp({
                                       key={preset.label}
                                       type="button"
                                       onClick={() => setCashGivenInput(String(preset.val))}
-                                      className="min-h-11 px-2.5 py-1 rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--accent-surface)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors"
+                                      className="min-h-10 px-3 py-1 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--accent-surface)] text-[var(--foreground)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors"
                                     >
                                       {preset.label}
                                     </button>
@@ -1376,18 +1388,18 @@ export function StaffApp({
             className="space-y-4"
           >
             <div className={styles.floorNav}>
-              <h1 className="font-heading text-[22px] leading-[28px] font-bold">{t('Meja & Antrean', 'Tables & waitlist')}</h1>
-              <AnimatedSegmentedControl
+              <h1 className="sr-only">{t('Meja & Antrean', 'Tables & waitlist')}</h1>
+              <ChoiceStrip<'KUNJUNGAN' | 'DENAH' | 'PANGGILAN' | 'ANTREAN'>
                 ariaLabel={t('Sub-menu operasional lantai', 'Floor operations menu')}
-                options={[
-                  { value: 'KUNJUNGAN', label: t('Kunjungan aktif', 'Active visits') },
-                  ...(!supervisor ? [{ value: 'DENAH' as const, label: t('Atur denah', 'Edit floor plan') }] : []),
-                  { value: 'PANGGILAN', label: t(`Panggilan pelayan (${openHelpCount})`, `Guest requests (${openHelpCount})`) },
-                  { value: 'ANTREAN', label: t(`Antrean tamu (${openWaitlistCount})`, `Guest waitlist (${openWaitlistCount})`) },
+                variant="underline"
+                items={[
+                  { id: 'KUNJUNGAN', label: t('Kunjungan aktif', 'Active visits') },
+                  ...(!supervisor ? [{ id: 'DENAH' as const, label: t('Atur denah', 'Edit floor plan') }] : []),
+                  { id: 'PANGGILAN', label: t(`Panggilan pelayan (${openHelpCount})`, `Guest requests (${openHelpCount})`) },
+                  { id: 'ANTREAN', label: t(`Antrean tamu (${openWaitlistCount})`, `Guest waitlist (${openWaitlistCount})`) },
                 ]}
                 value={floorSubTab}
                 onChange={setFloorSubTab}
-                layoutId="floor-sub-tab"
               />
             </div>
 
@@ -1610,85 +1622,11 @@ export function StaffApp({
         {sectionEnabled('menu') && currentSection === 'menu' && (
           <div
             key="pos-menu"
-            className="space-y-6"
+            className="space-y-4"
           >
-            {supervisor && <div className="flex flex-wrap items-start justify-between gap-3">
-              <Button size="sm" onClick={() => setAddMenuModalOpen(true)}>
-                <Plus className="w-4 h-4" />{t("Tambah menu", "Add menu item")}
-              </Button>
-              <details className={styles.disclosure}>
-                <summary>{t("Impor & cetak", "Import & print")}</summary>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => setShowCsvModal(true)}>
-                    <Upload className="w-4 h-4" />{t("Impor CSV", "Import CSV")}
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setShowQrPrintModal(true)}>
-                    <Printer className="w-4 h-4" />{t("Cetak QR meja", "Print table QR codes")}
-                  </Button>
-                </div>
-              </details>
-            </div>}
-
-            {supervisor && (snapshot?.stockPools || []).some((pool: any) => pool.mode === 'FINITE') && (
-              <details className={styles.disclosure}>
-                <summary>{t("Batas stok harian", "Daily stock limit")}</summary>
-                <div className="operation-list">
-                  {(snapshot?.stockPools || [])
-                    .filter((p: any) => p.mode === 'FINITE')
-                    .map((p: any) => (
-                      <div
-                        key={p.id}
-                        data-stock-pool-id={p.id}
-                        className="operation-record flex flex-wrap items-center justify-between gap-3 text-[14px]"
-                      >
-                        <div>
-                          <p className="font-semibold">{p.name}</p>
-                          <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
-                            {t("Tersedia dijual:", "Available to sell:")} <strong>{p.availableToSell} {t("porsi", "servings")}</strong> {t("(Fisik:", "(Physical:")}{' '}
-                            {p.onHand} {t("· Dipesan:", "· Reserved:")} {p.reserved})
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={p.reserved}
-                            value={stockAdjustMap[p.id] ?? p.onHand}
-                            onChange={(e) =>
-                              setStockAdjustMap({
-                                ...stockAdjustMap,
-                                [p.id]: Number(e.target.value),
-                              })
-                            }
-                            aria-label={t(`Ubah jumlah stok ${p.name}`, `Change stock quantity for ${p.name}`)}
-                            className="w-24 min-h-[36px] py-1 tabular-nums text-center"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled={busy}
-                            onClick={async () => {
-                              await runStaffCommand('MENU_STOCK_ACTION', {
-                                action: 'ADJUST_STOCK',
-                                poolId: p.id,
-                                newOnHand: stockAdjustMap[p.id] ?? p.onHand,
-                                reason: 'Penyesuaian stok harian',
-                              });
-                              toast.success(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
-                            }}
-                          >
-                            {t("Perbarui stok", "Update stock")}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </details>
-            )}
-
-            {/* Search & Category Filter Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-7 relative">
+            {/* Unified Search, Category & Primary CTA Row */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
                   aria-label={t("Cari menu", "Search menu")}
@@ -1698,7 +1636,7 @@ export function StaffApp({
                   className="pl-10"
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="w-full sm:w-56">
                 <SelectField
                   aria-label={t("Filter kategori katalog", "Filter catalogue categories")}
                   value={menuCategoryFilter}
@@ -1714,7 +1652,85 @@ export function StaffApp({
                   ))}
                 </SelectField>
               </div>
+              {supervisor && (
+                <Button size="sm" onClick={() => setAddMenuModalOpen(true)}>
+                  <Plus className="w-4 h-4" />{t("Tambah menu", "Add menu item")}
+                </Button>
+              )}
             </div>
+
+            {supervisor && (
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                {(snapshot?.stockPools || []).some((pool: any) => pool.mode === 'FINITE') && (
+                  <details className={`${styles.disclosure} flex-1 min-w-[220px]`}>
+                    <summary>{t("Batas stok harian", "Daily stock limit")}</summary>
+                    <div className="operation-list">
+                      {(snapshot?.stockPools || [])
+                        .filter((p: any) => p.mode === 'FINITE')
+                        .map((p: any) => (
+                          <div
+                            key={p.id}
+                            data-stock-pool-id={p.id}
+                            className="operation-record flex flex-wrap items-center justify-between gap-3 text-[14px]"
+                          >
+                            <div>
+                              <p className="font-semibold">{p.name}</p>
+                              <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
+                                {t("Tersedia dijual:", "Available to sell:")} <strong>{p.availableToSell} {t("porsi", "servings")}</strong> {t("(Fisik:", "(Physical:")}{' '}
+                                {p.onHand} {t("· Dipesan:", "· Reserved:")} {p.reserved})
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={p.reserved}
+                                value={stockAdjustMap[p.id] ?? p.onHand}
+                                onChange={(e) =>
+                                  setStockAdjustMap({
+                                    ...stockAdjustMap,
+                                    [p.id]: Number(e.target.value),
+                                  })
+                                }
+                                aria-label={t(`Ubah jumlah stok ${p.name}`, `Change stock quantity for ${p.name}`)}
+                                className="w-24 min-h-[36px] py-1 tabular-nums text-center"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-[var(--primary-ink)]"
+                                disabled={busy}
+                                onClick={async () => {
+                                  await runStaffCommand('MENU_STOCK_ACTION', {
+                                    action: 'ADJUST_STOCK',
+                                    poolId: p.id,
+                                    newOnHand: stockAdjustMap[p.id] ?? p.onHand,
+                                    reason: 'Penyesuaian stok harian',
+                                  });
+                                  toast.success(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
+                                }}
+                              >
+                                {t("Perbarui stok", "Update stock")}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </details>
+                )}
+                <details className={styles.disclosure}>
+                  <summary>{t("Impor & cetak", "Import & print")}</summary>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <Button variant="ghost" size="sm" onClick={() => setShowCsvModal(true)}>
+                      <Upload className="w-4 h-4" />{t("Impor CSV", "Import CSV")}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowQrPrintModal(true)}>
+                      <Printer className="w-4 h-4" />{t("Cetak QR meja", "Print table QR codes")}
+                    </Button>
+                  </div>
+                </details>
+              </div>
+            )}
 
             {/* One menu entry and its availability controls per record. */}
             <div className="operation-list">
@@ -1757,24 +1773,26 @@ export function StaffApp({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 shrink-0">
                       {supervisor && <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
                         aria-label={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
+                        title={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
                         onClick={() => {
                           setEditingPhotosItem(item);
                           setPhotoDraftList(itemPhotos);
                           setNewPhotoUrlInput('');
                         }}
                       >
-                        <Images className="w-4 h-4" />
-                        <span>{t("Foto (", "Photos (")}{itemPhotos.length})</span>
+                        <Images className="w-4 h-4" aria-hidden="true" />
+                        <span className="tabular-nums text-xs text-[var(--muted-foreground)]">{itemPhotos.length}</span>
                       </Button>}
 
                       <Button
-                        variant={item.manualSoldOut ? 'primary' : 'secondary'}
+                        variant={item.manualSoldOut ? 'primary' : 'ghost'}
                         size="sm"
+                        className={item.manualSoldOut ? '' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
                         disabled={busy}
                         onClick={() =>
                           runStaffCommand('MENU_STOCK_ACTION', {
@@ -1801,47 +1819,45 @@ export function StaffApp({
         {/* =================================================================== */}
         {currentSection === 'laporan' && supervisor && canCashier && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
         {isModuleEnabled('dashboard') && currentSection === 'laporan' && (
-          <div key="pos-laporan" className="space-y-6">
-            <div className="space-y-3 border-b border-[var(--border)] pb-4">
-              <ChoiceStrip<ReportPeriod>
-                ariaLabel={t('Periode laporan', 'Reporting period')}
-                variant="segmented"
-                items={[
-                  { id: 'day', label: t('Harian', 'Day') },
-                  { id: 'week', label: t('Mingguan', 'Week') },
-                  { id: 'month', label: t('Bulanan', 'Month') },
-                  { id: 'custom', label: t('Rentang khusus', 'Custom range') },
-                ]}
-                value={reportPeriod}
-                onChange={period => {
-                  if (period === 'custom' && !customReportInitialized.current) {
-                    setReportStartDate(reportRange?.start || reportDate);
-                    setReportEndDate(reportRange?.end || reportDate);
-                    customReportInitialized.current = true;
-                  }
-                  setReportPeriod(period);
-                }}
-              />
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="flex flex-wrap items-end gap-2">
-                  {reportPeriod === 'day' && <div className="space-y-1"><Label htmlFor="report-date">{t('Tanggal tagihan', 'Bill date')}</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div>}
-                  {reportPeriod === 'week' && <div className="space-y-1"><Label htmlFor="report-week-date">{t('Tanggal dalam minggu', 'Date within week')}</Label><Input id="report-week-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div>}
-                  {reportPeriod === 'month' && <div className="space-y-1"><Label htmlFor="report-month">{t('Bulan tagihan', 'Bill month')}</Label><Input id="report-month" type="month" value={reportDate.slice(0, 7)} onChange={event => { if (event.target.value) setReportDate(`${event.target.value}-01`); }} /></div>}
+          <div key="pos-laporan" className="space-y-4">
+            <div className="space-y-2 border-b border-[var(--border)] pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <ChoiceStrip<ReportPeriod>
+                  ariaLabel={t('Periode laporan', 'Reporting period')}
+                  variant="underline"
+                  className="border-b-0"
+                  items={[
+                    { id: 'day', label: t('Harian', 'Day') },
+                    { id: 'week', label: t('Mingguan', 'Week') },
+                    { id: 'month', label: t('Bulanan', 'Month') },
+                    { id: 'custom', label: t('Rentang khusus', 'Custom range') },
+                  ]}
+                  value={reportPeriod}
+                  onChange={period => {
+                    if (period === 'custom' && !customReportInitialized.current) {
+                      setReportStartDate(reportRange?.start || reportDate);
+                      setReportEndDate(reportRange?.end || reportDate);
+                      customReportInitialized.current = true;
+                    }
+                    setReportPeriod(period);
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {reportPeriod === 'day' && <Input id="report-date" aria-label={t('Tanggal tagihan', 'Bill date')} type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} className="w-auto" />}
+                  {reportPeriod === 'week' && <Input id="report-week-date" aria-label={t('Tanggal dalam minggu', 'Date within week')} type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} className="w-auto" />}
+                  {reportPeriod === 'month' && <Input id="report-month" aria-label={t('Bulan tagihan', 'Bill month')} type="month" value={reportDate.slice(0, 7)} onChange={event => { if (event.target.value) setReportDate(`${event.target.value}-01`); }} className="w-auto" />}
                   {reportPeriod === 'custom' && <>
-                    <div className="space-y-1"><Label htmlFor="report-start-date">{t('Dari tanggal', 'Start date')}</Label><Input id="report-start-date" type="date" value={reportStartDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportStartDate(event.target.value)} /></div>
-                    <div className="space-y-1"><Label htmlFor="report-end-date">{t('Sampai tanggal', 'End date')}</Label><Input id="report-end-date" type="date" value={reportEndDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportEndDate(event.target.value)} /></div>
+                    <Input id="report-start-date" aria-label={t('Dari tanggal', 'Start date')} type="date" value={reportStartDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportStartDate(event.target.value)} className="w-auto" />
+                    <Input id="report-end-date" aria-label={t('Sampai tanggal', 'End date')} type="date" value={reportEndDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportEndDate(event.target.value)} className="w-auto" />
                   </>}
-                  <Button variant="secondary" size="sm" onClick={() => {
+                  <Button variant="ghost" size="sm" className="text-[var(--primary-ink)]" onClick={() => {
                     if (reportPeriod === 'custom') { setReportStartDate(todayReportDate); setReportEndDate(todayReportDate); }
                     else setReportDate(todayReportDate);
                   }}>{reportPeriod === 'week' ? t('Minggu ini', 'This week') : reportPeriod === 'month' ? t('Bulan ini', 'This month') : t('Hari ini', 'Today')}</Button>
-                </div>
-                <div className="space-y-1">
-                  <Button variant="secondary" size="sm" disabled={!reportRange || !reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />{t('Unduh CSV', 'Download CSV')}</Button>
-                  {reportRange && !reportBills.length && <p className="text-xs text-[var(--muted-foreground)]">{t('Tidak ada tagihan untuk diunduh.', 'No bills to download.')}</p>}
+                  <Button variant="ghost" size="icon" aria-label={t('Unduh CSV', 'Download CSV')} title={reportRange && !reportBills.length ? t('Tidak ada tagihan untuk diunduh.', 'No bills to download.') : t('Unduh CSV', 'Download CSV')} disabled={!reportRange || !reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" aria-hidden="true" /></Button>
                 </div>
               </div>
-              {!reportRange ? <p id="report-range-error" role="alert" className="text-sm text-[var(--status-danger-fg)]">{t('Masukkan tanggal yang valid; tanggal awal tidak boleh setelah tanggal akhir.', 'Enter valid dates; the start date must not be after the end date.')}</p> : <p className="text-sm text-[var(--muted-foreground)]" aria-live="polite">{t('Tanggal bisnis', 'Business dates')}: <span className="font-medium text-[var(--foreground)] tabular-nums">{reportRange.start}{reportRange.start !== reportRange.end && ` – ${reportRange.end}`}</span>{reportPeriod === 'week' && ` · ${t('Senin–Minggu', 'Monday–Sunday')}`}{reportRange.start !== reportRange.end && ` · ${t('termasuk kedua tanggal', 'both dates inclusive')}`}</p>}
+              {!reportRange ? <p id="report-range-error" role="alert" className="text-sm text-[var(--status-danger-fg)]">{t('Masukkan tanggal yang valid; tanggal awal tidak boleh setelah tanggal akhir.', 'Enter valid dates; the start date must not be after the end date.')}</p> : <p className="text-xs text-[var(--muted-foreground)]" aria-live="polite">{t('Tanggal bisnis', 'Business dates')}: <span className="font-medium text-[var(--foreground)] tabular-nums">{reportRange.start}{reportRange.start !== reportRange.end && ` – ${reportRange.end}`}</span>{reportPeriod === 'week' && ` · ${t('Senin–Minggu', 'Monday–Sunday')}`}{reportRange.start !== reportRange.end && ` · ${t('termasuk kedua tanggal', 'both dates inclusive')}`}</p>}
             </div>
             {reportRange && <>
             <dl className={styles.reportSummary}>
@@ -2050,12 +2066,13 @@ export function StaffApp({
                       {t("Promo", "Promotions")}
                     </h2>
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("Tambah promo", "Add promotion")}
+                      title={t("Tambah promo", "Add promotion")}
                       onClick={() => setNewPromoModalOpen(true)}
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>{t("Tambah promo", "Add promotion")}</span>
+                      <Plus className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
                     </Button>
                   </div>
 

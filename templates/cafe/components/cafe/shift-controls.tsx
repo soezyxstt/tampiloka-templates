@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useCafeLanguage } from '@/lib/language';
 
 import { useId, useState } from 'react';
-import { Button, Input, Label, InlineError, Money, StatusLabel, Surface, DialogModal } from './ui-primitives';
+import { Button, Input, Label, InlineError, Money, StatusLabel, DialogModal } from './ui-primitives';
 import { isModuleEnabled } from '@/src/config/cafe';
 
 type Shift = {
@@ -70,12 +70,15 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
     finally { setPending(false); }
   };
 
-  return <Surface variant="ruled" className="space-y-3" aria-label={tr("Shift kasir", "Cashier shift")}>
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-3"><h2 className="font-semibold">{tr("Kasir", "Cashier")}</h2><StatusLabel label={active ? tr("Shift terbuka", "Shift open") : tr("Shift ditutup", "Shift closed")} tone={active ? 'success' : 'warning'} />{active && <span className="text-sm text-[var(--muted-foreground)]">{tr("Kas laci", "Expected drawer cash")} <Money amount={active.expectedCashIdr} className="font-semibold text-[var(--foreground)]" /></span>}</div>
-      <Button variant="secondary" size="sm" aria-haspopup="dialog" onClick={() => setExpanded(value => !value)}>{active ? tr("Atur Shift", "Manage cash & shift") : tr("Buka shift", "Open shift")}</Button>
+  return <section className="py-1.5 border-b border-[var(--border)] space-y-1.5" aria-label={tr("Shift kasir", "Cashier shift")}>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2.5 text-sm">
+        <StatusLabel label={active ? tr("Shift terbuka", "Shift open") : tr("Shift ditutup", "Shift closed")} tone={active ? 'success' : 'warning'} />
+        {active && <span className="text-[var(--muted-foreground)]">{tr("Kas laci", "Expected drawer cash")} <Money amount={active.expectedCashIdr} className="font-semibold text-[var(--foreground)]" /></span>}
+        {!active && !expanded && <span className="text-[var(--muted-foreground)]">{tr("Buka shift sebelum menerima pembayaran tunai.", "Open a shift before accepting cash payments.")}</span>}
+      </div>
+      <Button variant="ghost" size="sm" className="text-[var(--primary-ink)]" aria-haspopup="dialog" onClick={() => setExpanded(value => !value)}>{active ? tr("Atur Shift", "Manage cash & shift") : tr("Buka shift", "Open shift")}</Button>
     </div>
-    {!active && !expanded && <p className="text-sm text-[var(--muted-foreground)]">{tr("Buka shift sebelum menerima pembayaran tunai.", "Open a shift before accepting cash payments.")}</p>}
     <InlineError message={expanded ? "" : error} />
     <DialogModal open={expanded} onClose={() => { if (!locked) setExpanded(false); }} title={tr('Atur Shift', 'Manage shift')}>
     <div id={`${prefix}-details`} className="space-y-4">
@@ -90,5 +93,5 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
       </div>}
     </div>
     </DialogModal>
-  </Surface>;
+  </section>;
 }

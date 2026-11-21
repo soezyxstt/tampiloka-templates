@@ -139,7 +139,7 @@ export function VisitService({ snapshot, busy, canTables, actorRole, onCommand, 
         {showMap && summary.pendingRequestCount > 0 && <p className="text-sm">{tr(`${summary.pendingRequestCount} pesanan menunggu konfirmasi`, `${summary.pendingRequestCount} orders await confirmation`)}</p>}
         {summary.refundDueIdr > 0 && <p className="text-sm text-[var(--status-danger-fg)]">{tr('Pengembalian masih diperlukan:', 'Refund still due:')} <Money amount={summary.refundDueIdr} /></p>}
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant={summary.canDepart ? 'primary' : 'secondary'} size="sm" disabled={locked} onClick={() => openReview(visit.id)}>{visit.mode === 'DINE_IN' ? tr('Tinjau kepulangan', 'Review departure') : tr('Selesaikan pengambilan', 'Complete pickup')}</Button>
+          <Button variant={summary.canDepart ? 'primary' : 'ghost'} className={summary.canDepart ? '' : 'text-[var(--primary-ink)]'} size="sm" disabled={locked} onClick={() => openReview(visit.id)}>{visit.mode === 'DINE_IN' ? tr('Tinjau kepulangan', 'Review departure') : tr('Selesaikan pengambilan', 'Complete pickup')}</Button>
           {onOpenBills && (snapshot?.bills || []).some((bill: any) => bill.visitId === visit.id && bill.lifecycle !== 'VOID') && <Button variant="ghost" size="sm" onClick={() => onOpenBills(visit.id)}>{showMap ? tr('Tagihan', 'Bills') : tr('Lihat tagihan kunjungan', 'View visit bills')}</Button>}
         </div>
         {!readOnly && canTables && visit.mode === 'DINE_IN' && <details className={`visit-details ${styles.disclosure}`}>
@@ -157,14 +157,16 @@ export function VisitService({ snapshot, busy, canTables, actorRole, onCommand, 
     {takeawayVisits.length > 0 && <details className={`visit-details ${styles.disclosure} ${styles.takeaway}`} open={takeawayExpanded} onToggle={event => setTakeawayExpanded(event.currentTarget.open)}><summary>{tr(`Bawa pulang (${takeawayVisits.length})`, `Takeaway (${takeawayVisits.length})`)}</summary><div className={styles.otherVisits}>{takeawayVisits.map((visit: any) => <article key={visit.id} data-visit-id={visit.id} aria-label={tr(`Kunjungan ${visit.customerName}`, `Visit for ${visit.customerName}`)}><div><h3>{visit.customerName}</h3><p>{visit.pickupNumber || (visit.tableLabelsJson || []).join(', ')} · {tr('Sisa tagihan', 'Balance due')} <Money amount={visit.lifecycleSummary?.outstandingBalanceIdr || 0} /></p></div><div className={styles.actions}><Button size="sm" variant="secondary" disabled={locked} onClick={() => openReview(visit.id)}>{tr('Selesaikan pengambilan', 'Complete pickup')}</Button>{onOpenBills && <Button size="sm" variant="ghost" onClick={() => onOpenBills(visit.id)}>{tr('Lihat tagihan', 'View bills')}</Button>}</div></article>)}</div></details>}
   </>;
 
-  return <section className="space-y-4" aria-label={tr("Layanan kunjungan", "Visit service")}>
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="font-heading text-lg font-semibold">{tr('Kunjungan aktif', 'Active visits')} ({activeVisits.length})</h2></div>
-      <div className={styles.toolbar}>
+  return <section className="space-y-3" aria-label={tr("Layanan kunjungan", "Visit service")}>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         {showMap && <SelectField aria-label={tr('Area kunjungan', 'Visit area')} value={room.id} wrapperClassName={styles.roomSelect} onChange={event => { setRoomId(event.target.value); setSelectedTableId(''); setError(''); }}>
           {rooms.map((entry: any) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
         </SelectField>}
-        {showMap && takeawayVisits.length > 0 && <Button className={styles.mobileOnly} size="sm" variant="secondary" onClick={() => { setTakeawayExpanded(true); setTableDetailOpen(true); }}>{tr(`Bawa pulang (${takeawayVisits.length})`, `Takeaway (${takeawayVisits.length})`)}</Button>}
+        <span className="text-sm text-[var(--muted-foreground)] tabular-nums">{activeVisits.length} {tr('kunjungan aktif', 'active visits')}</span>
+      </div>
+      <div className={styles.toolbar}>
+        {showMap && takeawayVisits.length > 0 && <Button className={styles.mobileOnly} size="sm" variant="ghost" onClick={() => { setTakeawayExpanded(true); setTableDetailOpen(true); }}>{tr(`Bawa pulang (${takeawayVisits.length})`, `Takeaway (${takeawayVisits.length})`)}</Button>}
         {!readOnly && canTables && <Button size="sm" disabled={locked || !availableTables.length} onClick={() => openSeating()}>{tr('Tempatkan tamu', 'Seat guests')}</Button>}
       </div>
     </div>

@@ -15,11 +15,10 @@ import { printBillReceipt } from './receipt-print';
 import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
 import { BrandMark } from './brand';
 import { summarizeOrderBilling } from '@/src/domain/order-billing';
-import { MotionPanel, MotionItem } from '@/components/ui/motion';
+import { MotionPanel, MotionItem, RevealText } from '@/components/ui/motion';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Button,
-  PageHeader,
   ChoiceStrip,
   FilterToggle,
   Input,
@@ -67,6 +66,8 @@ import {
   Pencil,
   X,
   Download,
+  Printer,
+  RefreshCw,
   BookOpenText,
   ShoppingBag,
   ClipboardList,
@@ -825,9 +826,8 @@ export function CustomerApp({
           {activeScreen === 'menu' && (
             <MotionPanel
               key="screen-menu"
-              className="space-y-3"
+              className="space-y-2.5"
             >
-              <PageHeader title="Menu" className="border-b-0 pb-0" />
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
               {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0 || pendingRequests.length > 0) && (
                 <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
@@ -840,8 +840,8 @@ export function CustomerApp({
                 <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
                 <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items'))}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <h1 className="font-heading font-semibold text-lg"><RevealText key={onlyFavorites ? 'fav' : activeCategoryId}>{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items')) || 'Menu'}</RevealText></h1>
                 <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">{t("Favorit", "Favorites")}</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>{t("Tersedia saja", "Available only")}</FilterToggle></div>
               </div>
               {filteredCatalog.length === 0 ? (
@@ -885,9 +885,15 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[22px] font-bold">{t("Keranjang", "Cart")}</h1>
-                <Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>
-                  {t("+ Tambah menu", "+ Add items")}
+                <h1 className="font-heading text-[20px] font-bold">{t("Keranjang", "Cart")}</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("+ Tambah menu", "+ Add items")}
+                  title={t("Tambah menu", "Add items")}
+                  onClick={() => setActiveScreen('menu')}
+                >
+                  <Plus className="w-5 h-5" aria-hidden="true" />
                 </Button>
               </div>
 
@@ -1140,16 +1146,27 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.ordersHeading}>
-                <h1 className="font-heading text-[22px] font-bold">{t("Pesanan", "Orders")}</h1>
+                <h1 className="font-heading text-[20px] font-bold">{t("Pesanan", "Orders")}</h1>
                 <div className={styles.ordersActions}>
-                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>{t("Perbarui", "Refresh")}</Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setActiveScreen('pembayaran')}
-                >
-                  {t("Lihat tagihan dan pembayaran", "View bill and payment")}
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={busy}
+                    aria-label={t("Perbarui", "Refresh")}
+                    title={t("Perbarui", "Refresh")}
+                    onClick={() => onRefresh?.()}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                    title={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                    onClick={() => setActiveScreen('pembayaran')}
+                  >
+                    <Receipt className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
+                  </Button>
                 </div>
               </div>
 
@@ -1371,8 +1388,10 @@ export function CustomerApp({
                       </div>
                       {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && (
                         <Button
-                          variant="secondary"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={copiedKey === `share_${selectedBill.id}` ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}
+                          title={copiedKey === `share_${selectedBill.id}` ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}
                           onClick={() =>
                             handleCopyText(
                               `share_${selectedBill.id}`,
@@ -1381,15 +1400,9 @@ export function CustomerApp({
                           }
                         >
                           {copiedKey === `share_${selectedBill.id}` ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" />
-                              <span>{t("Tersalin", "Copied")}</span>
-                            </>
+                            <Check className="w-4 h-4 text-[var(--status-success-fg)]" aria-hidden="true" />
                           ) : (
-                            <>
-                              <Share2 className="w-3.5 h-3.5" />
-                              <span>{t("Salin tautan", "Copy link")}</span>
-                            </>
+                            <Share2 className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
                           )}
                         </Button>
                       )}
@@ -1494,9 +1507,9 @@ export function CustomerApp({
                             <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode ini tidak dapat dibayar.', 'This code cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
                             <div><StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" /></div>
                             {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">{t('Berlaku sampai', 'Valid until')} {new Date(pendingAttempt.expiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
-                            <div className="flex flex-wrap justify-center gap-2">
+                            <div className="flex flex-wrap justify-center items-center gap-2">
                               <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(''); toast.success(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
-                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
+                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} aria-label={t("Unduh", "Download")} title={t("Unduh", "Download")} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--radius-control)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] transition-colors"><Download className="h-4 w-4" aria-hidden="true" /></a>}
                             </div>
                           </section>
                         )}
@@ -1519,7 +1532,15 @@ export function CustomerApp({
                             {snapshot?.outlet?.address}
                           </p>
                         </div>
-                        <Button variant="secondary" size="sm" onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}>{t('Cetak / Simpan struk','Print / Save receipt')}</Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('Cetak / Simpan struk', 'Print / Save receipt')}
+                          title={t('Cetak / Simpan struk', 'Print / Save receipt')}
+                          onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}
+                        >
+                          <Printer className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
+                        </Button>
                       </div>
                       <InlineError message={receiptFeedback && receiptFeedback.billId === selectedBill.id ? receiptFeedback.message : ''} />
                       {(selectedBill.receipts || []).length > 0 && (
@@ -1666,20 +1687,16 @@ export function CustomerApp({
                         </p>
                       </div>
                       <Button
-                        variant="secondary"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={copiedKey === w.id ? t("Sandi Disalin", "Password copied") : t("Salin Sandi", "Copy password")}
+                        title={copiedKey === w.id ? t("Sandi Disalin", "Password copied") : t("Salin Sandi", "Copy password")}
                         onClick={() => handleCopyText(w.id, w.encryptedPassword)}
                       >
                         {copiedKey === w.id ? (
-                          <>
-                            <Check className="w-4 h-4 text-[var(--status-success-fg)]" />
-                            <span>{t("Sandi Disalin", "Password copied")}</span>
-                          </>
+                          <Check className="w-4 h-4 text-[var(--status-success-fg)]" aria-hidden="true" />
                         ) : (
-                          <>
-                            <Copy className="w-4 h-4" />
-                            <span>{t("Salin Sandi", "Copy password")}</span>
-                          </>
+                          <Copy className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
                         )}
                       </Button>
                     </div>
@@ -1865,7 +1882,7 @@ export function CustomerApp({
               </section>
 
               <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label={t("Antrean Anda", "Your place in line")}>
-                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="sm" variant="secondary" disabled={busy} onClick={refreshWaitlist}>{t("Perbarui antrean", "Refresh waitlist")}</Button>}</div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="icon" variant="ghost" aria-label={t("Perbarui antrean", "Refresh waitlist")} title={t("Perbarui antrean", "Refresh waitlist")} disabled={busy} onClick={refreshWaitlist}><RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" /></Button>}</div>
                 {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="space-y-3">
                   <div className={styles.contextStrip}>
                     <span className="font-semibold text-[var(--foreground)]">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</span>
@@ -1894,7 +1911,7 @@ export function CustomerApp({
             <Button variant="ghost" onClick={() => setActiveScreen('wifi')}>
               <MapPin aria-hidden="true" size={16} />{t("Info kedai", "Cafe info")}
             </Button>
-            {canUseTables && <Button variant="subtle" onClick={() => setActiveScreen('bantuan')}>
+            {canUseTables && <Button variant="ghost" onClick={() => setActiveScreen('bantuan')}>
               <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
             </Button>}
             {onOpenStaffPortal && !snapshot?.runtime?.demo && <Button variant="ghost" onClick={onOpenStaffPortal}>

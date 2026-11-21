@@ -9,7 +9,7 @@
   box-shadow: inset 3px 0 var(--primary-ink);
 }
 .workspace :global(.staff-toolbar) {
-  min-height: 64px;
+  min-height: 52px;
 }
 .explorationManaged :global(.staff-toolbar) {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -69,7 +69,9 @@
   border-bottom: 1px solid var(--border);
   background: transparent;
 }
-.floorNav { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border); }
+.floorNav { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;border-bottom:1px solid var(--border); }
+.sectionBar { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;border-bottom:1px solid var(--border); }
+.sectionBar :global(.choice-strip), .floorNav :global(.choice-strip[data-variant=underline]) { border-bottom:0; }
 .reportSummary dt { color: var(--muted-foreground); font-size: 13px; }
 .reportSummary dd { margin-top: 4px; font-family: var(--font-heading); font-size: 20px; line-height: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .syncText {

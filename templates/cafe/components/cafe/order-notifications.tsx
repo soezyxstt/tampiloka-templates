@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useCafeLanguage } from '@/lib/language';
@@ -154,5 +155,21 @@ export function OrderNotifications({ snapshot, active = true }: { snapshot?: Ord
       : sound === 'paused' ? t('Suara terjeda — aktifkan lagi', 'Sound paused — enable again')
         : sound === 'unavailable' ? t('Suara tidak tersedia — coba lagi', 'Sound unavailable — try again')
           : t('Suara pesanan nonaktif', 'Order sound off');
-  return <Button variant="secondary" aria-pressed={sound === 'on'} disabled={sound === 'enabling'} onClick={() => { void toggleSound(); }}>{label}</Button>;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      aria-pressed={sound === 'on'}
+      disabled={sound === 'enabling'}
+      onClick={() => { void toggleSound(); }}
+    >
+      {sound === 'on' ? (
+        <Volume2 className="h-4 w-4 text-[var(--primary-ink)]" aria-hidden="true" />
+      ) : (
+        <VolumeX className="h-4 w-4 text-[var(--muted-foreground)]" aria-hidden="true" />
+      )}
+    </Button>
+  );
 }
