@@ -25,6 +25,7 @@ export const LIFECYCLE_CASES = Object.freeze([
   { id: 'prepay-addon-close', title: 'Prabayar, QR batal/lunas, tambah pesanan, tunai sebagian, penyajian, pulang dan bersih' },
   { id: 'paylater-close', title: 'Bayar belakangan: dapur berjalan sebelum lunas, kepulangan menunggu pembayaran' },
   { id: 'takeaway-close', title: 'Pesanan kasir bawa pulang, diskon, pembayaran, pengambilan dan penutupan' },
+  { id: 'receipt-recovery', title: 'Struk tagihan sebagian tanpa pembayaran online: pemulihan popup diblokir dan cetak ulang' },
   { id: 'reject-request', title: 'Staf menolak permintaan, pelanggan melihat alasan, kunjungan kosong dapat ditutup' },
   { id: 'cancel-refund', title: 'Pembatalan item yang telah dibayar mengembalikan stok dan uang sekali' },
   { id: 'deferred-refund', title: 'Pengembalian tertunda memblokir penutupan sampai uang benar-benar dikembalikan' },

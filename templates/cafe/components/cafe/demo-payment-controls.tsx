@@ -31,7 +31,7 @@ export function DemoPaymentControls({ snapshot, busy, onCommand }: {
     finally { setPending(''); }
   };
 
-  return <section className="space-y-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-5" aria-label={tr("Simulasi pembayaran", "Payment simulation")}>
+  return <section className="space-y-3 pt-3 border-t border-[var(--border)]" aria-label={tr("Simulasi pembayaran", "Payment simulation")}>
     <div><h2 className="font-heading text-lg font-semibold">{tr("Pembayaran", "Payments")}</h2></div>
     <InlineError message={error} />
     <div className="divide-y divide-[var(--border)]">{attempts.map(attempt => <div key={attempt.id} className="py-3 flex flex-wrap justify-between gap-4"><div><p className="font-semibold text-sm">{attempt.owner} · {attempt.table}</p><p className="text-sm mt-1">{attempt.method === 'VIRTUAL_ACCOUNT' ? 'Virtual Account' : attempt.method} · <Money amount={attempt.expectedAmountIdr} /></p><p className="text-xs text-[var(--muted-foreground)] break-all mt-1">{attempt.providerOrderId}</p></div><div className="flex flex-wrap items-center gap-2"><Button size="sm" disabled={busy || Boolean(pending)} onClick={() => update(attempt.id, 'SETTLE')}>{pending === attempt.id ? tr("Memproses…", "Processing…") : tr("Simulasikan lunas", "Simulate paid")}</Button><Button size="sm" variant="secondary" disabled={busy || Boolean(pending)} onClick={() => update(attempt.id, 'CANCEL')}>{tr("Batalkan", "Cancel")}</Button><Button size="sm" variant="ghost" disabled={busy || Boolean(pending)} onClick={() => update(attempt.id, 'EXPIRE')}>{tr("Kedaluwarsa", "Expire")}</Button></div></div>)}</div>

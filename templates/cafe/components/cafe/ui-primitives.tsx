@@ -491,16 +491,16 @@ export function PaymentBreakdown({
           {(taxBps > 0 || taxIdr > 0) && (
             <div className="flex items-center justify-between text-[var(--muted-foreground)]">
               <span>
-                {t('Pajak Restoran / PB1', 'Restaurant tax / PB1')} ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
+                {t('PB1', 'Restaurant tax / PB1')} ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
               </span>
               <Money amount={taxIdr} className="text-[var(--foreground)]" />
             </div>
           )}
         </>
       )}
-      <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px] leading-[24px] text-[var(--foreground)]">
+      <div className="pt-2.5 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px] leading-[24px] text-[var(--foreground)]">
         <span>{t('Total tagihan', 'Bill total')}</span>
-        <Money amount={totalIdr} />
+        <Money amount={totalIdr} className={typeof balanceIdr !== 'number' ? 'text-[var(--primary-ink)] font-bold' : ''} />
       </div>
       {creditAdjustmentsIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-danger-fg)]">
@@ -510,8 +510,8 @@ export function PaymentBreakdown({
       )}
       {verifiedReceiptsIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-success-fg)]">
-          <span>{t('Pembayaran terverifikasi', 'Verified payments')}</span>
-          <Money amount={verifiedReceiptsIdr} />
+          <span>{t('Sudah dibayar', 'Payments received')}</span>
+          <Money amount={-verifiedReceiptsIdr} />
         </div>
       )}
       {refundedIdr > 0 && (
@@ -521,12 +521,10 @@ export function PaymentBreakdown({
         </div>
       )}
       {typeof balanceIdr === 'number' && (
-        <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[16px]">
+        <div className="pt-2.5 border-t border-[var(--border)] flex items-center justify-between font-bold text-[16px] leading-[24px]">
           <span>
             {balanceIdr < 0
               ? t('Pengembalian dana', 'Refunds')
-              : balanceIdr === 0
-              ? t('Sisa tagihan', 'Balance due')
               : t('Sisa tagihan', 'Balance due')}
           </span>
           <Money
@@ -536,7 +534,7 @@ export function PaymentBreakdown({
                 ? 'text-[var(--status-danger-fg)]'
                 : balanceIdr === 0
                 ? 'text-[var(--status-success-fg)]'
-                : 'text-[var(--foreground)]'
+                : 'text-[var(--primary-ink)]'
             }
           />
         </div>

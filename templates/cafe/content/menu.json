@@ -202,7 +202,7 @@
       "id": "item_teh_melati",
       "categoryId": "cat_teh",
       "name": "Teh Melati Dingin Daun Asli",
-      "description": "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
+      "description": "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan.",
       "photos": [
         "/images/menu/photos/teh.jpg"
       ],
@@ -278,7 +278,7 @@
             },
             {
               "id": "modopt_matcha_less",
-              "name": "Less Sweet",
+              "name": "Kurang Manis",
               "priceIdr": 0
             }
           ]
@@ -339,7 +339,16 @@
               "id": "modopt_sambal_korek",
               "name": "Sambal Korek Bawang",
               "priceIdr": 0
-            },
+            }
+          ]
+        },
+        {
+          "id": "modgrp_ayam_penyajian",
+          "name": "Penyajian Sambal",
+          "required": false,
+          "minSelect": 0,
+          "maxSelect": 1,
+          "options": [
             {
               "id": "modopt_sambal_pisah",
               "name": "Sambal Dipisah",

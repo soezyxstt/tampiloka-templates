@@ -10,14 +10,15 @@ import QRCode from 'qrcode';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import styles from './customer-app.module.css';
+import { groupBillUnits, billOwnerName, billLocation } from './bill-display';
+import { printBillReceipt } from './receipt-print';
 import { cafeConfig, isModuleEnabled } from '@/src/config/cafe';
 import { BrandMark } from './brand';
 import { summarizeOrderBilling } from '@/src/domain/order-billing';
-import { MotionPanel, MotionItem } from '@/components/ui/motion';
+import { MotionPanel, MotionItem, RevealText } from '@/components/ui/motion';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Button,
-  PageHeader,
   ChoiceStrip,
   FilterToggle,
   Input,
@@ -33,6 +34,7 @@ import {
   PaymentBreakdown,
   EmptyState,
   InlineError,
+  InlineNotice,
   DialogModal,
   Money,
   formatIdr,
@@ -46,6 +48,7 @@ import {
   Wifi,
   Copy,
   Check,
+  CheckCircle2,
   Utensils,
   Bell,
   Star,
@@ -63,6 +66,8 @@ import {
   Pencil,
   X,
   Download,
+  Printer,
+  RefreshCw,
   BookOpenText,
   ShoppingBag,
   ClipboardList,
@@ -200,6 +205,7 @@ export function CustomerApp({
     'QRIS'
   );
   const [paymentFeedback, setPaymentFeedback] = useState<string>('');
+  const [receiptFeedback, setReceiptFeedback] = useState<{ billId: string; message: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string>('');
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -295,11 +301,12 @@ export function CustomerApp({
   }, [shareOpen, selectedTable.qrToken, snapshot?.outlet?.slug]);
 
   const tableMatches = (record: any) => orderMode === 'TAKEAWAY'
-    ? record.mode === 'TAKEAWAY' && Boolean(guestName.trim()) && record.customerName === guestName.trim()
+    ? record.mode === 'TAKEAWAY' && Boolean(customerPrincipalId) && (record.principalId === customerPrincipalId || (snapshot?.participants || []).some((participant: any) => participant.principalId === customerPrincipalId && (participant.id === record.participantId || (record.visitId && participant.visitId === record.visitId))))
     : record.tableId === selectedTableId || record.tableLabel === selectedTable.label || record.tableLabelSnapshot === selectedTable.label;
   const currentVisit = (snapshot?.visits || []).find((visit: any) => visit.status === 'OPEN' && (visit.primaryTableId === selectedTableId || visit.tableLabelsJson?.includes(selectedTable.label)));
   const customerOrders = (snapshot?.orders || []).filter((order: any) => tableMatches(order) || (order.mode === orderMode && order.visitId === currentVisit?.id));
   const customerRequests = (snapshot?.orderRequests || []).filter(tableMatches);
+  const pendingRequests = customerRequests.filter((request: any) => request.state === 'REQUESTED');
   const customerBills = (snapshot?.bills || []).filter((bill: any) => bill.lifecycle !== 'VOID' && (tableMatches(bill) || customerOrders.some((order: any) => order.visitId === bill.visitId)));
   const hasOrderInVisit = currentVisit && customerPrincipalId && customerRequests.some((request: any) =>
     request.principalId === customerPrincipalId && request.visitId === currentVisit.id);
@@ -410,6 +417,7 @@ export function CustomerApp({
 
   const handleConfirmModalAdd = () => {
     if (!configuringItem) return;
+    if (tableUnavailable) { setModalError(t('Meja ini belum siap menerima pesanan. Minta bantuan pelayan.','This table is not ready for orders. Ask staff for help.')); return; }
     if (!configuringItem.isAvailable) { setModalError(t("Menu sedang habis.", "This item is sold out.")); return; }
     const variant = configuringItem.variants?.find((v: any) => v.id === selectedVariantId);
     if (!variant) {
@@ -532,6 +540,8 @@ export function CustomerApp({
   };
 
   const handleReviewOrder = async () => {
+    if (tableUnavailable) { setCheckoutError(t('Meja belum siap. Minta bantuan pelayan.', 'This table is not ready. Ask staff for help.')); return; }
+    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t('Lanjutkan sebagai tamu.', 'Continue as a guest.')); return; }
     if (guestName.trim().length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering.")); return; }
     const quote = await handleRequestQuote();
@@ -577,7 +587,7 @@ export function CustomerApp({
       toast.success(
         outcome?.orderId
           ? t("Pesanan diterima.", "Order accepted.")
-          : t("Menunggu konfirmasi staf.", "Awaiting staff confirmation.")
+          : t("Menunggu konfirmasi kasir.", "Awaiting staff confirmation.")
       );
       if (outcome?.billId) {
         setSelectedBillId(outcome.billId);
@@ -611,6 +621,10 @@ export function CustomerApp({
   };
 
   const selectedBill = customerBills.find((bill: any) => bill.id === selectedBillId) || customerBills.find((bill: any) => bill.balanceIdr > 0) || customerBills[0] || null;
+  const selectedBillVisit = selectedBill ? (snapshot?.visits || []).find((visit: any) => visit.id === selectedBill.visitId) : null;
+  const selectedBillIsTakeaway = selectedBillVisit?.mode === 'TAKEAWAY';
+  const selectedBillTimestamp = selectedBill?.createdAt || selectedBill?.receipts?.[0]?.receivedAt || snapshot?.serverTime;
+  const selectedBillDateLabel = selectedBillTimestamp ? new Date(selectedBillTimestamp).toLocaleString(language === 'id' ? 'id-ID' : 'en-GB', { timeZone: cafeConfig.timezone, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
   const pendingAttempt = (selectedBill?.attempts || []).find((attempt: any) => ['PENDING', 'CREATING', 'UNKNOWN'].includes(attempt.status));
   const paymentInstructions = pendingAttempt?.instructionsJson || {};
   const paymentIsDemo = Boolean(paymentInstructions.isDemo || snapshot?.paymentAccount?.isDemo);
@@ -812,22 +826,22 @@ export function CustomerApp({
           {activeScreen === 'menu' && (
             <MotionPanel
               key="screen-menu"
-              className="space-y-3"
+              className="space-y-2.5"
             >
-              <PageHeader title="Menu" className="border-b-0 pb-0" />
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
-              {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0) && (
+              {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0 || pendingRequests.length > 0) && (
                 <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
-                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{unpaidBills.length ? t("Tagihan belum dibayar", "Unpaid bill") : t("Pesanan diproses", "Order in progress")}</span></span>
+                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{pendingRequests.length ? t("Menunggu konfirmasi kasir", "Awaiting staff confirmation") : unpaidBills.some((bill: any) => bill.hasActiveExternalAttempt) ? t("Pembayaran dalam proses", "Payment in progress") : unpaidBills.length ? `${t("Sisa tagihan", "Balance due")} ${formatIdr(unpaidBills.reduce((sum: number, bill: any) => sum + bill.balanceIdr, 0))}` : activeOrdersCount ? t("Pesanan diproses", "Order in progress") : t("Pesanan ditolak · lihat alasan", "Order rejected · view reason")}</span></span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
+              {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
               <div className={styles.menuToolbar}>
                 <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
                 <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                <h2 className="font-heading font-semibold text-lg">{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items'))}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <h1 className="font-heading font-semibold text-lg"><RevealText key={onlyFavorites ? 'fav' : activeCategoryId}>{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items')) || 'Menu'}</RevealText></h1>
                 <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">{t("Favorit", "Favorites")}</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>{t("Tersedia saja", "Available only")}</FilterToggle></div>
               </div>
               {filteredCatalog.length === 0 ? (
@@ -851,7 +865,7 @@ export function CustomerApp({
                         <p className={styles.menuDescription}>{item.description}</p>
                         <div className={styles.dishActions}>
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          {canOrder && <Button variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
+                          {canOrder && <Button variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy || tableUnavailable} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
                         </div>
                       </div>
                     </MotionItem>;
@@ -871,20 +885,35 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[22px] font-bold">{t("Keranjang", "Cart")}</h1>
-                <Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>
-                  {t("+ Tambah menu", "+ Add items")}
+                <h1 className="font-heading text-[20px] font-bold">{t("Keranjang", "Cart")}</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("+ Tambah menu", "+ Add items")}
+                  title={t("Tambah menu", "Add items")}
+                  onClick={() => setActiveScreen('menu')}
+                >
+                  <Plus className="w-5 h-5" aria-hidden="true" />
                 </Button>
               </div>
 
-              {cart.length === 0 ? (
+              {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
+                  {cart.length === 0 ? (
                 <EmptyState
                   title={t("Keranjang masih kosong", "Your cart is empty")}
                   actionLabel={t("Lihat menu", "View menu")}
                   onAction={() => setActiveScreen('menu')}
                 />
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-5">
+                  <button type="button" onClick={() => setTableModalOpen(true)} className={`${styles.contextStrip} text-left cursor-pointer`}>
+                    <span className="text-[var(--muted-foreground)]">{t('Jenis pesanan', 'Order type')}</span>
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
+                      <span>{orderMode === 'DINE_IN' ? (selectedTable.id ? `${t('Makan di tempat', 'Dine in')} · ${t('Meja', 'Table')} ${selectedTable.label}` : t('Makan di tempat', 'Dine in')) : t('Bawa pulang', 'Takeaway')}</span>
+                      <CheckCircle2 className="w-4 h-4 text-[var(--status-success-fg)] shrink-0" aria-hidden="true" />
+                    </span>
+                  </button>
+
                   {/* 1. Daftar Item Keranjang (Open Hairline List · No outer box card) */}
                   <section className="space-y-2">
                     <h2 className="font-heading text-[16px] font-semibold">
@@ -965,10 +994,12 @@ export function CustomerApp({
                         />
                       </div>
                     ) : (
-                      <div className="rounded-xl bg-[var(--accent-surface)] p-4 space-y-3">
-                        <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
-                        <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
-                      </div>
+                      <InlineNotice tone="info">
+                        <div className="space-y-2.5">
+                          <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+                          <Button variant="secondary" size="sm" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
+                        </div>
+                      </InlineNotice>
                     )}
                   </section>
 
@@ -1032,6 +1063,7 @@ export function CustomerApp({
                           value={promoCodeInput}
                           onChange={(e) => { setPromoCodeInput(e.target.value); setActiveQuote(null); }}
                           placeholder={t("Kode promo", "Promo code")}
+                          className="uppercase"
                         />
                         <Button
                           variant="secondary"
@@ -1053,7 +1085,7 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
+                              className="min-h-[44px] inline-flex items-center px-3 py-1.5 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] text-left hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
@@ -1086,6 +1118,7 @@ export function CustomerApp({
                       )}
                     </div>
 
+                    {identityMode === 'MEMBER' && !loggedInMemberId && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t('Pilih Lanjut sebagai tamu untuk memesan.','Choose Continue as guest to order.')}</p>}
                     {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
                     <InlineError message={checkoutError} />
 
@@ -1093,7 +1126,7 @@ export function CustomerApp({
                       variant="primary"
                       size="lg"
                       className="w-full"
-                      disabled={busy || tableUnavailable}
+                      disabled={busy || tableUnavailable || (identityMode === 'MEMBER' && !loggedInMemberId)}
                       onClick={handleReviewOrder}
                     >
                       {t('Periksa pesanan', 'Review order')} · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
@@ -1113,27 +1146,38 @@ export function CustomerApp({
               className="space-y-6"
             >
               <div className={styles.ordersHeading}>
-                <h1 className="font-heading text-[22px] font-bold">{t("Pesanan", "Orders")}</h1>
+                <h1 className="font-heading text-[20px] font-bold">{t("Pesanan", "Orders")}</h1>
                 <div className={styles.ordersActions}>
-                <Button variant="secondary" size="sm" disabled={busy} onClick={() => onRefresh?.()}>{t("Perbarui", "Refresh")}</Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setActiveScreen('pembayaran')}
-                >
-                  {t("Lihat tagihan dan pembayaran", "View bill and payment")}
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={busy}
+                    aria-label={t("Perbarui", "Refresh")}
+                    title={t("Perbarui", "Refresh")}
+                    onClick={() => onRefresh?.()}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                    title={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                    onClick={() => setActiveScreen('pembayaran')}
+                  >
+                    <Receipt className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
+                  </Button>
                 </div>
               </div>
 
               {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
-              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></section>)}
+              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <InlineNotice key={request.id} tone="warning"><div className="space-y-2"><p className="font-semibold">{request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')}</p><p>{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></div></InlineNotice>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
                 0 && (
                 <section className="space-y-2.5">
                   <h2 className="font-heading text-[16px] font-semibold">
-                    {t("Menunggu konfirmasi staf", "Awaiting staff confirmation")}
+                    {t("Menunggu konfirmasi kasir", "Awaiting staff confirmation")}
                   </h2>
                   <div className={styles.orderList}>
                     {customerRequests
@@ -1148,7 +1192,7 @@ export function CustomerApp({
                               <span className="min-w-0 break-words font-semibold text-[15px]">
                                 {t('Meja', 'Table')} {req.tableLabel} · {req.customerName}
                               </span>
-                              <StatusLabel label={t("Menunggu konfirmasi staf", "Awaiting staff confirmation")} tone="warning" />
+                              <StatusLabel label={t("Menunggu konfirmasi kasir", "Awaiting staff confirmation")} tone="warning" />
                             </div>
                             <p className="text-[13px] text-[var(--muted-foreground)]">
                               {t('Total estimasi:', 'Estimated total:')}{' '}
@@ -1170,7 +1214,7 @@ export function CustomerApp({
                 </section>
               )}
 
-              {/* Accepted Orders with 3 Distinct Status Axes (Clean Editorial List) */}
+              {/* Accepted Orders with 3 Distinct Status Axes (Flat Hairline Layout) */}
               {customerOrders.length > 0 && <section className="space-y-3">
                 <div className={styles.orderList}>
                   {customerOrders.map((ord: any) => {
@@ -1181,7 +1225,7 @@ export function CustomerApp({
 
                     return (
                       <article key={ord.id} data-order-id={ord.id} className={`${styles.orderArticle} space-y-3`}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className={styles.orderHeaderBand}>
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
                               {ord.customerName}
@@ -1189,7 +1233,9 @@ export function CustomerApp({
                             <p className="text-[12px] text-[var(--muted-foreground)]">
                               {ord.mode === 'DINE_IN'
                                 ? t(`Meja ${ord.tableLabelSnapshot || ord.tableLabel}`, `Table ${ord.tableLabelSnapshot || ord.tableLabel}`)
-                                : t('Bawa pulang', 'Takeaway')}
+                                : (ord.pickupNumber || ord.tableLabelSnapshot || ord.tableLabel)
+                                  ? `${t('Bawa pulang', 'Takeaway')} · ${ord.pickupNumber || ord.tableLabelSnapshot || ord.tableLabel}`
+                                  : t('Bawa pulang', 'Takeaway')}
                             </p>
                           </div>
 
@@ -1202,10 +1248,10 @@ export function CustomerApp({
                           </div>
                         </div>
 
-                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span>{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant="ghost" size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{t('Lihat tagihan', 'View bill')} · {formatIdr(bill.balanceIdr > 0 ? bill.balanceIdr : 0)}</Button>)}</div>}
+                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span><div className="flex flex-wrap items-center gap-2">{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant={bill.balanceIdr > 0 ? "primary" : "secondary"} size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{bill.balanceIdr > 0 ? `${t('Bayar', 'Pay')} · ${formatIdr(bill.balanceIdr)}` : t('Lunas · lihat struk', 'Paid · view receipt')}</Button>)}</div></div>}
 
-                        {/* Fulfillment per Unit */}
-                        <div className="pl-3 border-l-2 border-[var(--border)] divide-y divide-[var(--border)]/70">
+                        {/* Fulfillment per Unit (Open Hairline Rows) */}
+                        <div className="divide-y divide-[var(--border)]">
                           {units.map((u: any) => (
                             <div
                               key={u.id}
@@ -1237,7 +1283,7 @@ export function CustomerApp({
                                     : u.fulfillmentStatus === 'READY'
                                     ? t('Siap Diambil/Antar', 'Ready for pickup or serving')
                                     : u.fulfillmentStatus === 'PREPARING'
-                                    ? t('Sedang dibuat', 'Preparing')
+                                    ? t('Dibuat', 'Preparing')
                                     : u.fulfillmentStatus === 'QUEUED'
                                     ? t('Dalam antrean', 'Queued')
                                     : u.fulfillmentStatus === 'CANCELLED' ? t('Dibatalkan', 'Cancelled') : t('Menunggu pembayaran', 'Awaiting payment')
@@ -1273,7 +1319,7 @@ export function CustomerApp({
             >
               <div className={styles.screenHeading}>
                 <h1 className="font-heading text-[22px] font-bold">{t("Pembayaran", "Payment")}</h1>
-                <SelectField
+                {customerBills.length > 1 && <SelectField
                   aria-label={t("Pilih tagihan meja", "Choose a table bill")}
                   value={selectedBill?.id || ''}
                   onChange={(e) => setSelectedBillId(e.target.value)}
@@ -1281,86 +1327,128 @@ export function CustomerApp({
                 >
                   {customerBills.map((b: any) => (
                     <option key={b.id} value={b.id}>
-                      {b.ownerLabel} · Sisa {formatIdr(b.balanceIdr)}
+                      {billLocation(b, snapshot.visits || [], t)} · {t("Sisa", "Remaining")} {formatIdr(b.balanceIdr)} · {billOwnerName(b)}
                     </option>
                   ))}
-                </SelectField>
+                </SelectField>}
               </div>
 
-              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')}</p><p>{t("Sisa seluruh tagihan:", "Total outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div>}
+              {customerBills.length > 1 && <InlineNotice tone="info" className="text-sm"><div className="space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')} · {t("Sisa:", "Outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p>{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div></InlineNotice>}
 
-              {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} actionLabel={t("Lihat pesanan", "View orders")} onAction={() => setActiveScreen('pesanan')} />}
+              {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={customerOrders.length || pendingRequests.length ? t("Lihat pesanan","View orders") : t("Lihat menu","View menu")} onAction={() => setActiveScreen(customerOrders.length || pendingRequests.length ? "pesanan" : "menu")} />}
               {selectedBill && (
-                <div className="space-y-6">
-                  {/* Bill Items (Open Hairline List) */}
-                  <section className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h2 className="font-heading text-[17px] font-semibold">
-                          {selectedBill.ownerLabel}
-                        </h2>
+                <div className="space-y-5" data-customer-bill-id={selectedBill.id}>
+                  {/* Single Highlighted Order-Type Callout Strip (ESB-inspired) */}
+                  <div className={styles.contextStrip}>
+                    <span className="text-[var(--muted-foreground)]">{t("Jenis pesanan", "Order type")}</span>
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
+                      <span>{selectedBillIsTakeaway ? t("Bawa pulang", "Takeaway") : t("Makan di tempat", "Dine in")}</span>
+                      <CheckCircle2 className="w-4 h-4 text-[var(--status-success-fg)] shrink-0" aria-hidden="true" />
+                    </span>
+                  </div>
+
+                  {/* Quiet Full-Bleed Metadata Band (Date & Bill Number · No Card Box) */}
+                  <div className={styles.metaBand}>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-[12px] text-[var(--muted-foreground)]">{t("Tanggal", "Date")}</p>
+                      <p className="font-medium text-[var(--foreground)] tabular-nums">{selectedBillDateLabel || '—'}</p>
+                    </div>
+                    <div className={`${styles.metaRight} min-w-0 grid gap-0.5`}>
+                      <p className="text-[12px] text-[var(--muted-foreground)]">{t("No. tagihan", "Bill number")}</p>
+                      <div className="inline-flex items-center gap-1 max-w-full">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(`bill_${selectedBill.id}`, selectedBill.id)}
+                          aria-label={t("Salin nomor tagihan", "Copy bill number")}
+                          className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-2 -ml-2 text-[var(--primary-ink)] hover:opacity-80 cursor-pointer shrink-0"
+                        >
+                          {copiedKey === `bill_${selectedBill.id}` ? <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
+                        </button>
+                        <span className="font-semibold text-[var(--foreground)] tabular-nums break-all">{selectedBill.id}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Outlet & Table Info (Direct on Canvas with Line Icons) */}
+                  <div className={styles.infoList}>
+                    <div className={styles.infoRow}>
+                      <Utensils className={styles.infoIcon} aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[12px] text-[var(--muted-foreground)]">{t("Lokasi kedai", "Outlet location")}</p>
+                        <p className="font-semibold text-[15px] text-[var(--foreground)]">{snapshot?.outlet?.name || cafeConfig.brand.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className={styles.infoRow}>
+                        <MapPin className={styles.infoIcon} aria-hidden="true" />
+                        <div className="min-w-0">
+                          <p className="text-[12px] text-[var(--muted-foreground)]">{selectedBillIsTakeaway ? t("Pengambilan & pemesan", "Pickup & guest") : t("Meja & pemesan", "Table & guest")}</p>
+                          <p className="font-semibold text-[15px] text-[var(--foreground)] break-words">
+                            {billLocation(selectedBill, snapshot.visits || [], t)} · {billOwnerName(selectedBill)}
+                          </p>
+                        </div>
+                      </div>
+                      {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={copiedKey === `share_${selectedBill.id}` ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}
+                          title={copiedKey === `share_${selectedBill.id}` ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}
+                          onClick={() =>
+                            handleCopyText(
+                              `share_${selectedBill.id}`,
+                              getBillShareUrl(selectedBill)
+                            )
+                          }
+                        >
+                          {copiedKey === `share_${selectedBill.id}` ? (
+                            <Check className="w-4 h-4 text-[var(--status-success-fg)]" aria-hidden="true" />
+                          ) : (
+                            <Share2 className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ordered Items (Flat Open List on Canvas · ESB Style) */}
+                  <section className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+                      <h2 className="font-heading text-[16px] font-semibold">
+                        {t("Menu dipesan", "Ordered items")}
+                      </h2>
                       <StatusLabel
-                        label={paymentLabel(selectedBill.paymentState)}
-                        tone={selectedBill.paymentState === 'SETTLED' ? 'success' : selectedBill.paymentState === 'REFUND_DUE' ? 'danger' : 'warning'}
+                        label={pendingAttempt ? `${t("Menunggu","Awaiting")} ${pendingAttempt.method === "VIRTUAL_ACCOUNT" ? "VA" : pendingAttempt.method}` : paymentLabel(selectedBill.paymentState)}
+                        tone={pendingAttempt ? 'info' : selectedBill.paymentState === 'SETTLED' ? 'success' : selectedBill.paymentState === 'REFUND_DUE' ? 'danger' : 'warning'}
                       />
                     </div>
 
-                    <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-                      {(selectedBill.allocatedUnits || []).map((u: any) => (
-                        <div
-                          key={u.id}
-                          className="py-2.5 flex items-center justify-between gap-3 text-[14px]"
-                        >
-                          <div>
-                            <span className="font-medium">
-                              {u.itemNameSnapshot || u.itemName}
-                            </span>{' '}
-                            <span className="text-[var(--muted-foreground)]">
-                              ({u.variantNameSnapshot || u.variantName})
-                            </span>
+                    <div className="space-y-3">
+                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => (
+                        <div key={group.unit.id} className="flex items-start justify-between gap-3 text-[14px] leading-[20px]">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <span className="font-bold text-[var(--foreground)] tabular-nums shrink-0">{group.quantity}×</span>
+                            <div className="min-w-0 space-y-0.5">
+                              <p className="font-medium text-[var(--foreground)]">
+                                {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}
+                                {group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}
+                              </p>
+                              <p className="text-[12px] text-[var(--muted-foreground)]">
+                                {sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}
+                                {group.unit.modifiersSummary ? ` · ${group.unit.modifiersSummary}` : ''}
+                              </p>
+                              {group.unit.note && <p className="text-[12px] text-[var(--muted-foreground)]">{group.unit.note}</p>}
+                            </div>
                           </div>
-                          <Money
-                            amount={u.netIdr ?? u.grossIdr ?? u.finalUnitTotalIdr ?? 0}
-                            className="font-medium"
-                          />
+                          <Money amount={group.grossIdr} className="font-medium text-[var(--foreground)] shrink-0" />
                         </div>
                       ))}
                     </div>
-
-                    {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && <div className="flex items-center justify-between gap-2 pt-1">
-                      <span className="text-[12px] text-[var(--muted-foreground)]">
-                        {t("Bagikan tagihan", "Share bill")}
-                      </span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          handleCopyText(
-                            `share_${selectedBill.id}`,
-                            getBillShareUrl(selectedBill)
-                          )
-                        }
-                      >
-                        {copiedKey === `share_${selectedBill.id}` ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" />
-                            <span>{t("Tersalin", "Copied")}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>{t("Salin tautan", "Copy link")}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>}
                   </section>
 
-                  {/* Payment Summary & QRIS / VA Interactive Checkout */}
+                  {/* Flat Totals Breakdown (No Boxed Card · Hairline Separated) */}
                   <section className="pt-4 border-t border-[var(--border)] space-y-4">
-                    <h2 className="font-heading text-[16px] font-semibold">{t("Ringkasan", "Summary")}</h2>
-                    <div className={styles.summary}><PaymentBreakdown
+                    <PaymentBreakdown
                       subtotalIdr={selectedBill.subtotalIdr}
                       discountIdr={selectedBill.discountIdr}
                       serviceIdr={selectedBill.serviceIdr}
@@ -1373,21 +1461,28 @@ export function CustomerApp({
                       serviceChargeBps={snapshot?.outlet?.serviceChargeBps ?? 500}
                       taxBps={snapshot?.outlet?.taxBps ?? 1000}
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
-                    /></div>
+                    />
 
-                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p><p className="mt-1 text-sm">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p></div>}
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && (
+                      <InlineNotice tone="info">
+                        <p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p>
+                        <p className="mt-0.5">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p>
+                      </InlineNotice>
+                    )}
+
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
                           <>
-                            <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: t('Transfer bank', 'Bank transfer') }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel={t("Metode pembayaran", "Payment method")} layoutId="payment-method-selector" />
-                            <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-6 text-center space-y-3">
-                              <QrCode className="w-10 h-10 mx-auto text-[var(--primary-ink)]" />
-                              <p className="font-semibold">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</p>
-                              <Money amount={selectedBill.balanceIdr} className="block text-2xl font-semibold" />
-
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: t('Transfer bank', 'Bank transfer') }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel={t("Metode pembayaran", "Payment method")} layoutId="payment-method-selector" />
+                              <div className="inline-flex items-center gap-2 text-sm">
+                                <QrCode className="w-4 h-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                                <span className="text-[var(--muted-foreground)]">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</span>
+                                <Money amount={selectedBill.balanceIdr} className="font-bold text-[16px] text-[var(--primary-ink)]" />
+                              </div>
                             </div>
-                            <Button variant="primary" className="w-full" disabled={busy} onClick={async () => {
+                            <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={async () => {
                               setPaymentFeedback('');
                               try {
                                 const fingerprint = `${selectedBill.id}:${selectedBill.version}:${selectedPaymentMethod}:${selectedBill.balanceIdr}`;
@@ -1398,17 +1493,25 @@ export function CustomerApp({
                             }}>{busy ? t('Memuat…', 'Loading…') : selectedPaymentMethod === 'QRIS' ? t('Buat QRIS', 'Create QRIS') : t('Buat Virtual Account', 'Create virtual account')}</Button>
                           </>
                         ) : (
-                          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8 text-center space-y-4">
-                            <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3></div>
-                            <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
-                            <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-semibold" />
-                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? t('Kode QR tidak dapat dibayar', 'QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>}
+                          <section className="py-4 text-center space-y-4">
+                            <div className="space-y-1">
+                              <h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>
+                              <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
+                              <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-bold text-[var(--primary-ink)]" />
+                            </div>
+                            {pendingAttempt.method === 'QRIS' && paymentQr ? (
+                              <div className={styles.qrFrame}>
+                                <Image src={paymentQr} width={280} height={280} unoptimized alt={paymentIsDemo ? t('Kode QR tidak dapat dibayar', 'QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[260px] aspect-square mx-auto" />
+                              </div>
+                            ) : (
+                              <div className="rounded-[var(--radius-control)] bg-[var(--surface-muted)] px-4 py-4 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>
+                            )}
                             <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode ini tidak dapat dibayar.', 'This code cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
-                            <StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" />
+                            <div><StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" /></div>
                             {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">{t('Berlaku sampai', 'Valid until')} {new Date(pendingAttempt.expiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
-                            <div className="flex justify-center gap-2">
+                            <div className="flex flex-wrap justify-center items-center gap-2">
                               <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(''); toast.success(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
-                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
+                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} aria-label={t("Unduh", "Download")} title={t("Unduh", "Download")} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--radius-control)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] transition-colors"><Download className="h-4 w-4" aria-hidden="true" /></a>}
                             </div>
                           </section>
                         )}
@@ -1418,63 +1521,48 @@ export function CustomerApp({
                     )}
                   </section>
 
-                  {/* Digital Receipt (Elevated Receipt Document Surface) */}
+                  {/* Digital Receipt & Print (Flat Dashed-Ruled Section · No Redundant Card) */}
                   {(selectedBill.verifiedReceiptsIdr > 0 ||
                     selectedBill.paymentState === 'SETTLED') && (
-                    <section className="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[12px] space-y-3">
-                      <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+                    <section className="pt-4 border-t border-dashed border-[var(--border-strong)] space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-heading font-bold text-[16px]">
-                            Struk Digital · {snapshot?.outlet?.name}
+                          <p className="font-heading font-semibold text-[16px]">
+                            {t("Struk Digital", "Digital receipt")}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)]">
                             {snapshot?.outlet?.address}
                           </p>
                         </div>
-                        <StatusLabel label={paymentLabel(selectedBill.paymentState)} tone={selectedBill.paymentState === 'SETTLED' ? 'success' : 'warning'} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('Cetak / Simpan struk', 'Print / Save receipt')}
+                          title={t('Cetak / Simpan struk', 'Print / Save receipt')}
+                          onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}
+                        >
+                          <Printer className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
+                        </Button>
                       </div>
-                      <div className="text-[13px] space-y-1 tabular-nums">
-                        <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">
-                            {t("No. tagihan", "Bill no.")}
-                          </span>
-                          <span className="font-medium">{selectedBill.id}</span>
+                      <InlineError message={receiptFeedback && receiptFeedback.billId === selectedBill.id ? receiptFeedback.message : ''} />
+                      {(selectedBill.receipts || []).length > 0 && (
+                        <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+                          {(selectedBill.receipts || []).map((receipt: any) => (
+                            <div key={receipt.id} className="py-2.5 flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
+                              <div className="space-y-0.5 min-w-0">
+                                <p className="font-medium text-[var(--foreground)]">{paymentMethodLabel(receipt.method)}</p>
+                                <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                                  {new Date(receipt.receivedAt || receipt.createdAt).toLocaleString(language === "id" ? "id-ID" : "en-GB",{timeZone:cafeConfig.timezone})}
+                                </p>
+                                {receipt.referenceCode && <p className="text-[12px] break-all text-[var(--muted-foreground)]">{t("Referensi:", "Reference:")} {receipt.referenceCode}</p>}
+                              </div>
+                              <Money amount={receipt.amountIdr} className="font-semibold text-[var(--foreground)] shrink-0" />
+                            </div>
+                          ))}
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">{t("Pelanggan / meja", "Customer / table")}</span>
-                          <span className="font-medium">
-                            {selectedBill.ownerLabel} · Meja {selectedBill.tableLabel}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">{t("Status pembayaran", "Payment status")}</span>
-                          <span className="font-semibold text-[var(--status-success-fg)]">
-                            {paymentLabel(selectedBill.paymentState)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="pt-2 border-t border-dashed border-[var(--border)] space-y-1 text-[13px]">
-                        {(selectedBill.allocatedUnits || []).map((u: any) => (
-                          <div key={u.id} className="flex justify-between tabular-nums">
-                            <span>
-                              1× {u.itemNameSnapshot || u.itemName} (
-                              {u.variantNameSnapshot || u.variantName})
-                            </span>
-                            <span>
-                              {formatIdr(u.netIdr ?? u.grossIdr ?? u.finalUnitTotalIdr ?? 0)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between font-semibold text-[14px] tabular-nums">
-                        <span>{t("Total pembayaran diterima", "Total payments received")}</span>
-                        <span className="text-[var(--primary-ink)]">
-                          {formatIdr(selectedBill.verifiedReceiptsIdr)}
-                        </span>
-                      </div>
-                      {(selectedBill.receipts || []).map((receipt: any) => <div key={receipt.id} className="text-xs border-t border-[var(--border)] pt-2 space-y-1"><p>{paymentMethodLabel(receipt.method)} · <Money amount={receipt.amountIdr} /></p><p className="break-all text-[var(--muted-foreground)]">Referensi: {receipt.referenceCode}</p></div>)}
+                      )}
                       {selectedBill.refundedIdr > 0 && <p className="text-sm">{t("Sudah dikembalikan:", "Refunded:")} <Money amount={selectedBill.refundedIdr} /></p>}
-                      {selectedBill.balanceIdr < 0 && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</p>}
+                      {selectedBill.balanceIdr < 0 && <InlineNotice tone="warning">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</InlineNotice>}
                     </section>
                   )}
                 </div>
@@ -1601,20 +1689,16 @@ export function CustomerApp({
                         </p>
                       </div>
                       <Button
-                        variant="secondary"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={copiedKey === w.id ? t("Sandi Disalin", "Password copied") : t("Salin Sandi", "Copy password")}
+                        title={copiedKey === w.id ? t("Sandi Disalin", "Password copied") : t("Salin Sandi", "Copy password")}
                         onClick={() => handleCopyText(w.id, w.encryptedPassword)}
                       >
                         {copiedKey === w.id ? (
-                          <>
-                            <Check className="w-4 h-4 text-[var(--status-success-fg)]" />
-                            <span>{t("Sandi Disalin", "Password copied")}</span>
-                          </>
+                          <Check className="w-4 h-4 text-[var(--status-success-fg)]" aria-hidden="true" />
                         ) : (
-                          <>
-                            <Copy className="w-4 h-4" />
-                            <span>{t("Salin Sandi", "Copy password")}</span>
-                          </>
+                          <Copy className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
                         )}
                       </Button>
                     </div>
@@ -1664,9 +1748,9 @@ export function CustomerApp({
                 Member
               </h1>
 
-              <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-5">
-                <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
-              </div>
+              <InlineNotice tone="info">
+                <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+              </InlineNotice>
 
               {/* Send Review (Unboxed with Hairline Top Divider) */}
               <section className="pt-5 border-t border-[var(--border)] space-y-3">
@@ -1800,9 +1884,12 @@ export function CustomerApp({
               </section>
 
               <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label={t("Antrean Anda", "Your place in line")}>
-                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="sm" variant="secondary" disabled={busy} onClick={refreshWaitlist}>{t("Perbarui antrean", "Refresh waitlist")}</Button>}</div>
-                {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</p><StatusLabel label={({ WAITING: t('Menunggu', 'Waiting'), CALLED: t('Dipanggil', 'Called'), SEATED: t('Sudah Duduk', 'Seated'), COMPLETED: t('Kunjungan selesai', 'Visit completed'), CANCELLED: t('Dibatalkan', 'Cancelled'), EXPIRED: t('Kedaluwarsa', 'Expired') } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} /></div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="icon" variant="ghost" aria-label={t("Perbarui antrean", "Refresh waitlist")} title={t("Perbarui antrean", "Refresh waitlist")} disabled={busy} onClick={refreshWaitlist}><RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" /></Button>}</div>
+                {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="space-y-3">
+                  <div className={styles.contextStrip}>
+                    <span className="font-semibold text-[var(--foreground)]">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</span>
+                    <StatusLabel label={({ WAITING: t('Menunggu', 'Waiting'), CALLED: t('Dipanggil', 'Called'), SEATED: t('Sudah Duduk', 'Seated'), COMPLETED: t('Kunjungan selesai', 'Visit completed'), CANCELLED: t('Dibatalkan', 'Cancelled'), EXPIRED: t('Kedaluwarsa', 'Expired') } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} />
+                  </div>
                   <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} {t('orang', 'people')}</p>
                   {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? t('Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.', 'The previous call expired. Ask staff to call you again.') : t('Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.', 'Please wait while staff prepare a table. Refresh the waitlist for the latest call.')}</p>}
                   {waitlistTicket.status === 'CALLED' && <p className="text-sm">{t('Temui staf untuk menuju Meja', 'Meet staff to go to table')} {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` ${t('Meja ditahan hingga', 'Table held until')} ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}
@@ -1826,7 +1913,7 @@ export function CustomerApp({
             <Button variant="ghost" onClick={() => setActiveScreen('wifi')}>
               <MapPin aria-hidden="true" size={16} />{t("Info kedai", "Cafe info")}
             </Button>
-            {canUseTables && <Button variant="subtle" onClick={() => setActiveScreen('bantuan')}>
+            {canUseTables && <Button variant="ghost" onClick={() => setActiveScreen('bantuan')}>
               <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
             </Button>}
             {onOpenStaffPortal && !snapshot?.runtime?.demo && <Button variant="ghost" onClick={onOpenStaffPortal}>
@@ -1869,7 +1956,7 @@ export function CustomerApp({
       </AnimatePresence>
 
       <nav className={styles.bottomNav} aria-label={t("Navigasi pelanggan", "Customer navigation")}>
-        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Panggil pelayan", "Call staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={activeScreen === screen ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={activeScreen === screen ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Pelayan", "Staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
         <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>{t("Bagikan menu", "Share menu")}</span></button>
       </nav>
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title={t("Bagikan menu", "Share menu")}>
@@ -1879,7 +1966,7 @@ export function CustomerApp({
           <Button className="w-full" disabled={!shareUrl} onClick={() => handleCopyText('menu-share', shareUrl)}><Copy className="w-4 h-4" />{copiedKey === 'menu-share' ? t("Tersalin", "Copied") : t("Salin tautan", "Copy link")}</Button>
         </div>
       </DialogModal>
-      <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title={t("Kirim pesanan?", "Submit order?")}>
+      <DialogModal open={confirmOrderOpen} onClose={() => setConfirmOrderOpen(false)} title={t("Cek & Kirim Pesanan", "Submit order?")}>
         <div className="space-y-5">
 
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
@@ -1928,7 +2015,7 @@ export function CustomerApp({
                 badge:
                   unpaidBills.length > 0
                     ? formatIdr(unpaidBills[0].balanceIdr)
-                    : t("Lunas / Struk", "Paid / receipt"),
+                    : customerBills.some((bill: any) => bill.paymentState === "SETTLED") ? t("Lunas / Struk", "Paid / receipt") : undefined,
                 icon: Receipt,
               },
               {
@@ -2135,16 +2222,16 @@ export function CustomerApp({
             {(configuringItem.modifierGroups || []).map((grp: any) => (
               <div key={grp.id} className="space-y-1.5 pt-2">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-[14px]">{grp.name}</p>
+                  <p className="font-semibold text-[14px]">{grp.name.replace(/\s*\(Wajib\)/i, '')}</p>
                   <span className="text-[12px] text-[var(--muted-foreground)]">
                     {grp.required
                       ? language === 'id' ? `Wajib (Pilih ${grp.minSelect})` : `Required (Choose ${grp.minSelect})`
-                      : `Opsional (Maks ${grp.maxSelect})`}
+                      : language === 'id' ? `Opsional (Maks ${grp.maxSelect})` : `Optional (Max ${grp.maxSelect})`}
                   </span>
                 </div>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {(grp.options || []).map((opt: any) => {
-                    const isRadio = grp.maxSelect === 1;
+                    const isRadio = grp.maxSelect === 1 && grp.required;
                     const checked = selectedModOptionIds.includes(opt.id);
                     return (
                       <label
@@ -2205,8 +2292,9 @@ export function CustomerApp({
               />
             </div>
 
-            <InlineError message={modalError} />
+            <InlineError message={tableUnavailable ? t('Meja ini belum siap menerima pesanan. Minta bantuan pelayan.', 'This table is not ready for orders. Ask staff for help.') : modalError} />
 
+            {(configuringItem.modifierGroups || []).some((group: any) => group.required && (group.options || []).filter((option: any) => selectedModOptionIds.includes(option.id)).length < group.minSelect) && <p className="text-sm text-[var(--status-warning-fg)]">{t('Lengkapi pilihan wajib untuk menambahkan menu.','Complete required options to add this item.')}</p>}
             {/* Modal Footer: Quantity + Add to Cart */}
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between gap-3">
               <QuantityControl
@@ -2216,8 +2304,8 @@ export function CustomerApp({
                 itemLabel={configuringItem.name}
                 onChange={setItemQuantity}
               />
-              <Button variant="primary" className="flex-1" onClick={handleConfirmModalAdd}>
-                {editingLineId ? t('Simpan perubahan', 'Save changes') : t('Tambah ke keranjang', 'Add to cart')}
+              <Button variant="primary" className="flex-1" disabled={tableUnavailable || !configuringItem.isAvailable || !(configuringItem.variants || []).some((v: any) => v.id === selectedVariantId && v.availableToSell >= itemQuantity) || (configuringItem.modifierGroups || []).some((group: any) => { const count = (group.options || []).filter((option: any) => selectedModOptionIds.includes(option.id)).length; return count < (group.required ? group.minSelect : 0) || count > group.maxSelect; })} onClick={handleConfirmModalAdd}>
+                {!configuringItem.isAvailable ? t('Stok habis', 'Sold out') : editingLineId ? t('Simpan perubahan', 'Save changes') : t('Tambah ke keranjang', 'Add to cart')}
               </Button>
             </div></>}
             {!canOrder && <p className="text-sm text-[var(--muted-foreground)] border-t border-[var(--border)] pt-4">{t("Untuk memesan menu ini, sampaikan pilihan Anda kepada staf di kasir.", "To order this item, tell the staff at the counter.")}</p>}

@@ -660,7 +660,7 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
         stationCode: 'BAR',
         name: 'Teh Melati Dingin Daun Asli',
         slug: 'teh-melati-dingin',
-        description: 'Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.',
+        description: 'Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan.',
         photoUrl: '/images/menu/photos/teh.jpg',
         scheduleJson: {
           allDay: true,
@@ -798,6 +798,7 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       { id: 'modgrp_kopi_addon', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_kopi_aren', name: 'Tambahan Opsional', minSelect: 0, maxSelect: 3, required: false, sortOrder: 3, active: true },
       { id: 'modgrp_matcha_gula', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_matcha_uji', name: 'Tingkat Manis (Wajib)', minSelect: 1, maxSelect: 1, required: true, sortOrder: 1, active: true },
       { id: 'modgrp_ayam_sambal', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_nasi_ayam', name: 'Pilihan Sambal (Wajib)', minSelect: 1, maxSelect: 1, required: true, sortOrder: 1, active: true },
+      { id: 'modgrp_ayam_penyajian', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_nasi_ayam', name: 'Penyajian Sambal', minSelect: 0, maxSelect: 1, required: false, sortOrder: 2, active: true },
       { id: 'modgrp_ayam_addon', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, menuItemId: 'item_nasi_ayam', name: 'Lauk Tambahan', minSelect: 0, maxSelect: 2, required: false, sortOrder: 2, active: true },
     ]).onConflictDoNothing();
 
@@ -811,10 +812,10 @@ async function runSeedInternal(force = false, empty = process.env.CAFE_DEMO_EMPT
       { id: 'modopt_addon_shot', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_kopi_addon', name: 'Extra Shot Espresso', priceIdr: 6000, stockPoolId: 'pool_espresso', active: true },
       { id: 'modopt_addon_jelly', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_kopi_addon', name: 'Jeli Kopi Aren', priceIdr: 5000, active: true },
       { id: 'modopt_matcha_normal', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_matcha_gula', name: 'Manis Standar', priceIdr: 0, active: true },
-      { id: 'modopt_matcha_less', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_matcha_gula', name: 'Less Sweet', priceIdr: 0, active: true },
+      { id: 'modopt_matcha_less', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_matcha_gula', name: 'Kurang Manis', priceIdr: 0, active: true },
       { id: 'modopt_sambal_matah', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_sambal', name: 'Sambal Matah Bali', priceIdr: 0, active: true },
       { id: 'modopt_sambal_korek', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_sambal', name: 'Sambal Korek Bawang', priceIdr: 0, active: true },
-      { id: 'modopt_sambal_pisah', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_sambal', name: 'Sambal Dipisah', priceIdr: 0, active: true },
+      { id: 'modopt_sambal_pisah', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_penyajian', name: 'Sambal Dipisah', priceIdr: 0, active: true },
       { id: 'modopt_ayam_telur', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_addon', name: 'Telur Ceplok Setengah Matang', priceIdr: 6000, active: true },
       { id: 'modopt_ayam_kerupuk', tenantId: DEFAULT_TENANT_ID, outletId: DEFAULT_OUTLET_ID, groupId: 'modgrp_ayam_addon', name: 'Kerupuk Kaleng', priceIdr: 4000, active: true },
     ]).onConflictDoNothing();

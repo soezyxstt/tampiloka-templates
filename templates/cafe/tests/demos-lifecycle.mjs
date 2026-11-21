@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
 /**
  * Executable customer/staff visit acceptance tests for the static public demos.
  *
@@ -148,7 +148,7 @@ async function setPolicy(staff, policy) {
   await staff.getByRole('button', { name: 'Simpan alur pemesanan', exact: true }).click();
   await poll(staff, data => data.outlet.paymentPolicy === policy && data.outlet.takeawayPaymentPolicy === policy && !data.outlet.autoAcceptParticipant, 'saved ordering policy');
   await chooseDemoStaff(staff, 'staff_cashier');
-  await section(staff, /^Kasir & Pesanan/);
+  await section(staff, /^Kasir/);
 }
 async function seat(staff, fixture) {
   await section(staff, /^Meja & Antrean/);
@@ -186,7 +186,7 @@ async function orderFromCustomer(customer, staff, fixture, itemId, expectedOrder
   return requested.value;
 }
 async function accept(staff, customerName, requestId) {
-  await section(staff, /^Kasir & Pesanan|^Pesanan masuk/);
+  await section(staff, /^Kasir|^Pesanan masuk/);
   await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   await refreshStaff(staff);
   const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: customerName });
@@ -211,7 +211,7 @@ async function orderPaymentLabel(customer, orderId, label) {
 async function customerPayment(customer, billId) {
   await customerOrders(customer);
   await customer.getByRole('button', { name: 'Lihat tagihan dan pembayaran', exact: true }).click();
-  await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(billId);
+  await selectCustomerBill(customer, billId);
 }
 async function createQr(customer, billId) {
   await customerPayment(customer, billId);
@@ -221,7 +221,7 @@ async function createQr(customer, billId) {
   return pending.value;
 }
 async function simulateQr(staff, customerName, attemptId, action) {
-  await section(staff, /^Kasir & Pesanan|^Pesanan masuk/);
+  await section(staff, /^Kasir|^Pesanan masuk/);
   await refreshStaff(staff);
   await openDemoOptions(staff);
   const row = staff.getByRole('region', { name: 'Simulasi pembayaran', exact: true }).locator('.divide-y > div').filter({ hasText: customerName });
@@ -235,12 +235,15 @@ async function ensureCashShift(staff) {
   if (data.cashShifts.some(shift => shift.state === 'OPEN')) return;
   const region = staff.getByRole('region', { name: 'Shift kasir', exact: true });
   await region.getByRole('button', { name: 'Buka shift', exact: true }).click();
-  await region.getByLabel('Modal awal laci (Rp)', { exact: true }).fill('500000');
-  await region.getByRole('button', { name: 'Buka shift kasir', exact: true }).click();
+  const dialog = staff.getByRole('dialog', { name: 'Atur Shift', exact: true });
+  await dialog.getByLabel('Modal awal laci (Rp)', { exact: true }).fill('500000');
+  await dialog.getByRole('button', { name: 'Buka shift kasir', exact: true }).click();
   await poll(staff, data => data.cashShifts.some(shift => shift.state === 'OPEN'), 'cash shift open');
+  await dialog.press('Escape');
+  await dialog.waitFor({ state: 'hidden' });
 }
 async function selectBill(staff, billId, name, paid = false) {
-  await section(staff, /^Kasir & Pesanan/);
+  await section(staff, /^Kasir/);
   await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
   await refreshStaff(staff);
   await staff.getByLabel('Cari tagihan berdasarkan meja atau pelanggan', { exact: true }).fill(name);
@@ -252,11 +255,15 @@ async function cash(staff, billId, customerName, amount, tender = amount) {
   await selectBill(staff, billId, customerName);
   await ensureCashShift(staff);
   await staff.getByRole('group', { name: 'Metode pembayaran kasir', exact: true }).getByRole('button', { name: 'Tunai', exact: true }).click();
+  assert.equal(await staff.getByLabel('Jumlah bayar (Rp)', { exact: true }).count(), 0, 'Full payment is the default.');
+  await staff.getByRole('button', { name: 'Bayar sebagian', exact: true }).click();
+  await staff.getByLabel('Uang diterima (Rp)', { exact: true }).fill(String((await snapshot(staff)).bills.find(bill => bill.id === billId).balanceIdr));
+  assert.equal(await staff.getByRole('button', { name: /^Terima tunai/ }).isEnabled(), false, 'A blank partial amount must not charge the entire bill even when enough cash is entered.');
   await staff.getByLabel('Jumlah bayar (Rp)', { exact: true }).fill('0');
-  await staff.getByLabel('Tunai diterima (Rp)', { exact: true }).fill(String(tender));
+  await staff.getByLabel('Uang diterima (Rp)', { exact: true }).fill(String(tender));
   assert.equal(await staff.getByRole('button', { name: /^Terima tunai/ }).isEnabled(), false, 'An explicit Rp0 must not fall back to charging the entire bill.');
   await staff.getByLabel('Jumlah bayar (Rp)', { exact: true }).fill(String(amount));
-  await staff.getByLabel('Tunai diterima (Rp)', { exact: true }).fill(String(tender));
+  await staff.getByLabel('Uang diterima (Rp)', { exact: true }).fill(String(tender));
   const before = await snapshot(staff);
   const receipts = before.bills.find(bill => bill.id === billId).receipts.length;
   await staff.getByRole('button', { name: /^Terima tunai/ }).click();
@@ -288,7 +295,7 @@ async function departureReview(staff, visit, expectedAllowed) {
     await floorNav.click();
     await staff.getByRole('group', { name: 'Sub-menu operasional lantai', exact: true }).getByRole('button', { name: 'Kunjungan aktif', exact: true }).click();
   }
-  else { await section(staff, /^Kasir & Pesanan|^Pesanan masuk/); await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Kunjungan aktif/ }).click(); }
+  else { await section(staff, /^Kasir|^Pesanan masuk/); await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Kunjungan aktif/ }).click(); }
   await refreshStaff(staff);
   const area = staff.getByRole('combobox', { name: 'Area kunjungan', exact: true });
   if (await area.count()) {
@@ -408,7 +415,8 @@ async function payLaterJourney(context) {
   await assertBlocked(staff, visit, 'outstandingBalanceIdr');
   await cash(staff, sale.bill.id, fixture.name, sale.bill.balanceIdr, 50000);
   await orderPaymentLabel(customer, sale.order.id, 'Lunas');
-  await customer.getByRole('navigation', { name: 'Navigasi pelanggan', exact: true }).getByRole('button', { name: 'Panggil pelayan', exact: true }).click();
+  await customer.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
+  await customer.getByRole('dialog', { name: 'Lainnya', exact: true }).getByRole('button', { name: /^Panggil pelayan/ }).click();
   await customer.getByRole('button', { name: 'Alat makan', exact: true }).click();
   await customer.getByLabel('Catatan tambahan (opsional)', { exact: true }).fill('Dua sendok untuk uji layanan meja.');
   await customer.getByRole('button', { name: 'Kirim permintaan', exact: true }).click();
@@ -428,7 +436,7 @@ async function payLaterJourney(context) {
 
 async function posSale(staff, fixture) {
   const data = await snapshot(staff);
-  await section(staff, /^Kasir & Pesanan/);
+  await section(staff, /^Kasir/);
   await staff.getByRole('button', { name: /^Pesanan baru$/i }).first().click();
   const dialog = staff.getByRole('dialog', { name: 'Pesanan baru', exact: true });
   await dialog.locator('#pos-name').fill(fixture.name);
@@ -460,6 +468,43 @@ async function takeawayJourney(context) {
   await closeAndClean(staff, sale.visit);
   pass('takeaway: discounted POS order → cash → kitchen → pickup → explicit visit completion', { visitId: sale.visit.id });
 }
+async function receiptRecoveryJourney(context) {
+  const preset = 'menu-order-cashier';
+  const { staff, customer, baseline } = await setupPages(context, preset);
+  const fixture = { name: 'Uji Cetak Sebagian', tableId: 'tbl_m06' };
+  await open(customer, qrUrl(baseline.tables.find(table => table.id === fixture.tableId), preset));
+  const request = await orderFromCustomer(customer, staff, fixture, 'item_teh_melati');
+  const sale = await accept(staff, fixture.name, request.id);
+  const partial = await cash(staff, sale.bill.id, fixture.name, 10000);
+  assert.ok(partial.balanceIdr > 0);
+  await customerPayment(customer, sale.bill.id);
+  assert.equal(await customer.getByRole('button', { name: 'Buat QRIS', exact: true }).count(), 0);
+  const print = customer.getByRole('button', { name: 'Cetak / Simpan struk', exact: true });
+  const recovery = customer.getByText('Izinkan jendela cetak di browser, lalu coba lagi.', { exact: true });
+  await customer.evaluate(() => { window.__receiptOpen = window.open; window.open = () => null; });
+  try {
+    await print.click();
+    await recovery.waitFor();
+    await customer.evaluate(() => {
+      window.open = (...args) => {
+        const popup = window.__receiptOpen.apply(window, args);
+        if (popup) popup.print = () => {};
+        return popup;
+      };
+    });
+    const [popup] = await Promise.all([customer.waitForEvent('popup'), print.click()]);
+    await popup.getByText('Sisa tagihan', { exact: true }).waitFor();
+    await popup.getByText('Struk demo · tidak ada pembayaran nyata', { exact: true }).waitFor();
+    assert.equal(await recovery.count(), 0, 'A successful print retry clears the popup recovery message.');
+    await popup.close();
+  } finally {
+    await customer.evaluate(() => { window.open = window.__receiptOpen; delete window.__receiptOpen; });
+  }
+  const after = (await snapshot(customer)).bills.find(bill => bill.id === sale.bill.id);
+  assert.equal(after.balanceIdr, partial.balanceIdr);
+  assert.equal(after.receipts.length, 1, 'Printing never records another payment.');
+  pass('receipt: a partially paid offline bill exposes blocked-popup recovery and prints safely on retry');
+}
 async function rejectionJourney(context) {
   const { staff, customer, baseline } = await setupPages(context);
   const fixture = F.rejected;
@@ -468,7 +513,7 @@ async function rejectionJourney(context) {
   const table = baseline.tables.find(table => table.id === fixture.tableId);
   await open(customer, qrUrl(table));
   const request = await orderFromCustomer(customer, staff, fixture, fixture.itemId);
-  await section(staff, /^Kasir & Pesanan/);
+  await section(staff, /^Kasir/);
   await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Pesanan masuk/ }).click();
   await refreshStaff(staff);
   const row = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: fixture.name });
@@ -561,7 +606,7 @@ async function splitMergeJourney(context) {
   const sale = await accept(staff, fixture.name, request.id);
   const originalTotal = sale.bill.originalTotalIdr;
   await selectBill(staff, sale.bill.id, fixture.name);
-  await staff.getByRole('button', { name: 'Pisah / Gabung Tagihan', exact: true }).click();
+  await staff.getByRole('button', { name: 'Pisah / Gabung', exact: true }).click();
   await staff.locator(`[data-split-unit-id="${sale.bill.allocatedUnits[0].id}"]`).getByRole('checkbox').check();
   await staff.getByPlaceholder('Nama tagihan baru', { exact: true }).fill(`Split ${fixture.name}`);
   await staff.getByRole('button', { name: 'Pisahkan', exact: true }).click();
@@ -574,7 +619,7 @@ async function splitMergeJourney(context) {
   assert.equal(new Set(split.value.flatMap(bill => bill.allocatedUnits.map(unit => unit.id))).size, 2);
   await orderPaymentLabel(customer, sale.order.id, 'Belum Dibayar');
   await selectBill(staff, child.id, fixture.name);
-  const toggle = staff.getByRole('button', { name: 'Pisah / Gabung Tagihan', exact: true });
+  const toggle = staff.getByRole('button', { name: 'Pisah / Gabung', exact: true });
   if (await toggle.count()) await toggle.click();
   await staff.getByLabel('Tagihan tujuan penggabungan', { exact: true }).selectOption(sale.bill.id);
   await staff.getByRole('button', { name: 'Gabung', exact: true }).click();
@@ -797,6 +842,7 @@ const cases = [
   { id: 'prepay-addon-close', run: prepayJourney },
   { id: 'paylater-close', run: payLaterJourney },
   { id: 'takeaway-close', run: takeawayJourney },
+  { id: 'receipt-recovery', run: receiptRecoveryJourney },
   { id: 'reject-request', run: rejectionJourney },
   { id: 'cancel-refund', run: cancellationRefundJourney },
   { id: 'deferred-refund', run: deferredRefundJourney },

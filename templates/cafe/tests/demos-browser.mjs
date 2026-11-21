@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
 /**
  * Static showcase checks against Cloudflare Pages or the nine public demo hosts.
  *
@@ -138,7 +138,6 @@ async function checkCustomer(page, demo) {
   await nav.waitFor();
   await assertPresence(nav.getByRole('button', { name: 'Keranjang', exact: true }), modules.has('ordering'), `${demo.id}: cart follows ordering capability.`);
   await assertPresence(nav.getByRole('button', { name: 'Pesanan', exact: true }), modules.has('ordering'), `${demo.id}: orders follow ordering capability.`);
-  await assertPresence(nav.getByRole('button', { name: 'Panggil pelayan', exact: true }), modules.has('tables'), `${demo.id}: waiter controls follow table service.`);
   await assertPresence(page.getByRole('button', { name: /^Tambah / }), modules.has('ordering'), `${demo.id}: add-to-cart controls follow ordering capability.`);
   await assertPresence(page.locator('.demo-toolbar').getByRole('link', { name: 'Staf', exact: true }), demo.staffPath !== undefined, `${demo.id}: staff route is only offered when enabled.`);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), demo.theme, `${demo.id}: manifest theme is applied.`);
@@ -147,6 +146,7 @@ async function checkCustomer(page, demo) {
   await page.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
   const drawer = page.getByRole('dialog', { name: 'Lainnya', exact: true });
   await drawer.waitFor();
+  await assertPresence(drawer.getByRole('button', { name: /^Panggil pelayan/ }), modules.has('tables'), `${demo.id}: waiter controls follow table service.`);
   await assertPresence(drawer.getByRole('button', { name: /^Member(?:\s|$)/ }), modules.has('loyalty') || modules.has('marketing'), `${demo.id}: membership controls follow enabled modules.`);
   await assertPresence(drawer.getByRole('button', { name: /^Antrean meja(?:\s|$)/ }), modules.has('tables'), `${demo.id}: waitlist is absent when table service is off.`);
   await assertPresence(drawer.getByRole('button', { name: /^Pembayaran(?:\s|$)/ }), modules.has('ordering'), `${demo.id}: payment/receipt access requires an order flow.`);
@@ -169,7 +169,7 @@ async function checkStaff(page, demo) {
   const modules = new Set(demo.modules);
   const nav = page.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true });
   const expectedSections = [
-    [/^Kasir & Pesanan/, modules.has('cashier')],
+    [/^Kasir/, modules.has('cashier')],
     [/^Pesanan masuk/, modules.has('ordering') && !modules.has('cashier')],
     [/^Dapur & Bar/, modules.has('kitchen')],
     [/^Meja & Antrean/, modules.has('tables')],
@@ -268,7 +268,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   await customer.getByRole('button', { name: 'Perbarui', exact: true }).click();
   await customer.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
   await customer.getByRole('dialog').getByRole('button', { name: /^Pembayaran(?:\s|$)/ }).click();
-  await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(bill.id);
+  await selectCustomerBill(customer, bill.id);
   await localClick(customer, customer.getByRole('button', { name: 'Buat QRIS', exact: true }), 'before demo QR creation');
   await customer.getByAltText('Kode QR tidak dapat dibayar', { exact: true }).waitFor();
   const pending = await pollSnapshot(customer, snapshot => snapshot.bills.find(entry => entry.id === bill.id)?.attempts.find(attempt => attempt.status === 'PENDING'), 'pending demo QR payment');
@@ -319,7 +319,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   await staff.getByText(posName, { exact: false }).first().waitFor();
   await open(customer, tableUrl(demo, table.qrToken, bill.shareToken));
   await customer.getByRole('heading', { name: 'Pembayaran', exact: true }).waitFor();
-  assert.equal(await customer.getByLabel('Pilih tagihan meja', { exact: true }).inputValue(), bill.id);
+  await selectCustomerBill(customer, bill.id);
   await customer.getByText('Lunas', { exact: true }).first().waitFor();
   pass('full: staff reload and customer bill link preserve the sale and settlement', { preset: demo.id });
 

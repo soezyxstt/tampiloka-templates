@@ -1,4 +1,11 @@
 /** Shared browser helpers for the production-like showcase shell. */
+export async function selectCustomerBill(page, billId) {
+  await page.getByRole('heading', { name: 'Pembayaran', exact: true }).waitFor();
+  const selector = page.getByLabel('Pilih tagihan meja', { exact: true });
+  if (await selector.count()) await selector.selectOption(billId);
+  await page.locator(`[data-customer-bill-id="${billId}"]`).waitFor();
+}
+
 export async function chooseDemoStaff(page, id = 'staff_owner') {
   const staff = await page.evaluate(async () => {
     const response = await fetch('/api/v1/snapshot?surface=staff');
@@ -12,7 +19,7 @@ export async function chooseDemoStaff(page, id = 'staff_owner') {
   await picker.click();
   await page.getByRole('option').filter({ hasText: person.userName }).click();
   // These existing journeys exercise cashier tasks explicitly; owner landing is reports.
-  const cashier = page.getByRole('navigation', { name: /^Navigasi operasional (kafe|desktop)$/ }).getByRole('button', { name: /^Kasir & Pesanan|^Pesanan masuk/ });
+  const cashier = page.getByRole('navigation', { name: /^Navigasi operasional (kafe|desktop)$/ }).getByRole('button', { name: /^Kasir|^Pesanan masuk/ });
   if (await cashier.count()) await cashier.click();
 }
 

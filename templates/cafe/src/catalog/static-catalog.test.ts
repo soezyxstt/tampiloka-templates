@@ -122,3 +122,17 @@ test('catalog export never copies staff, payment credentials, guests or Wi-Fi pa
 test('the current client content passes the same schema', () => {
   assert.doesNotThrow(() => validateCatalogContent(configuredMenu, configuredTables));
 });
+
+test('sample chicken selects sambal type independently from optional serving style', () => {
+  const chicken = configuredMenu.items.find(item => item.id === 'item_nasi_ayam')!;
+  const sambal = chicken.modifierGroups.find(group => group.id === 'modgrp_ayam_sambal')!;
+  assert.equal(sambal.required, true);
+  assert.equal(sambal.minSelect, 1);
+  assert.equal(sambal.maxSelect, 1);
+  assert.deepEqual(sambal.options.map(option => option.id), ['modopt_sambal_matah', 'modopt_sambal_korek']);
+  const serving = chicken.modifierGroups.find(group => group.id === 'modgrp_ayam_penyajian')!;
+  assert.equal(serving.required, false);
+  assert.equal(serving.minSelect, 0);
+  assert.equal(serving.maxSelect, 1);
+  assert.deepEqual(serving.options.map(option => option.id), ['modopt_sambal_pisah']);
+});

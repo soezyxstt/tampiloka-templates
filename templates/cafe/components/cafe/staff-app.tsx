@@ -10,7 +10,6 @@ import { MotionPanel } from '@/components/ui/motion';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Button,
-  PageHeader,
   ChoiceStrip,
   Surface,
   Input,
@@ -35,6 +34,9 @@ import { BrandMark } from './brand';
 import { PosComposer } from './pos-composer';
 import { OrderInbox } from './order-inbox';
 import { ShiftControls } from './shift-controls';
+import { groupBillUnits, billOwnerName, billLocation } from './bill-display';
+import { printBillReceipt } from './receipt-print';
+import { DemoPaymentControls } from './demo-payment-controls';
 import { VisitService } from './visit-service';
 import { OrderNotifications } from './order-notifications';
 import styles from './staff-app.module.css';
@@ -88,6 +90,7 @@ function sectionEnabled(section: StaffSection): boolean {
   }
 }
 const defaultSection = ({ cashier: 'kasir', ordering: 'kasir', kitchen: 'dapur', dashboard: 'laporan', tables: 'meja', marketing: 'pengaturan' } as Record<string, StaffSection>)[getDefaultStaffModule() || ''] || 'pengaturan';
+
 const availableSection = (section?: StaffSection) => section && sectionEnabled(section) ? section : defaultSection;
 
 const STAFF_CREDENTIALS: Record<
@@ -246,13 +249,14 @@ export function StaffApp({
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('ACTIVE');
   const [showResolvedRequests, setShowResolvedRequests] = useState(false);
 
-  // Kasir & Pesanan state
+  // Kasir state
   const [selectedBillId, setSelectedBillId] = useState<string>('bill_demo_m04');
   const [selectedUnitIdsForSplit, setSelectedUnitIdsForSplit] = useState<string[]>([]);
   const [showSplitMergePanel, setShowSplitMergePanel] = useState<boolean>(false);
   const [splitNewOwnerLabel, setSplitNewOwnerLabel] = useState<string>('');
   const [mergeTargetBillId, setMergeTargetBillId] = useState<string>('');
   const [tenderMethod, setTenderMethod] = useState<string>('CASH');
+  const [partialPayment, setPartialPayment] = useState(false);
   const [tenderAmountInput, setTenderAmountInput] = useState<string>('');
   const [cashGivenInput, setCashGivenInput] = useState<string>('');
   const [transferRefInput, setTransferRefInput] = useState<string>('');
@@ -281,7 +285,7 @@ export function StaffApp({
   const [posQuantity, setPosQuantity] = useState<number>(1);
 
   // Dapur & Bar state
-  const [stationFilter, setStationFilter] = useState<string>('ALL');
+  const [stationFilter, setStationFilter] = useState<string>('MINE');
 
   // Meja & Antrean sub-tab state
   const [floorSubTab, setFloorSubTab] = useState<'KUNJUNGAN' | 'DENAH' | 'PANGGILAN' | 'ANTREAN'>('KUNJUNGAN');
@@ -298,9 +302,7 @@ export function StaffApp({
   const [newMenuStation, setNewMenuStation] = useState<string>('BAR');
   const [newMenuPrice, setNewMenuPrice] = useState<string>('28000');
   const [newMenuDesc, setNewMenuDesc] = useState<string>('');
-  const [newMenuPhotos, setNewMenuPhotos] = useState<string[]>([
-    '/images/menu/photos/kopi-aren.jpg',
-  ]);
+  const [newMenuPhotos, setNewMenuPhotos] = useState<string[]>([]);
   const [newCategoryNameInput, setNewCategoryNameInput] = useState<string>('');
 
   // Multi-photo editor modal
@@ -373,7 +375,8 @@ export function StaffApp({
     setKitchenStatusFilter('ACTIVE');
     setCashierTask('orders');
     setFloorSubTab('KUNJUNGAN');
-    setStationFilter(role === 'BAR' ? 'BAR' : role === 'KITCHEN' ? 'KITCHEN' : 'ALL');
+    setStationFilter('MINE');
+    setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput('');
     setActionError('');
     setNewOrderModalOpen(false);
     setRejectingRequest(null);
@@ -424,7 +427,8 @@ export function StaffApp({
     [filteredBills, selectedBillId]
   );
 
-  const kitchenUnits = useMemo(() => {
+  const currentRole = currentStaffObj.role;
+  const kitchenUnits = (() => {
     const all = (snapshot?.orderUnits || []).filter(
       (u: any) => u.fulfillmentStatus !== 'CANCELLED' &&
         (kitchenStatusFilter === 'ALL' ||
@@ -432,9 +436,11 @@ export function StaffApp({
             ? ['QUEUED', 'PREPARING', 'READY'].includes(u.fulfillmentStatus)
             : u.fulfillmentStatus === kitchenStatusFilter))
     );
+    all.sort((a: any, b: any) => Number(['SERVED','DELIVERED','PICKED_UP'].includes(a.fulfillmentStatus)) - Number(['SERVED','DELIVERED','PICKED_UP'].includes(b.fulfillmentStatus)) || Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
+    if (stationFilter === 'MINE') return all.filter((u: any) => currentRole === 'BAR' ? u.stationCode === 'BAR' : currentRole === 'KITCHEN' ? u.stationCode !== 'BAR' : true);
     if (stationFilter === 'ALL') return all;
     return all.filter((u: any) => u.stationCode === stationFilter);
-  }, [snapshot, stationFilter, kitchenStatusFilter]);
+  })();
 
   const kitchenGroups = useMemo(() => {
     const groups = new Map<string, any[]>();
@@ -473,7 +479,7 @@ export function StaffApp({
     const matching = activeBills.filter((bill: any) => bill.visitId === visitId);
     const bill = matching.find((entry: any) => entry.balanceIdr !== 0) || matching[0];
     setActiveSection('kasir'); setCashierTask('bills'); setBillSearch(''); setBillFilter('ALL');
-    setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); setPaymentError('');
+    setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); setPaymentError('');
     setShowSplitMergePanel(false); setSelectedUnitIdsForSplit([]);
     if (bill) setSelectedBillId(bill.id);
   };
@@ -665,7 +671,7 @@ export function StaffApp({
   const allNavItems: { id: StaffSection; label: string; count?: number }[] = [
     {
       id: 'kasir',
-      label: canCashier ? t('Kasir & Pesanan', 'Cashier & orders') : t('Pesanan masuk', 'Incoming orders'),
+      label: canCashier ? t('Kasir', 'Cashier & orders') : t('Pesanan masuk', 'Incoming orders'),
       count:
         pendingOrderRequests.length +
         activeBills.filter((b: any) => b.balanceIdr > 0).length,
@@ -680,7 +686,7 @@ export function StaffApp({
     {
       id: 'meja',
       label: t('Meja & Antrean', 'Tables & waitlist'),
-      count: openWaitlistCount + openHelpCount,
+      count: openWaitlistCount + openHelpCount + (snapshot?.tables || []).filter((table: any) => table.physicalState === 'NEEDS_CLEANING').length,
     },
     { id: 'menu', label: supervisor ? t('Katalog & Stok', 'Catalogue & stock') : t('Ketersediaan menu', 'Menu availability') },
     { id: 'laporan', label: isModuleEnabled('dashboard') ? t('Laporan & Shift', 'Reports & shifts') : t('Shift kasir', 'Cashier shifts') },
@@ -692,28 +698,17 @@ export function StaffApp({
     .sort((a, b) => roleSections.indexOf(a.id) - roleSections.indexOf(b.id));
   const currentSection = navItems.some(item => item.id === activeSection) ? activeSection : navItems[0]?.id || defaultSection;
 
-  const billLocationLabel = (bill: any) => {
-    const visit = (snapshot?.visits || []).find((entry: any) => entry.id === bill.visitId);
-    return visit?.mode === 'TAKEAWAY' || !bill.tableLabel ? t('Bawa pulang', 'Takeaway') : t(`Meja ${bill.tableLabel}`, `Table ${bill.tableLabel}`);
-  };
-
-  const billOwnerName = (bill: any) => {
-    const label = String(bill.ownerLabel || '');
-    for (const table of [bill.tableLabel, `Meja ${bill.tableLabel}`, `Table ${bill.tableLabel}`]) {
-      const suffix = ` (${table})`;
-      if (bill.tableLabel && label.endsWith(suffix)) return label.slice(0, -suffix.length);
-    }
-    return label;
-  };
+  const billLocationLabel = (bill: any) => billLocation(bill, snapshot?.visits || [], t);
 
   const effectiveTenderAmount =
-    tenderAmountInput.trim() === ''
+    !partialPayment
       ? selectedBill?.balanceIdr || 0
       : Number(tenderAmountInput);
   const cashChangePreview =
     tenderMethod === 'CASH'
       ? Math.max(0, (Number(cashGivenInput) || 0) - effectiveTenderAmount)
       : 0;
+
 
   return (
     <div className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace} ${styles.explorationManaged}`}>
@@ -754,9 +749,11 @@ export function StaffApp({
       </header>
       <a href="#staff-content" className="skip-link">{t("Ke ruang kerja", "Open workspace")}</a>
       <main id="staff-content" className="staff-main">
-        {currentSection !== 'meja' && <PageHeader title={navItems.find(item => item.id === currentSection)?.label || t('Operasional', 'Operations')} actions={!supervisor && canCashier && currentSection === 'kasir' ? <Button variant="primary" onClick={() => setNewOrderModalOpen(true)}><Plus className="h-4 w-4" />{t("Pesanan baru", "New order")}</Button> : undefined} />}
+        {currentSection !== 'kasir' && currentSection !== 'meja' && (
+          <h1 className="sr-only">{navItems.find(item => item.id === currentSection)?.label || t('Operasional', 'Operations')}</h1>
+        )}
         {supervisor && ['kasir', 'dapur', 'meja'].includes(currentSection) && (
-          <p className="text-sm text-[var(--muted-foreground)]">{t('Hanya lihat', 'View only')}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">{t('Hanya lihat', 'View only')}</p>
         )}
         <AnimatePresence>
           {actionError && (
@@ -779,17 +776,28 @@ export function StaffApp({
             key="pos-kasir"
             className="workspace-stack"
           >
-            <ChoiceStrip<'orders' | 'bills' | 'visits'>
-              ariaLabel={t('Tugas kasir dan pesanan', 'Cashier and order tasks')}
-              kind="navigation"
-              items={[
-                { id: 'orders', label: t('Pesanan masuk', 'Incoming orders'), count: pendingOrderRequests.length },
-                ...(canCashier ? [{ id: 'bills' as const, label: t('Tagihan', 'Bills'), count: activeBills.filter((bill: any) => bill.balanceIdr !== 0).length }] : []),
-                ...(!canTables ? [{ id: 'visits' as const, label: t('Kunjungan aktif', 'Active visits'), count: (snapshot?.visits || []).filter((visit: any) => visit.status === 'OPEN').length }] : []),
-              ]}
-              value={cashierTask}
-              onChange={task => { setCashierTask(task); setActionError(''); }}
-            />
+            <div className={styles.sectionBar}>
+              <h1 className="sr-only">{navItems.find(item => item.id === currentSection)?.label || t('Kasir', 'Cashier')}</h1>
+              <ChoiceStrip<'orders' | 'bills' | 'visits'>
+                ariaLabel={t('Tugas kasir dan pesanan', 'Cashier and order tasks')}
+                kind="navigation"
+                items={[
+                  { id: 'orders', label: t('Pesanan masuk', 'Incoming orders'), count: pendingOrderRequests.length },
+                  ...(canCashier ? [{ id: 'bills' as const, label: t('Tagihan', 'Bills'), count: activeBills.filter((bill: any) => bill.balanceIdr !== 0).length }] : []),
+                  ...(!canTables ? [{ id: 'visits' as const, label: t('Kunjungan aktif', 'Active visits'), count: (snapshot?.visits || []).filter((visit: any) => visit.status === 'OPEN').length }] : []),
+                ]}
+                value={cashierTask}
+                onChange={task => { setCashierTask(task); setActionError(''); }}
+              />
+              {!supervisor && canCashier && (
+                <div className="pb-1.5">
+                  <Button variant="primary" size="sm" onClick={() => setNewOrderModalOpen(true)}>
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    {t("Pesanan baru", "New order")}
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {cashierTask === 'orders' && <div className="workspace-stack">
               <Surface id="incoming-orders" variant="plain" className="space-y-3 scroll-mt-28">
@@ -855,8 +863,9 @@ export function StaffApp({
                           </Button>
 
                           <Button
-                            variant="danger"
+                            variant="ghost"
                             size="sm"
+                            className="text-[var(--status-danger-fg)] hover:bg-[var(--status-danger-bg)]"
                             disabled={busy}
                             onClick={() => { setRejectingRequest(req); setRejectReason(''); setModalActionError(''); }}
                           >
@@ -875,24 +884,18 @@ export function StaffApp({
 
             {canCashier && cashierTask === 'bills' && <div className="workspace-stack">
               {!supervisor && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-              {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
-              <div className="lg:col-span-4 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-heading text-[17px] font-bold">
-                    {t("Tagihan", "Bills")}
-                  </h2>
-                </div>
-
-                <div className="space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* LEFT 4 COLS: Active Bills List (Flat Hairline Rows · No Redundant Title) */}
+              <div className="lg:col-span-4 space-y-3 lg:pr-6 lg:border-r lg:border-[var(--border)]">
+                <div className="space-y-2.5">
                   <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")} placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")} value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
                   <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
                 </div>
                 {filteredBills.length === 0 && <EmptyState title={t("Tidak ada tagihan", "No bills")} description={billSearch ? t("Coba nama pelanggan atau nomor meja lain.", "Try another customer name or table number.") : undefined} />}
-                <div className="space-y-2">
+                <div className={filteredBills.length > 0 ? 'border-t border-[var(--border)]' : ''}>
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
-                    const payBadge = formatPaymentStateLabel(b.paymentState, t);
+                    const payBadge = b.hasActiveExternalAttempt ? {label: t('Menunggu', 'Awaiting') + ' ' + ((b.attempts || []).find((a: any) => ['CREATING','PENDING','UNKNOWN'].includes(a.status))?.method === 'VIRTUAL_ACCOUNT' ? 'VA' : 'QRIS'), tone: 'info' as const} : formatPaymentStateLabel(b.paymentState, t);
                     return (
                       <button
                         key={b.id}
@@ -901,7 +904,7 @@ export function StaffApp({
                         onClick={() => {
                           setSelectedBillId(b.id);
                           setSelectedUnitIdsForSplit([]);
-                          setTenderAmountInput('');
+                          setPartialPayment(false); setTenderAmountInput('');
                           setCashGivenInput('');
                           setTransferRefInput('');
                           setPaymentError('');
@@ -910,7 +913,7 @@ export function StaffApp({
                           }
                         }}
                         aria-pressed={isSel}
-                        className="operation-choice w-full py-3 px-3 text-left transition-colors flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-[var(--accent-surface)]"
+                        className="operation-choice w-full py-3 px-2.5 text-left transition-colors flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-[var(--accent-surface)]"
                       >
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{billLocationLabel(b)}</p>
@@ -928,7 +931,7 @@ export function StaffApp({
                             }
                             className="block font-bold text-[15px] text-[var(--foreground)]"
                           />
-                          <span className="flex items-center gap-1.5">{isSel && <Check className="h-4 w-4" aria-hidden="true" />}<StatusLabel label={payBadge.label} tone={payBadge.tone} /></span>
+                          <span className="flex items-center gap-1.5">{isSel && <Check className="h-4 w-4 text-[var(--primary-ink)]" aria-hidden="true" />}<StatusLabel label={payBadge.label} tone={payBadge.tone} /></span>
                         </div>
                       </button>
                     );
@@ -936,8 +939,8 @@ export function StaffApp({
                 </div>
               </div>
 
-              {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 space-y-6">
+              {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout (Open Canvas · No Card-in-Card) */}
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 space-y-5">
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}
@@ -957,32 +960,34 @@ export function StaffApp({
                         </p>
                       </div>
 
-                      {!supervisor && selectedBill.lifecycle === 'OPEN' && (
+                      <div className="flex items-center gap-1">
                         <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setShowSplitMergePanel(!showSplitMergePanel)}
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('Cetak struk', 'Print receipt')}
+                          title={t('Cetak struk', 'Print receipt')}
+                          onClick={() => { setPaymentError(''); try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}
                         >
-                          <Split className="w-4 h-4" />
-                          <span>
-                            {showSplitMergePanel
-                              ? t("Tutup Pisah/Gabung", "Close split / merge")
-                              : t("Pisah / Gabung Tagihan", "Split / merge bill")}
-                          </span>
+                          <Printer className="w-4 h-4 text-[var(--foreground)]" aria-hidden="true" />
                         </Button>
-                      )}
+                        {!supervisor && selectedBill.lifecycle === 'OPEN' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={showSplitMergePanel ? t("Tutup Pisah/Gabung", "Close split / merge") : t("Pisah / Gabung", "Split / merge")}
+                            title={showSplitMergePanel ? t("Tutup Pisah/Gabung", "Close split / merge") : t("Pisah / Gabung", "Split / merge")}
+                            onClick={() => setShowSplitMergePanel(!showSplitMergePanel)}
+                          >
+                            <Split className="w-4 h-4 text-[var(--foreground)]" aria-hidden="true" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Collapsible Split / Merge Bill Bar */}
-                    <AnimatePresence>
-                      {showSplitMergePanel && selectedBill.lifecycle === 'OPEN' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="p-4 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Split / Merge Bill Dialog (Mounted to preserve Radix focus return & exit motion) */}
+                    <DialogModal open={!supervisor && showSplitMergePanel && selectedBill.lifecycle === 'OPEN'} onClose={() => { if (!busy) setShowSplitMergePanel(false); }} title={t('Pisah / Gabung', 'Split / merge')}>
+                      <InlineError message={actionError} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                               <Label htmlFor="split-bill-name">{t("Nama tagihan baru", "New bill name")}</Label>
                               <Input
@@ -1020,7 +1025,7 @@ export function StaffApp({
                                       unitIdsToMove: selectedUnitIdsForSplit,
                                       newOwnerLabel: splitNewOwnerLabel.trim() || t("Tagihan terpisah", "Split bill"),
                                     });
-                                    setSelectedUnitIdsForSplit([]);
+                                    setSelectedUnitIdsForSplit([]); setShowSplitMergePanel(false);
                                     toast.success(t("Tagihan berhasil dipisahkan.", "The bill was split."));
                                   }}
                                 >
@@ -1047,7 +1052,7 @@ export function StaffApp({
                                     )
                                     .map((b: any) => (
                                       <option key={b.id} value={b.id}>
-                                        {t("Meja", "Table")} {b.tableLabel} · {b.ownerLabel} (
+                                        {billLocationLabel(b)} · {billOwnerName(b)} (
                                         {formatIdr(b.balanceIdr)})
                                       </option>
                                     ))}
@@ -1062,7 +1067,7 @@ export function StaffApp({
                                       targetBillId: mergeTargetBillId,
                                     });
                                     setSelectedBillId(mergeTargetBillId);
-                                    setMergeTargetBillId('');
+                                    setMergeTargetBillId(''); setShowSplitMergePanel(false);
                                     toast.success(t("Tagihan berhasil digabungkan.", "The bills were merged."));
                                   }}
                                 >
@@ -1072,13 +1077,15 @@ export function StaffApp({
                               </div>
                             </div>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        </DialogModal>
 
-                    {/* Financial Summary & Payment Checkout */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2 items-start">
-                      <div className="md:col-span-5 p-4 rounded-[12px] bg-[var(--surface)] border border-[var(--border)]">
+                    <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]" aria-label={t('Ringkasan menu', 'Menu summary')}>
+                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3 py-3 text-sm"><div className="min-w-0"><p className="font-semibold">{group.quantity}× {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}{group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}</p><p className="text-[var(--muted-foreground)]">{sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}{group.unit.modifiersSummary && ` · ${group.unit.modifiersSummary}`}</p>{group.unit.note && <p>{group.unit.note}</p>}</div><Money amount={group.grossIdr} /></div>)}
+                    </div>
+                    <InlineError message={paymentError} />
+                    {/* Financial Summary & Payment Checkout (Flat Hairline Split) */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-1 items-start">
+                      <div className="md:col-span-5">
                         <PaymentBreakdown
                           subtotalIdr={selectedBill.subtotalIdr}
                           discountIdr={selectedBill.discountIdr}
@@ -1095,8 +1102,15 @@ export function StaffApp({
                         />
                       </div>
 
-                      <div className="md:col-span-7 space-y-4">
-                        {selectedBill.balanceIdr > 0 ? !supervisor && (
+                      <div className="md:col-span-7 md:pl-6 md:border-l md:border-[var(--border)] space-y-4">
+                        {selectedBill.balanceIdr > 0 && selectedBill.hasActiveExternalAttempt ? (
+                          <section aria-label={t('Pembayaran menunggu', 'Pending payment')} className="border-l-[3px] border-[var(--status-info-fg)] bg-[var(--status-info-bg)] p-4 space-y-3">
+                            <h3 className="font-semibold">{t('Menunggu pembayaran', 'Awaiting payment')}</h3>
+                            {(selectedBill.attempts || []).filter((attempt: any) => ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status)).map((attempt: any) => <div key={attempt.id} className="text-sm space-y-1"><p>{attempt.method === 'VIRTUAL_ACCOUNT' ? 'VA' : attempt.method} · <Money amount={attempt.expectedAmountIdr} /></p>{attempt.expiresAt && <p>{t('Berlaku sampai', 'Valid until')} {new Date(attempt.expiresAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}</div>)}
+                            <Button variant="secondary" size="sm" disabled={busy} onClick={onRefresh}>{t('Cek status', 'Check status')}</Button>
+                            {!supervisor && snapshot.runtime?.demo ? <details className={styles.disclosure}><summary>{t('Simulasi pembayaran demo', 'Demo payment simulation')}</summary><DemoPaymentControls snapshot={{ runtime: snapshot.runtime, bills: [selectedBill] }} busy={busy} onCommand={runStaffCommand} /></details> : <p className="text-sm">{t('Konfirmasikan hasil atau batalkan instruksi aktif sebelum menerima pembayaran lain.', 'Confirm the result or cancel the active instructions before accepting another payment.')}</p>}
+                          </section>
+                        ) : selectedBill.balanceIdr > 0 ? !supervisor && (
                           <>
                             <div className="space-y-1.5">
                               <Label>{t("Pembayaran", "Payment")}</Label>
@@ -1114,8 +1128,9 @@ export function StaffApp({
 
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="space-y-1.5">
+                            <Button size="sm" variant="ghost" aria-pressed={partialPayment} onClick={() => { setPartialPayment(value => !value); setTenderAmountInput(''); setCashGivenInput(''); }}>{partialPayment ? t('Bayar penuh','Pay in full') : t('Bayar sebagian','Partial payment')}</Button>
+                            <div className="space-y-3">
+                              {partialPayment && <div className="space-y-1.5">
                                 <Label htmlFor="cashier-tender-amount">
                                   {t("Jumlah bayar (Rp)", "Amount to pay (Rp)")}
                                 </Label>
@@ -1127,18 +1142,19 @@ export function StaffApp({
                                   onChange={(e) => setTenderAmountInput(e.target.value)}
                                   className="tabular-nums font-semibold"
                                 />
-                              </div>
+                              </div>}
 
                               {tenderMethod === 'CASH' ? (
                                 <div className="space-y-1.5">
                                   <Label htmlFor="cashier-cash-given">
-                                    {t("Tunai diterima (Rp)", "Cash received (Rp)")}
+                                    {t("Uang diterima (Rp)", "Cash received (Rp)")}
                                   </Label>
                                   <Input
                                     id="cashier-cash-given"
-                                    type="number" min={0} step={1}
-                                    value={cashGivenInput}
-                                    onChange={(e) => setCashGivenInput(e.target.value)}
+                                    type="text" inputMode="numeric"
+                                    placeholder={t("Isi nominal atau klik Uang Pas", "Enter cash or choose Exact amount")}
+                                    value={cashGivenInput ? Number(cashGivenInput).toLocaleString("id-ID") : ""}
+                                    onChange={(e) => setCashGivenInput(e.target.value.replace(/\D/g, ""))}
                                     className="tabular-nums font-semibold"
                                   />
                                 </div>
@@ -1151,7 +1167,7 @@ export function StaffApp({
                                     id="cashier-ref-code"
                                     value={transferRefInput}
                                     onChange={(e) => setTransferRefInput(e.target.value)}
-                                    placeholder={t("Ref QRIS / Bukti Transfer", "QRIS reference / transfer proof")}
+                                    placeholder={t("No. referensi transfer", "Transfer reference")}
                                   />
                                 </div>
                               )}
@@ -1164,16 +1180,18 @@ export function StaffApp({
                                     {
                                       label: t("Uang Pas", "Exact amount"),
                                       val: effectiveTenderAmount,
+                                      disabled: !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr),
                                     },
-                                    { label: 'Rp50.000', val: 50000 },
-                                    { label: 'Rp100.000', val: 100000 },
-                                    { label: 'Rp200.000', val: 200000 },
+                                    { label: 'Rp50.000', val: 50000, disabled: false },
+                                    { label: 'Rp100.000', val: 100000, disabled: false },
+                                    { label: 'Rp200.000', val: 200000, disabled: false },
                                   ].map((preset) => (
                                     <button
                                       key={preset.label}
                                       type="button"
+                                      disabled={preset.disabled}
                                       onClick={() => setCashGivenInput(String(preset.val))}
-                                      className="min-h-11 px-2.5 py-1 rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--accent-surface)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors"
+                                      className="min-h-10 px-3 py-1 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--accent-surface)] text-[var(--foreground)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors disabled:opacity-50"
                                     >
                                       {preset.label}
                                     </button>
@@ -1181,18 +1199,18 @@ export function StaffApp({
                                 </div>
                                 <div className="text-[13px]">
                                   <span className="text-[var(--muted-foreground)]">{t("Kembalian:", "Change:")} </span>
-                                  <Money
-                                    amount={cashChangePreview}
-                                    className="font-bold text-[var(--primary-ink)]"
-                                  />
+                                  {cashGivenInput ? <Money amount={cashChangePreview} className="font-bold" /> : <span>—</span>}
                                 </div>
                               </div>
                             )}
 
-                            {selectedBill.hasActiveExternalAttempt && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{snapshot?.runtime?.demo ? explorationManaged ? t('Pembayaran masih aktif. Selesaikan atau batalkan melalui pengaturan di bilah atas.', 'Payment is active. Complete or cancel it in the top-bar settings.') : t('Pembayaran masih aktif. Selesaikan atau batalkan melalui pengaturan di bilah atas.', 'Payment is active. Complete or cancel it in the top-bar settings.') : t('Instruksi pembayaran masih aktif. Konfirmasikan hasilnya atau batalkan sebelum mencatat pembayaran lain.', 'Payment instructions are still active. Confirm the result or cancel them before recording another payment.')}</p>}
+                            {partialPayment && !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr) && (
+                              <p className="text-sm text-[var(--status-warning-fg)]">
+                                {t('Isi jumlah bayar bulat antara Rp1 hingga sisa tagihan.', 'Enter a whole payment amount between Rp1 and the balance due.')}
+                              </p>
+                            )}
                             {tenderMethod === 'CASH' && !cashGivenInput.trim() && <p className="text-sm text-[var(--muted-foreground)]">{t('Masukkan uang tunai yang diterima.', 'Enter the cash received.')}</p>}
                             {tenderMethod === 'CASH' && cashGivenInput.trim() !== '' && Number(cashGivenInput) < effectiveTenderAmount && <p className="text-sm text-[var(--status-warning-fg)]">{t('Uang tunai yang diterima kurang dari jumlah bayar.', 'Cash received is less than the amount to pay.')}</p>}
-                            <InlineError message={paymentError} />
                             <Button
                               variant="primary"
                               size="lg"
@@ -1209,17 +1227,17 @@ export function StaffApp({
                                   const res = await runStaffCommand('RECORD_PAYMENT', { ...paymentPayload, idempotencyKey: paymentAttemptRef.current.key });
                                   const external = tenderMethod === 'QRIS' || tenderMethod === 'VIRTUAL_ACCOUNT';
                                   toast.success(external ? t('Instruksi pembayaran dibuat. Pembayaran masih menunggu konfirmasi.', 'Payment instructions created. Payment is awaiting confirmation.') : t(`Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`, `${tenderMethod === 'CASH' ? 'Cash' : 'Transfer'} payment of ${formatIdr(amt)} recorded.${(res?.result?.changeIdr ?? 0) > 0 ? ` Change: ${formatIdr(res.result.changeIdr)}` : ''}`));
-                                  setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
+                                  setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
                                 } catch (caught) { setPaymentError(caught instanceof Error ? caught.message : t('Pembayaran belum tercatat.', 'Payment was not recorded.')); /* Keep the retry key. */ }
                                 finally { paymentSubmittingRef.current = false; setPaymentSubmitting(false); }
                               }}
                             >
                               <Receipt className="w-4 h-4" />
-                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? t('Terima tunai', 'Accept cash') : tenderMethod === 'MANUAL_TRANSFER' ? t('Catat transfer', 'Record transfer') : t('Buat instruksi pembayaran', 'Create payment instructions')}</span><Money amount={effectiveTenderAmount} className="block" /></span>
+                              <span className="whitespace-normal leading-snug"><span className="block">{tenderMethod === 'CASH' ? t('Terima tunai', 'Accept cash') : tenderMethod === 'MANUAL_TRANSFER' ? t('Catat transfer', 'Record transfer') : t('Buat instruksi pembayaran', 'Create payment instructions')}</span>{Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr && <Money amount={effectiveTenderAmount} className="block" />}</span>
                             </Button>
                           </>
                         ) : (
-                          <div className={`p-4 rounded-[var(--radius-control)] flex items-center justify-between ${selectedBill.balanceIdr < 0 ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'}`}>
+                          <div className={`p-3.5 border-l-[3px] flex items-center justify-between ${selectedBill.balanceIdr < 0 ? 'border-[var(--status-warning-fg)] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]' : 'border-[var(--status-success-fg)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'}`}>
                             <div>
                               <p className="font-semibold text-[15px]">{selectedBill.balanceIdr < 0 ? t(`Perlu pengembalian ${formatIdr(-selectedBill.balanceIdr)}`, `Refund due ${formatIdr(-selectedBill.balanceIdr)}`) : t("Lunas", "Paid")}</p>
 
@@ -1301,12 +1319,13 @@ export function StaffApp({
             className="space-y-6"
           >
             <details className={styles.disclosure}>
-              <summary>{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
+              <summary>{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
               <div className="space-y-3">
                 <AnimatedSegmentedControl
                   ariaLabel={t('Filter stasiun kerja', 'Filter work station')}
                   options={[
-                    { value: 'ALL', label: t('Semua bagian', 'All stations') },
+                    { value: 'MINE', label: role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations') },
+                    ...(['BAR', 'KITCHEN'].includes(role) ? [{ value: 'ALL', label: t('Lihat stasiun lain', 'View other stations') }] : []),
                     ...['BAR', 'KITCHEN', 'PASTRY'].map(value => ({ value, label: formatStationName(value, t) })),
                   ]}
                   value={stationFilter}
@@ -1343,9 +1362,10 @@ export function StaffApp({
                             <p className="font-semibold">1× {itemName}{variantName && <span className="font-normal text-[var(--muted-foreground)]"> ({variantName})</span>}</p>
                             {unit.modifiersSummary && <p className="text-sm">{t('Opsi:', 'Options:')} {unit.modifiersSummary}</p>}
                             {unit.note && <p className="text-sm font-medium text-[var(--status-warning-fg)]">{t('Catatan:', 'Note:')} {unit.note}</p>}
+                            <p className="text-xs text-[var(--muted-foreground)]">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
                             <StatusLabel label={status.label} tone={status.tone} />
                           </div>
-                          {!supervisor && targetStatus && <Button variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
+                          {!supervisor && targetStatus && <Button variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || (role === 'BAR' && unit.stationCode !== 'BAR') || (role === 'KITCHEN' && unit.stationCode === 'BAR')} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
                             try {
                               await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
                               toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));
@@ -1370,18 +1390,18 @@ export function StaffApp({
             className="space-y-4"
           >
             <div className={styles.floorNav}>
-              <h1 className="font-heading text-[22px] leading-[28px] font-bold">{t('Meja & Antrean', 'Tables & waitlist')}</h1>
-              <AnimatedSegmentedControl
+              <h1 className="sr-only">{t('Meja & Antrean', 'Tables & waitlist')}</h1>
+              <ChoiceStrip<'KUNJUNGAN' | 'DENAH' | 'PANGGILAN' | 'ANTREAN'>
                 ariaLabel={t('Sub-menu operasional lantai', 'Floor operations menu')}
-                options={[
-                  { value: 'KUNJUNGAN', label: t('Kunjungan aktif', 'Active visits') },
-                  ...(!supervisor ? [{ value: 'DENAH' as const, label: t('Atur denah', 'Edit floor plan') }] : []),
-                  { value: 'PANGGILAN', label: t(`Panggilan pelayan (${openHelpCount})`, `Guest requests (${openHelpCount})`) },
-                  { value: 'ANTREAN', label: t(`Antrean tamu (${openWaitlistCount})`, `Guest waitlist (${openWaitlistCount})`) },
+                variant="underline"
+                items={[
+                  { id: 'KUNJUNGAN', label: t('Kunjungan aktif', 'Active visits') },
+                  ...(!supervisor ? [{ id: 'DENAH' as const, label: t('Atur denah', 'Edit floor plan') }] : []),
+                  { id: 'PANGGILAN', label: t(`Panggilan pelayan (${openHelpCount})`, `Guest requests (${openHelpCount})`) },
+                  { id: 'ANTREAN', label: t(`Antrean tamu (${openWaitlistCount})`, `Guest waitlist (${openWaitlistCount})`) },
                 ]}
                 value={floorSubTab}
                 onChange={setFloorSubTab}
-                layoutId="floor-sub-tab"
               />
             </div>
 
@@ -1411,7 +1431,7 @@ export function StaffApp({
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      {t("Bantuan meja", "Table assistance")}
+                      {t("Panggilan", "Table assistance")}
                     </h2>
                   </div>
 
@@ -1532,7 +1552,7 @@ export function StaffApp({
                                   ? t("Sudah Duduk", "Seated")
                                   : w.status === 'CALLED'
                                   ? t("Dipanggil", "Called")
-                                  : t("Menunggu", "Waiting")
+                                  : ({NO_SHOW:t("Tidak Hadir","No-show"),CANCELLED:t("Dibatalkan","Cancelled"),EXPIRED:t("Kedaluwarsa","Expired")} as Record<string,string>)[w.status] || t("Menunggu", "Waiting")
                               }
                               tone={
                                 w.status === 'SEATED'
@@ -1604,85 +1624,11 @@ export function StaffApp({
         {sectionEnabled('menu') && currentSection === 'menu' && (
           <div
             key="pos-menu"
-            className="space-y-6"
+            className="space-y-4"
           >
-            {supervisor && <div className="flex flex-wrap items-start justify-between gap-3">
-              <Button size="sm" onClick={() => setAddMenuModalOpen(true)}>
-                <Plus className="w-4 h-4" />{t("Tambah menu", "Add menu item")}
-              </Button>
-              <details className={styles.disclosure}>
-                <summary>{t("Impor & cetak", "Import & print")}</summary>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => setShowCsvModal(true)}>
-                    <Upload className="w-4 h-4" />{t("Impor CSV", "Import CSV")}
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setShowQrPrintModal(true)}>
-                    <Printer className="w-4 h-4" />{t("Cetak QR meja", "Print table QR codes")}
-                  </Button>
-                </div>
-              </details>
-            </div>}
-
-            {supervisor && (snapshot?.stockPools || []).some((pool: any) => pool.mode === 'FINITE') && (
-              <details className={styles.disclosure}>
-                <summary>{t("Batas stok harian", "Daily stock limit")}</summary>
-                <div className="operation-list">
-                  {(snapshot?.stockPools || [])
-                    .filter((p: any) => p.mode === 'FINITE')
-                    .map((p: any) => (
-                      <div
-                        key={p.id}
-                        data-stock-pool-id={p.id}
-                        className="operation-record flex flex-wrap items-center justify-between gap-3 text-[14px]"
-                      >
-                        <div>
-                          <p className="font-semibold">{p.name}</p>
-                          <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
-                            {t("Tersedia dijual:", "Available to sell:")} <strong>{p.availableToSell} {t("porsi", "servings")}</strong> {t("(Fisik:", "(Physical:")}{' '}
-                            {p.onHand} {t("· Dipesan:", "· Reserved:")} {p.reserved})
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={p.reserved}
-                            value={stockAdjustMap[p.id] ?? p.onHand}
-                            onChange={(e) =>
-                              setStockAdjustMap({
-                                ...stockAdjustMap,
-                                [p.id]: Number(e.target.value),
-                              })
-                            }
-                            aria-label={t(`Ubah jumlah stok ${p.name}`, `Change stock quantity for ${p.name}`)}
-                            className="w-24 min-h-[36px] py-1 tabular-nums text-center"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled={busy}
-                            onClick={async () => {
-                              await runStaffCommand('MENU_STOCK_ACTION', {
-                                action: 'ADJUST_STOCK',
-                                poolId: p.id,
-                                newOnHand: stockAdjustMap[p.id] ?? p.onHand,
-                                reason: 'Penyesuaian stok harian',
-                              });
-                              toast.success(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
-                            }}
-                          >
-                            {t("Perbarui stok", "Update stock")}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </details>
-            )}
-
-            {/* Search & Category Filter Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-7 relative">
+            {/* Unified Search, Category & Primary CTA Row */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
                   aria-label={t("Cari menu", "Search menu")}
@@ -1692,7 +1638,7 @@ export function StaffApp({
                   className="pl-10"
                 />
               </div>
-              <div className="sm:col-span-5">
+              <div className="w-full sm:w-56">
                 <SelectField
                   aria-label={t("Filter kategori katalog", "Filter catalogue categories")}
                   value={menuCategoryFilter}
@@ -1708,7 +1654,85 @@ export function StaffApp({
                   ))}
                 </SelectField>
               </div>
+              {supervisor && (
+                <Button size="sm" onClick={() => setAddMenuModalOpen(true)}>
+                  <Plus className="w-4 h-4" />{t("Tambah menu", "Add menu item")}
+                </Button>
+              )}
             </div>
+
+            {supervisor && (
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                {(snapshot?.stockPools || []).some((pool: any) => pool.mode === 'FINITE') && (
+                  <details className={`${styles.disclosure} flex-1 min-w-[220px]`}>
+                    <summary>{t("Batas stok harian", "Daily stock limit")}</summary>
+                    <div className="operation-list">
+                      {(snapshot?.stockPools || [])
+                        .filter((p: any) => p.mode === 'FINITE')
+                        .map((p: any) => (
+                          <div
+                            key={p.id}
+                            data-stock-pool-id={p.id}
+                            className="operation-record flex flex-wrap items-center justify-between gap-3 text-[14px]"
+                          >
+                            <div>
+                              <p className="font-semibold">{p.name}</p>
+                              <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
+                                {t("Tersedia dijual:", "Available to sell:")} <strong>{p.availableToSell} {t("porsi", "servings")}</strong> {t("(Fisik:", "(Physical:")}{' '}
+                                {p.onHand} {t("· Dipesan:", "· Reserved:")} {p.reserved})
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={p.reserved}
+                                value={stockAdjustMap[p.id] ?? p.onHand}
+                                onChange={(e) =>
+                                  setStockAdjustMap({
+                                    ...stockAdjustMap,
+                                    [p.id]: Number(e.target.value),
+                                  })
+                                }
+                                aria-label={t(`Ubah jumlah stok ${p.name}`, `Change stock quantity for ${p.name}`)}
+                                className="w-24 min-h-[36px] py-1 tabular-nums text-center"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-[var(--primary-ink)]"
+                                disabled={busy}
+                                onClick={async () => {
+                                  await runStaffCommand('MENU_STOCK_ACTION', {
+                                    action: 'ADJUST_STOCK',
+                                    poolId: p.id,
+                                    newOnHand: stockAdjustMap[p.id] ?? p.onHand,
+                                    reason: 'Penyesuaian stok harian',
+                                  });
+                                  toast.success(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
+                                }}
+                              >
+                                {t("Perbarui stok", "Update stock")}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </details>
+                )}
+                <details className={styles.disclosure}>
+                  <summary>{t("Impor & cetak", "Import & print")}</summary>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    <Button variant="ghost" size="sm" onClick={() => setShowCsvModal(true)}>
+                      <Upload className="w-4 h-4" />{t("Impor CSV", "Import CSV")}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowQrPrintModal(true)}>
+                      <Printer className="w-4 h-4" />{t("Cetak QR meja", "Print table QR codes")}
+                    </Button>
+                  </div>
+                </details>
+              </div>
+            )}
 
             {/* One menu entry and its availability controls per record. */}
             <div className="operation-list">
@@ -1751,24 +1775,26 @@ export function StaffApp({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 shrink-0">
                       {supervisor && <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
                         aria-label={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
+                        title={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
                         onClick={() => {
                           setEditingPhotosItem(item);
                           setPhotoDraftList(itemPhotos);
                           setNewPhotoUrlInput('');
                         }}
                       >
-                        <Images className="w-4 h-4" />
-                        <span>{t("Foto (", "Photos (")}{itemPhotos.length})</span>
+                        <Images className="w-4 h-4" aria-hidden="true" />
+                        <span className="tabular-nums text-xs text-[var(--muted-foreground)]">{itemPhotos.length}</span>
                       </Button>}
 
                       <Button
-                        variant={item.manualSoldOut ? 'primary' : 'secondary'}
+                        variant={item.manualSoldOut ? 'primary' : 'ghost'}
                         size="sm"
+                        className={item.manualSoldOut ? '' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
                         disabled={busy}
                         onClick={() =>
                           runStaffCommand('MENU_STOCK_ACTION', {
@@ -1795,47 +1821,44 @@ export function StaffApp({
         {/* =================================================================== */}
         {currentSection === 'laporan' && supervisor && canCashier && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
         {isModuleEnabled('dashboard') && currentSection === 'laporan' && (
-          <div key="pos-laporan" className="space-y-6">
-            <div className="space-y-3 border-b border-[var(--border)] pb-4">
-              <ChoiceStrip<ReportPeriod>
-                ariaLabel={t('Periode laporan', 'Reporting period')}
-                variant="segmented"
-                items={[
-                  { id: 'day', label: t('Harian', 'Day') },
-                  { id: 'week', label: t('Mingguan', 'Week') },
-                  { id: 'month', label: t('Bulanan', 'Month') },
-                  { id: 'custom', label: t('Rentang khusus', 'Custom range') },
-                ]}
-                value={reportPeriod}
-                onChange={period => {
-                  if (period === 'custom' && !customReportInitialized.current) {
-                    setReportStartDate(reportRange?.start || reportDate);
-                    setReportEndDate(reportRange?.end || reportDate);
-                    customReportInitialized.current = true;
-                  }
-                  setReportPeriod(period);
-                }}
-              />
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="flex flex-wrap items-end gap-2">
-                  {reportPeriod === 'day' && <div className="space-y-1"><Label htmlFor="report-date">{t('Tanggal tagihan', 'Bill date')}</Label><Input id="report-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div>}
-                  {reportPeriod === 'week' && <div className="space-y-1"><Label htmlFor="report-week-date">{t('Tanggal dalam minggu', 'Date within week')}</Label><Input id="report-week-date" type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} /></div>}
-                  {reportPeriod === 'month' && <div className="space-y-1"><Label htmlFor="report-month">{t('Bulan tagihan', 'Bill month')}</Label><Input id="report-month" type="month" value={reportDate.slice(0, 7)} onChange={event => { if (event.target.value) setReportDate(`${event.target.value}-01`); }} /></div>}
+          <div key="pos-laporan" className="space-y-4">
+            <div className="space-y-2 border-b border-[var(--border)] pb-3">
+              <div className={styles.reportBar}>
+                <ChoiceStrip<ReportPeriod>
+                  ariaLabel={t('Periode laporan', 'Reporting period')}
+                  variant="underline"
+                  items={[
+                    { id: 'day', label: t('Harian', 'Day') },
+                    { id: 'week', label: t('Mingguan', 'Week') },
+                    { id: 'month', label: t('Bulanan', 'Month') },
+                    { id: 'custom', label: t('Rentang khusus', 'Custom range') },
+                  ]}
+                  value={reportPeriod}
+                  onChange={period => {
+                    if (period === 'custom' && !customReportInitialized.current) {
+                      setReportStartDate(reportRange?.start || reportDate);
+                      setReportEndDate(reportRange?.end || reportDate);
+                      customReportInitialized.current = true;
+                    }
+                    setReportPeriod(period);
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {reportPeriod === 'day' && <Input id="report-date" aria-label={t('Tanggal tagihan', 'Bill date')} type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} className="w-auto" />}
+                  {reportPeriod === 'week' && <Input id="report-week-date" aria-label={t('Tanggal dalam minggu', 'Date within week')} type="date" value={reportDate} onChange={event => { if (event.target.value) setReportDate(event.target.value); }} className="w-auto" />}
+                  {reportPeriod === 'month' && <Input id="report-month" aria-label={t('Bulan tagihan', 'Bill month')} type="month" value={reportDate.slice(0, 7)} onChange={event => { if (event.target.value) setReportDate(`${event.target.value}-01`); }} className="w-auto" />}
                   {reportPeriod === 'custom' && <>
-                    <div className="space-y-1"><Label htmlFor="report-start-date">{t('Dari tanggal', 'Start date')}</Label><Input id="report-start-date" type="date" value={reportStartDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportStartDate(event.target.value)} /></div>
-                    <div className="space-y-1"><Label htmlFor="report-end-date">{t('Sampai tanggal', 'End date')}</Label><Input id="report-end-date" type="date" value={reportEndDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportEndDate(event.target.value)} /></div>
+                    <Input id="report-start-date" aria-label={t('Dari tanggal', 'Start date')} type="date" value={reportStartDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportStartDate(event.target.value)} className="w-auto" />
+                    <Input id="report-end-date" aria-label={t('Sampai tanggal', 'End date')} type="date" value={reportEndDate} aria-invalid={!reportRange} aria-describedby={!reportRange ? 'report-range-error' : undefined} onChange={event => setReportEndDate(event.target.value)} className="w-auto" />
                   </>}
-                  <Button variant="secondary" size="sm" onClick={() => {
+                  <Button variant="ghost" size="sm" className="text-[var(--primary-ink)]" onClick={() => {
                     if (reportPeriod === 'custom') { setReportStartDate(todayReportDate); setReportEndDate(todayReportDate); }
                     else setReportDate(todayReportDate);
                   }}>{reportPeriod === 'week' ? t('Minggu ini', 'This week') : reportPeriod === 'month' ? t('Bulan ini', 'This month') : t('Hari ini', 'Today')}</Button>
-                </div>
-                <div className="space-y-1">
-                  <Button variant="secondary" size="sm" disabled={!reportRange || !reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" />{t('Unduh CSV', 'Download CSV')}</Button>
-                  {reportRange && !reportBills.length && <p className="text-xs text-[var(--muted-foreground)]">{t('Tidak ada tagihan untuk diunduh.', 'No bills to download.')}</p>}
+                  <Button variant="ghost" size="icon" aria-label={t('Unduh CSV', 'Download CSV')} title={reportRange && !reportBills.length ? t('Tidak ada tagihan untuk diunduh.', 'No bills to download.') : t('Unduh CSV', 'Download CSV')} disabled={!reportRange || !reportBills.length} onClick={handleExportReportCsv}><Download className="w-4 h-4" aria-hidden="true" /></Button>
                 </div>
               </div>
-              {!reportRange ? <p id="report-range-error" role="alert" className="text-sm text-[var(--status-danger-fg)]">{t('Masukkan tanggal yang valid; tanggal awal tidak boleh setelah tanggal akhir.', 'Enter valid dates; the start date must not be after the end date.')}</p> : <p className="text-sm text-[var(--muted-foreground)]" aria-live="polite">{t('Tanggal bisnis', 'Business dates')}: <span className="font-medium text-[var(--foreground)] tabular-nums">{reportRange.start}{reportRange.start !== reportRange.end && ` – ${reportRange.end}`}</span>{reportPeriod === 'week' && ` · ${t('Senin–Minggu', 'Monday–Sunday')}`}{reportRange.start !== reportRange.end && ` · ${t('termasuk kedua tanggal', 'both dates inclusive')}`}</p>}
+              {!reportRange ? <p id="report-range-error" role="alert" className="text-sm text-[var(--status-danger-fg)]">{t('Masukkan tanggal yang valid; tanggal awal tidak boleh setelah tanggal akhir.', 'Enter valid dates; the start date must not be after the end date.')}</p> : <p className="text-xs text-[var(--muted-foreground)]" aria-live="polite">{t('Tanggal bisnis', 'Business dates')}: <span className="font-medium text-[var(--foreground)] tabular-nums">{reportRange.start}{reportRange.start !== reportRange.end && ` – ${reportRange.end}`}</span>{reportPeriod === 'week' && ` · ${t('Senin–Minggu', 'Monday–Sunday')}`}{reportRange.start !== reportRange.end && ` · ${t('termasuk kedua tanggal', 'both dates inclusive')}`}</p>}
             </div>
             {reportRange && <>
             <dl className={styles.reportSummary}>
@@ -1844,27 +1867,27 @@ export function StaffApp({
               <div><dt>{t('Diterima bersih', 'Net receipts')}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div>
               <div><dt>{t('Belum dibayar', 'Unpaid')}</dt><dd><Money amount={reportTotals.outstanding} /></dd></div>
             </dl>
-            {reportSpansMultipleDays && reportDays.length > 0 && <Surface variant="task" className="space-y-3">
+            {reportSpansMultipleDays && reportDays.length > 0 && <section className="space-y-3">
               <div><h2 className="font-heading text-lg font-semibold">{t('Ringkasan harian', 'Daily summary')}</h2></div>
-              <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label={t('Ringkasan laporan harian', 'Daily report summary')} tabIndex={0}>
-                <table className="w-full min-w-[820px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{[t('Tanggal bisnis', 'Business date'), t('Tagihan', 'Bills'), t('Nilai tagihan', 'Billed amount'), t('Diterima', 'Received'), t('Pengembalian', 'Refunds'), t('Diterima bersih', 'Net receipts'), t('Belum dibayar', 'Outstanding')].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+              <div className="overflow-x-auto border-y border-[var(--border)]" role="region" aria-label={t('Ringkasan laporan harian', 'Daily report summary')} tabIndex={0}>
+                <table className="w-full min-w-[820px] text-sm text-left"><thead className="bg-[var(--surface-muted)]"><tr>{[t('Tanggal bisnis', 'Business date'), t('Tagihan', 'Bills'), t('Nilai tagihan', 'Billed amount'), t('Diterima', 'Received'), t('Pengembalian', 'Refunds'), t('Diterima bersih', 'Net receipts'), t('Belum dibayar', 'Outstanding')].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
                   <tbody className="divide-y divide-[var(--border)]">{reportDays.map(day => <tr key={day.date}><th scope="row" className="px-4 py-3 font-medium tabular-nums">{day.date}</th><td className="px-4 py-3 tabular-nums">{day.count}</td><td className="px-4 py-3"><Money amount={day.billed} /></td><td className="px-4 py-3"><Money amount={day.received} /></td><td className="px-4 py-3"><Money amount={day.refunded} /></td><td className="px-4 py-3"><Money amount={day.received - day.refunded} /></td><td className="px-4 py-3"><Money amount={day.outstanding} /></td></tr>)}</tbody>
                 </table>
               </div>
-            </Surface>}
+            </section>}
             <details className={styles.disclosure}>
               <summary>{t("Rincian penjualan & pembayaran", "Sales and payment details")}</summary>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Surface variant="task" className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Rincian tagihan", "Bill details")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                <section className="space-y-3 lg:pr-6 lg:border-r lg:border-[var(--border)]"><h2 className="font-heading text-lg font-semibold">{t("Rincian tagihan", "Bill details")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
                   {[[t('Harga menu', 'Menu price'), reportTotals.subtotal], [t('Potongan', 'Discount'), -reportTotals.discount], [t('Biaya layanan', 'Service charge'), reportTotals.service], [t('Pajak', 'Tax'), reportTotals.tax], [t('Koreksi tagihan', 'Bill adjustment'), reportTotals.corrections], [t('Nilai tagihan setelah koreksi', 'Bill after adjustment'), reportTotals.billed]].map(([label, amount]) => <div key={label} className="py-3 flex justify-between gap-3"><dt>{label}</dt><dd><Money amount={Number(amount)} /></dd></div>)}
-                </dl></Surface>
-                <Surface variant="task" className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Pembayaran", "Payment")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>{t("Pembayaran diterima", "Payments received")}</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>{t("Uang dikembalikan", "Refunds")}</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>{t("Penerimaan bersih", "Net receipts")}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">{t("Pembayaran dan pengembalian mengikuti tagihan terpilih, termasuk transaksi di luar periode.", "Payments and refunds include transactions outside the period for the selected bills.")}</p></Surface>
+                </dl></section>
+                <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Pembayaran", "Payment")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>{t("Pembayaran diterima", "Payments received")}</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>{t("Uang dikembalikan", "Refunds")}</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>{t("Penerimaan bersih", "Net receipts")}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">{t("Pembayaran dan pengembalian mengikuti tagihan terpilih, termasuk transaksi di luar periode.", "Payments and refunds include transactions outside the period for the selected bills.")}</p></section>
               </div>
             </details>
             <details className={styles.disclosure}>
               <summary>{t('Daftar tagihan', 'Bills')} ({reportBills.length})</summary>
-              {!reportBills.length ? <EmptyState title={t('Belum ada tagihan', 'No bills yet')} /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label={reportPeriod === 'day' ? t('Daftar tagihan tanggal terpilih', 'Bills for selected date') : t('Daftar tagihan periode terpilih', 'Bills for selected period')} tabIndex={0}>
-                <table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{(reportSpansMultipleDays ? [t('Tanggal bisnis', 'Business date')] : []).concat([t('Pemesan / meja', 'Customer / table'), 'Status', t('Nilai tagihan', 'Billed amount'), t('Diterima bersih', 'Net receipts'), t('Sisa', 'Remaining')]).map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+              {!reportBills.length ? <EmptyState title={t('Belum ada tagihan', 'No bills yet')} /> : <div className="overflow-x-auto border-y border-[var(--border)]" role="region" aria-label={reportPeriod === 'day' ? t('Daftar tagihan tanggal terpilih', 'Bills for selected date') : t('Daftar tagihan periode terpilih', 'Bills for selected period')} tabIndex={0}>
+                <table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--surface-muted)]"><tr>{(reportSpansMultipleDays ? [t('Tanggal bisnis', 'Business date')] : []).concat([t('Pemesan / meja', 'Customer / table'), 'Status', t('Nilai tagihan', 'Billed amount'), t('Diterima bersih', 'Net receipts'), t('Sisa', 'Remaining')]).map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
                   <tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}>{reportSpansMultipleDays && <td className="px-4 py-3 tabular-nums">{bill.businessDate}</td>}<th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState, t).label}</td><td className="px-4 py-3"><Money amount={reportBilledAmount(bill)} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody>
                 </table>
               </div>}
@@ -1887,7 +1910,7 @@ export function StaffApp({
           >
 
 
-            {(canCashier || isModuleEnabled('ordering')) && <section aria-label={t("Alur pemesanan", "Ordering flow")} className="operation-record space-y-4">
+            {(canCashier || isModuleEnabled('ordering')) && <section aria-label={t("Alur pemesanan", "Ordering flow")} className="pb-6 border-b border-[var(--border)] space-y-4">
               <div><h2 className="font-heading text-lg font-semibold">{t("Alur pemesanan", "Ordering flow")}</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{t("Berlaku untuk pesanan yang diterima setelah pengaturan disimpan. Pesanan yang sudah diterima tetap memakai aturan semula.", "Applies to orders accepted after saving. Previously accepted orders keep their original rules.")}</p></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5"><Label htmlFor="dine-payment-policy">{t("Pembayaran makan di tempat", "Dine-in payment")}</Label><SelectField id="dine-payment-policy" value={policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomPaymentPolicy(event.target.value); }}><option value="PREPAY">{t("Bayar sebelum dibuat", "Pay before preparation")}</option><option value="PAY_LATER">{t("Bayar setelah makan", "Pay after dining")}</option></SelectField></div>
@@ -1901,7 +1924,7 @@ export function StaffApp({
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left 6 cols: Tax & Service Charge Config */}
-              <section className="operation-record lg:col-span-6 space-y-4">
+              <section className={`lg:col-span-6 space-y-4 ${canMarketing ? 'lg:pr-8 lg:border-r lg:border-[var(--border)]' : ''}`}>
                 <div>
                   <h2 className="font-heading text-[17px] font-bold">
                     {t("Pajak & layanan", "Tax & service")}
@@ -1971,7 +1994,7 @@ export function StaffApp({
                         className={`w-full py-3 px-2 flex items-center justify-between text-left text-[14px] transition-colors cursor-pointer ${
                           isCurrent
                             ? 'bg-[var(--accent-surface)] font-semibold text-[var(--primary-ink)]'
-                            : 'rounded-xl hover:bg-[var(--background)]'
+                            : 'hover:bg-[var(--accent-surface)]'
                         }`}
                       >
                         <span>{preset.label}</span>
@@ -2037,19 +2060,20 @@ export function StaffApp({
               </section>
 
               {/* Right 6 cols: Promo Rules & Customer Reviews */}
-              {canMarketing && <section className="operation-record lg:col-span-6 space-y-6">
+              {canMarketing && <section className="lg:col-span-6 space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-heading text-[17px] font-bold">
                       {t("Promo", "Promotions")}
                     </h2>
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("Tambah promo", "Add promotion")}
+                      title={t("Tambah promo", "Add promotion")}
                       onClick={() => setNewPromoModalOpen(true)}
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>{t("Tambah promo", "Add promotion")}</span>
+                      <Plus className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
                     </Button>
                   </div>
 
@@ -2079,7 +2103,7 @@ export function StaffApp({
                     {t("Ulasan pelanggan terbaru", "Recent customer reviews")}
                   </h2>
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-                    {(snapshot?.feedbackEntries || []).map((fb: any) => (
+                    {!(snapshot?.feedbackEntries || []).length && <p className="text-sm text-[var(--muted-foreground)]">{t("Belum ada ulasan pelanggan.","No customer reviews yet.")}</p>}{(snapshot?.feedbackEntries || []).map((fb: any) => (
                       <div key={fb.id} className="py-3 space-y-1 text-[14px]">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold">{fb.displayName}</span>
@@ -2519,7 +2543,7 @@ export function StaffApp({
               rows={4}
               value={csvTextInput}
               onChange={(e) => setCsvTextInput(e.target.value)}
-              className="font-mono text-[12px]"
+              wrap="off" className="font-mono text-[12px] whitespace-pre overflow-x-auto"
             />
           </div>
 
