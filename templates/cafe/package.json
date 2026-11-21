@@ -30,7 +30,7 @@
     "test:language-browser": "node tests/language-browser.mjs",
     "test:demo-lifecycle": "node --experimental-strip-types tests/demos-lifecycle.mjs",
     "test:demo-all": "node scripts/demos-verify.mjs",
-    "test:ui-contracts": "node --test tests/ui-contracts.test.mjs",
+    "test:ui-contracts": "node --experimental-strip-types --test tests/ui-contracts.test.mjs components/cafe/bill-display.test.ts",
     "db:migrate:sqlite": "node --experimental-strip-types scripts/migrate-sqlite.ts",
     "test:sqlite": "node --experimental-strip-types --test src/db/sqlite.test.mjs",
     "db:seed:sqlite": "node --experimental-strip-types scripts/seed-client-sqlite.ts",

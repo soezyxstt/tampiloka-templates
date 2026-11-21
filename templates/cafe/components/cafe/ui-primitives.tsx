@@ -491,7 +491,7 @@ export function PaymentBreakdown({
           {(taxBps > 0 || taxIdr > 0) && (
             <div className="flex items-center justify-between text-[var(--muted-foreground)]">
               <span>
-                {t('Pajak Restoran / PB1', 'Restaurant tax / PB1')} ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
+                {t('PB1', 'Restaurant tax / PB1')} ({(taxBps / 100).toFixed(taxBps % 100 === 0 ? 0 : 1)}%)
               </span>
               <Money amount={taxIdr} className="text-[var(--foreground)]" />
             </div>
@@ -510,8 +510,8 @@ export function PaymentBreakdown({
       )}
       {verifiedReceiptsIdr > 0 && (
         <div className="flex items-center justify-between text-[var(--status-success-fg)]">
-          <span>{t('Pembayaran terverifikasi', 'Verified payments')}</span>
-          <Money amount={verifiedReceiptsIdr} />
+          <span>{t('Sudah dibayar', 'Payments received')}</span>
+          <Money amount={-verifiedReceiptsIdr} />
         </div>
       )}
       {refundedIdr > 0 && (

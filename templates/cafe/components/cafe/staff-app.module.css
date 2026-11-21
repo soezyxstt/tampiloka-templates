@@ -76,6 +76,11 @@
   font-size: 12px;
   white-space: nowrap;
 }
+.focused :global(.staff-sidebar) { display:none; }
+@media (min-width:1280px) {
+  .workspace.focused { grid-template-columns:minmax(0,1fr); }
+  .focused :global(.staff-header), .focused :global(.staff-main) { grid-column:1; }
+}
 @media (min-width: 1024px) {
   .syncText { display: inline; }
 }

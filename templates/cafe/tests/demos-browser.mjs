@@ -169,7 +169,7 @@ async function checkStaff(page, demo) {
   const modules = new Set(demo.modules);
   const nav = page.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true });
   const expectedSections = [
-    [/^Kasir & Pesanan/, modules.has('cashier')],
+    [/^Kasir/, modules.has('cashier')],
     [/^Pesanan masuk/, modules.has('ordering') && !modules.has('cashier')],
     [/^Dapur & Bar/, modules.has('kitchen')],
     [/^Meja & Antrean/, modules.has('tables')],

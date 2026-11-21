@@ -35,6 +35,9 @@ import { BrandMark } from './brand';
 import { PosComposer } from './pos-composer';
 import { OrderInbox } from './order-inbox';
 import { ShiftControls } from './shift-controls';
+import { groupBillUnits, billOwnerName, billLocation } from './bill-display';
+import { printBillReceipt } from './receipt-print';
+import { DemoPaymentControls } from './demo-payment-controls';
 import { VisitService } from './visit-service';
 import { OrderNotifications } from './order-notifications';
 import styles from './staff-app.module.css';
@@ -88,6 +91,7 @@ function sectionEnabled(section: StaffSection): boolean {
   }
 }
 const defaultSection = ({ cashier: 'kasir', ordering: 'kasir', kitchen: 'dapur', dashboard: 'laporan', tables: 'meja', marketing: 'pengaturan' } as Record<string, StaffSection>)[getDefaultStaffModule() || ''] || 'pengaturan';
+
 const availableSection = (section?: StaffSection) => section && sectionEnabled(section) ? section : defaultSection;
 
 const STAFF_CREDENTIALS: Record<
@@ -246,13 +250,14 @@ export function StaffApp({
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('ACTIVE');
   const [showResolvedRequests, setShowResolvedRequests] = useState(false);
 
-  // Kasir & Pesanan state
+  // Kasir state
   const [selectedBillId, setSelectedBillId] = useState<string>('bill_demo_m04');
   const [selectedUnitIdsForSplit, setSelectedUnitIdsForSplit] = useState<string[]>([]);
   const [showSplitMergePanel, setShowSplitMergePanel] = useState<boolean>(false);
   const [splitNewOwnerLabel, setSplitNewOwnerLabel] = useState<string>('');
   const [mergeTargetBillId, setMergeTargetBillId] = useState<string>('');
   const [tenderMethod, setTenderMethod] = useState<string>('CASH');
+  const [partialPayment, setPartialPayment] = useState(false);
   const [tenderAmountInput, setTenderAmountInput] = useState<string>('');
   const [cashGivenInput, setCashGivenInput] = useState<string>('');
   const [transferRefInput, setTransferRefInput] = useState<string>('');
@@ -281,7 +286,7 @@ export function StaffApp({
   const [posQuantity, setPosQuantity] = useState<number>(1);
 
   // Dapur & Bar state
-  const [stationFilter, setStationFilter] = useState<string>('ALL');
+  const [stationFilter, setStationFilter] = useState<string>('MINE');
 
   // Meja & Antrean sub-tab state
   const [floorSubTab, setFloorSubTab] = useState<'KUNJUNGAN' | 'DENAH' | 'PANGGILAN' | 'ANTREAN'>('KUNJUNGAN');
@@ -298,9 +303,7 @@ export function StaffApp({
   const [newMenuStation, setNewMenuStation] = useState<string>('BAR');
   const [newMenuPrice, setNewMenuPrice] = useState<string>('28000');
   const [newMenuDesc, setNewMenuDesc] = useState<string>('');
-  const [newMenuPhotos, setNewMenuPhotos] = useState<string[]>([
-    '/images/menu/photos/kopi-aren.jpg',
-  ]);
+  const [newMenuPhotos, setNewMenuPhotos] = useState<string[]>([]);
   const [newCategoryNameInput, setNewCategoryNameInput] = useState<string>('');
 
   // Multi-photo editor modal
@@ -373,7 +376,8 @@ export function StaffApp({
     setKitchenStatusFilter('ACTIVE');
     setCashierTask('orders');
     setFloorSubTab('KUNJUNGAN');
-    setStationFilter(role === 'BAR' ? 'BAR' : role === 'KITCHEN' ? 'KITCHEN' : 'ALL');
+    setStationFilter('MINE');
+    setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput('');
     setActionError('');
     setNewOrderModalOpen(false);
     setRejectingRequest(null);
@@ -424,7 +428,8 @@ export function StaffApp({
     [filteredBills, selectedBillId]
   );
 
-  const kitchenUnits = useMemo(() => {
+  const currentRole = currentStaffObj.role;
+  const kitchenUnits = (() => {
     const all = (snapshot?.orderUnits || []).filter(
       (u: any) => u.fulfillmentStatus !== 'CANCELLED' &&
         (kitchenStatusFilter === 'ALL' ||
@@ -432,9 +437,11 @@ export function StaffApp({
             ? ['QUEUED', 'PREPARING', 'READY'].includes(u.fulfillmentStatus)
             : u.fulfillmentStatus === kitchenStatusFilter))
     );
+    all.sort((a: any, b: any) => Number(['SERVED','DELIVERED','PICKED_UP'].includes(a.fulfillmentStatus)) - Number(['SERVED','DELIVERED','PICKED_UP'].includes(b.fulfillmentStatus)) || Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
+    if (stationFilter === 'MINE') return all.filter((u: any) => currentRole === 'BAR' ? u.stationCode === 'BAR' : currentRole === 'KITCHEN' ? u.stationCode !== 'BAR' : true);
     if (stationFilter === 'ALL') return all;
     return all.filter((u: any) => u.stationCode === stationFilter);
-  }, [snapshot, stationFilter, kitchenStatusFilter]);
+  })();
 
   const kitchenGroups = useMemo(() => {
     const groups = new Map<string, any[]>();
@@ -473,7 +480,7 @@ export function StaffApp({
     const matching = activeBills.filter((bill: any) => bill.visitId === visitId);
     const bill = matching.find((entry: any) => entry.balanceIdr !== 0) || matching[0];
     setActiveSection('kasir'); setCashierTask('bills'); setBillSearch(''); setBillFilter('ALL');
-    setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); setPaymentError('');
+    setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); setPaymentError('');
     setShowSplitMergePanel(false); setSelectedUnitIdsForSplit([]);
     if (bill) setSelectedBillId(bill.id);
   };
@@ -665,7 +672,7 @@ export function StaffApp({
   const allNavItems: { id: StaffSection; label: string; count?: number }[] = [
     {
       id: 'kasir',
-      label: canCashier ? t('Kasir & Pesanan', 'Cashier & orders') : t('Pesanan masuk', 'Incoming orders'),
+      label: canCashier ? t('Kasir', 'Cashier & orders') : t('Pesanan masuk', 'Incoming orders'),
       count:
         pendingOrderRequests.length +
         activeBills.filter((b: any) => b.balanceIdr > 0).length,
@@ -680,7 +687,7 @@ export function StaffApp({
     {
       id: 'meja',
       label: t('Meja & Antrean', 'Tables & waitlist'),
-      count: openWaitlistCount + openHelpCount,
+      count: openWaitlistCount + openHelpCount + (snapshot?.tables || []).filter((table: any) => table.physicalState === 'NEEDS_CLEANING').length,
     },
     { id: 'menu', label: supervisor ? t('Katalog & Stok', 'Catalogue & stock') : t('Ketersediaan menu', 'Menu availability') },
     { id: 'laporan', label: isModuleEnabled('dashboard') ? t('Laporan & Shift', 'Reports & shifts') : t('Shift kasir', 'Cashier shifts') },
@@ -692,28 +699,17 @@ export function StaffApp({
     .sort((a, b) => roleSections.indexOf(a.id) - roleSections.indexOf(b.id));
   const currentSection = navItems.some(item => item.id === activeSection) ? activeSection : navItems[0]?.id || defaultSection;
 
-  const billLocationLabel = (bill: any) => {
-    const visit = (snapshot?.visits || []).find((entry: any) => entry.id === bill.visitId);
-    return visit?.mode === 'TAKEAWAY' || !bill.tableLabel ? t('Bawa pulang', 'Takeaway') : t(`Meja ${bill.tableLabel}`, `Table ${bill.tableLabel}`);
-  };
-
-  const billOwnerName = (bill: any) => {
-    const label = String(bill.ownerLabel || '');
-    for (const table of [bill.tableLabel, `Meja ${bill.tableLabel}`, `Table ${bill.tableLabel}`]) {
-      const suffix = ` (${table})`;
-      if (bill.tableLabel && label.endsWith(suffix)) return label.slice(0, -suffix.length);
-    }
-    return label;
-  };
+  const billLocationLabel = (bill: any) => billLocation(bill, snapshot?.visits || [], t);
 
   const effectiveTenderAmount =
-    tenderAmountInput.trim() === ''
+    !partialPayment || tenderAmountInput.trim() === ''
       ? selectedBill?.balanceIdr || 0
       : Number(tenderAmountInput);
   const cashChangePreview =
     tenderMethod === 'CASH'
       ? Math.max(0, (Number(cashGivenInput) || 0) - effectiveTenderAmount)
       : 0;
+
 
   return (
     <div className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace} ${styles.explorationManaged}`}>
@@ -892,7 +888,7 @@ export function StaffApp({
                 <div className="space-y-2">
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
-                    const payBadge = formatPaymentStateLabel(b.paymentState, t);
+                    const payBadge = b.hasActiveExternalAttempt ? {label: t('Menunggu', 'Awaiting') + ' ' + ((b.attempts || []).find((a: any) => ['CREATING','PENDING','UNKNOWN'].includes(a.status))?.method === 'VIRTUAL_ACCOUNT' ? 'VA' : 'QRIS'), tone: 'info' as const} : formatPaymentStateLabel(b.paymentState, t);
                     return (
                       <button
                         key={b.id}
@@ -901,7 +897,7 @@ export function StaffApp({
                         onClick={() => {
                           setSelectedBillId(b.id);
                           setSelectedUnitIdsForSplit([]);
-                          setTenderAmountInput('');
+                          setPartialPayment(false); setTenderAmountInput('');
                           setCashGivenInput('');
                           setTransferRefInput('');
                           setPaymentError('');
@@ -967,7 +963,7 @@ export function StaffApp({
                           <span>
                             {showSplitMergePanel
                               ? t("Tutup Pisah/Gabung", "Close split / merge")
-                              : t("Pisah / Gabung Tagihan", "Split / merge bill")}
+                              : t("Pisah / Gabung", "Split / merge")}
                           </span>
                         </Button>
                       )}
@@ -975,13 +971,9 @@ export function StaffApp({
 
                     {/* Collapsible Split / Merge Bill Bar */}
                     <AnimatePresence>
-                      {showSplitMergePanel && selectedBill.lifecycle === 'OPEN' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
+                      {!supervisor && showSplitMergePanel && selectedBill.lifecycle === 'OPEN' && (
+                        <DialogModal open onClose={() => { if (!busy) setShowSplitMergePanel(false); }} title={t('Pisah / Gabung', 'Split / merge')}>
+                          <InlineError message={actionError} />
                           <div className="p-4 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="split-bill-name">{t("Nama tagihan baru", "New bill name")}</Label>
@@ -1020,7 +1012,7 @@ export function StaffApp({
                                       unitIdsToMove: selectedUnitIdsForSplit,
                                       newOwnerLabel: splitNewOwnerLabel.trim() || t("Tagihan terpisah", "Split bill"),
                                     });
-                                    setSelectedUnitIdsForSplit([]);
+                                    setSelectedUnitIdsForSplit([]); setShowSplitMergePanel(false);
                                     toast.success(t("Tagihan berhasil dipisahkan.", "The bill was split."));
                                   }}
                                 >
@@ -1047,7 +1039,7 @@ export function StaffApp({
                                     )
                                     .map((b: any) => (
                                       <option key={b.id} value={b.id}>
-                                        {t("Meja", "Table")} {b.tableLabel} · {b.ownerLabel} (
+                                        {billLocationLabel(b)} · {billOwnerName(b)} (
                                         {formatIdr(b.balanceIdr)})
                                       </option>
                                     ))}
@@ -1062,7 +1054,7 @@ export function StaffApp({
                                       targetBillId: mergeTargetBillId,
                                     });
                                     setSelectedBillId(mergeTargetBillId);
-                                    setMergeTargetBillId('');
+                                    setMergeTargetBillId(''); setShowSplitMergePanel(false);
                                     toast.success(t("Tagihan berhasil digabungkan.", "The bills were merged."));
                                   }}
                                 >
@@ -1072,10 +1064,15 @@ export function StaffApp({
                               </div>
                             </div>
                           </div>
-                        </motion.div>
+                        </DialogModal>
                       )}
                     </AnimatePresence>
 
+                    <div className="divide-y divide-[var(--border)]" aria-label={t('Ringkasan menu', 'Menu summary')}>
+                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3 py-3 text-sm"><div className="min-w-0"><p className="font-semibold">{group.quantity}× {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}{group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}</p><p className="text-[var(--muted-foreground)]">{sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}{group.unit.modifiersSummary && ` · ${group.unit.modifiersSummary}`}</p>{group.unit.note && <p>{group.unit.note}</p>}</div><Money amount={group.grossIdr} /></div>)}
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}><Printer className="w-4 h-4" />{t('Cetak struk', 'Print receipt')}</Button>
+                    <InlineError message={paymentError} />
                     {/* Financial Summary & Payment Checkout */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2 items-start">
                       <div className="md:col-span-5 p-4 rounded-[12px] bg-[var(--surface)] border border-[var(--border)]">
@@ -1096,7 +1093,14 @@ export function StaffApp({
                       </div>
 
                       <div className="md:col-span-7 space-y-4">
-                        {selectedBill.balanceIdr > 0 ? !supervisor && (
+                        {selectedBill.balanceIdr > 0 && selectedBill.hasActiveExternalAttempt ? (
+                          <section aria-label={t('Pembayaran menunggu', 'Pending payment')} className="rounded-[var(--radius-panel)] bg-[var(--status-info-bg)] p-4 space-y-3">
+                            <h3 className="font-semibold">{t('Menunggu pembayaran', 'Awaiting payment')}</h3>
+                            {(selectedBill.attempts || []).filter((attempt: any) => ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status)).map((attempt: any) => <div key={attempt.id} className="text-sm space-y-1"><p>{attempt.method === 'VIRTUAL_ACCOUNT' ? 'VA' : attempt.method} · <Money amount={attempt.expectedAmountIdr} /></p>{attempt.expiresAt && <p>{t('Berlaku sampai', 'Valid until')} {new Date(attempt.expiresAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}</div>)}
+                            <Button variant="secondary" size="sm" disabled={busy} onClick={onRefresh}>{t('Cek status', 'Check status')}</Button>
+                            {!supervisor && snapshot.runtime?.demo ? <details className={styles.disclosure}><summary>{t('Simulasi pembayaran demo', 'Demo payment simulation')}</summary><DemoPaymentControls snapshot={{ runtime: snapshot.runtime, bills: [selectedBill] }} busy={busy} onCommand={runStaffCommand} /></details> : <p className="text-sm">{t('Konfirmasikan hasil atau batalkan instruksi aktif sebelum menerima pembayaran lain.', 'Confirm the result or cancel the active instructions before accepting another payment.')}</p>}
+                          </section>
+                        ) : selectedBill.balanceIdr > 0 ? !supervisor && (
                           <>
                             <div className="space-y-1.5">
                               <Label>{t("Pembayaran", "Payment")}</Label>
@@ -1114,8 +1118,9 @@ export function StaffApp({
 
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="space-y-1.5">
+                            <Button size="sm" variant="ghost" aria-pressed={partialPayment} onClick={() => { setPartialPayment(value => !value); setTenderAmountInput(''); setCashGivenInput(''); }}>{partialPayment ? t('Bayar penuh','Pay in full') : t('Bayar sebagian','Partial payment')}</Button>
+                            <div className="space-y-3">
+                              {partialPayment && <div className="space-y-1.5">
                                 <Label htmlFor="cashier-tender-amount">
                                   {t("Jumlah bayar (Rp)", "Amount to pay (Rp)")}
                                 </Label>
@@ -1127,18 +1132,19 @@ export function StaffApp({
                                   onChange={(e) => setTenderAmountInput(e.target.value)}
                                   className="tabular-nums font-semibold"
                                 />
-                              </div>
+                              </div>}
 
                               {tenderMethod === 'CASH' ? (
                                 <div className="space-y-1.5">
                                   <Label htmlFor="cashier-cash-given">
-                                    {t("Tunai diterima (Rp)", "Cash received (Rp)")}
+                                    {t("Uang diterima (Rp)", "Cash received (Rp)")}
                                   </Label>
                                   <Input
                                     id="cashier-cash-given"
-                                    type="number" min={0} step={1}
-                                    value={cashGivenInput}
-                                    onChange={(e) => setCashGivenInput(e.target.value)}
+                                    type="text" inputMode="numeric"
+                                    placeholder={t("Isi nominal atau klik Uang Pas", "Enter cash or choose Exact amount")}
+                                    value={cashGivenInput ? Number(cashGivenInput).toLocaleString("id-ID") : ""}
+                                    onChange={(e) => setCashGivenInput(e.target.value.replace(/\D/g, ""))}
                                     className="tabular-nums font-semibold"
                                   />
                                 </div>
@@ -1151,7 +1157,7 @@ export function StaffApp({
                                     id="cashier-ref-code"
                                     value={transferRefInput}
                                     onChange={(e) => setTransferRefInput(e.target.value)}
-                                    placeholder={t("Ref QRIS / Bukti Transfer", "QRIS reference / transfer proof")}
+                                    placeholder={t("No. referensi transfer", "Transfer reference")}
                                   />
                                 </div>
                               )}
@@ -1181,15 +1187,11 @@ export function StaffApp({
                                 </div>
                                 <div className="text-[13px]">
                                   <span className="text-[var(--muted-foreground)]">{t("Kembalian:", "Change:")} </span>
-                                  <Money
-                                    amount={cashChangePreview}
-                                    className="font-bold text-[var(--primary-ink)]"
-                                  />
+                                  {cashGivenInput ? <Money amount={cashChangePreview} className="font-bold" /> : <span>—</span>}
                                 </div>
                               </div>
                             )}
 
-                            {selectedBill.hasActiveExternalAttempt && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{snapshot?.runtime?.demo ? explorationManaged ? t('Pembayaran masih aktif. Selesaikan atau batalkan melalui pengaturan di bilah atas.', 'Payment is active. Complete or cancel it in the top-bar settings.') : t('Pembayaran masih aktif. Selesaikan atau batalkan melalui pengaturan di bilah atas.', 'Payment is active. Complete or cancel it in the top-bar settings.') : t('Instruksi pembayaran masih aktif. Konfirmasikan hasilnya atau batalkan sebelum mencatat pembayaran lain.', 'Payment instructions are still active. Confirm the result or cancel them before recording another payment.')}</p>}
                             {tenderMethod === 'CASH' && !cashGivenInput.trim() && <p className="text-sm text-[var(--muted-foreground)]">{t('Masukkan uang tunai yang diterima.', 'Enter the cash received.')}</p>}
                             {tenderMethod === 'CASH' && cashGivenInput.trim() !== '' && Number(cashGivenInput) < effectiveTenderAmount && <p className="text-sm text-[var(--status-warning-fg)]">{t('Uang tunai yang diterima kurang dari jumlah bayar.', 'Cash received is less than the amount to pay.')}</p>}
                             <InlineError message={paymentError} />
@@ -1209,7 +1211,7 @@ export function StaffApp({
                                   const res = await runStaffCommand('RECORD_PAYMENT', { ...paymentPayload, idempotencyKey: paymentAttemptRef.current.key });
                                   const external = tenderMethod === 'QRIS' || tenderMethod === 'VIRTUAL_ACCOUNT';
                                   toast.success(external ? t('Instruksi pembayaran dibuat. Pembayaran masih menunggu konfirmasi.', 'Payment instructions created. Payment is awaiting confirmation.') : t(`Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`, `${tenderMethod === 'CASH' ? 'Cash' : 'Transfer'} payment of ${formatIdr(amt)} recorded.${(res?.result?.changeIdr ?? 0) > 0 ? ` Change: ${formatIdr(res.result.changeIdr)}` : ''}`));
-                                  setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
+                                  setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
                                 } catch (caught) { setPaymentError(caught instanceof Error ? caught.message : t('Pembayaran belum tercatat.', 'Payment was not recorded.')); /* Keep the retry key. */ }
                                 finally { paymentSubmittingRef.current = false; setPaymentSubmitting(false); }
                               }}
@@ -1301,12 +1303,13 @@ export function StaffApp({
             className="space-y-6"
           >
             <details className={styles.disclosure}>
-              <summary>{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
+              <summary>{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
               <div className="space-y-3">
                 <AnimatedSegmentedControl
                   ariaLabel={t('Filter stasiun kerja', 'Filter work station')}
                   options={[
-                    { value: 'ALL', label: t('Semua bagian', 'All stations') },
+                    { value: 'MINE', label: role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations') },
+                    ...(['BAR', 'KITCHEN'].includes(role) ? [{ value: 'ALL', label: t('Lihat stasiun lain', 'View other stations') }] : []),
                     ...['BAR', 'KITCHEN', 'PASTRY'].map(value => ({ value, label: formatStationName(value, t) })),
                   ]}
                   value={stationFilter}
@@ -1343,9 +1346,10 @@ export function StaffApp({
                             <p className="font-semibold">1× {itemName}{variantName && <span className="font-normal text-[var(--muted-foreground)]"> ({variantName})</span>}</p>
                             {unit.modifiersSummary && <p className="text-sm">{t('Opsi:', 'Options:')} {unit.modifiersSummary}</p>}
                             {unit.note && <p className="text-sm font-medium text-[var(--status-warning-fg)]">{t('Catatan:', 'Note:')} {unit.note}</p>}
+                            <p className="text-xs text-[var(--muted-foreground)]">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
                             <StatusLabel label={status.label} tone={status.tone} />
                           </div>
-                          {!supervisor && targetStatus && <Button variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
+                          {!supervisor && targetStatus && <Button variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || (role === 'BAR' && unit.stationCode !== 'BAR') || (role === 'KITCHEN' && unit.stationCode === 'BAR')} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
                             try {
                               await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
                               toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));
@@ -1411,7 +1415,7 @@ export function StaffApp({
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-[var(--primary-ink)]" />
                     <h2 className="font-heading text-[17px] font-bold">
-                      {t("Bantuan meja", "Table assistance")}
+                      {t("Panggilan", "Table assistance")}
                     </h2>
                   </div>
 
@@ -1532,7 +1536,7 @@ export function StaffApp({
                                   ? t("Sudah Duduk", "Seated")
                                   : w.status === 'CALLED'
                                   ? t("Dipanggil", "Called")
-                                  : t("Menunggu", "Waiting")
+                                  : ({NO_SHOW:t("Tidak Hadir","No-show"),CANCELLED:t("Dibatalkan","Cancelled"),EXPIRED:t("Kedaluwarsa","Expired")} as Record<string,string>)[w.status] || t("Menunggu", "Waiting")
                               }
                               tone={
                                 w.status === 'SEATED'
@@ -2079,7 +2083,7 @@ export function StaffApp({
                     {t("Ulasan pelanggan terbaru", "Recent customer reviews")}
                   </h2>
                   <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-                    {(snapshot?.feedbackEntries || []).map((fb: any) => (
+                    {!(snapshot?.feedbackEntries || []).length && <p className="text-sm text-[var(--muted-foreground)]">{t("Belum ada ulasan pelanggan.","No customer reviews yet.")}</p>}{(snapshot?.feedbackEntries || []).map((fb: any) => (
                       <div key={fb.id} className="py-3 space-y-1 text-[14px]">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold">{fb.displayName}</span>
@@ -2519,7 +2523,7 @@ export function StaffApp({
               rows={4}
               value={csvTextInput}
               onChange={(e) => setCsvTextInput(e.target.value)}
-              className="font-mono text-[12px]"
+              wrap="off" className="font-mono text-[12px] whitespace-pre overflow-x-auto"
             />
           </div>
 

@@ -145,8 +145,8 @@
       "Iced Jasmine Leaf Tea"
     ],
     "description": [
-      "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan. Tanpa pilihan wajib.",
-      "Refreshing iced Pekalongan jasmine green tea. No required options."
+      "Seduhan pucuk teh hijau melati Pekalongan disajikan dingin menyegarkan.",
+      "Refreshing iced Pekalongan jasmine green tea."
     ]
   },
   "var_teh_std": {
@@ -191,7 +191,7 @@
   },
   "modopt_matcha_less": {
     "name": [
-      "Less Sweet",
+      "Kurang Manis",
       "Less sweet"
     ]
   },
@@ -241,6 +241,7 @@
       "Sambal on the side"
     ]
   },
+  "modgrp_ayam_penyajian":{"name":["Penyajian Sambal","Sambal serving"]},
   "modgrp_ayam_addon": {
     "name": [
       "Lauk Tambahan",

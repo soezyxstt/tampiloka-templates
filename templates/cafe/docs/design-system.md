@@ -1,5 +1,17 @@
 # Cafe template design system
 
+## Billing and staff refinements, 21 November 2026
+
+Bills group identical menu portions by their original menu price. Discounts, service charges, PB1, cancellation credits, payments and refunds remain separate ledger rows; individual allocated totals remain available for splitting and operational item actions. Identical portions may carry different allocated totals because of integer rounding, without showing different menu prices. Cancelled items and different modifiers or notes remain distinct.
+
+Full payment is the cashier default. Partial payment reveals a separate amount field; cash received remains an independent input with exact-amount presets. An active external attempt replaces the editable tender form with its amount, expiry and refresh action. Demo settlement remains explicitly labelled and uses the existing simulation control. Owners and managers retain their current read-only operational views.
+
+Shift management and bill splitting use the existing accessible dialog, preserving validation and focus restoration. Optional single-choice modifiers use a checkbox so a guest can clear the option. New demo seeds separate sambal type from optional serving style; this does not migrate or erase existing client data.
+
+Customer and staff receipts use the same grouped menu rows, ledger totals and outlet time zone. Printing opens a separate document, writes customer-supplied text through DOM text content, and retains the demo-payment disclosure. This supports browser printing/PDF; it does not establish physical-printer or payment-provider integration.
+
+Verification is recorded per PR head. Screenshots from the earlier critique pass predate reconciliation with the latest main branch and are not evidence of the final merged UI.
+
 ## Attendance interface, 11 November 2026
 
 Attendance uses the existing Button, Input and Radix Dialog wrappers and Cafe semantic tokens. The correction dialog labels its time and reason fields, validates input and returns focus to its trigger. The camera action waits for a video frame before capture; access, loading and permission failures are localized. The isolated browser fixture documented in `attendance.md` covers the real API with private test storage; it does not replace production authentication or hosted verification.
