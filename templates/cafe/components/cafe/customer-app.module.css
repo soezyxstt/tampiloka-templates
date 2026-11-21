@@ -16,11 +16,22 @@
 .bottomNav .navActive:before{content:'';position:absolute;top:0;height:2px;width:24px;background:var(--primary)}
 .ordersHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--border)}
 .screenHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--border)}
-.orderNotice{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--accent-surface);border-radius:var(--radius-panel);text-align:left}
+.orderNotice{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--accent-surface);border:1px solid color-mix(in srgb,var(--primary) 28%,var(--border));border-radius:var(--radius-control);text-align:left}
 .orderNotice:hover{color:var(--primary-ink)}
-.summary{padding:16px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-panel)}
-.orderList{display:grid;gap:12px}
-.orderArticle,.cartLine{min-width:0;padding:var(--card-padding);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-panel)}
+.contextStrip{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:11px 14px;background:var(--accent-surface);border:1px solid color-mix(in srgb,var(--primary) 32%,var(--border));border-radius:var(--radius-control);font-size:14px}
+.metaBand{margin-inline:-16px;padding:12px 16px;background:var(--surface-muted);display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:12px;font-size:13px}
+.metaRight{text-align:right;justify-items:end}
+@media(min-width:640px){.metaBand{margin-inline:-24px;padding:12px 24px}}
+@media(max-width:359px){.metaBand{grid-template-columns:minmax(0,1fr)}.metaRight{text-align:left;justify-items:start}}
+.infoList{display:grid;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.infoRow{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.infoIcon{width:18px;height:18px;margin-top:2px;flex:none;color:var(--primary-ink)}
+.orderHeaderBand{padding:10px 12px;background:var(--surface-muted);border-radius:var(--radius-control);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.qrFrame{display:inline-block;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-control)}
+.summary{padding:0;background:transparent;border:0;border-radius:0}
+.orderList{display:flex;flex-direction:column}
+.orderList:not(:empty){border-top:1px solid var(--border)}
+.orderArticle,.cartLine{min-width:0;padding:14px 0;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0}
 .ordersActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .orderUnit{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;font-size:14px;line-height:1.5}
 .orderUnitDetails{min-width:0;overflow-wrap:anywhere}
@@ -36,7 +47,7 @@
 :global([data-theme="playful"]) .menuImage{border-radius:0}
 :global([data-theme="airy"]) .menuGrid{gap:24px 20px}
 @media(max-width:700px){.menuGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}.menuImage{aspect-ratio:1.35}.menuDescription{display:none}.bottomNav button{flex:1;font-size:12px}.menuCardBody{padding-top:8px}:global([data-theme="editorial"]) .menuImage{width:88px;min-width:88px}:global([data-theme="editorial"]) .menuDescription{display:-webkit-box}:global([data-theme="airy"]) .menuGrid{gap:20px 16px}}
-@media(max-width:480px){.ordersHeading{align-items:flex-start}.ordersActions{width:100%}.orderUnit{align-items:flex-start;flex-direction:column;gap:8px}.orderUnitStatus{max-width:100%}.orderArticle,.cartLine{padding:var(--card-padding)}.screenHeading select{max-width:100%}}
+@media(max-width:480px){.ordersHeading{align-items:flex-start}.ordersActions{width:100%}.orderUnit{align-items:flex-start;flex-direction:column;gap:8px}.orderUnitStatus{max-width:100%}.screenHeading select{max-width:100%}}
 @media(max-width:359px){.menuGrid{grid-template-columns:1fr}.menuCard{flex-direction:row}.menuImage{width:88px;min-width:88px;aspect-ratio:1;align-self:flex-start}.menuCardBody{padding:0 0 0 10px}}
 @media(prefers-reduced-motion:reduce){.menuCard,.menuImage img{transition:none;transform:none!important}}
 

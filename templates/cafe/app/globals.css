@@ -83,7 +83,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .cafe-staff { --control-height:44px; }
 .cafe-staff :is(.rounded-xl,.rounded-2xl,.rounded-3xl) { border-radius:var(--radius-panel); }
 .cafe-staff :is(input,select,button.rounded-xl) { border-radius:var(--radius-control); }
-.cafe-staff :is(section.border,.pos-summary) { border-width:var(--border-width); box-shadow:var(--shadow-panel); }
+.cafe-staff :is(section.border) { border-width:var(--border-width); box-shadow:var(--shadow-panel); }
 
 input:focus-visible,textarea:focus-visible,select:focus-visible { outline:2px solid var(--primary-ink); outline-offset:2px; }
 button { cursor:pointer; }

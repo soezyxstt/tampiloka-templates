@@ -1,5 +1,12 @@
 # Cafe template design system
 
+## Minimal-card flat layout revamp, 21 November 2026
+
+Customer and staff workspaces now default to an open, flat canvas separated by crisp `1px` hairline rules (`--border`), quiet full-bleed tinted metadata bands (`--surface-muted`), and typography hierarchy instead of nested bordered cards. Bordered surfaces are reserved strictly for the few elements that genuinely require framing: a single order-type callout strip on customer cart/payment screens, the scannable QR quiet-zone frame during active online payment, the active waitlist ticket callout, the spatial SVG floor plan, and side-by-side multi-column KDS kitchen tickets.
+
+- **Customer views**: Cart lines, order records, order status items, price breakdowns (`PaymentBreakdown`), member notices, and digital receipt summaries render directly on the canvas with hairline dividers. The payment screen leads with a single accent-bordered order-type callout strip, a full-bleed tinted date/bill-number metadata band, icon-anchored outlet/table rows, flat ordered items, and an unboxed totals breakdown with accent-ink totals. Digital receipt print controls and payment references sit below a dashed receipt divider without duplicating the bill item list inside a second card.
+- **Staff workspace**: The workspace uses the warm `--background` canvas instead of a heavy gray backdrop. Cashier bills split via hairline dividers rather than nested cards; selected bills use an accent surface, leading bar, and check icon. Incoming orders, service requests, waitlist entries, catalog items, daily stock pools, report breakdowns/tables, and settings sections use flat hairline-divided rows and column rules. KDS tickets retain light `--border` frames with a top brand rule so adjacent table tickets remain distinct.
+
 ## Billing and staff refinements, 21 November 2026
 
 Bills group identical menu portions by their original menu price. Discounts, service charges, PB1, cancellation credits, payments and refunds remain separate ledger rows; individual allocated totals remain available for splitting and operational item actions. Identical portions may carry different allocated totals because of integer rounding, without showing different menu prices. Cancelled items and different modifiers or notes remain distinct.

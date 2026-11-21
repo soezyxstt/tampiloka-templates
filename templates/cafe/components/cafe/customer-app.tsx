@@ -35,6 +35,7 @@ import {
   PaymentBreakdown,
   EmptyState,
   InlineError,
+  InlineNotice,
   DialogModal,
   Money,
   formatIdr,
@@ -48,6 +49,7 @@ import {
   Wifi,
   Copy,
   Check,
+  CheckCircle2,
   Utensils,
   Bell,
   Star,
@@ -618,6 +620,10 @@ export function CustomerApp({
   };
 
   const selectedBill = customerBills.find((bill: any) => bill.id === selectedBillId) || customerBills.find((bill: any) => bill.balanceIdr > 0) || customerBills[0] || null;
+  const selectedBillVisit = selectedBill ? (snapshot?.visits || []).find((visit: any) => visit.id === selectedBill.visitId) : null;
+  const selectedBillIsTakeaway = selectedBillVisit?.mode === 'TAKEAWAY';
+  const selectedBillTimestamp = selectedBill?.createdAt || selectedBill?.receipts?.[0]?.receivedAt || snapshot?.serverTime;
+  const selectedBillDateLabel = selectedBillTimestamp ? new Date(selectedBillTimestamp).toLocaleString(language === 'id' ? 'id-ID' : 'en-GB', { timeZone: cafeConfig.timezone, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
   const pendingAttempt = (selectedBill?.attempts || []).find((attempt: any) => ['PENDING', 'CREATING', 'UNKNOWN'].includes(attempt.status));
   const paymentInstructions = pendingAttempt?.instructionsJson || {};
   const paymentIsDemo = Boolean(paymentInstructions.isDemo || snapshot?.paymentAccount?.isDemo);
@@ -829,7 +835,7 @@ export function CustomerApp({
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
-              {tableUnavailable && <div role="status" className="rounded-xl bg-[var(--status-warning-bg)] p-4 space-y-2 text-sm"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div>}
+              {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
               <div className={styles.menuToolbar}>
                 <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
                 <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
@@ -885,7 +891,7 @@ export function CustomerApp({
                 </Button>
               </div>
 
-              {tableUnavailable && <div role="status" className="rounded-xl bg-[var(--status-warning-bg)] p-4 space-y-2 text-sm"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div>}
+              {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
                   {cart.length === 0 ? (
                 <EmptyState
                   title={t("Keranjang masih kosong", "Your cart is empty")}
@@ -893,7 +899,15 @@ export function CustomerApp({
                   onAction={() => setActiveScreen('menu')}
                 />
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-5">
+                  <button type="button" onClick={() => setTableModalOpen(true)} className={`${styles.contextStrip} text-left cursor-pointer`}>
+                    <span className="text-[var(--muted-foreground)]">{t('Jenis pesanan', 'Order type')}</span>
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
+                      <span>{orderMode === 'DINE_IN' ? (selectedTable.id ? `${t('Makan di tempat', 'Dine in')} · ${t('Meja', 'Table')} ${selectedTable.label}` : t('Makan di tempat', 'Dine in')) : t('Bawa pulang', 'Takeaway')}</span>
+                      <CheckCircle2 className="w-4 h-4 text-[var(--status-success-fg)] shrink-0" aria-hidden="true" />
+                    </span>
+                  </button>
+
                   {/* 1. Daftar Item Keranjang (Open Hairline List · No outer box card) */}
                   <section className="space-y-2">
                     <h2 className="font-heading text-[16px] font-semibold">
@@ -974,10 +988,12 @@ export function CustomerApp({
                         />
                       </div>
                     ) : (
-                      <div className="rounded-xl bg-[var(--accent-surface)] p-4 space-y-3">
-                        <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
-                        <Button variant="secondary" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
-                      </div>
+                      <InlineNotice tone="info">
+                        <div className="space-y-2.5">
+                          <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+                          <Button variant="secondary" size="sm" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
+                        </div>
+                      </InlineNotice>
                     )}
                   </section>
 
@@ -1063,7 +1079,7 @@ export function CustomerApp({
                               type="button"
                               whileTap={{ scale: 0.96 }}
                               onClick={() => handleRequestQuote(p.code)}
-                              className="px-2.5 py-1 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
+                              className="px-2.5 py-1.5 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] text-left hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
                             >
                               {p.code} ({p.name})
                             </motion.button>
@@ -1138,7 +1154,7 @@ export function CustomerApp({
               </div>
 
               {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
-              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <section key={request.id} className="border border-[var(--border)] rounded-[var(--radius-panel)] p-4 space-y-2"><StatusLabel label={request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')} tone="warning" /><p className="text-sm text-[var(--muted-foreground)]">{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></section>)}
+              {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <InlineNotice key={request.id} tone="warning"><div className="space-y-2"><p className="font-semibold">{request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')}</p><p>{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></div></InlineNotice>)}
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
                 0 && (
@@ -1181,7 +1197,7 @@ export function CustomerApp({
                 </section>
               )}
 
-              {/* Accepted Orders with 3 Distinct Status Axes (Clean Editorial List) */}
+              {/* Accepted Orders with 3 Distinct Status Axes (Flat Hairline Layout) */}
               {customerOrders.length > 0 && <section className="space-y-3">
                 <div className={styles.orderList}>
                   {customerOrders.map((ord: any) => {
@@ -1192,7 +1208,7 @@ export function CustomerApp({
 
                     return (
                       <article key={ord.id} data-order-id={ord.id} className={`${styles.orderArticle} space-y-3`}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className={styles.orderHeaderBand}>
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
                               {ord.customerName}
@@ -1213,10 +1229,10 @@ export function CustomerApp({
                           </div>
                         </div>
 
-                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span>{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant={bill.balanceIdr > 0 ? "primary" : "secondary"} size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{bill.balanceIdr > 0 ? `${t('Bayar', 'Pay')} · ${formatIdr(bill.balanceIdr)}` : t('Lunas · lihat struk', 'Paid · view receipt')}</Button>)}</div>}
+                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span><div className="flex flex-wrap items-center gap-2">{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant={bill.balanceIdr > 0 ? "primary" : "secondary"} size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{bill.balanceIdr > 0 ? `${t('Bayar', 'Pay')} · ${formatIdr(bill.balanceIdr)}` : t('Lunas · lihat struk', 'Paid · view receipt')}</Button>)}</div></div>}
 
-                        {/* Fulfillment per Unit */}
-                        <div className="pl-3 border-l-2 border-[var(--border)] divide-y divide-[var(--border)]/70">
+                        {/* Fulfillment per Unit (Open Hairline Rows) */}
+                        <div className="divide-y divide-[var(--border)]">
                           {units.map((u: any) => (
                             <div
                               key={u.id}
@@ -1298,61 +1314,126 @@ export function CustomerApp({
                 </SelectField>}
               </div>
 
-              {customerBills.length > 1 && <div className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-sm space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')}</p><p>{t("Sisa seluruh tagihan:", "Total outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p className="text-[var(--muted-foreground)]">{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div>}
+              {customerBills.length > 1 && <InlineNotice tone="info" className="text-sm"><div className="space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')} · {t("Sisa:", "Outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p>{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div></InlineNotice>}
 
               {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={customerOrders.length || pendingRequests.length ? t("Lihat pesanan","View orders") : t("Lihat menu","View menu")} onAction={() => setActiveScreen(customerOrders.length || pendingRequests.length ? "pesanan" : "menu")} />}
               {selectedBill && (
-                <div className="space-y-6" data-customer-bill-id={selectedBill.id}>
-                  {/* Bill Items (Open Hairline List) */}
-                  <section className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h2 className="font-heading text-[17px] font-semibold">
-                          {billOwnerName(selectedBill)}
-                        </h2>
+                <div className="space-y-5" data-customer-bill-id={selectedBill.id}>
+                  {/* Single Highlighted Order-Type Callout Strip (ESB-inspired) */}
+                  <div className={styles.contextStrip}>
+                    <span className="text-[var(--muted-foreground)]">{t("Jenis pesanan", "Order type")}</span>
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
+                      <span>{selectedBillIsTakeaway ? t("Bawa pulang", "Takeaway") : t("Makan di tempat", "Dine in")}</span>
+                      <CheckCircle2 className="w-4 h-4 text-[var(--status-success-fg)] shrink-0" aria-hidden="true" />
+                    </span>
+                  </div>
+
+                  {/* Quiet Full-Bleed Metadata Band (Date & Bill Number · No Card Box) */}
+                  <div className={styles.metaBand}>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-[12px] text-[var(--muted-foreground)]">{t("Tanggal", "Date")}</p>
+                      <p className="font-medium text-[var(--foreground)] tabular-nums">{selectedBillDateLabel || '—'}</p>
+                    </div>
+                    <div className={`${styles.metaRight} min-w-0 grid gap-0.5`}>
+                      <p className="text-[12px] text-[var(--muted-foreground)]">{t("No. tagihan", "Bill number")}</p>
+                      <div className="inline-flex items-center gap-1 max-w-full">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(`bill_${selectedBill.id}`, selectedBill.id)}
+                          aria-label={t("Salin nomor tagihan", "Copy bill number")}
+                          className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-2 -ml-2 text-[var(--primary-ink)] hover:opacity-80 cursor-pointer shrink-0"
+                        >
+                          {copiedKey === `bill_${selectedBill.id}` ? <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                        <span className="font-semibold text-[var(--foreground)] tabular-nums break-all">{selectedBill.id}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Outlet & Table Info (Direct on Canvas with Line Icons) */}
+                  <div className={styles.infoList}>
+                    <div className={styles.infoRow}>
+                      <Utensils className={styles.infoIcon} aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[12px] text-[var(--muted-foreground)]">{t("Lokasi kedai", "Outlet location")}</p>
+                        <p className="font-semibold text-[15px] text-[var(--foreground)]">{snapshot?.outlet?.name || cafeConfig.brand.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className={styles.infoRow}>
+                        <MapPin className={styles.infoIcon} aria-hidden="true" />
+                        <div className="min-w-0">
+                          <p className="text-[12px] text-[var(--muted-foreground)]">{selectedBillIsTakeaway ? t("Pengambilan & pemesan", "Pickup & guest") : t("Meja & pemesan", "Table & guest")}</p>
+                          <p className="font-semibold text-[15px] text-[var(--foreground)] break-words">
+                            {billLocation(selectedBill, snapshot.visits || [], t)} · {billOwnerName(selectedBill)}
+                          </p>
+                        </div>
+                      </div>
+                      {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            handleCopyText(
+                              `share_${selectedBill.id}`,
+                              getBillShareUrl(selectedBill)
+                            )
+                          }
+                        >
+                          {copiedKey === `share_${selectedBill.id}` ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" />
+                              <span>{t("Tersalin", "Copied")}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span>{t("Salin tautan", "Copy link")}</span>
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ordered Items (Flat Open List on Canvas · ESB Style) */}
+                  <section className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+                      <h2 className="font-heading text-[16px] font-semibold">
+                        {t("Menu dipesan", "Ordered items")}
+                      </h2>
                       <StatusLabel
                         label={pendingAttempt ? `${t("Menunggu","Awaiting")} ${pendingAttempt.method === "VIRTUAL_ACCOUNT" ? "VA" : pendingAttempt.method}` : paymentLabel(selectedBill.paymentState)}
                         tone={pendingAttempt ? 'info' : selectedBill.paymentState === 'SETTLED' ? 'success' : selectedBill.paymentState === 'REFUND_DUE' ? 'danger' : 'warning'}
                       />
                     </div>
 
-                    <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="py-3 flex justify-between gap-3 text-sm"><div className="min-w-0"><p className="font-medium">{group.quantity}× {group.unit.itemNameSnapshot || group.unit.itemName}{group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}</p><p className="text-xs text-[var(--muted-foreground)]">{group.unit.variantNameSnapshot || group.unit.variantName}{group.unit.modifiersSummary ? ` · ${group.unit.modifiersSummary}` : ''}</p>{group.unit.note && <p className="text-xs">{group.unit.note}</p>}</div><Money amount={group.grossIdr} /></div>)}
+                    <div className="space-y-3">
+                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => (
+                        <div key={group.unit.id} className="flex items-start justify-between gap-3 text-[14px] leading-[20px]">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <span className="font-bold text-[var(--foreground)] tabular-nums shrink-0">{group.quantity}×</span>
+                            <div className="min-w-0 space-y-0.5">
+                              <p className="font-medium text-[var(--foreground)]">
+                                {group.unit.itemNameSnapshot || group.unit.itemName}
+                                {group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}
+                              </p>
+                              <p className="text-[12px] text-[var(--muted-foreground)]">
+                                {group.unit.variantNameSnapshot || group.unit.variantName}
+                                {group.unit.modifiersSummary ? ` · ${group.unit.modifiersSummary}` : ''}
+                              </p>
+                              {group.unit.note && <p className="text-[12px] text-[var(--muted-foreground)]">{group.unit.note}</p>}
+                            </div>
+                          </div>
+                          <Money amount={group.grossIdr} className="font-medium text-[var(--foreground)] shrink-0" />
+                        </div>
+                      ))}
                     </div>
-                    {orderMode === 'DINE_IN' && selectedTable.qrToken && selectedBill.shareToken && <div className="flex items-center justify-between gap-2 pt-1">
-                      <span className="text-[12px] text-[var(--muted-foreground)]">
-                        {t("Bagikan tagihan", "Share bill")}
-                      </span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          handleCopyText(
-                            `share_${selectedBill.id}`,
-                            getBillShareUrl(selectedBill)
-                          )
-                        }
-                      >
-                        {copiedKey === `share_${selectedBill.id}` ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-[var(--status-success-fg)]" />
-                            <span>{t("Tersalin", "Copied")}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>{t("Salin tautan", "Copy link")}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>}
                   </section>
 
-                  {/* Payment Summary & QRIS / VA Interactive Checkout */}
+                  {/* Flat Totals Breakdown (No Boxed Card · Hairline Separated) */}
                   <section className="pt-4 border-t border-[var(--border)] space-y-4">
-                    <h2 className="font-heading text-[16px] font-semibold">{t("Ringkasan", "Summary")}</h2>
-                    <div className={styles.summary}><PaymentBreakdown
+                    <PaymentBreakdown
                       subtotalIdr={selectedBill.subtotalIdr}
                       discountIdr={selectedBill.discountIdr}
                       serviceIdr={selectedBill.serviceIdr}
@@ -1365,21 +1446,28 @@ export function CustomerApp({
                       serviceChargeBps={snapshot?.outlet?.serviceChargeBps ?? 500}
                       taxBps={snapshot?.outlet?.taxBps ?? 1000}
                       taxInclusiveDisplay={Boolean(snapshot?.outlet?.taxInclusiveDisplay)}
-                    /></div>
+                    />
 
-                    {!canPayOnline && selectedBill.balanceIdr > 0 && <div className="p-4 border border-[var(--border)] rounded-[var(--radius-panel)] bg-[var(--accent-surface)]"><p className="font-semibold">{t("Bayar di kasir", "Pay at the counter")}</p><p className="mt-1 text-sm">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p></div>}
+                    {!canPayOnline && selectedBill.balanceIdr > 0 && (
+                      <InlineNotice tone="info">
+                        <p className="font-semibold text-[var(--foreground)]">{t("Bayar di kasir", "Pay at the counter")}</p>
+                        <p className="mt-0.5 text-[var(--muted-foreground)]">{t("Sebutkan nama atau nomor meja.", "Give your name or table number.")}</p>
+                      </InlineNotice>
+                    )}
+
                     {canPayOnline && selectedBill.balanceIdr > 0 && (
                       <div className="pt-4 border-t border-[var(--border)] space-y-4">
                         {!pendingAttempt ? (
                           <>
-                            <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: t('Transfer bank', 'Bank transfer') }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel={t("Metode pembayaran", "Payment method")} layoutId="payment-method-selector" />
-                            <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-6 text-center space-y-3">
-                              <QrCode className="w-10 h-10 mx-auto text-[var(--primary-ink)]" />
-                              <p className="font-semibold">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</p>
-                              <Money amount={selectedBill.balanceIdr} className="block text-2xl font-semibold" />
-
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <AnimatedSegmentedControl options={[{ value: 'QRIS', label: 'QRIS' }, { value: 'VIRTUAL_ACCOUNT', label: t('Transfer bank', 'Bank transfer') }]} value={selectedPaymentMethod} onChange={setSelectedPaymentMethod} ariaLabel={t("Metode pembayaran", "Payment method")} layoutId="payment-method-selector" />
+                              <div className="inline-flex items-center gap-2 text-sm">
+                                <QrCode className="w-4 h-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                                <span className="text-[var(--muted-foreground)]">{selectedPaymentMethod === 'QRIS' ? 'QRIS' : 'Virtual Account'}</span>
+                                <Money amount={selectedBill.balanceIdr} className="font-bold text-[16px] text-[var(--primary-ink)]" />
+                              </div>
                             </div>
-                            <Button variant="primary" className="w-full" disabled={busy} onClick={async () => {
+                            <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={async () => {
                               setPaymentFeedback('');
                               try {
                                 const fingerprint = `${selectedBill.id}:${selectedBill.version}:${selectedPaymentMethod}:${selectedBill.balanceIdr}`;
@@ -1390,17 +1478,25 @@ export function CustomerApp({
                             }}>{busy ? t('Memuat…', 'Loading…') : selectedPaymentMethod === 'QRIS' ? t('Buat QRIS', 'Create QRIS') : t('Buat Virtual Account', 'Create virtual account')}</Button>
                           </>
                         ) : (
-                          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8 text-center space-y-4">
-                            <div className="flex justify-center items-center gap-2"><h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3></div>
-                            <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
-                            <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-semibold" />
-                            {pendingAttempt.method === 'QRIS' && paymentQr ? <Image src={paymentQr} width={320} height={320} unoptimized alt={paymentIsDemo ? t('Kode QR tidak dapat dibayar', 'QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[280px] aspect-square mx-auto" /> : <div className="rounded-xl bg-[var(--background)] px-4 py-5 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>}
+                          <section className="py-4 text-center space-y-4">
+                            <div className="space-y-1">
+                              <h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>
+                              <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
+                              <Money amount={pendingAttempt.expectedAmountIdr} className="block text-3xl font-bold text-[var(--primary-ink)]" />
+                            </div>
+                            {pendingAttempt.method === 'QRIS' && paymentQr ? (
+                              <div className={styles.qrFrame}>
+                                <Image src={paymentQr} width={280} height={280} unoptimized alt={paymentIsDemo ? t('Kode QR tidak dapat dibayar', 'QR code, cannot be paid') : t('Kode QRIS pembayaran', 'QRIS payment code')} className="w-full max-w-[260px] aspect-square mx-auto" />
+                              </div>
+                            ) : (
+                              <div className="rounded-[var(--radius-control)] bg-[var(--surface-muted)] px-4 py-4 font-mono text-lg break-all">{paymentInstructions.vaNumber || t('Menyiapkan instruksi…', 'Preparing instructions…')}</div>
+                            )}
                             <p className="text-sm text-[var(--muted-foreground)]">{paymentIsDemo ? t('Kode ini tidak dapat dibayar.', 'This code cannot be paid.') : t('Pindai dengan mobile banking atau e-wallet.', 'Scan with mobile banking or an e-wallet.')}</p>
-                            <StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" />
+                            <div><StatusLabel label={t("Menunggu pembayaran", "Awaiting payment")} tone="warning" /></div>
                             {pendingAttempt.expiresAt && <p className="text-xs text-[var(--muted-foreground)]">{t('Berlaku sampai', 'Valid until')} {new Date(pendingAttempt.expiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}
-                            <div className="flex justify-center gap-2">
+                            <div className="flex flex-wrap justify-center gap-2">
                               <Button variant="primary" disabled={busy} onClick={async () => { try { await onRefresh?.(); setPaymentFeedback(''); toast.success(t('Status diperbarui.', 'Status updated.')); } catch (error: any) { setPaymentFeedback(error.message); } }}>{t("Cek status", "Check status")}</Button>
-                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
+                              {paymentQr && pendingAttempt.method === 'QRIS' && <a href={paymentQr} download={`QRIS-${selectedBill.id}.png`} className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-medium"><Download className="h-4 w-4" />{t("Unduh", "Download")}</a>}
                             </div>
                           </section>
                         )}
@@ -1410,51 +1506,40 @@ export function CustomerApp({
                     )}
                   </section>
 
-                  {/* Digital Receipt (Elevated Receipt Document Surface) */}
+                  {/* Digital Receipt & Print (Flat Dashed-Ruled Section · No Redundant Card) */}
                   {(selectedBill.verifiedReceiptsIdr > 0 ||
                     selectedBill.paymentState === 'SETTLED') && (
-                    <section className="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[12px] space-y-3">
-                      <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+                    <section className="pt-4 border-t border-dashed border-[var(--border-strong)] space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-heading font-bold text-[16px]">
-                            Struk Digital · {snapshot?.outlet?.name}
+                          <p className="font-heading font-semibold text-[16px]">
+                            {t("Struk Digital", "Digital receipt")}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)]">
                             {snapshot?.outlet?.address}
                           </p>
                         </div>
-                        <StatusLabel label={pendingAttempt ? `${t("Menunggu","Awaiting")} ${pendingAttempt.method === "VIRTUAL_ACCOUNT" ? "VA" : pendingAttempt.method}` : paymentLabel(selectedBill.paymentState)} tone={selectedBill.paymentState === 'SETTLED' ? 'success' : 'warning'} />
+                        <Button variant="secondary" size="sm" onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}>{t('Cetak / Simpan struk','Print / Save receipt')}</Button>
                       </div>
-                      <div className="text-[13px] space-y-1 tabular-nums">
-                        <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">
-                            {t("No. tagihan", "Bill no.")}
-                          </span>
-                          <span className="font-medium">{selectedBill.id}</span>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <span className="text-[var(--muted-foreground)]">{t("Pelanggan / meja", "Customer / table")}</span>
-                          <span className="font-medium text-right min-w-0">
-                            {billOwnerName(selectedBill)} · {billLocation(selectedBill, snapshot.visits || [], t)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-[var(--muted-foreground)]">{t("Status pembayaran", "Payment status")}</span>
-                          <span className="font-semibold text-[var(--status-success-fg)]">
-                            {paymentLabel(selectedBill.paymentState)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="pt-2 border-t border-dashed border-[var(--border)] space-y-1 text-[13px]">
-
-                      {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3"><span className="min-w-0">{group.quantity}× {group.unit.itemNameSnapshot || group.unit.itemName} · {group.unit.variantNameSnapshot || group.unit.variantName}</span><Money amount={group.grossIdr} /></div>)}
-                      </div>
-                      <PaymentBreakdown subtotalIdr={selectedBill.subtotalIdr} discountIdr={selectedBill.discountIdr} serviceIdr={selectedBill.serviceIdr} taxIdr={selectedBill.taxIdr} totalIdr={selectedBill.originalTotalIdr ?? selectedBill.totalIdr} creditAdjustmentsIdr={selectedBill.creditAdjustmentsIdr} verifiedReceiptsIdr={selectedBill.verifiedReceiptsIdr} refundedIdr={selectedBill.refundedIdr} balanceIdr={selectedBill.balanceIdr} serviceChargeBps={snapshot.outlet?.serviceChargeBps} taxBps={snapshot.outlet?.taxBps} taxInclusiveDisplay={snapshot.outlet?.taxInclusiveDisplay} />
-                      <Button variant="secondary" size="sm" onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}>{t('Cetak / Simpan struk','Print / Save receipt')}</Button>
                       <InlineError message={receiptFeedback && receiptFeedback.billId === selectedBill.id ? receiptFeedback.message : ''} />
-                      {(selectedBill.receipts || []).map((receipt: any) => <div key={receipt.id} className="text-xs border-t border-[var(--border)] pt-2 space-y-1"><p>{paymentMethodLabel(receipt.method)} · <Money amount={receipt.amountIdr} /></p><p>{new Date(receipt.receivedAt || receipt.createdAt).toLocaleString(language === "id" ? "id-ID" : "en-GB",{timeZone:cafeConfig.timezone})}</p><p className="break-all text-[var(--muted-foreground)]">Referensi: {receipt.referenceCode}</p></div>)}
+                      {(selectedBill.receipts || []).length > 0 && (
+                        <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+                          {(selectedBill.receipts || []).map((receipt: any) => (
+                            <div key={receipt.id} className="py-2.5 flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
+                              <div className="space-y-0.5 min-w-0">
+                                <p className="font-medium text-[var(--foreground)]">{paymentMethodLabel(receipt.method)}</p>
+                                <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                                  {new Date(receipt.receivedAt || receipt.createdAt).toLocaleString(language === "id" ? "id-ID" : "en-GB",{timeZone:cafeConfig.timezone})}
+                                </p>
+                                <p className="text-[12px] break-all text-[var(--muted-foreground)]">{t("Referensi:", "Reference:")} {receipt.referenceCode}</p>
+                              </div>
+                              <Money amount={receipt.amountIdr} className="font-semibold text-[var(--foreground)] shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {selectedBill.refundedIdr > 0 && <p className="text-sm">{t("Sudah dikembalikan:", "Refunded:")} <Money amount={selectedBill.refundedIdr} /></p>}
-                      {selectedBill.balanceIdr < 0 && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</p>}
+                      {selectedBill.balanceIdr < 0 && <InlineNotice tone="warning">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</InlineNotice>}
                     </section>
                   )}
                 </div>
@@ -1644,9 +1729,9 @@ export function CustomerApp({
                 Member
               </h1>
 
-              <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-5">
-                <p className="text-sm text-[var(--muted-foreground)]">{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
-              </div>
+              <InlineNotice tone="info">
+                <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+              </InlineNotice>
 
               {/* Send Review (Unboxed with Hairline Top Divider) */}
               <section className="pt-5 border-t border-[var(--border)] space-y-3">
@@ -1781,8 +1866,11 @@ export function CustomerApp({
 
               <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label={t("Antrean Anda", "Your place in line")}>
                 <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="sm" variant="secondary" disabled={busy} onClick={refreshWaitlist}>{t("Perbarui antrean", "Refresh waitlist")}</Button>}</div>
-                {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="rounded-[var(--radius-panel)] border border-[var(--border)] p-4 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</p><StatusLabel label={({ WAITING: t('Menunggu', 'Waiting'), CALLED: t('Dipanggil', 'Called'), SEATED: t('Sudah Duduk', 'Seated'), COMPLETED: t('Kunjungan selesai', 'Visit completed'), CANCELLED: t('Dibatalkan', 'Cancelled'), EXPIRED: t('Kedaluwarsa', 'Expired') } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} /></div>
+                {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="space-y-3">
+                  <div className={styles.contextStrip}>
+                    <span className="font-semibold text-[var(--foreground)]">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</span>
+                    <StatusLabel label={({ WAITING: t('Menunggu', 'Waiting'), CALLED: t('Dipanggil', 'Called'), SEATED: t('Sudah Duduk', 'Seated'), COMPLETED: t('Kunjungan selesai', 'Visit completed'), CANCELLED: t('Dibatalkan', 'Cancelled'), EXPIRED: t('Kedaluwarsa', 'Expired') } as Record<string, string>)[waitlistTicket.status] || waitlistTicket.status} tone={waitlistTicket.status === 'CALLED' ? 'warning' : ['SEATED', 'COMPLETED'].includes(waitlistTicket.status) ? 'success' : 'info'} />
+                  </div>
                   <p className="text-sm">{waitlistTicket.customerName} · {waitlistTicket.partySize} {t('orang', 'people')}</p>
                   {waitlistTicket.status === 'WAITING' && <p className="text-sm text-[var(--muted-foreground)]">{waitlistTicket.holdExpired ? t('Waktu panggilan sebelumnya habis. Hubungi staf untuk pemanggilan ulang.', 'The previous call expired. Ask staff to call you again.') : t('Silakan tunggu sampai staf menyiapkan meja. Perbarui antrean untuk melihat panggilan terbaru.', 'Please wait while staff prepare a table. Refresh the waitlist for the latest call.')}</p>}
                   {waitlistTicket.status === 'CALLED' && <p className="text-sm">{t('Temui staf untuk menuju Meja', 'Meet staff to go to table')} {waitlistTicket.heldTableLabel}.{waitlistTicket.holdExpiresAt ? ` ${t('Meja ditahan hingga', 'Table held until')} ${new Date(waitlistTicket.holdExpiresAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}.` : ''}</p>}

@@ -871,9 +871,9 @@ export function StaffApp({
 
             {canCashier && cashierTask === 'bills' && <div className="workspace-stack">
               {!supervisor && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-              {/* LEFT 4 COLS: Active Bills List + Walk-In Order Button */}
-              <div className="lg:col-span-4 space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* LEFT 4 COLS: Active Bills List (Flat Hairline Rows · No Outer Card) */}
+              <div className="lg:col-span-4 space-y-4 lg:pr-6 lg:border-r lg:border-[var(--border)]">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="font-heading text-[17px] font-bold">
                     {t("Tagihan", "Bills")}
@@ -885,7 +885,7 @@ export function StaffApp({
                   <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
                 </div>
                 {filteredBills.length === 0 && <EmptyState title={t("Tidak ada tagihan", "No bills")} description={billSearch ? t("Coba nama pelanggan atau nomor meja lain.", "Try another customer name or table number.") : undefined} />}
-                <div className="space-y-2">
+                <div className={filteredBills.length > 0 ? 'border-t border-[var(--border)]' : ''}>
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
                     const payBadge = b.hasActiveExternalAttempt ? {label: t('Menunggu', 'Awaiting') + ' ' + ((b.attempts || []).find((a: any) => ['CREATING','PENDING','UNKNOWN'].includes(a.status))?.method === 'VIRTUAL_ACCOUNT' ? 'VA' : 'QRIS'), tone: 'info' as const} : formatPaymentStateLabel(b.paymentState, t);
@@ -906,7 +906,7 @@ export function StaffApp({
                           }
                         }}
                         aria-pressed={isSel}
-                        className="operation-choice w-full py-3 px-3 text-left transition-colors flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-[var(--accent-surface)]"
+                        className="operation-choice w-full py-3 px-2.5 text-left transition-colors flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-[var(--accent-surface)]"
                       >
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{billLocationLabel(b)}</p>
@@ -924,7 +924,7 @@ export function StaffApp({
                             }
                             className="block font-bold text-[15px] text-[var(--foreground)]"
                           />
-                          <span className="flex items-center gap-1.5">{isSel && <Check className="h-4 w-4" aria-hidden="true" />}<StatusLabel label={payBadge.label} tone={payBadge.tone} /></span>
+                          <span className="flex items-center gap-1.5">{isSel && <Check className="h-4 w-4 text-[var(--primary-ink)]" aria-hidden="true" />}<StatusLabel label={payBadge.label} tone={payBadge.tone} /></span>
                         </div>
                       </button>
                     );
@@ -932,8 +932,8 @@ export function StaffApp({
                 </div>
               </div>
 
-              {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 space-y-6">
+              {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout (Open Canvas · No Card-in-Card) */}
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 space-y-5">
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}
@@ -953,20 +953,23 @@ export function StaffApp({
                         </p>
                       </div>
 
-                      {!supervisor && selectedBill.lifecycle === 'OPEN' && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setShowSplitMergePanel(!showSplitMergePanel)}
-                        >
-                          <Split className="w-4 h-4" />
-                          <span>
-                            {showSplitMergePanel
-                              ? t("Tutup Pisah/Gabung", "Close split / merge")
-                              : t("Pisah / Gabung", "Split / merge")}
-                          </span>
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}><Printer className="w-4 h-4" />{t('Cetak struk', 'Print receipt')}</Button>
+                        {!supervisor && selectedBill.lifecycle === 'OPEN' && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setShowSplitMergePanel(!showSplitMergePanel)}
+                          >
+                            <Split className="w-4 h-4" />
+                            <span>
+                              {showSplitMergePanel
+                                ? t("Tutup Pisah/Gabung", "Close split / merge")
+                                : t("Pisah / Gabung", "Split / merge")}
+                            </span>
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Collapsible Split / Merge Bill Bar */}
@@ -974,7 +977,7 @@ export function StaffApp({
                       {!supervisor && showSplitMergePanel && selectedBill.lifecycle === 'OPEN' && (
                         <DialogModal open onClose={() => { if (!busy) setShowSplitMergePanel(false); }} title={t('Pisah / Gabung', 'Split / merge')}>
                           <InlineError message={actionError} />
-                          <div className="p-4 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                               <Label htmlFor="split-bill-name">{t("Nama tagihan baru", "New bill name")}</Label>
                               <Input
@@ -1068,14 +1071,13 @@ export function StaffApp({
                       )}
                     </AnimatePresence>
 
-                    <div className="divide-y divide-[var(--border)]" aria-label={t('Ringkasan menu', 'Menu summary')}>
+                    <div className="divide-y divide-[var(--border)] border-b border-[var(--border)]" aria-label={t('Ringkasan menu', 'Menu summary')}>
                       {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3 py-3 text-sm"><div className="min-w-0"><p className="font-semibold">{group.quantity}× {sampleName(group.unit.menuItemId, group.unit.itemNameSnapshot || group.unit.itemName)}{group.unit.fulfillmentStatus === 'CANCELLED' && ` · ${t('Dibatalkan', 'Cancelled')}`}</p><p className="text-[var(--muted-foreground)]">{sampleName(group.unit.variantId, group.unit.variantNameSnapshot || group.unit.variantName)}{group.unit.modifiersSummary && ` · ${group.unit.modifiersSummary}`}</p>{group.unit.note && <p>{group.unit.note}</p>}</div><Money amount={group.grossIdr} /></div>)}
                     </div>
-                    <Button variant="secondary" size="sm" onClick={() => { try { printBillReceipt(selectedBill, snapshot, language, cafeConfig.timezone); } catch (error) { setPaymentError(error instanceof Error ? error.message : t('Struk belum dapat dicetak.', 'Could not print receipt.')); } }}><Printer className="w-4 h-4" />{t('Cetak struk', 'Print receipt')}</Button>
                     <InlineError message={paymentError} />
-                    {/* Financial Summary & Payment Checkout */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2 items-start">
-                      <div className="md:col-span-5 p-4 rounded-[12px] bg-[var(--surface)] border border-[var(--border)]">
+                    {/* Financial Summary & Payment Checkout (Flat Hairline Split) */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-1 items-start">
+                      <div className="md:col-span-5">
                         <PaymentBreakdown
                           subtotalIdr={selectedBill.subtotalIdr}
                           discountIdr={selectedBill.discountIdr}
@@ -1092,9 +1094,9 @@ export function StaffApp({
                         />
                       </div>
 
-                      <div className="md:col-span-7 space-y-4">
+                      <div className="md:col-span-7 md:pl-6 md:border-l md:border-[var(--border)] space-y-4">
                         {selectedBill.balanceIdr > 0 && selectedBill.hasActiveExternalAttempt ? (
-                          <section aria-label={t('Pembayaran menunggu', 'Pending payment')} className="rounded-[var(--radius-panel)] bg-[var(--status-info-bg)] p-4 space-y-3">
+                          <section aria-label={t('Pembayaran menunggu', 'Pending payment')} className="border-l-[3px] border-[var(--status-info-fg)] bg-[var(--status-info-bg)] p-4 space-y-3">
                             <h3 className="font-semibold">{t('Menunggu pembayaran', 'Awaiting payment')}</h3>
                             {(selectedBill.attempts || []).filter((attempt: any) => ['CREATING', 'PENDING', 'UNKNOWN'].includes(attempt.status)).map((attempt: any) => <div key={attempt.id} className="text-sm space-y-1"><p>{attempt.method === 'VIRTUAL_ACCOUNT' ? 'VA' : attempt.method} · <Money amount={attempt.expectedAmountIdr} /></p>{attempt.expiresAt && <p>{t('Berlaku sampai', 'Valid until')} {new Date(attempt.expiresAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>}</div>)}
                             <Button variant="secondary" size="sm" disabled={busy} onClick={onRefresh}>{t('Cek status', 'Check status')}</Button>
@@ -1221,7 +1223,7 @@ export function StaffApp({
                             </Button>
                           </>
                         ) : (
-                          <div className={`p-4 rounded-[var(--radius-control)] flex items-center justify-between ${selectedBill.balanceIdr < 0 ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'}`}>
+                          <div className={`p-3.5 border-l-[3px] flex items-center justify-between ${selectedBill.balanceIdr < 0 ? 'border-[var(--status-warning-fg)] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]' : 'border-[var(--status-success-fg)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'}`}>
                             <div>
                               <p className="font-semibold text-[15px]">{selectedBill.balanceIdr < 0 ? t(`Perlu pengembalian ${formatIdr(-selectedBill.balanceIdr)}`, `Refund due ${formatIdr(-selectedBill.balanceIdr)}`) : t("Lunas", "Paid")}</p>
 
@@ -1848,27 +1850,27 @@ export function StaffApp({
               <div><dt>{t('Diterima bersih', 'Net receipts')}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div>
               <div><dt>{t('Belum dibayar', 'Unpaid')}</dt><dd><Money amount={reportTotals.outstanding} /></dd></div>
             </dl>
-            {reportSpansMultipleDays && reportDays.length > 0 && <Surface variant="task" className="space-y-3">
+            {reportSpansMultipleDays && reportDays.length > 0 && <section className="space-y-3">
               <div><h2 className="font-heading text-lg font-semibold">{t('Ringkasan harian', 'Daily summary')}</h2></div>
-              <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label={t('Ringkasan laporan harian', 'Daily report summary')} tabIndex={0}>
-                <table className="w-full min-w-[820px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{[t('Tanggal bisnis', 'Business date'), t('Tagihan', 'Bills'), t('Nilai tagihan', 'Billed amount'), t('Diterima', 'Received'), t('Pengembalian', 'Refunds'), t('Diterima bersih', 'Net receipts'), t('Belum dibayar', 'Outstanding')].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+              <div className="overflow-x-auto border-y border-[var(--border)]" role="region" aria-label={t('Ringkasan laporan harian', 'Daily report summary')} tabIndex={0}>
+                <table className="w-full min-w-[820px] text-sm text-left"><thead className="bg-[var(--surface-muted)]"><tr>{[t('Tanggal bisnis', 'Business date'), t('Tagihan', 'Bills'), t('Nilai tagihan', 'Billed amount'), t('Diterima', 'Received'), t('Pengembalian', 'Refunds'), t('Diterima bersih', 'Net receipts'), t('Belum dibayar', 'Outstanding')].map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
                   <tbody className="divide-y divide-[var(--border)]">{reportDays.map(day => <tr key={day.date}><th scope="row" className="px-4 py-3 font-medium tabular-nums">{day.date}</th><td className="px-4 py-3 tabular-nums">{day.count}</td><td className="px-4 py-3"><Money amount={day.billed} /></td><td className="px-4 py-3"><Money amount={day.received} /></td><td className="px-4 py-3"><Money amount={day.refunded} /></td><td className="px-4 py-3"><Money amount={day.received - day.refunded} /></td><td className="px-4 py-3"><Money amount={day.outstanding} /></td></tr>)}</tbody>
                 </table>
               </div>
-            </Surface>}
+            </section>}
             <details className={styles.disclosure}>
               <summary>{t("Rincian penjualan & pembayaran", "Sales and payment details")}</summary>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Surface variant="task" className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Rincian tagihan", "Bill details")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                <section className="space-y-3 lg:pr-6 lg:border-r lg:border-[var(--border)]"><h2 className="font-heading text-lg font-semibold">{t("Rincian tagihan", "Bill details")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm">
                   {[[t('Harga menu', 'Menu price'), reportTotals.subtotal], [t('Potongan', 'Discount'), -reportTotals.discount], [t('Biaya layanan', 'Service charge'), reportTotals.service], [t('Pajak', 'Tax'), reportTotals.tax], [t('Koreksi tagihan', 'Bill adjustment'), reportTotals.corrections], [t('Nilai tagihan setelah koreksi', 'Bill after adjustment'), reportTotals.billed]].map(([label, amount]) => <div key={label} className="py-3 flex justify-between gap-3"><dt>{label}</dt><dd><Money amount={Number(amount)} /></dd></div>)}
-                </dl></Surface>
-                <Surface variant="task" className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Pembayaran", "Payment")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>{t("Pembayaran diterima", "Payments received")}</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>{t("Uang dikembalikan", "Refunds")}</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>{t("Penerimaan bersih", "Net receipts")}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">{t("Pembayaran dan pengembalian mengikuti tagihan terpilih, termasuk transaksi di luar periode.", "Payments and refunds include transactions outside the period for the selected bills.")}</p></Surface>
+                </dl></section>
+                <section className="space-y-3"><h2 className="font-heading text-lg font-semibold">{t("Pembayaran", "Payment")}</h2><dl className="divide-y divide-[var(--border)] border-y border-[var(--border)] text-sm"><div className="py-3 flex justify-between gap-3"><dt>{t("Pembayaran diterima", "Payments received")}</dt><dd><Money amount={reportTotals.received} /></dd></div><div className="py-3 flex justify-between gap-3"><dt>{t("Uang dikembalikan", "Refunds")}</dt><dd><Money amount={-reportTotals.refunded} /></dd></div><div className="py-3 flex justify-between gap-3 font-semibold"><dt>{t("Penerimaan bersih", "Net receipts")}</dt><dd><Money amount={reportTotals.received - reportTotals.refunded} /></dd></div></dl><p className="text-xs leading-relaxed text-[var(--muted-foreground)]">{t("Pembayaran dan pengembalian mengikuti tagihan terpilih, termasuk transaksi di luar periode.", "Payments and refunds include transactions outside the period for the selected bills.")}</p></section>
               </div>
             </details>
             <details className={styles.disclosure}>
               <summary>{t('Daftar tagihan', 'Bills')} ({reportBills.length})</summary>
-              {!reportBills.length ? <EmptyState title={t('Belum ada tagihan', 'No bills yet')} /> : <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-[var(--border)]" role="region" aria-label={reportPeriod === 'day' ? t('Daftar tagihan tanggal terpilih', 'Bills for selected date') : t('Daftar tagihan periode terpilih', 'Bills for selected period')} tabIndex={0}>
-                <table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--background)]"><tr>{(reportSpansMultipleDays ? [t('Tanggal bisnis', 'Business date')] : []).concat([t('Pemesan / meja', 'Customer / table'), 'Status', t('Nilai tagihan', 'Billed amount'), t('Diterima bersih', 'Net receipts'), t('Sisa', 'Remaining')]).map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+              {!reportBills.length ? <EmptyState title={t('Belum ada tagihan', 'No bills yet')} /> : <div className="overflow-x-auto border-y border-[var(--border)]" role="region" aria-label={reportPeriod === 'day' ? t('Daftar tagihan tanggal terpilih', 'Bills for selected date') : t('Daftar tagihan periode terpilih', 'Bills for selected period')} tabIndex={0}>
+                <table className="w-full min-w-[620px] text-sm text-left"><thead className="bg-[var(--surface-muted)]"><tr>{(reportSpansMultipleDays ? [t('Tanggal bisnis', 'Business date')] : []).concat([t('Pemesan / meja', 'Customer / table'), 'Status', t('Nilai tagihan', 'Billed amount'), t('Diterima bersih', 'Net receipts'), t('Sisa', 'Remaining')]).map(heading => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
                   <tbody className="divide-y divide-[var(--border)]">{reportBills.map((bill: any) => <tr key={bill.id}>{reportSpansMultipleDays && <td className="px-4 py-3 tabular-nums">{bill.businessDate}</td>}<th scope="row" className="px-4 py-3 font-normal"><span className="block font-medium">{bill.ownerLabel}</span><span className="text-xs text-[var(--muted-foreground)]">{bill.tableLabel}</span></th><td className="px-4 py-3">{formatPaymentStateLabel(bill.paymentState, t).label}</td><td className="px-4 py-3"><Money amount={reportBilledAmount(bill)} /></td><td className="px-4 py-3"><Money amount={Number(bill.verifiedReceiptsIdr || 0) - Number(bill.refundedIdr || 0)} /></td><td className="px-4 py-3"><Money amount={bill.balanceIdr} /></td></tr>)}</tbody>
                 </table>
               </div>}
@@ -1891,7 +1893,7 @@ export function StaffApp({
           >
 
 
-            {(canCashier || isModuleEnabled('ordering')) && <section aria-label={t("Alur pemesanan", "Ordering flow")} className="operation-record space-y-4">
+            {(canCashier || isModuleEnabled('ordering')) && <section aria-label={t("Alur pemesanan", "Ordering flow")} className="pb-6 border-b border-[var(--border)] space-y-4">
               <div><h2 className="font-heading text-lg font-semibold">{t("Alur pemesanan", "Ordering flow")}</h2><p className="mt-1 text-sm text-[var(--muted-foreground)]">{t("Berlaku untuk pesanan yang diterima setelah pengaturan disimpan. Pesanan yang sudah diterima tetap memakai aturan semula.", "Applies to orders accepted after saving. Previously accepted orders keep their original rules.")}</p></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5"><Label htmlFor="dine-payment-policy">{t("Pembayaran makan di tempat", "Dine-in payment")}</Label><SelectField id="dine-payment-policy" value={policyEditing ? customPaymentPolicy : snapshot?.outlet?.paymentPolicy || 'PREPAY'} disabled={!canCashier && !isModuleEnabled('payments')} onChange={event => { editPolicy(); setCustomPaymentPolicy(event.target.value); }}><option value="PREPAY">{t("Bayar sebelum dibuat", "Pay before preparation")}</option><option value="PAY_LATER">{t("Bayar setelah makan", "Pay after dining")}</option></SelectField></div>
@@ -1905,7 +1907,7 @@ export function StaffApp({
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left 6 cols: Tax & Service Charge Config */}
-              <section className="operation-record lg:col-span-6 space-y-4">
+              <section className="lg:col-span-6 lg:pr-8 lg:border-r lg:border-[var(--border)] space-y-4">
                 <div>
                   <h2 className="font-heading text-[17px] font-bold">
                     {t("Pajak & layanan", "Tax & service")}
@@ -2041,7 +2043,7 @@ export function StaffApp({
               </section>
 
               {/* Right 6 cols: Promo Rules & Customer Reviews */}
-              {canMarketing && <section className="operation-record lg:col-span-6 space-y-6">
+              {canMarketing && <section className="lg:col-span-6 space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-heading text-[17px] font-bold">
