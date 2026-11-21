@@ -202,6 +202,7 @@ export function CustomerApp({
     'QRIS'
   );
   const [paymentFeedback, setPaymentFeedback] = useState<string>('');
+  const [receiptFeedback, setReceiptFeedback] = useState<{ billId: string; message: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string>('');
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1449,8 +1450,8 @@ export function CustomerApp({
                       {groupBillUnits(selectedBill.allocatedUnits || []).map(group => <div key={group.unit.id} className="flex justify-between gap-3"><span className="min-w-0">{group.quantity}× {group.unit.itemNameSnapshot || group.unit.itemName} · {group.unit.variantNameSnapshot || group.unit.variantName}</span><Money amount={group.grossIdr} /></div>)}
                       </div>
                       <PaymentBreakdown subtotalIdr={selectedBill.subtotalIdr} discountIdr={selectedBill.discountIdr} serviceIdr={selectedBill.serviceIdr} taxIdr={selectedBill.taxIdr} totalIdr={selectedBill.originalTotalIdr ?? selectedBill.totalIdr} creditAdjustmentsIdr={selectedBill.creditAdjustmentsIdr} verifiedReceiptsIdr={selectedBill.verifiedReceiptsIdr} refundedIdr={selectedBill.refundedIdr} balanceIdr={selectedBill.balanceIdr} serviceChargeBps={snapshot.outlet?.serviceChargeBps} taxBps={snapshot.outlet?.taxBps} taxInclusiveDisplay={snapshot.outlet?.taxInclusiveDisplay} />
-                      <Button variant="secondary" size="sm" onClick={() => { try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setPaymentFeedback(error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.')); } }}>{t('Cetak / Simpan struk','Print / Save receipt')}</Button>
-                      {paymentFeedback && selectedBill.balanceIdr <= 0 && <p role="status" className="text-sm">{paymentFeedback}</p>}
+                      <Button variant="secondary" size="sm" onClick={() => { setReceiptFeedback(null); try { printBillReceipt(selectedBill,snapshot,language,cafeConfig.timezone); } catch(error) { setReceiptFeedback({ billId: selectedBill.id, message: error instanceof Error ? error.message : t('Struk belum dapat dicetak.','Could not print receipt.') }); } }}>{t('Cetak / Simpan struk','Print / Save receipt')}</Button>
+                      <InlineError message={receiptFeedback && receiptFeedback.billId === selectedBill.id ? receiptFeedback.message : ''} />
                       {(selectedBill.receipts || []).map((receipt: any) => <div key={receipt.id} className="text-xs border-t border-[var(--border)] pt-2 space-y-1"><p>{paymentMethodLabel(receipt.method)} · <Money amount={receipt.amountIdr} /></p><p>{new Date(receipt.receivedAt || receipt.createdAt).toLocaleString(language === "id" ? "id-ID" : "en-GB",{timeZone:cafeConfig.timezone})}</p><p className="break-all text-[var(--muted-foreground)]">Referensi: {receipt.referenceCode}</p></div>)}
                       {selectedBill.refundedIdr > 0 && <p className="text-sm">{t("Sudah dikembalikan:", "Refunded:")} <Money amount={selectedBill.refundedIdr} /></p>}
                       {selectedBill.balanceIdr < 0 && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t("Pengembalian", "Refund")} <Money amount={-selectedBill.balanceIdr} /> {t("sedang menunggu penyelesaian staf.", "is awaiting staff completion.")}</p>}

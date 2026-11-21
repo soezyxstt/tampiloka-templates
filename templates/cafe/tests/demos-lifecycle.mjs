@@ -468,6 +468,43 @@ async function takeawayJourney(context) {
   await closeAndClean(staff, sale.visit);
   pass('takeaway: discounted POS order → cash → kitchen → pickup → explicit visit completion', { visitId: sale.visit.id });
 }
+async function receiptRecoveryJourney(context) {
+  const preset = 'menu-order-cashier';
+  const { staff, customer, baseline } = await setupPages(context, preset);
+  const fixture = { name: 'Uji Cetak Sebagian', tableId: 'tbl_m06' };
+  await open(customer, qrUrl(baseline.tables.find(table => table.id === fixture.tableId), preset));
+  const request = await orderFromCustomer(customer, staff, fixture, 'item_teh_melati');
+  const sale = await accept(staff, fixture.name, request.id);
+  const partial = await cash(staff, sale.bill.id, fixture.name, 10000);
+  assert.ok(partial.balanceIdr > 0);
+  await customerPayment(customer, sale.bill.id);
+  assert.equal(await customer.getByRole('button', { name: 'Buat QRIS', exact: true }).count(), 0);
+  const print = customer.getByRole('button', { name: 'Cetak / Simpan struk', exact: true });
+  const recovery = customer.getByText('Izinkan jendela cetak di browser, lalu coba lagi.', { exact: true });
+  await customer.evaluate(() => { window.__receiptOpen = window.open; window.open = () => null; });
+  try {
+    await print.click();
+    await recovery.waitFor();
+    await customer.evaluate(() => {
+      window.open = (...args) => {
+        const popup = window.__receiptOpen.apply(window, args);
+        if (popup) popup.print = () => {};
+        return popup;
+      };
+    });
+    const [popup] = await Promise.all([customer.waitForEvent('popup'), print.click()]);
+    await popup.getByText('Sisa tagihan', { exact: true }).waitFor();
+    await popup.getByText('Struk demo · tidak ada pembayaran nyata', { exact: true }).waitFor();
+    assert.equal(await recovery.count(), 0, 'A successful print retry clears the popup recovery message.');
+    await popup.close();
+  } finally {
+    await customer.evaluate(() => { window.open = window.__receiptOpen; delete window.__receiptOpen; });
+  }
+  const after = (await snapshot(customer)).bills.find(bill => bill.id === sale.bill.id);
+  assert.equal(after.balanceIdr, partial.balanceIdr);
+  assert.equal(after.receipts.length, 1, 'Printing never records another payment.');
+  pass('receipt: a partially paid offline bill exposes blocked-popup recovery and prints safely on retry');
+}
 async function rejectionJourney(context) {
   const { staff, customer, baseline } = await setupPages(context);
   const fixture = F.rejected;
@@ -805,6 +842,7 @@ const cases = [
   { id: 'prepay-addon-close', run: prepayJourney },
   { id: 'paylater-close', run: payLaterJourney },
   { id: 'takeaway-close', run: takeawayJourney },
+  { id: 'receipt-recovery', run: receiptRecoveryJourney },
   { id: 'reject-request', run: rejectionJourney },
   { id: 'cancel-refund', run: cancellationRefundJourney },
   { id: 'deferred-refund', run: deferredRefundJourney },
