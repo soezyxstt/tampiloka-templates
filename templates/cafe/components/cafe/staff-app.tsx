@@ -723,7 +723,7 @@ export function StaffApp({
         <nav aria-label={t("Navigasi operasional desktop", "Desktop operations navigation")} className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
-            return <button key={item.id} type="button" aria-current={currentSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${currentSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
+            return <button key={item.id} type="button" data-cafe-section={item.id} aria-current={currentSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${currentSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
               <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" /><span className="min-w-0 flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[12px] tabular-nums">{item.count}</span>}
             </button>;
           })}
@@ -1321,7 +1321,7 @@ export function StaffApp({
             className="space-y-6"
           >
             <details className={styles.disclosure}>
-              <summary>{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
+              <summary data-demo-target="cafe-station-filter">{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
               <div className="space-y-3">
                 <AnimatedSegmentedControl
                   ariaLabel={t('Filter stasiun kerja', 'Filter work station')}
@@ -1367,7 +1367,7 @@ export function StaffApp({
                             <p className="text-xs text-[var(--muted-foreground)]">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
                             <StatusLabel label={status.label} tone={status.tone} />
                           </div>
-                          {!supervisor && targetStatus && <Button variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || (role === 'BAR' && unit.stationCode !== 'BAR') || (role === 'KITCHEN' && unit.stationCode === 'BAR')} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
+                          {!supervisor && targetStatus && <Button data-demo-target="cafe-order-status" variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || (role === 'BAR' && unit.stationCode !== 'BAR') || (role === 'KITCHEN' && unit.stationCode === 'BAR')} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
                             try {
                               await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
                               toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));

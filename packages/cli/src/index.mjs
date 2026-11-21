@@ -186,13 +186,13 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
   const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
   delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
   await writeJson(join(uiPath,'package.json'),uiPackage);
-  for(const path of ['src/demo-shell.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
   const mainPath=join(temp,'src/main.tsx'),appPath=join(temp,'src/App.tsx');
   const main=await readFile(mainPath,'utf8'),app=await readFile(appPath,'utf8');
   const clientMain=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
   const clientApp=app.replace(/^import \{ DemoToolbar \} from ['"]\.\/components\/DemoToolbar['"];?\s*$/m,'').replace('<DemoToolbar />','');
   if(clientMain===main||clientApp===app||clientApp.includes('DemoToolbar'))throw new Error('Failed to remove Commerce demo imports.');
-  await writeFile(mainPath,clientMain);await writeFile(appPath,clientApp);await rm(join(temp,'src/components/DemoToolbar.tsx'));
+  await writeFile(mainPath,clientMain);await writeFile(appPath,clientApp);await rm(join(temp,'src/components/DemoToolbar.tsx'));await rm(join(temp,'src/lib/demo-tour.ts'));
   const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
   const chosen=registry.commercePresets[options.preset];
   const config=await json(join(temp,'config/commerce.json'));
@@ -234,7 +234,7 @@ async function createBooking(sourceRoot,temp,target,options,template) {
   const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
   delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
   await writeJson(join(uiPath,'package.json'),uiPackage);
-  for(const path of ['src/demo-shell.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
   const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
   const chosen=registry.bookingPresets[options.preset];
   const script=`import {presetContent} from ${JSON.stringify(pathToFileURL(join(source,'content/presets.ts')).href)};console.log(JSON.stringify(presetContent(${JSON.stringify(options.preset)})));`;
@@ -254,6 +254,7 @@ async function createBooking(sourceRoot,temp,target,options,template) {
 
   await rm(join(temp,'public/demo-previews'),{recursive:true,force:true});
   await writeFile(join(temp,'src/components/DemoToolbar.tsx'),'export function DemoToolbar(){return null;}\n');
+  await rm(join(temp,'src/lib/demo-tour.ts'));
   await writeFile(join(temp,'worker/demo.ts'),"import {fail} from '../src/domain/validation.ts';\nexport async function demoAction(..._args:unknown[]):Promise<any>{return fail(403,'DEMO_DISABLED','Public demo controls are not part of this client project.');}\n");
   let main=await readFile(join(temp,'src/main.tsx'),'utf8');main=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
   if(main.includes('@tampiloka/ui-core/demo'))throw new Error('Failed to remove demo CSS from the client entry point.');await writeFile(join(temp,'src/main.tsx'),main);

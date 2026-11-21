@@ -24,6 +24,7 @@ import { useBooking } from "../lib/store";
 import { api } from "../lib/api";
 import { Action, Dialog, ErrorNote, Field, Picker } from "./ui";
 import { layoutLabels, levelLabels } from "../lib/labels";
+import { bookingTour } from "../lib/demo-tour";
 export function DemoToolbar() {
   const { data, route, navigate, refresh, loading, t, notify } = useBooking();
   const [open, setOpen] = useState(false),
@@ -137,6 +138,9 @@ export function DemoToolbar() {
           </>
         }
         activeView={route.view}
+        tour={route.view === "customer" || data.role === route.role
+          ? bookingTour(data, route.view === "customer" ? "customer" : route.role, route.lang)
+          : undefined}
         viewLabel={t("Tampilan demo", "Demo view")}
         views={[
           {

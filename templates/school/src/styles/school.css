@@ -2041,5 +2041,9 @@ td small,th small {
   .school-gallery-ribbon { gap:8px; }
   .school-invite { margin-bottom:54px; }
 }
-@media(prefers-reduced-motion:reduce) { .school-highlight img,.school-activity-image img,.school-gallery-ribbon img { transition:none; } }
+@media(prefers-reduced-motion:reduce) {
+  .school-highlight img,.school-activity-image img,.school-gallery-ribbon img { transition:none; }
+  /* A running reveal can leave inline styles when the preference changes. */
+  [data-school-reveal] { opacity:1 !important; transform:none !important; }
+}
 .institution-home h2 { font-weight:700; }

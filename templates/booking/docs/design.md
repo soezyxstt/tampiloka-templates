@@ -6,6 +6,8 @@
 
 The public toolbar uses `DemoToolbarShell` and imports `@tampiloka/ui-core/demo.css` after template styles. Client generation removes public controls, demo artwork and demo authority. Change shared chrome in the shared package, not a template-specific copy.
 
+The demo guide follows the customer, owner, operations or viewer role and the current booking capabilities. Each step highlights one visible control or section. The highlight moves between targets and updates immediately under reduced motion. Open it from the toolbar and skip at any step.
+
 ## Four compositions
 
 | Layout | Desktop | Mobile |

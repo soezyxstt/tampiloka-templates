@@ -178,7 +178,7 @@ export function StaffWorkspace() {
             <RouteLink
               key={id}
               to={{ page: id, booking: "" }}
-              className={page === id ? "is-active" : ""}
+              className={`b-staff-link-${id}${page === id ? " is-active" : ""}`}
             >
               <Icon size={18} />
               <span>{t(idLabel, enLabel)}</span>

@@ -4,6 +4,8 @@
 
 Cafe and commerce now use `DemoToolbarShell` from `@tampiloka/ui-core/demo` and load `@tampiloka/ui-core/demo.css` after their own styles. One component owns logo placement, theme/mode selectors, customer/staff navigation, mobile wrapping, selected states and the measured `--demo-height`. The original outlined Tampiloka SVG links back to the gallery, including `/en/templates` for English visitors.
 
+The toolbar guide follows the shopper or current staff role and only describes tasks enabled in the feature mode. Each step highlights one visible control or section. The highlight moves between targets and updates immediately under reduced motion. Visitors can skip it at any step.
+
 The demo theme and mode selectors use the same quiet outlined trigger, 8px corners, aligned 6px popup offset, right-side check and short popup motion as Tampiloka's existing form controls. Radix retains keyboard and focus behavior. Controls remain at least 44px tall, and select text is 16px on phones. Demo chrome uses stable `--demo-chrome-*` and `--demo-panel-*` tokens independently of the chosen storefront palette. The storefront layouts, product controls and staff workflows keep their own brand roles.
 
 The mode select uses feature level; the theme select uses the existing composition preset. Both update the URL through the current store configuration flow. Changing a mode or theme while viewing staff keeps staff selected. ID/EN remains fixed at the lower right with the shared control style. `?lang=id` and `?lang=en` preserve the gallery locale across origins, and toggling the language updates that parameter without clearing preset, level, product or hash state.

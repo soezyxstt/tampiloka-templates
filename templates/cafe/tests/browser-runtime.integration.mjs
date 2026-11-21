@@ -21,7 +21,7 @@ async function open(context) {
       return result.data?.runtime?.mode === 'browser-demo';
     } catch { return false; }
   }, undefined, { timeout: 120000 });
-  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await page.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   if (!timing.coldReadyMs) timing.coldReadyMs = Date.now() - started;
   page.on('request', request => { if (new URL(request.url()).pathname.startsWith('/api/v1/') && request.method() !== 'GET') networkCommands.push(request.url()); });
   return page;
@@ -150,7 +150,7 @@ try {
   await staff.waitForFunction(async () => {
     try { return (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.mode === 'browser-demo'; } catch { return false; }
   }, undefined, { timeout: 120000 });
-  await staff.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await staff.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   state = await snapshot(staff);
   assert.ok(state.orders.some(order => order.id === accepted.orderId));
   for (const requestId of concurrentIds) assert.equal(state.orderRequests.filter(entry => entry.id === requestId).length, 1);
@@ -181,7 +181,7 @@ try {
   await staff.waitForFunction(async () => {
     try { return (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.mode === 'browser-demo'; } catch { return false; }
   }, undefined, { timeout: 120000 });
-  await staff.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await staff.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   state = await snapshot(staff);
   assert.equal(state.orders.length, initial.orders.length);
   assert.equal(state.orders.some(order => order.id === accepted.orderId), false);

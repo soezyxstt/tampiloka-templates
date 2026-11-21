@@ -10,7 +10,7 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.setDefaultTimeout(30000);
 const ready = async () => {
-  await page.waitForFunction(() => { const reset = document.querySelector('.tl-demo-actions button'); return reset && !reset.disabled; }, null, { timeout: 120000 });
+  await page.locator('button:is([aria-label="Demo options"], [aria-label="Opsi demo"]):not(:disabled)').waitFor({ timeout: 120000 });
 };
 try {
   await page.goto(`${base}/?lang=en`);
@@ -26,6 +26,31 @@ try {
   await options.getByRole('button', { name: 'Reset data', exact: true }).waitFor();
   await options.getByText('Data for trying operational flows', { exact: true }).waitFor();
   await options.getByRole('button', { name: 'Close', exact: true }).click();
+
+  const guideButton = page.getByRole('button', { name: 'Demo guide', exact: true });
+  const guide = page.getByRole('dialog', { name: 'Demo guide · Customer' });
+  assert.equal(await guide.count(), 0, 'The guide opens only on request.');
+  await guideButton.click();
+  await guide.getByText('Step 1 of 3', { exact: true }).waitFor();
+  const spotlight = page.locator('.tl-demo-tour-spotlight');
+  const highlights = async selector => page.waitForFunction(value => {
+    const hole = document.querySelector('.tl-demo-tour-spotlight')?.getBoundingClientRect();
+    const target = document.querySelector(value)?.getBoundingClientRect();
+    return hole && target && Math.abs(hole.top - Math.max(0, target.top - 5)) < 1.5
+      && Math.abs(hole.left - Math.max(0, target.left - 5)) < 1.5;
+  }, selector);
+  await highlights('#demo-entry-table');
+  await guide.getByRole('button', { name: 'Next', exact: true }).click();
+  await guide.getByText('Step 2 of 3', { exact: true }).waitFor();
+  await highlights('.demo-entry-qr');
+  assert.equal(await spotlight.count(), 1, 'Only the current target is highlighted.');
+  await guide.getByRole('button', { name: 'Skip', exact: true }).click();
+  await guide.waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Demo guide');
+  await guideButton.click();
+  await guide.getByText('Start at a table', { exact: true }).waitFor();
+  await page.keyboard.press('Escape');
+  await guide.waitFor({ state: 'hidden' });
 
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
@@ -54,6 +79,11 @@ try {
   await manager.setViewportSize({ width: 1024, height: 850 });
   await manager.goto(`${base}/p/full/staff?staff=staff_waiter&lang=id`);
   await manager.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({ timeout: 120000 });
+  await manager.getByRole('button', { name: 'Panduan demo', exact: true }).click();
+  const staffGuide = manager.getByRole('dialog', { name: 'Panduan demo · Pelayan' });
+  await staffGuide.getByText('Layani meja', { exact: true }).waitFor();
+  await staffGuide.getByRole('button', { name: 'Lewati', exact: true }).click();
+  await staffGuide.waitFor({ state: 'hidden' });
   await manager.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ }).click();
   await manager.getByRole('button', { name: 'Atur denah', exact: true }).click();
   await manager.getByRole('combobox', { name: 'Pilih area ruang', exact: true }).selectOption('room_outdoor');

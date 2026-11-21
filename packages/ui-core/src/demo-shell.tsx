@@ -2,6 +2,9 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
+import { DemoTour, type DemoTourContent } from './demo-tour';
+
+export type { DemoTourContent, DemoTourStep, DemoTourText } from './demo-tour';
 
 // Original outlined asset from tampiloka/apps/tampiloka/public/brand/logos/dark.
 const wordmark = new URL('./tampiloka-wordmark-dark.svg', import.meta.url).href;
@@ -24,12 +27,13 @@ export interface DemoToolbarShellProps {
   activeView: string;
   viewLabel: string;
   actions?: ReactNode;
+  tour?: DemoTourContent;
   /** Opt-in compact toolbar; settings stay one activation away. */
   collapsibleLabel?: string;
 }
 
 /** Shared demo navigation. Product themes affect the preview, not these controls. */
-export function DemoToolbarShell({ family, label, galleryLabel, galleryUrl = 'https://tampiloka.site/templates', controls, views, activeView, viewLabel, actions, collapsibleLabel }: DemoToolbarShellProps) {
+export function DemoToolbarShell({ family, label, galleryLabel, galleryUrl = 'https://tampiloka.site/templates', controls, views, activeView, viewLabel, actions, tour, collapsibleLabel }: DemoToolbarShellProps) {
   const toolbar = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
@@ -50,7 +54,7 @@ export function DemoToolbarShell({ family, label, galleryLabel, galleryUrl = 'ht
         ? <a key={view.id} href={view.href} className={view.id === activeView ? 'is-selected' : undefined} aria-current={view.id === activeView ? 'page' : undefined}>{view.icon}<span>{view.label}</span></a>
         : <button key={view.id} type="button" className={view.id === activeView ? 'is-selected' : undefined} aria-pressed={view.id === activeView} onClick={view.onSelect}>{view.icon}<span>{view.label}</span></button>)}
     </nav>
-    {actions && <div className="tl-demo-actions">{actions}</div>}
+    {(actions || tour) && <div className="tl-demo-actions">{tour && <DemoTour key={tour.id} {...tour} />}{actions}</div>}
   </>;
   if (collapsibleLabel) return <Collapsible.Root asChild>
     <aside ref={toolbar} className="tl-demo-toolbar demo-toolbar tl-demo-collapsible" aria-label={label}>
