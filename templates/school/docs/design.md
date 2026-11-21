@@ -23,6 +23,8 @@ Public inputs use 16px on phones. Touch targets are at least 44px and primary ac
 
 The demo uses `DemoToolbarShell` and imports shared demo CSS last. It keeps preset/theme/level at the top and ID/EN bottom right. Advanced layout/type and secondary roles live in an appearance dialog. Native view links preserve query/hash state. Toolbar height comes from its real ResizeObserver measurement.
 
+The toolbar guide follows the active visitor, learner, guardian, tutor or staff role, including the selected staff permissions. It is optional and available in ID/EN.
+
 Realistic stock photos are illustrative, not portraits of the fictional named educators. Avoid decorative eyebrow labels, unnecessary cards, gradient decoration, inflated performance statistics, pills and navigation arrows. Program pages and operations prioritize readable details and clear actions.
 
 ## Photography

@@ -11,6 +11,7 @@ import { DemoTools } from './components/demo-tools';
 import { TableEntry } from './components/table-entry';
 import { LanguageToggle, useCafeLanguage } from '@/lib/language';
 import { staffRoleLabel } from '../lib/staff-role-label';
+import { customerTour, staffTour } from './tour';
 import { toast } from 'sonner';
 
 type DemoStaff = { id: string; userName: string; role: string; active?: boolean };
@@ -218,6 +219,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
     }
   };
 
+  const staffRole = prepared?.staff.find(person => person.id === demoStaffId)?.role;
   return <div className="demo-session" data-demo-view={activeView} data-table-entry={showTableEntry ? "true" : undefined}>
     <DemoToolbarShell family="cafe" label={t('Pengaturan demo Tampiloka', 'Tampiloka demo settings')} galleryLabel={t('Kembali ke template Tampiloka', 'Back to Tampiloka templates')} galleryUrl={gallery}
       controls={<>
@@ -237,6 +239,15 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
         </Select>}
       </>}
       viewLabel={t('Tampilan demo', 'Demo view')} activeView={activeView}
+      tour={prepared && !error ? {
+        id: `${demo.id}:${activeView}:${staffRole ?? ''}:${showTableEntry}`,
+        language,
+        role: activeView === 'pelanggan' ? ['Pelanggan', 'Customer'] : [
+          staffRole ? staffRoleLabel(staffRole, id => id) : 'Staf',
+          staffRole ? staffRoleLabel(staffRole, (_, en) => en) : 'Staff',
+        ],
+        steps: activeView === 'pelanggan' ? customerTour(showTableEntry) : staffTour(staffRole ?? ''),
+      } : undefined}
       views={[
         ...(isModuleEnabled('catalog') ? [{ id: 'pelanggan', label: t('Pelanggan', 'Customer'), icon: <ShoppingBag size={16} />, href: href(demo, 'pelanggan') }] : []),
         ...(hasStaffModules() ? [{ id: 'staf', label: t('Staf', 'Staff'), icon: <Store size={16} />, href: href(demo, 'staf') }] : []),

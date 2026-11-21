@@ -187,6 +187,7 @@ These rules apply to **every current and future public template demo**, includin
 5. Link the Tampiloka brand back to the shared `/templates` gallery, using `/en/templates` for English. Use the verified brand artwork and preserve its proportions and surface-appropriate variant. Template brand colors and layout may vary; the exploration controls must remain recognizable as Tampiloka.
 6. Preserve working demo subdomains and deep links. Keep supported theme, mode, view, and `lang=id|en` state in the URL. Build URLs with `URL`/`URLSearchParams`, preserve unrelated valid parameters and hashes, and test refresh, copied links, and browser back/forward. Never rename public preset/theme IDs merely to change their labels.
 7. Keep reset and sample-scenario actions secondary. Do not confuse demo reset with a purchase, staff operation, or navigation action. Reset affects demo data only. Payment simulation and sample-brand disclosures must remain clear.
+8. Provide an on-demand guide through the toolbar's `tour` prop. Match the active role and feature mode, use short ID/EN instructions for available tasks, and let visitors skip from any step or reopen the guide from the start.
 
 ### Select fields, language, and small screens
 
@@ -245,6 +246,7 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 ## Change log
 
 - **2026-11-21**: Demo Cafe menyediakan reset ke data lengkap, data kafe tanpa aktivitas pelanggan, atau ruang kerja kosong.
+- **2026-11-21**: Menambahkan panduan demo ID/EN yang bisa dilewati untuk setiap peran di Cafe, Commerce, Booking, School, dan Operations.
 
 - **2026-11-21**: Cafe revamps customer and staff layouts to an open, minimal-card hairline architecture inspired by clean mobile order-summary flows, reserving bordered frames for a single order-type callout strip, scannable QR quiet zones, the floor map, and KDS tickets.
 - **2026-11-21**: Cafe groups menu prices in bills and printable receipts, focuses shift/split tasks in dialogs, and separates partial-payment controls from active payment instructions while preserving operational role restrictions.

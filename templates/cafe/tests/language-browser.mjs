@@ -25,7 +25,7 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem('tampiloka-language-choice')), 'id');
   await page.goto(`${base}/p/order-at-cashier/`);
   await page.getByRole('button', { name: 'Opsi demo' }).waitFor({ timeout: 120000 });
-  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await page.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   await enterTableMenu(page);
   await page.getByPlaceholder('Cari menu').waitFor({ timeout: 120000 });
   const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly === true);
@@ -50,7 +50,7 @@ try {
   await page.getByRole('navigation', { name: 'Customer navigation' }).getByRole('button', { name: 'Orders', exact: true }).waitFor();
   await page.getByRole('link', { name: 'Staff', exact: true }).click();
   await page.getByRole('button', { name: 'Demo options' }).waitFor({ timeout: 120000 });
-  await page.locator('.tl-demo-actions button:not(:disabled)').waitFor({ timeout: 120000 });
+  await page.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   await chooseDemoStaff(page);
   await page.getByRole('navigation', { name: 'Desktop operations navigation' }).waitFor();
   assert.deepEqual(errors, []);

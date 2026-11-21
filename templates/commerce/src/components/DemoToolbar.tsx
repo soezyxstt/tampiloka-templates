@@ -8,6 +8,7 @@ import { useCommerce } from '../lib/store';
 import { presets } from '../lib/appearance';
 import { api } from '../lib/api';
 import { levelLabels } from '../lib/format';
+import { commerceTour } from '../lib/demo-tour';
 import { Button, Field, Modal } from './ui';
 
 export function DemoToolbar() {
@@ -35,6 +36,7 @@ export function DemoToolbar() {
       </Select>
     </>}
     viewLabel={choose('Tampilan demo', 'Demo view')} activeView={view === 'staff' ? 'staff' : 'customer'}
+    tour={commerceTour(data, view === 'staff', language)}
     views={[
       { id: 'customer', label: t('Pembeli'), icon: <ShoppingBag size={16} />, onSelect: () => navigate('shop') },
       { id: 'staff', label: t('Staf'), icon: <Store size={16} />, onSelect: () => navigate('staff') },

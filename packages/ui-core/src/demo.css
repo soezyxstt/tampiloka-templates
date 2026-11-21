@@ -75,6 +75,24 @@
 .tl-demo-toolbar :is(a,button):focus-visible { outline: 2px solid var(--demo-chrome-fg); outline-offset: 3px; }
 .tl-demo-toolbar button:disabled { opacity: .5; cursor: not-allowed; }
 
+.tl-demo-actions > .tl-demo-tour-trigger svg { display: block; }
+.tl-demo-tour {
+  --brand-surface: var(--demo-panel-bg);
+  --brand-border: var(--demo-panel-border);
+  --brand-text: var(--demo-panel-fg);
+  --brand-action: var(--demo-panel-fg);
+  --brand-on-action: var(--demo-panel-bg);
+  --brand-focus: var(--demo-panel-fg);
+  --brand-canvas: var(--demo-panel-hover);
+  --brand-radius: var(--demo-control-radius);
+  font-family: 'Inter', Arial, sans-serif;
+}
+.tl-demo-tour-step { display: grid; gap: var(--demo-gap); font-size: 15px; line-height: 1.6; }
+.tl-demo-tour-step :is(h3, p) { margin: 0; color: inherit; }
+.tl-demo-tour-step h3 { font-size: 17px; font-weight: 650; }
+.tl-demo-tour-step .tl-demo-tour-progress { font-size: 13px; }
+.tl-demo-tour .tl-dialog-footer { flex-wrap: wrap; }
+
 /* Tampiloka select treatment: aligned popup, quiet trigger, right-side check, soft motion. */
 .tl-demo-toolbar .tl-demo-select {
   display: flex;
@@ -172,6 +190,15 @@
   .tl-demo-views svg { width: 14px; height: 14px; }
   .tl-demo-controls { margin-top: 4px; }
   .tl-demo-toolbar .tl-demo-select { font-size: 16px; }
+}
+@media(max-width:760px) {
+  .tl-demo-actions > button.tl-demo-tour-trigger { width: var(--demo-control-height); padding: 10px; }
+  .tl-demo-tour-trigger span { display: none; }
+  .tl-demo-toolbar:has(.tl-demo-tour-trigger) .tl-demo-views:has(> :nth-child(3)) {
+    grid-column: 1/-1;
+    grid-row: 3;
+    flex-wrap: wrap;
+  }
 }
 @media(prefers-reduced-motion:reduce) {
   .tl-demo-toolbar *, .tl-demo-select-menu { animation: none !important; transition: none !important; }

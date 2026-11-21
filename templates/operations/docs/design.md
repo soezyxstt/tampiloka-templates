@@ -8,6 +8,8 @@ Tema `sand`, `forest`, dan `ink` mengubah presentasi. Mode `inventory`, `retail`
 
 Toolbar menggunakan `DemoToolbarShell`, Radix Select, dan `demo.css` setelah CSS aplikasi. Tema, mode, dan peran berada di atas; ID/EN di kanan bawah. Offset sticky mengikuti tinggi toolbar terukur. URL mempertahankan pilihan demo, halaman, dokumen, lokasi, bahasa, parameter lain, dan hash.
 
+Buka Panduan dari Pengaturan demo untuk melihat langkah awal sesuai peran yang dipilih. Panduan tersedia dalam ID/EN dan bisa dilewati di setiap langkah.
+
 ## Token dan kontrol
 
 Definisi warna hanya di `src/styles/tokens.css`. Komponen memakai token semantik; alias ui-core meliputi `--brand-canvas`, `--brand-text`, `--brand-action`, `--brand-on-action`, `--brand-focus`, `--tl-danger`, dan `--tl-overlay`.

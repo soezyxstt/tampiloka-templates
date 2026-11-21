@@ -8,6 +8,7 @@ import '@fontsource/source-sans-3/latin-500.css';
 import '@fontsource/source-sans-3/latin-600.css';
 import '../app/globals.css';
 import './showcase.css';
+import '@tampiloka/ui-core/styles.css';
 import '@tampiloka/ui-core/demo.css';
 import { MotionProvider } from '../components/ui/motion';
 import { activeDemo, cafeConfig, getBrandCssVariables } from './config';
