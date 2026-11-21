@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
 /**
  * Executable customer/staff visit acceptance tests for the static public demos.
  *
@@ -211,7 +211,7 @@ async function orderPaymentLabel(customer, orderId, label) {
 async function customerPayment(customer, billId) {
   await customerOrders(customer);
   await customer.getByRole('button', { name: 'Lihat tagihan dan pembayaran', exact: true }).click();
-  await customer.getByLabel('Pilih tagihan meja', { exact: true }).selectOption(billId);
+  await selectCustomerBill(customer, billId);
 }
 async function createQr(customer, billId) {
   await customerPayment(customer, billId);
@@ -257,6 +257,8 @@ async function cash(staff, billId, customerName, amount, tender = amount) {
   await staff.getByRole('group', { name: 'Metode pembayaran kasir', exact: true }).getByRole('button', { name: 'Tunai', exact: true }).click();
   assert.equal(await staff.getByLabel('Jumlah bayar (Rp)', { exact: true }).count(), 0, 'Full payment is the default.');
   await staff.getByRole('button', { name: 'Bayar sebagian', exact: true }).click();
+  await staff.getByLabel('Uang diterima (Rp)', { exact: true }).fill(String((await snapshot(staff)).bills.find(bill => bill.id === billId).balanceIdr));
+  assert.equal(await staff.getByRole('button', { name: /^Terima tunai/ }).isEnabled(), false, 'A blank partial amount must not charge the entire bill even when enough cash is entered.');
   await staff.getByLabel('Jumlah bayar (Rp)', { exact: true }).fill('0');
   await staff.getByLabel('Uang diterima (Rp)', { exact: true }).fill(String(tender));
   assert.equal(await staff.getByRole('button', { name: /^Terima tunai/ }).isEnabled(), false, 'An explicit Rp0 must not fall back to charging the entire bill.');
@@ -413,7 +415,8 @@ async function payLaterJourney(context) {
   await assertBlocked(staff, visit, 'outstandingBalanceIdr');
   await cash(staff, sale.bill.id, fixture.name, sale.bill.balanceIdr, 50000);
   await orderPaymentLabel(customer, sale.order.id, 'Lunas');
-  await customer.getByRole('navigation', { name: 'Navigasi pelanggan', exact: true }).getByRole('button', { name: 'Panggil pelayan', exact: true }).click();
+  await customer.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
+  await customer.getByRole('dialog', { name: 'Lainnya', exact: true }).getByRole('button', { name: /^Panggil pelayan/ }).click();
   await customer.getByRole('button', { name: 'Alat makan', exact: true }).click();
   await customer.getByLabel('Catatan tambahan (opsional)', { exact: true }).fill('Dua sendok untuk uji layanan meja.');
   await customer.getByRole('button', { name: 'Kirim permintaan', exact: true }).click();

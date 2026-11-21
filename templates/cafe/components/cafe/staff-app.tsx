@@ -702,7 +702,7 @@ export function StaffApp({
   const billLocationLabel = (bill: any) => billLocation(bill, snapshot?.visits || [], t);
 
   const effectiveTenderAmount =
-    !partialPayment || tenderAmountInput.trim() === ''
+    !partialPayment
       ? selectedBill?.balanceIdr || 0
       : Number(tenderAmountInput);
   const cashChangePreview =

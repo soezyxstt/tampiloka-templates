@@ -1301,7 +1301,7 @@ export function CustomerApp({
 
               {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={customerOrders.length || pendingRequests.length ? t("Lihat pesanan","View orders") : t("Lihat menu","View menu")} onAction={() => setActiveScreen(customerOrders.length || pendingRequests.length ? "pesanan" : "menu")} />}
               {selectedBill && (
-                <div className="space-y-6">
+                <div className="space-y-6" data-customer-bill-id={selectedBill.id}>
                   {/* Bill Items (Open Hairline List) */}
                   <section className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
