@@ -2,6 +2,7 @@
 import { CapabilityError } from '../domain/capabilities.ts';
 import { requestBrowserOperation } from './database.ts';
 import { browserDemoScope } from './scope.ts';
+import type { DemoSeedLevel } from '../db/seed.ts';
 import type { BrowserCommand, BrowserSnapshotContext } from './types.ts';
 
 export type { BrowserCommand, BrowserSnapshotContext } from './types.ts';
@@ -34,8 +35,9 @@ export async function executeBrowserCommand(input: BrowserCommand, signal?: Abor
   }
 }
 
-export async function resetBrowserDemo() {
-  return executeBrowserCommand({ command: 'RESET_DEMO_DATA', payload: {}, surface: 'staff' });
+export async function resetBrowserDemo(level: DemoSeedLevel) {
+  // Older workers must reject the new command rather than reset to the wrong data.
+  return executeBrowserCommand({ command: 'RESET_DEMO_TO_LEVEL', payload: { level }, surface: 'staff' });
 }
 
 export async function loadBrowserDemoScenario(scenarioId: string) {

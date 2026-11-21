@@ -299,6 +299,8 @@ export function StaffApp({
   const [newMenuCode, setNewMenuCode] = useState<string>('M-011');
   const [newMenuName, setNewMenuName] = useState<string>('');
   const [newMenuCategoryId, setNewMenuCategoryId] = useState<string>('cat_kopi');
+  const menuCategories = snapshot?.categories || [];
+  const selectedNewMenuCategory = menuCategories.find((category: { id: string }) => category.id === newMenuCategoryId)?.id ?? menuCategories[0]?.id ?? '';
   const [newMenuStation, setNewMenuStation] = useState<string>('BAR');
   const [newMenuPrice, setNewMenuPrice] = useState<string>('28000');
   const [newMenuDesc, setNewMenuDesc] = useState<string>('');
@@ -2265,10 +2267,11 @@ export function StaffApp({
               <div className="space-y-1">
                 <Label>{t("Kategori", "Category")}</Label>
                 <SelectField
-                  value={newMenuCategoryId}
+                  value={selectedNewMenuCategory}
                   onChange={(e) => setNewMenuCategoryId(e.target.value)}
+                  disabled={!menuCategories.length}
                 >
-                  {(snapshot?.categories || []).map((c: any) => (
+                  {menuCategories.map((c: any) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -2342,10 +2345,11 @@ export function StaffApp({
               )}
             </div>
 
+            {!menuCategories.length && <p className="text-sm text-[var(--muted-foreground)]">{t('Tambahkan kategori sebelum menyimpan menu.', 'Add a category before saving a menu item.')}</p>}
             <Button
               variant="primary"
               className="w-full"
-              disabled={busy || !newMenuName.trim()}
+              disabled={busy || !newMenuName.trim() || !selectedNewMenuCategory}
               onClick={async () => {
                 await runStaffCommand('MENU_STOCK_ACTION', {
                   action: 'CREATE_MENU_ITEM',
@@ -2353,7 +2357,7 @@ export function StaffApp({
                     externalCode: newMenuCode,
                     name: newMenuName,
                     description: newMenuDesc,
-                    categoryId: newMenuCategoryId,
+                    categoryId: selectedNewMenuCategory,
                     stationCode: newMenuStation,
                     variantName: 'Reguler',
                     priceIdr: Number(newMenuPrice),

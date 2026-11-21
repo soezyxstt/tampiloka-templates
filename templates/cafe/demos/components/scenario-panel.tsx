@@ -5,7 +5,7 @@ import { availableDemoScenarios } from '../../src/demo-runtime/scenario-catalog'
 import { useCafeLanguage } from '@/lib/language';
 
 const english: Record<string, [string, string, string]> = {
-  empty: ['Start with an empty cafe', 'The menu, initial stock and tables are available. There are no orders or payments yet.', 'Seat a guest, then start the flow from the beginning.'],
+  empty: ['Cafe data only', 'The menu, initial stock and tables are available. There are no orders or payments yet.', 'Seat a guest, then start the flow from the beginning.'],
   'walk-in': ['New guests seated', 'Rani and Dimas are at M06 and have not ordered yet.', 'The visit is active, the table is occupied and no bill exists yet.'],
   'pending-request': ['Order awaiting approval', 'A tea order has arrived from the customer at M06.', 'Accept or reject the request. The visit cannot be closed yet.'],
   'rejected-request': ['Order rejected by staff', 'A customer request was rejected with a recorded reason.', 'No bill or stock reservation is created; the customer can order again.'],
@@ -27,7 +27,7 @@ function previousScenario(): { scenarioId?: string; tableId?: string } {
   try { return JSON.parse(sessionStorage.getItem(storageKey) || '{}'); } catch { return {}; }
 }
 
-export function ScenarioPanel({ snapshot }: { snapshot: any }) {
+export function ScenarioPanel({ snapshot, resetting }: { snapshot: any; resetting: boolean }) {
   const { language, t } = useCafeLanguage();
   const scenarios = availableDemoScenarios(cafeConfig.modules);
   const [loaded] = useState(previousScenario);
@@ -59,10 +59,10 @@ export function ScenarioPanel({ snapshot }: { snapshot: any }) {
     <div className="demo-scenario-content">
       <div className="demo-scenario-controls">
         <Label htmlFor="demo-scenario">{t('Skenario uji', 'Test scenario')}</Label>
-        <SelectField wrapperClassName="min-w-0 flex-1" id="demo-scenario" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}>
+        <SelectField wrapperClassName="min-w-0 flex-1" id="demo-scenario" value={selected} disabled={busy || resetting} onChange={event => setSelected(event.target.value)}>
           {scenarios.map(entry => <option key={entry.id} value={entry.id}>{language === 'en' ? english[entry.id][0] : entry.label}</option>)}
         </SelectField>
-        <Button variant="secondary" disabled={busy} onClick={load}>{busy ? t('Menyiapkan data…', 'Preparing data…') : t('Muat skenario', 'Load scenario')}</Button>
+        <Button variant="secondary" disabled={busy || resetting} onClick={load}>{busy ? t('Menyiapkan data…', 'Preparing data…') : t('Muat skenario', 'Load scenario')}</Button>
       </div>
       <p>{language === 'en' ? english[scenario.id][1] : scenario.description}</p>
       {table && cafeConfig.modules.includes('catalog') && <a href={`/t/${cafeConfig.venue.tenantSlug}/${cafeConfig.venue.outletSlug}/m/${encodeURIComponent(table.qrToken)}`} target="_blank" rel="noopener noreferrer">{t('Buka pelanggan', 'Open customer view')} {table.label}</a>}

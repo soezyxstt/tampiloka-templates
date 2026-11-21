@@ -4,8 +4,9 @@ import { DemoToolbarShell } from '@tampiloka/ui-core/demo';
 import { KafeWorkspace, type WorkspaceView } from '../components/cafe/kafe-workspace';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { cafeConfig, hasStaffModules, isModuleEnabled, THEMES, type ThemeId } from './config';
-import { DEMOS, demoNavigationUrl, localizeDemo } from './manifest';
+import { DEMOS, demoNavigationPath, demoNavigationUrl, localizeDemo } from './manifest';
 import type { DemoPreset } from './components/demo-portal';
+import type { DemoSeedLevel } from '../src/db/seed';
 import { DemoTools } from './components/demo-tools';
 import { TableEntry } from './components/table-entry';
 import { LanguageToggle, useCafeLanguage } from '@/lib/language';
@@ -27,6 +28,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const [prepared, setPrepared] = useState<Prepared>();
   const [error, setError] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
   const [theme, setTheme] = useState<ThemeId>(cafeConfig.theme);
   const [demoStaffId, setDemoStaffId] = useState<string | undefined>();
   const [activeView, setActiveView] = useState<WorkspaceView>(() => /\/staff(?:\/|$)/.test(location.pathname) || !isModuleEnabled('catalog') ? 'staf' : 'pelanggan');
@@ -40,8 +42,8 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const localized = localizeDemo(demo, language);
   const isTableRoute = /\/m\/[^/]+\/?$/.test(location.pathname);
   const [browsingWithoutTable, setBrowsingWithoutTable] = useState(false);
-  const showTableEntry = !browsingWithoutTable && activeView === 'pelanggan' && !isTableRoute && !new URLSearchParams(location.search).has('bill')
-    && Boolean(prepared?.snapshot.tables?.some((table: any) => table.active !== false && table.qrToken));
+  const canShowTableEntry = !browsingWithoutTable && activeView === 'pelanggan' && !isTableRoute && !new URLSearchParams(location.search).has('bill');
+  const showTableEntry = canShowTableEntry && prepared?.snapshot.tables?.some((table: any) => table.active !== false && table.qrToken);
   const href = useCallback((target: DemoPreset, view: WorkspaceView) => {
     const url = new URL(demoNavigationUrl(target, view, {
       currentUrl: location.href, currentDemoId: demo.id, theme, language, customerRoute,
@@ -90,7 +92,13 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
         }
       }
       const table = token ? snapshot.tables.find((entry: any) => entry.qrToken === decodeURIComponent(token)) : snapshot.tables.find((entry: any) => entry.active);
-      if (token && !table) throw new Error('Tautan meja tidak tersedia dalam demo ini.');
+      if (token && !table) {
+        if (snapshot.tables.length) throw new Error('Tautan meja tidak tersedia dalam demo ini.');
+        const url = new URL(location.href);
+        url.pathname = demoNavigationPath(demo, view, url.hostname);
+        for (const key of ['bill', 'table', 'principal']) url.searchParams.delete(key);
+        history.replaceState(null, '', url);
+      }
       if (view === 'pelanggan' && runtime && table) snapshot = await runtime.getBrowserSnapshot({ surface: 'customer', tableId: table.id });
       const billToken = new URLSearchParams(location.search).get('bill');
       const billId = billToken ? snapshot.bills.find((bill: any) => bill.shareToken === billToken)?.id : undefined;
@@ -109,7 +117,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
     return () => { active = false; cleanup?.(); };
   }, [demo.id, readOnlyCatalog]);
 
-  const tableEntryReady = showTableEntry && Boolean(prepared) && !readOnlyCatalog;
+  const tableEntryReady = canShowTableEntry && Boolean(prepared) && !readOnlyCatalog;
   const entryTableId = prepared?.tableId;
   useEffect(() => {
     if (!tableEntryReady) return;
@@ -186,16 +194,25 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
     setActiveView(view);
   }, [activeView, customerRoute, demo, theme, language, rememberCustomerRoute]);
 
-  const reset = async () => {
-    if (!confirm(t('Mulai ulang demo ini? Pesanan dan perubahan demo di browser ini akan dihapus.', 'Reset this demo? Orders and demo changes in this browser will be deleted.'))) return;
+  const reset = async (level: DemoSeedLevel) => {
+    if (!confirm(t('Mulai ulang dengan pilihan data ini? Data dan perubahan demo di browser ini akan diganti.', 'Reset with the selected data? Demo data and changes in this browser will be replaced.'))) return;
+    setResetError('');
     setResetting(true);
     try {
-      if (!readOnlyCatalog) await (await import('../src/demo-runtime/index')).resetBrowserDemo();
+      if (!readOnlyCatalog) await (await import('../src/demo-runtime/index')).resetBrowserDemo(level);
       const prefix = `cafe:${cafeConfig.venue.tenantSlug}:${cafeConfig.venue.outletSlug}`;
       for (const key of Object.keys(localStorage)) if (key.startsWith(prefix)) localStorage.removeItem(key);
       sessionStorage.removeItem(`${prefix}:scenario`);
+      sessionStorage.removeItem(customerRouteKey);
+      const url = new URL(location.href);
+      for (const key of ['bill', 'table', 'principal']) url.searchParams.delete(key);
+      if (level === 'blank' && isTableRoute) url.pathname = demoNavigationPath(demo, activeView, url.hostname);
+      history.replaceState(null, '', url);
       location.reload();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : t('Demo belum berhasil diulang.', 'Could not reset the demo.')); setResetting(false); }
+    } catch {
+      setResetError(t('Demo belum berhasil diulang. Coba lagi.', 'Could not reset the demo. Try again.'));
+      setResetting(false);
+    }
   };
 
   return <div className="demo-session" data-demo-view={activeView} data-table-entry={showTableEntry ? "true" : undefined}>
@@ -221,7 +238,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
         ...(isModuleEnabled('catalog') ? [{ id: 'pelanggan', label: t('Pelanggan', 'Customer'), icon: <ShoppingBag size={16} />, href: href(demo, 'pelanggan') }] : []),
         ...(hasStaffModules() ? [{ id: 'staf', label: t('Staf', 'Staff'), icon: <Store size={16} />, href: href(demo, 'staf') }] : []),
       ]}
-      actions={<DemoTools snapshot={prepared?.snapshot} resetting={resetting} onReset={() => { void reset(); }} canUseScenarios={!readOnlyCatalog && hasStaffModules()} />}
+      actions={<DemoTools snapshot={prepared?.snapshot} resetting={resetting} resetError={resetError} onReset={level => { void reset(level); }} canUseScenarios={!readOnlyCatalog && hasStaffModules()} />}
     />
     {error ? <main className="demo-loading" role="alert"><h1>{t('Halaman belum dapat dibuka', 'Page unavailable')}</h1><p>{error}</p><button type="button" onClick={() => location.reload()}>{t('Coba lagi', 'Try again')}</button><a href={gallery}>{t('Lihat template lain', 'View other templates')}</a></main>
       : prepared ? showTableEntry ? <TableEntry tables={prepared.snapshot.tables} theme={theme} staffId={demoStaffId} onBrowseMenu={() => setBrowsingWithoutTable(true)} />

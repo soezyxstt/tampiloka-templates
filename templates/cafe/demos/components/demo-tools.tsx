@@ -2,19 +2,33 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { DemoPaymentControls } from '../../components/cafe/demo-payment-controls';
+import type { DemoSeedLevel } from '../../src/db/seed';
 import { ScenarioPanel } from './scenario-panel';
 import { isModuleEnabled } from '../config';
 import { useCafeLanguage } from '@/lib/language';
 
-export function DemoTools({ snapshot, resetting, onReset, canUseScenarios }: { snapshot?: any; resetting: boolean; onReset: () => void; canUseScenarios: boolean }) {
+export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScenarios }: {
+  snapshot?: any;
+  resetting: boolean;
+  resetError: string;
+  onReset: (level: DemoSeedLevel) => void;
+  canUseScenarios: boolean;
+}) {
   const { t } = useCafeLanguage();
   const [open, setOpen] = useState(false);
+  const [seedLevel, setSeedLevel] = useState<DemoSeedLevel>('full');
   const [paymentSnapshot, setPaymentSnapshot] = useState<any>();
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(false);
   const paymentRequest = useRef(0);
   const canSimulatePayments = isModuleEnabled('payments');
+  const seedOptions: { value: DemoSeedLevel; label: string; description: string }[] = [
+    { value: 'full', label: t('Data lengkap', 'Full sample data'), description: t('Menu, stok, dan denah, beserta contoh pelanggan, pesanan, dan pembayaran.', 'Menu, stock, and floor plan, plus sample customers, orders, and payments.') },
+    { value: 'cafe', label: t('Data kafe saja', 'Cafe data only'), description: t('Menu, stok, dan denah sudah terisi. Aktivitas pelanggan dimulai dari nol.', 'Menu, stock, and floor plan are ready. Customer activity starts from zero.') },
+    { value: 'blank', label: t('Kosong', 'Blank'), description: t('Mulai tanpa menu, stok, denah, atau aktivitas pelanggan. Akun staf demo tetap tersedia.', 'Start without a menu, stock, floor plan, or customer activity. Demo staff accounts are available.') },
+  ];
 
   const refreshPayments = useCallback(async () => {
     const request = ++paymentRequest.current;
@@ -68,6 +82,26 @@ export function DemoTools({ snapshot, resetting, onReset, canUseScenarios }: { s
         <DialogClose asChild><button className="demo-tools-close" type="button" aria-label={t('Tutup', 'Close')}><X size={18} aria-hidden="true" /></button></DialogClose>
       </div>
       <div className="demo-tools-body">
+        <div className="demo-tools-reset">
+          <div>
+            {canUseScenarios ? <>
+              <label htmlFor="demo-seed-level">{t('Data awal saat reset', 'Starting data on reset')}</label>
+              <Select value={seedLevel} onValueChange={value => {
+                const option = seedOptions.find(entry => entry.value === value);
+                if (option) setSeedLevel(option.value);
+              }} disabled={resetting}>
+                <SelectTrigger id="demo-seed-level" aria-describedby="demo-seed-description" className="min-h-11"><SelectValue /></SelectTrigger>
+                <SelectContent align="start">
+                  {seedOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p id="demo-seed-description">{seedOptions.find(option => option.value === seedLevel)?.description}</p>
+            </> : <strong>{t('Mulai dari awal', 'Start over')}</strong>}
+            <p>{t('Reset mengganti data dan perubahan demo di browser ini.', 'Reset replaces demo data and changes in this browser.')}</p>
+          </div>
+          <Button variant="secondary" disabled={resetting || !snapshot} onClick={() => onReset(seedLevel)}><RotateCcw size={16} aria-hidden="true" />{resetting ? t('Mengulang…', 'Resetting…') : t('Reset data', 'Reset data')}</Button>
+        </div>
+        {resetError && <p role="alert">{resetError}</p>}
         {canSimulatePayments && <div className="demo-tools-payments">
           {!hasPendingPayment && <h2>{t('Pembayaran', 'Payments')}</h2>}
           {paymentLoading && !paymentSnapshot && <p role="status">{t('Memuat instruksi pembayaran…', 'Loading payment instructions…')}</p>}
@@ -75,8 +109,7 @@ export function DemoTools({ snapshot, resetting, onReset, canUseScenarios }: { s
           {paymentSnapshot && !hasPendingPayment && <p>{t('Tidak ada instruksi pembayaran yang menunggu.', 'There are no pending payment instructions.')}</p>}
           {paymentSnapshot && <DemoPaymentControls snapshot={paymentSnapshot} busy={paymentLoading} onCommand={simulatePayment} />}
         </div>}
-        {canUseScenarios && snapshot && <div ref={preserveScenarioLink}><ScenarioPanel snapshot={snapshot} /></div>}
-        <div className="demo-tools-reset"><div><strong>{t('Mulai dari awal', 'Start over')}</strong><p>{t('Pesanan dan perubahan akan dihapus.', 'Orders and changes will be deleted.')}</p></div><Button variant="secondary" disabled={resetting || !snapshot} onClick={onReset}><RotateCcw size={16} aria-hidden="true" />{resetting ? t('Mengulang…', 'Resetting…') : t('Reset data', 'Reset data')}</Button></div>
+        {canUseScenarios && snapshot && <div ref={preserveScenarioLink}><ScenarioPanel snapshot={snapshot} resetting={resetting} /></div>}
       </div>
     </DialogContent>
   </Dialog>;

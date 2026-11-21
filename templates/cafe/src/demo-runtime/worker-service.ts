@@ -59,10 +59,11 @@ export async function executeBrowserCommand(input: BrowserCommand) {
   }
   const { command, payload } = input;
   const surface = input.surface === 'staff' ? 'staff' : 'customer';
+  const resetsDemo = command === 'RESET_DEMO_DATA' || command === 'RESET_DEMO_TO_LEVEL';
   if (command === 'LOAD_DEMO_SCENARIO') {
     if (surface !== 'staff') throw new CapabilityError('STAFF_SURFACE_REQUIRED', 'Pilih skenario dari ruang staf demo.');
   } else {
-    assertCommandAllowed(command, payload, { modules: cafeConfig.modules, surface, demo: true });
+    assertCommandAllowed(resetsDemo ? 'RESET_DEMO_DATA' : command, payload, { modules: cafeConfig.modules, surface, demo: true });
   }
   if (payload.staffLoginMethod === 'CUSTOMER_OTP_ONLY') {
     throw new CapabilityError('STAFF_ASSURANCE_INSUFFICIENT', 'Gunakan peran staf demo untuk membuka ruang operasional.', 403);
@@ -91,9 +92,18 @@ export async function executeBrowserCommand(input: BrowserCommand) {
     case 'MENU_STOCK_ACTION': result = await invoke(service.manageMenuAndStock, payload); break;
     case 'CASH_SHIFT_ACTION': result = await invoke(service.manageCashShift, payload); break;
     case 'SETTINGS_PROMO_FEEDBACK_ACTION': result = await invoke(service.updateOutletSettingsOrPromoOrFeedback, payload); break;
-    case 'RESET_DEMO_DATA': {
+    case 'RESET_DEMO_DATA':
+    case 'RESET_DEMO_TO_LEVEL': {
       const { resetDemoData } = await import('../db/seed.ts');
-      result = await resetDemoData({ empty: payload.empty === true ? true : undefined });
+      if (command === 'RESET_DEMO_TO_LEVEL') {
+        const { level } = payload;
+        if (level !== 'blank' && level !== 'cafe' && level !== 'full') {
+          throw new CapabilityError('INVALID_DEMO_SEED_LEVEL', 'Pilihan data awal demo tidak valid.', 400);
+        }
+        result = await resetDemoData({ level });
+      } else {
+        result = await resetDemoData({ empty: payload.empty === true ? true : undefined });
+      }
       notificationEpoch = crypto.randomUUID();
       break;
     }
@@ -111,7 +121,7 @@ export async function executeBrowserCommand(input: BrowserCommand) {
     principalId: input.principalId || (typeof payload.principalId === 'string' ? payload.principalId : undefined),
   };
   const full = await service.getFullApplicationSnapshot();
-  if (command === 'RESET_DEMO_DATA' || command === 'LOAD_DEMO_SCENARIO') notificationBaselineIds = full.orderRequests.map(request => request.id);
+  if (resetsDemo || command === 'LOAD_DEMO_SCENARIO') notificationBaselineIds = full.orderRequests.map(request => request.id);
   const snapshot = visibleSnapshot(service, full, context);
   return wire({ result, snapshot });
 }
