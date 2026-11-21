@@ -209,8 +209,11 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       if (level === 'blank' && isTableRoute) url.pathname = demoNavigationPath(demo, activeView, url.hostname);
       history.replaceState(null, '', url);
       location.reload();
-    } catch {
-      setResetError(t('Demo belum berhasil diulang. Coba lagi.', 'Could not reset the demo. Try again.'));
+    } catch (caught) {
+      const outdatedWorker = caught instanceof Error && 'code' in caught && caught.code === 'UNKNOWN_COMMAND';
+      setResetError(outdatedWorker
+        ? t('Tutup atau muat ulang tab demo Cafe lainnya, lalu ulangi reset.', 'Close or reload the other Cafe demo tabs, then try resetting again.')
+        : t('Demo belum berhasil diulang. Coba lagi.', 'Could not reset the demo. Try again.'));
       setResetting(false);
     }
   };

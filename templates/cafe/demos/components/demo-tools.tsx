@@ -19,6 +19,7 @@ export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScen
   const { t } = useCafeLanguage();
   const [open, setOpen] = useState(false);
   const [seedLevel, setSeedLevel] = useState<DemoSeedLevel>('full');
+  const [loadingScenario, setLoadingScenario] = useState(false);
   const [paymentSnapshot, setPaymentSnapshot] = useState<any>();
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(false);
@@ -89,7 +90,7 @@ export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScen
               <Select value={seedLevel} onValueChange={value => {
                 const option = seedOptions.find(entry => entry.value === value);
                 if (option) setSeedLevel(option.value);
-              }} disabled={resetting}>
+              }} disabled={resetting || loadingScenario}>
                 <SelectTrigger id="demo-seed-level" aria-describedby="demo-seed-description" className="min-h-11"><SelectValue /></SelectTrigger>
                 <SelectContent align="start">
                   {seedOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
@@ -99,7 +100,7 @@ export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScen
             </> : <strong>{t('Mulai dari awal', 'Start over')}</strong>}
             <p>{t('Reset mengganti data dan perubahan demo di browser ini.', 'Reset replaces demo data and changes in this browser.')}</p>
           </div>
-          <Button variant="secondary" disabled={resetting || !snapshot} onClick={() => onReset(seedLevel)}><RotateCcw size={16} aria-hidden="true" />{resetting ? t('Mengulang…', 'Resetting…') : t('Reset data', 'Reset data')}</Button>
+          <Button variant="secondary" disabled={resetting || loadingScenario || !snapshot} onClick={() => onReset(seedLevel)}><RotateCcw size={16} aria-hidden="true" />{resetting ? t('Mengulang…', 'Resetting…') : t('Reset data', 'Reset data')}</Button>
         </div>
         {resetError && <p role="alert">{resetError}</p>}
         {canSimulatePayments && <div className="demo-tools-payments">
@@ -109,7 +110,7 @@ export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScen
           {paymentSnapshot && !hasPendingPayment && <p>{t('Tidak ada instruksi pembayaran yang menunggu.', 'There are no pending payment instructions.')}</p>}
           {paymentSnapshot && <DemoPaymentControls snapshot={paymentSnapshot} busy={paymentLoading} onCommand={simulatePayment} />}
         </div>}
-        {canUseScenarios && snapshot && <div ref={preserveScenarioLink}><ScenarioPanel snapshot={snapshot} resetting={resetting} /></div>}
+        {canUseScenarios && snapshot && <div ref={preserveScenarioLink}><ScenarioPanel snapshot={snapshot} resetting={resetting} busy={loadingScenario} onBusyChange={setLoadingScenario} /></div>}
       </div>
     </DialogContent>
   </Dialog>;

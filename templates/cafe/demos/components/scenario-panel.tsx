@@ -27,18 +27,22 @@ function previousScenario(): { scenarioId?: string; tableId?: string } {
   try { return JSON.parse(sessionStorage.getItem(storageKey) || '{}'); } catch { return {}; }
 }
 
-export function ScenarioPanel({ snapshot, resetting }: { snapshot: any; resetting: boolean }) {
+export function ScenarioPanel({ snapshot, resetting, busy, onBusyChange }: {
+  snapshot: any;
+  resetting: boolean;
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+}) {
   const { language, t } = useCafeLanguage();
   const scenarios = availableDemoScenarios(cafeConfig.modules);
   const [loaded] = useState(previousScenario);
   const [selected, setSelected] = useState(loaded.scenarioId || 'empty');
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const scenario = scenarios.find(entry => entry.id === selected) || scenarios[0];
   const table = snapshot.tables.find((entry: any) => entry.id === loaded.tableId);
   const load = async () => {
     if (!confirm(t('Muat data skenario ini? Pesanan dan perubahan saat ini akan diganti.', 'Load this scenario? Current orders and changes will be replaced.'))) return;
-    setBusy(true);
+    onBusyChange(true);
     setError('');
     try {
       const runtime = await import('../../src/demo-runtime/index');
@@ -51,7 +55,7 @@ export function ScenarioPanel({ snapshot, resetting }: { snapshot: any; resettin
       location.reload();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t('Skenario belum berhasil disiapkan.', 'Could not prepare the scenario.'));
-      setBusy(false);
+      onBusyChange(false);
     }
   };
   return <details className="demo-scenarios">
