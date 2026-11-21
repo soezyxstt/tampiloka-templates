@@ -6,6 +6,7 @@ import { validateConfig, type CafeConfig } from '../config/catalog.mjs';
 import type { BrowserOperation } from './types.ts';
 import { createDurableOperationBatch } from './durable-batch.ts';
 import { attachOperationServer } from './operation-protocol.ts';
+import { RecoverableIdbFs } from './recoverable-idbfs.ts';
 
 // PGlite's worker wrapper elects one database owner for all tabs with the same id.
 // Only that owner opens IndexedDB and applies schema DDL.
@@ -18,7 +19,7 @@ void worker({
     // A worker URL points to its asset, not the cafe page. The demo config alias
     // reads this override before deriving the preset from location.
     (globalThis as typeof globalThis & { __CAFE_DEMO_CONFIG__?: CafeConfig }).__CAFE_DEMO_CONFIG__ = config;
-    const client = new PGlite({ dataDir: options.dataDir, relaxedDurability: false });
+    const client = new PGlite({ dataDir: options.dataDir, fs: new RecoverableIdbFs(scope), relaxedDurability: false });
     await client.waitReady;
     try {
       const existing = await client.query<{ revision: string }>(
