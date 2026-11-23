@@ -1590,7 +1590,7 @@ export function StaffApp({
                         {!supervisor && expired && <Button size="sm" variant="secondary" disabled={busy} onClick={() => runStaffCommand('WAITLIST_ACTION', { action: 'EXPIRE_HOLD', waitlistId: w.id }).catch(() => {})}>{t('Kembalikan ke antrean', 'Return to waitlist')}</Button>}
                         {!supervisor && !expired && ['WAITING', 'CALLED'].includes(w.status) && (
                           <div className="flex flex-wrap items-center gap-2">
-                            <SelectField aria-label={t(`Meja untuk ${w.customerName}`, `Table for ${w.customerName}`)} value={selectedId} disabled={Boolean(w.heldTableId)} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
+                            <SelectField data-demo-tour-prompt={!selectedId && tables.length ? t(`Pilih meja untuk ${w.customerName}`, `Choose a table for ${w.customerName}`) : undefined} aria-label={t(`Meja untuk ${w.customerName}`, `Table for ${w.customerName}`)} value={selectedId} disabled={Boolean(w.heldTableId)} onChange={event => setWaitlistTables(current => ({ ...current, [w.id]: event.target.value }))} wrapperClassName="w-[180px]">
                               <option value="">{t("Pilih meja tersedia", "Choose an available table")}</option>
                               {tables.map((table: any) => <option key={table.id} value={table.id}>{table.label} · {table.capacity} {t("kursi", "seats")}</option>)}
                             </SelectField>
@@ -1707,6 +1707,7 @@ export function StaffApp({
                               <Input
                                 type="number"
                                 min={p.reserved}
+                                data-demo-tour-prompt={t(`Periksa stok ${p.name}`, `Check stock for ${p.name}`)}
                                 value={stockAdjustMap[p.id] ?? p.onHand}
                                 onChange={(e) =>
                                   setStockAdjustMap({

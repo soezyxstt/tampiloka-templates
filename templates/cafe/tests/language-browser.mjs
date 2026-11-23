@@ -1,4 +1,4 @@
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { prepareReturningVisitor, chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -7,6 +7,7 @@ const browser = await chromium.launch({ headless: true, ...(process.env.CAFE_CHR
 try {
   for (const [locale, expected] of [['id-ID', 'id'], ['en-US', 'en'], ['fr-FR', 'en']]) {
     const context = await browser.newContext({ locale });
+    await prepareReturningVisitor(context);
     const page = await context.newPage();
     await page.goto(base);
     await page.waitForFunction(expected => document.documentElement.lang === expected, expected);
@@ -17,6 +18,7 @@ try {
     console.log(`PASS ${locale} defaults to ${expected}`);
   }
   const context = await browser.newContext({ locale: 'fr-FR' });
+  await prepareReturningVisitor(context);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

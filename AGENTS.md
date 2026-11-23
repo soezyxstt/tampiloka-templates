@@ -245,6 +245,8 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 
 ## Change log
 
+- **2026-11-23**: Demo Cafe menawarkan panduan saat kunjungan pertama dan menggulir ke bagian yang disorot pada setiap langkah.
+
 - **2026-11-23**: Panduan Cafe mengikuti tindakan pelanggan dan tiap peran staf, termasuk konfirmasi pesanan, pembayaran demo, penyajian, layanan meja, dan pengelolaan stok.
 
 - **2026-11-21**: Panduan demo menyorot satu elemen per langkah dan mematikan animasi saat pengunjung memilih Kurangi gerakan.

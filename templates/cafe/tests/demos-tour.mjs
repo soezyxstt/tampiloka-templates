@@ -17,14 +17,21 @@ const openGuide = page => page.getByRole('button', { name: 'Demo guide', exact: 
 try {
   await page.goto(`${base}/p/full/?lang=en`);
   const customer = guide(page, 'Customer');
-  await openGuide(page);
+  await page.getByRole('button', { name: 'Start guide' }).click();
   await heading(customer, 'Start at a table');
   await page.getByRole('combobox', { name: 'Choose a table' }).click();
   await page.getByRole('option', { name: /^Table M02/ }).click();
   await page.getByRole('link', { name: 'Open table menu' }).click();
   await heading(customer, 'Choose a dish');
-  await page.getByRole('button', { name: 'View Iced Jasmine Leaf Tea', exact: true }).click();
+  await page.getByRole('button', { name: 'View Iced Palm Sugar Milk Coffee', exact: true }).click();
+  const requiredGroup = page.locator('[role="dialog"] [data-demo-tour-prompt]').first();
+  await requiredGroup.waitFor();
+  while (await requiredGroup.count()) {
+    await heading(customer, await requiredGroup.getAttribute('data-demo-tour-prompt'));
+    await requiredGroup.locator('input:not(:checked):not(:disabled)').first().check();
+  }
   await heading(customer, 'Add to cart');
+  assert.equal(await customer.evaluate(card => card.matches(':popover-open') && getComputedStyle(card).position === 'fixed'), true);
   await target(page, 'customer-add').click();
   await heading(customer, 'Open the cart');
   await target(page, 'customer-cart').click();
@@ -54,7 +61,7 @@ try {
   const request = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: 'Tour Guest' });
   await target(request, 'cashier-accept').click();
   await heading(cashier, 'Enter a counter order');
-  await cashier.getByRole('button', { name: 'Skip', exact: true }).click();
+  await cashier.getByRole('button', { name: 'End guide', exact: true }).click();
 
   await target(page, 'customer-order-bill').click();
   await heading(customer, 'Create payment instructions');
@@ -131,10 +138,10 @@ try {
   await target(guestRequest, 'waiter-resolve').click();
   await heading(waiter, 'Periksa antrean');
   await staff.locator('#staff-content [data-choice="ANTREAN"]').click();
-  await heading(waiter, 'Panggil tamu');
   const party = staff.locator('[data-waitlist-id="wl_01"]');
   const table = party.locator('select');
   await table.selectOption({ index: 1 });
+  await heading(waiter, 'Panggil tamu');
   await target(party, 'waiter-call').click();
   await heading(waiter, 'Tempatkan tamu');
   await target(party, 'waiter-seat').click();

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
+import { prepareReturningVisitor, chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
 /**
  * Static showcase checks against Cloudflare Pages or the nine public demo hosts.
  *
@@ -352,6 +352,7 @@ try {
     const result = { id: demo.id, url: demoUrl(demo), theme: demo.theme, modules: demo.modules, status: 'running', views: [], pageErrors: [], consoleErrors: [], blockedNetworkMutations: [] };
     const started = Date.now();
     const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    await prepareReturningVisitor(context);
     context.setDefaultTimeout(actionTimeout);
     await context.route('**/*', async route => {
       if (!['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) {

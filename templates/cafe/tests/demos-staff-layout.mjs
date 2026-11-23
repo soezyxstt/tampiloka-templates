@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { prepareReturningVisitor, chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /** Staff-shell geometry and hit-target checks. Run locally via test:demo-all,
  * or against the public demos with CAFE_DEMO_BASE_DOMAIN=tampiloka.site.
  * Every browser has isolated demo storage; real network writes are blocked.
@@ -223,6 +223,7 @@ async function verifyFloorService(page, context, demo) {
 try {
   for (const demo of DEMOS.filter(demo => demo.staffPath !== undefined && (!selectedIds || selectedIds.includes(demo.id)))) {
     const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 1920, height: 1000 }, reducedMotion: 'reduce' });
+    await prepareReturningVisitor(context);
     await context.route('**/*', route => {
       if (['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) return route.continue();
       networkWrites.push({ preset: demo.id, method: route.request().method(), url: route.request().url() });

@@ -2203,7 +2203,8 @@ export function CustomerApp({
             </p>
 
             {/* Variants Selection (Clean Hairline Rows) */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-demo-tour-prompt={!(configuringItem.variants || []).some((v: any) => v.id === selectedVariantId && v.availableToSell >= itemQuantity)
+              ? t("Pilih varian yang tersedia", "Choose an available size") : undefined}>
               <p className="font-semibold text-[14px]">{t("Varian", "Variant")}</p>
               <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {(configuringItem.variants || []).map((v: any) => {
@@ -2239,7 +2240,8 @@ export function CustomerApp({
 
             {/* Modifier Groups (Clean Hairline Rows) */}
             {(configuringItem.modifierGroups || []).map((grp: any) => (
-              <div key={grp.id} className="space-y-1.5 pt-2">
+              <div key={grp.id} className="space-y-1.5 pt-2" data-demo-tour-prompt={grp.required && (grp.options || []).filter((option: any) => selectedModOptionIds.includes(option.id)).length < grp.minSelect
+                ? t(`Pilih ${grp.name.replace(/\s*\(Wajib\)/i, '')}`, `Choose ${grp.name}`) : undefined}>
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-[14px]">{grp.name.replace(/\s*\(Wajib\)/i, '')}</p>
                   <span className="text-[12px] text-[var(--muted-foreground)]">
