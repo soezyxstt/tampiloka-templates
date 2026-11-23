@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { supervisesOperations } from '@/src/domain/capabilities';
 import { toast } from 'sonner';
 import { useCafeLanguage } from '@/lib/language';
+import { reportDemoTourResult } from '@/lib/demo-tour-result';
 import { localizeSampleName } from '@/src/catalog/sample-menu';
 import Image from 'next/image';
 import { MotionPanel } from '@/components/ui/motion';
@@ -793,7 +794,7 @@ export function StaffApp({
               />
               {!supervisor && canCashier && (
                 <div className="pb-1.5">
-                  <Button variant="primary" size="sm" onClick={() => setNewOrderModalOpen(true)}>
+                  <Button data-demo-target="cashier-new-order" variant="primary" size="sm" onClick={() => setNewOrderModalOpen(true)}>
                     <Plus className="h-4 w-4" aria-hidden="true" />
                     {t("Pesanan baru", "New order")}
                   </Button>
@@ -850,12 +851,15 @@ export function StaffApp({
 
                           {!supervisor && <>
                           <Button
+                            data-demo-target="cashier-accept"
+                            data-demo-tour-key={req.id}
                             variant="primary"
                             size="sm"
                             disabled={busy}
                             onClick={async () => {
                               try {
                                 await runStaffCommand('ACCEPT_ORDER_REQUEST', { orderRequestId: req.id });
+                                if (snapshot.runtime?.demo) reportDemoTourResult('cashier-accept', req.id);
                                 toast.success(t(`Pesanan ${req.customerName} diterima.`, `Order for ${req.customerName} accepted.`));
                               } catch { /* The actionable error is shown above the workspace. */ }
                             }}
@@ -1126,6 +1130,7 @@ export function StaffApp({
                                 value={tenderMethod}
                                 onChange={setTenderMethod}
                                 layoutId="cashier-tender-method"
+                                className="cafe-tender-method"
                               />
 
                             </div>
@@ -1182,6 +1187,7 @@ export function StaffApp({
                                     {
                                       label: t("Uang Pas", "Exact amount"),
                                       val: effectiveTenderAmount,
+                                      exact: true,
                                       disabled: !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr),
                                     },
                                     { label: 'Rp50.000', val: 50000, disabled: false },
@@ -1190,6 +1196,8 @@ export function StaffApp({
                                   ].map((preset) => (
                                     <button
                                       key={preset.label}
+                                      data-demo-target={preset.exact ? "cashier-exact" : undefined}
+                                      data-demo-tour-key={preset.exact ? selectedBill.id : undefined}
                                       type="button"
                                       disabled={preset.disabled}
                                       onClick={() => setCashGivenInput(String(preset.val))}
@@ -1218,6 +1226,8 @@ export function StaffApp({
                               size="lg"
                               className="w-full"
                               disabled={busy || paymentSubmitting || selectedBill.hasActiveExternalAttempt || !Number.isSafeInteger(effectiveTenderAmount) || effectiveTenderAmount <= 0 || effectiveTenderAmount > selectedBill.balanceIdr || (tenderMethod === 'CASH' && (!Number.isSafeInteger(Number(cashGivenInput)) || Number(cashGivenInput) < effectiveTenderAmount))}
+                              data-demo-target={tenderMethod === 'CASH' ? 'cashier-receive-cash' : undefined}
+                              data-demo-tour-key={selectedBill.id}
                               onClick={async () => {
                                 if (paymentSubmittingRef.current) return;
                                 paymentSubmittingRef.current = true; setPaymentSubmitting(true); setPaymentError('');
@@ -1227,6 +1237,7 @@ export function StaffApp({
                                 if (paymentAttemptRef.current?.fingerprint !== fingerprint) paymentAttemptRef.current = { fingerprint, key: `payment_${crypto.randomUUID()}` };
                                 try {
                                   const res = await runStaffCommand('RECORD_PAYMENT', { ...paymentPayload, idempotencyKey: paymentAttemptRef.current.key });
+                                  if (snapshot.runtime?.demo && tenderMethod === 'CASH') reportDemoTourResult('cashier-receive-cash', selectedBill.id);
                                   const external = tenderMethod === 'QRIS' || tenderMethod === 'VIRTUAL_ACCOUNT';
                                   toast.success(external ? t('Instruksi pembayaran dibuat. Pembayaran masih menunggu konfirmasi.', 'Payment instructions created. Payment is awaiting confirmation.') : t(`Pembayaran ${tenderMethod === 'CASH' ? 'tunai' : 'transfer'} sebesar ${formatIdr(amt)} berhasil dicatat.${(res?.result?.changeIdr ?? 0) > 0 ? ` Kembalian: ${formatIdr(res.result.changeIdr)}` : ''}`, `${tenderMethod === 'CASH' ? 'Cash' : 'Transfer'} payment of ${formatIdr(amt)} recorded.${(res?.result?.changeIdr ?? 0) > 0 ? ` Change: ${formatIdr(res.result.changeIdr)}` : ''}`));
                                   setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); paymentAttemptRef.current = null;
@@ -1358,6 +1369,7 @@ export function StaffApp({
                         const itemName = sampleName(unit.menuItemId, unit.itemNameSnapshot || unit.itemName);
                         const variantName = sampleName(unit.variantId, unit.variantNameSnapshot || unit.variantName);
                         const targetStatus = unit.fulfillmentStatus === 'QUEUED' ? 'PREPARING' : unit.fulfillmentStatus === 'PREPARING' ? 'READY' : unit.fulfillmentStatus === 'READY' ? (takeaway ? 'PICKED_UP' : 'DELIVERED') : null;
+                        const canUpdateUnit = role !== 'BAR' ? role !== 'KITCHEN' || unit.stationCode !== 'BAR' : unit.stationCode === 'BAR';
                         const actionLabel = unit.fulfillmentStatus === 'QUEUED' ? t('Mulai siapkan', 'Start preparing') : unit.fulfillmentStatus === 'PREPARING' ? (takeaway ? t('Siap diambil', 'Ready for pickup') : t('Siap diantar', 'Ready to serve')) : takeaway ? t('Sudah diambil', 'Picked up') : t('Disajikan', 'Served');
                         return <div key={unit.id} data-unit-id={unit.id} className={styles.kitchenItem}>
                           <div className="min-w-0 space-y-1">
@@ -1367,9 +1379,10 @@ export function StaffApp({
                             <p className="text-xs text-[var(--muted-foreground)]">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
                             <StatusLabel label={status.label} tone={status.tone} />
                           </div>
-                          {!supervisor && targetStatus && <Button data-demo-target="cafe-order-status" variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || (role === 'BAR' && unit.stationCode !== 'BAR') || (role === 'KITCHEN' && unit.stationCode === 'BAR')} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
+                          {!supervisor && targetStatus && <Button data-demo-target="cafe-order-status" data-demo-next-status={canUpdateUnit ? targetStatus : undefined} data-demo-tour-key={unit.id} variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || !canUpdateUnit} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
                             try {
                               await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
+                              if (snapshot.runtime?.demo) reportDemoTourResult(targetStatus, unit.id);
                               toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));
                             } catch { /* The workspace shows the server error. */ }
                           }}>{actionLabel}</Button>}
@@ -1483,12 +1496,14 @@ export function StaffApp({
                                 variant="secondary"
                                 size="sm"
                                 disabled={busy}
-                                onClick={() =>
-                                  runStaffCommand('SERVICE_REQUEST_ACTION', {
-                                    action: 'ACKNOWLEDGE',
-                                    requestId: sr.id,
-                                  })
-                                }
+                                data-demo-target="waiter-acknowledge"
+                                data-demo-tour-key={sr.id}
+                                onClick={async () => {
+                                  try {
+                                    await runStaffCommand('SERVICE_REQUEST_ACTION', { action: 'ACKNOWLEDGE', requestId: sr.id });
+                                    if (snapshot.runtime?.demo) reportDemoTourResult('waiter-acknowledge', sr.id);
+                                  } catch { /* The workspace shows the server error. */ }
+                                }}
                               >
                                 {t("Tangani", "Handle")}
                               </Button>
@@ -1497,13 +1512,14 @@ export function StaffApp({
                               variant="primary"
                               size="sm"
                               disabled={busy}
-                              onClick={() =>
-                                runStaffCommand('SERVICE_REQUEST_ACTION', {
-                                  action: 'RESOLVE',
-                                  requestId: sr.id,
-                                  resolutionNote: 'Selesai dibantu oleh staf',
-                                })
-                              }
+                              data-demo-target={sr.state === 'ACKNOWLEDGED' ? 'waiter-resolve' : undefined}
+                              data-demo-tour-key={sr.id}
+                              onClick={async () => {
+                                try {
+                                  await runStaffCommand('SERVICE_REQUEST_ACTION', { action: 'RESOLVE', requestId: sr.id, resolutionNote: 'Selesai dibantu oleh staf' });
+                                  if (snapshot.runtime?.demo) reportDemoTourResult('waiter-resolve', sr.id);
+                                } catch { /* The workspace shows the server error. */ }
+                              }}
                             >
                               {t("Selesai", "Done")}
                             </Button>
@@ -1580,31 +1596,33 @@ export function StaffApp({
                             </SelectField>
                             {w.status === 'WAITING' && (
                               <Button
+                                data-demo-target={tables.length ? 'waiter-call' : undefined}
+                                data-demo-tour-key={w.id}
                                 variant="secondary"
                                 size="sm"
                                 disabled={busy || !selectedId}
-                                onClick={() =>
-                                  runStaffCommand('WAITLIST_ACTION', {
-                                    action: 'CALL',
-                                    waitlistId: w.id,
-                                    tableId: selectedId,
-                                  })
-                                }
+                                onClick={async () => {
+                                  try {
+                                    await runStaffCommand('WAITLIST_ACTION', { action: 'CALL', waitlistId: w.id, tableId: selectedId });
+                                    if (snapshot.runtime?.demo) reportDemoTourResult('waiter-call', w.id);
+                                  } catch { /* The workspace shows the server error. */ }
+                                }}
                               >
                                 {t("Panggil tamu", "Call guest")}
                               </Button>
                             )}
                             <Button
+                              data-demo-target={w.status === 'CALLED' && selectedId ? 'waiter-seat' : undefined}
+                              data-demo-tour-key={w.id}
                               variant="primary"
                               size="sm"
                               disabled={busy || !selectedId}
-                              onClick={() =>
-                                runStaffCommand('WAITLIST_ACTION', {
-                                  action: 'SEAT',
-                                  waitlistId: w.id,
-                                  tableId: selectedId,
-                                })
-                              }
+                              onClick={async () => {
+                                try {
+                                  await runStaffCommand('WAITLIST_ACTION', { action: 'SEAT', waitlistId: w.id, tableId: selectedId });
+                                  if (snapshot.runtime?.demo) reportDemoTourResult('waiter-seat', w.id);
+                                } catch { /* The workspace shows the server error. */ }
+                              }}
                             >
                               {t("Tempatkan di meja", "Seat at table")}
                             </Button>
@@ -1667,7 +1685,7 @@ export function StaffApp({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 {(snapshot?.stockPools || []).some((pool: any) => pool.mode === 'FINITE') && (
                   <details className={`${styles.disclosure} flex-1 min-w-[220px]`}>
-                    <summary>{t("Batas stok harian", "Daily stock limit")}</summary>
+                    <summary data-demo-target="supervisor-stock">{t("Batas stok harian", "Daily stock limit")}</summary>
                     <div className="operation-list">
                       {(snapshot?.stockPools || [])
                         .filter((p: any) => p.mode === 'FINITE')
@@ -1703,6 +1721,8 @@ export function StaffApp({
                                 variant="ghost"
                                 size="sm"
                                 className="text-[var(--primary-ink)]"
+                                data-demo-target="supervisor-update-stock"
+                                data-demo-tour-key={p.id}
                                 disabled={busy}
                                 onClick={async () => {
                                   await runStaffCommand('MENU_STOCK_ACTION', {
@@ -1711,6 +1731,7 @@ export function StaffApp({
                                     newOnHand: stockAdjustMap[p.id] ?? p.onHand,
                                     reason: 'Penyesuaian stok harian',
                                   });
+                                  if (snapshot.runtime?.demo) reportDemoTourResult('supervisor-update-stock', p.id);
                                   toast.success(t(`Stok ${p.name} berhasil diperbarui.`, `Stock for ${p.name} updated.`));
                                 }}
                               >
@@ -2130,7 +2151,7 @@ export function StaffApp({
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
       <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title={t("Pesanan baru", "New orders")} maxWidth="max-w-5xl">
-        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onComplete={(billId) => { if (billId) { setSelectedBillId(billId); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onComplete={(billId) => { if (snapshot.runtime?.demo) reportDemoTourResult('pos-submit', billId); if (billId) { setSelectedBillId(billId); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}

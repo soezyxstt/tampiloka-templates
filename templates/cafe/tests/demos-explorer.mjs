@@ -28,10 +28,10 @@ try {
   await options.getByRole('button', { name: 'Close', exact: true }).click();
 
   const guideButton = page.getByRole('button', { name: 'Demo guide', exact: true });
-  const guide = page.getByRole('dialog', { name: 'Demo guide · Customer' });
+  const guide = page.getByRole('region', { name: 'Demo guide · Customer' });
   assert.equal(await guide.count(), 0, 'The guide opens only on request.');
   await guideButton.click();
-  await guide.getByText('Step 1 of 3', { exact: true }).waitFor();
+  await guide.getByText('Start at a table', { exact: true }).waitFor();
   const spotlight = page.locator('.tl-demo-tour-spotlight');
   const highlights = async selector => page.waitForFunction(value => {
     const hole = document.querySelector('.tl-demo-tour-spotlight')?.getBoundingClientRect();
@@ -39,10 +39,8 @@ try {
     return hole && target && Math.abs(hole.top - Math.max(0, target.top - 5)) < 1.5
       && Math.abs(hole.left - Math.max(0, target.left - 5)) < 1.5;
   }, selector);
-  await highlights('#demo-entry-table');
-  await guide.getByRole('button', { name: 'Next', exact: true }).click();
-  await guide.getByText('Step 2 of 3', { exact: true }).waitFor();
-  await highlights('.demo-entry-qr');
+  await highlights('.demo-entry-open');
+  assert.equal(await guide.getByRole('button', { name: 'Next', exact: true }).count(), 0, 'Action steps must use the real demo control.');
   assert.equal(await spotlight.count(), 1, 'Only the current target is highlighted.');
   await guide.getByRole('button', { name: 'Skip', exact: true }).click();
   await guide.waitFor({ state: 'hidden' });
@@ -80,7 +78,7 @@ try {
   await manager.goto(`${base}/p/full/staff?staff=staff_waiter&lang=id`);
   await manager.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({ timeout: 120000 });
   await manager.getByRole('button', { name: 'Panduan demo', exact: true }).click();
-  const staffGuide = manager.getByRole('dialog', { name: 'Panduan demo · Pelayan' });
+  const staffGuide = manager.getByRole('region', { name: 'Panduan demo · Pelayan' });
   await staffGuide.getByText('Layani meja', { exact: true }).waitFor();
   await staffGuide.getByRole('button', { name: 'Lewati', exact: true }).click();
   await staffGuide.waitFor({ state: 'hidden' });

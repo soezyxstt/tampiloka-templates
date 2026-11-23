@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { DemoTour, type DemoTourContent } from './demo-tour';
 
+export type { DemoActionStep } from './demo-action-tour';
 export type { DemoTourContent, DemoTourStep, DemoTourText } from './demo-tour';
 
 // Original outlined asset from tampiloka/apps/tampiloka/public/brand/logos/dark.

@@ -271,3 +271,39 @@
 .tl-demo-settings .tl-demo-views { flex-wrap:wrap; }
 .tl-demo-settings .tl-demo-actions { margin-top:var(--demo-gap); }
 @media(prefers-reduced-motion:reduce) { .tl-demo-toggle svg { transition:none; } }
+
+.tl-demo-action-tour {
+  position: fixed;
+  z-index: 201;
+  box-sizing: border-box;
+  right: max(12px, env(safe-area-inset-right));
+  width: min(420px, calc(100% - 24px));
+  max-height: 44dvh;
+  overflow: auto;
+  padding: var(--demo-gap);
+  border: 1px solid var(--demo-panel-border);
+  border-radius: var(--demo-control-radius);
+  background: var(--demo-panel-bg);
+  color: var(--demo-panel-fg);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--demo-panel-fg) 24%, transparent);
+}
+.tl-demo-action-tour-top { top: max(12px, env(safe-area-inset-top)); }
+.tl-demo-action-tour-bottom { bottom: max(12px, env(safe-area-inset-bottom)); }
+.tl-demo-action-tour-in-dialog {
+  position: static;
+  flex: none;
+  width: 100%;
+  max-height: 35dvh;
+  border-radius: 0;
+  border-inline: 0;
+  border-bottom: 0;
+  box-shadow: none;
+}
+.tl-demo-action-tour-controls { display: flex; flex-wrap: wrap; gap: var(--demo-gap); margin-top: var(--demo-gap); }
+.tl-demo-action-tour-controls .tl-button { min-height: var(--demo-control-height); }
+.tl-demo-action-spotlight {
+  position: fixed;
+  z-index: 200;
+  box-shadow: 0 0 0 2px var(--demo-panel-fg);
+  transition: none;
+}

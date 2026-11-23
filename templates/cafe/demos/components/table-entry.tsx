@@ -39,7 +39,7 @@ export function TableEntry({ tables, theme, staffId, onBrowseMenu }: { tables: T
   const qrFailed = qrResult.url === tableUrl && qrResult.failed;
   if (!table) return <main className="demo-table-entry"><section className="demo-entry-card">
     <p role="status">{t('Semua meja sedang digunakan atau belum siap.', 'All tables are in use or awaiting preparation.')}</p>
-    <Button onClick={onBrowseMenu}>{t('Lihat menu', 'View menu')}</Button>
+    <Button data-demo-target="customer-browse-menu" onClick={onBrowseMenu}>{t('Lihat menu', 'View menu')}</Button>
   </section></main>;
   return <main className="demo-table-entry">
     <div className="demo-entry-layout">
