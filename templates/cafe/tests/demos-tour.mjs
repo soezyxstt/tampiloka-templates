@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { chooseDemoStaff } from './demo-controls.mjs';
 import { chromium } from 'playwright';
 
 const base = (process.env.CAFE_DEMO_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
@@ -51,12 +52,21 @@ try {
   staff.setDefaultTimeout(25000);
   staff.on('pageerror', error => errors.push(error.message));
   await staff.setViewportSize({ width: 1024, height: 850 });
-  await openGuide(staff);
   const cashier = guide(staff, 'Cashier');
   await heading(cashier, 'Open the cashier workspace');
   await staff.locator('.staff-mobile-nav [data-choice="kasir"]').click();
   await heading(cashier, 'Open incoming orders');
   await staff.locator('#staff-content [data-choice="orders"]').click();
+  await heading(cashier, 'Accept an order');
+  const customerPopup = context.waitForEvent('page');
+  await cashier.getByRole('link', { name: 'Open customer in a new tab' }).click();
+  const nextCustomer = await customerPopup;
+  await heading(guide(nextCustomer, 'Customer'), 'Start at a table');
+  assert.equal(new URL(nextCustomer.url()).searchParams.has('guide'), false);
+  await nextCustomer.reload();
+  await nextCustomer.getByRole('button', { name: 'Demo guide', exact: true }).waitFor();
+  assert.equal(await guide(nextCustomer, 'Customer').count(), 0);
+  await nextCustomer.close();
   await heading(cashier, 'Accept an order');
   const request = staff.locator('#incoming-orders [data-request-id]').filter({ hasText: 'Tour Guest' });
   await target(request, 'cashier-accept').click();
@@ -85,16 +95,23 @@ try {
     return data.orderUnits.find(unit => unit.orderId === orderId)?.id;
   }, orderId);
   assert.ok(unitId);
-  await staff.goto(`${base}/p/full/staff?staff=staff_bar&lang=en`);
-  await openGuide(staff);
-  const bar = guide(staff, 'Bar');
+
+  const fulfillmentPage = context.waitForEvent('page');
+  await customer.getByRole('link', { name: 'Open staff in a new tab' }).click();
+  const barPage = await fulfillmentPage;
+  barPage.on('pageerror', error => errors.push(error.message));
+  await barPage.setViewportSize({ width: 1024, height: 850 });
+  await heading(guide(barPage, 'Cashier'), 'Open the cashier workspace');
+  await chooseDemoStaff(barPage, 'staff_bar');
+  const bar = guide(barPage, 'Bar');
   await heading(bar, 'Open the prep queue');
-  await staff.locator('.staff-mobile-nav [data-choice="dapur"]').click();
+  await barPage.locator('.staff-mobile-nav [data-choice="dapur"]').click();
   for (const [name, status] of [['Start preparing', 'PREPARING'], ['Mark ready', 'READY'], ['Hand over the item', 'DELIVERED']]) {
     await heading(bar, name);
-    await staff.locator(`[data-demo-next-status="${status}"][data-demo-tour-key="${unitId}"]`).click();
+    await barPage.locator(`[data-demo-next-status="${status}"][data-demo-tour-key="${unitId}"]`).click();
   }
   await heading(bar, 'Guide complete');
+  await barPage.close();
   await heading(customer, 'Guide complete');
   await customer.getByRole('button', { name: 'Finish', exact: true }).click();
   await customer.waitFor({ state: 'hidden' });
