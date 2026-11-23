@@ -20,12 +20,20 @@ for (const [key, value] of Object.entries(getBrandCssVariables())) document.docu
 document.documentElement.dataset.theme = cafeConfig.theme;
 document.title = activeDemo ? `${activeDemo.name} · ${cafeConfig.brand.name}` : 'Cafe demos · Tampiloka';
 
+const entryUrl = new URL(location.href);
+const guide = entryUrl.searchParams.get('guide');
+const guideView = guide === 'staff' ? 'staf' : guide === 'customer' ? 'pelanggan' : undefined;
+if (guideView) {
+  entryUrl.searchParams.delete('guide');
+  history.replaceState(history.state, '', entryUrl);
+}
+
 function DemoLoading() {
   const { t } = useCafeLanguage();
   return <main className="demo-loading"><span className="demo-spinner" /><h1>{t('Menyiapkan halaman…', 'Preparing page…')}</h1><p>{t('Mohon tunggu sebentar.', 'Please wait a moment.')}</p></main>;
 }
 
 createRoot(document.getElementById('root')!).render(<LanguageProvider><MotionProvider>
-  <Suspense fallback={<DemoLoading />}><DemoWorkspace demo={activeDemo || DEMOS.find(demo => demo.id === 'full')!} /></Suspense>
+  <Suspense fallback={<DemoLoading />}><DemoWorkspace initialGuideView={guideView} demo={activeDemo || DEMOS.find(demo => demo.id === 'full')!} /></Suspense>
 </MotionProvider></LanguageProvider>);
 

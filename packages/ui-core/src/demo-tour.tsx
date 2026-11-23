@@ -17,7 +17,7 @@ interface DemoTourIdentity {
 
 export type DemoTourContent = DemoTourIdentity & (
   | { steps: readonly [DemoTourStep, ...DemoTourStep[]]; actionSteps?: never; resume?: never }
-  | { actionSteps: readonly [DemoActionStep, ...DemoActionStep[]]; steps?: never; resume?: boolean }
+  | { actionSteps: readonly [DemoActionStep, ...DemoActionStep[]]; steps?: never; resume?: boolean; actionKey?: string }
 );
 
 const answeredInvitations = new Set<string>();
@@ -63,7 +63,7 @@ export function DemoTour(props: DemoTourContent) {
       <p>{en ? 'Follow the highlighted area, one step at a time. You can open the guide again from the toolbar.' : 'Ikuti bagian yang disorot, satu langkah setiap kali. Panduan bisa dibuka kembali lewat tombol Panduan di bagian atas.'}</p>
     </Dialog>}
     {props.actionSteps
-      ? open && <DemoActionTour language={language} role={role} steps={props.actionSteps} trigger={trigger} onClose={() => setOpen(false)} />
+      ? open && <DemoActionTour key={props.actionKey} language={language} role={role} steps={props.actionSteps} trigger={trigger} onClose={() => setOpen(false)} />
       : <DemoOverviewTour language={language} role={role} steps={props.steps} open={open} onOpenChange={setOpen} trigger={trigger} />}
   </>;
 }

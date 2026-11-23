@@ -24,7 +24,7 @@ function chooseStaff(staff: DemoStaff[], requested: string | null): string | und
     || available[0]?.id;
 }
 
-export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
+export default function DemoWorkspace({ demo, initialGuideView }: { demo: DemoPreset; initialGuideView?: WorkspaceView }) {
   const { language, t } = useCafeLanguage();
   const [prepared, setPrepared] = useState<Prepared>();
   const [error, setError] = useState('');
@@ -43,6 +43,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const localized = localizeDemo(demo, language);
   const isTableRoute = /\/m\/[^/]+\/?$/.test(location.pathname);
   const [browsingWithoutTable, setBrowsingWithoutTable] = useState(false);
+  const [incomingGuide, setIncomingGuide] = useState(initialGuideView);
   const tourResumeKey = `tampiloka:cafe-demo:${demo.id}:table-tour`;
   const [resumeCustomerTour, setResumeCustomerTour] = useState(() => {
     try { return isTableRoute && sessionStorage.getItem(tourResumeKey) === location.pathname; }
@@ -65,6 +66,11 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
     if (demoStaffId) url.searchParams.set('staff', demoStaffId);
     return `${url.pathname}${url.search}${url.hash}`;
   }, [demo.id, demoStaffId, theme, language, customerRoute]);
+  const guideHref = (view: WorkspaceView) => {
+    const url = new URL(href(demo, view), location.href);
+    url.searchParams.set('guide', view === 'staf' ? 'staff' : 'customer');
+    return url.href;
+  };
   const rememberCustomerRoute = useCallback(() => {
     const route = `${location.pathname}${location.search}${location.hash}`;
     setCustomerRoute(route);
@@ -117,12 +123,10 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       const billToken = new URLSearchParams(location.search).get('bill');
       const billId = billToken ? snapshot.bills.find((bill: any) => bill.shareToken === billToken)?.id : undefined;
       if (active) {
-        const selected = chooseStaff(staff, new URLSearchParams(location.search).get('staff'));
-        if (selected) {
-          const url = new URL(location.href);
-          url.searchParams.set('staff', selected);
-          history.replaceState(null, '', url);
-        }
+        const url = new URL(location.href);
+        const selected = chooseStaff(staff, url.searchParams.get('staff'));
+        if (selected) url.searchParams.set('staff', selected);
+        if (url.href !== location.href) history.replaceState(history.state, '', url);
         setDemoStaffId(selected);
         setActiveView(view);
         setPrepared({ snapshot, view, tableId: table?.id, billId, staff });
@@ -187,6 +191,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
 
   const changeStaff = (value: string) => {
     if (!prepared?.staff.some(person => person.id === value && person.active !== false)) return;
+    setIncomingGuide(undefined);
     setDemoStaffId(value);
     const url = new URL(location.href);
     url.searchParams.set('staff', value);
@@ -202,6 +207,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
 
   const viewChanged = useCallback((view: WorkspaceView) => {
     if (view === activeView) return;
+    setIncomingGuide(undefined);
     setResumeCustomerTour(false);
     const previousCustomerRoute = activeView === 'pelanggan' ? rememberCustomerRoute() : customerRoute;
     const next = demoNavigationUrl(demo, view, { currentUrl: location.href, currentDemoId: demo.id, theme, language, customerRoute: previousCustomerRoute });
@@ -254,17 +260,18 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       </>}
       viewLabel={t('Tampilan demo', 'Demo view')} activeView={activeView}
       tour={prepared && !error ? {
-        id: `${demo.id}:${activeView}:${demoStaffId ?? ''}:${showTableEntry}`,
+        id: `${demo.id}:${activeView}:${showTableEntry}`,
         language,
         role: activeView === 'pelanggan' ? ['Pelanggan', 'Customer'] : [
           staffRole ? staffRoleLabel(staffRole, id => id) : 'Staf',
           staffRole ? staffRoleLabel(staffRole, (_, en) => en) : 'Staff',
         ],
+        actionKey: activeView === 'staf' ? demoStaffId : undefined,
         invitationKey: 'tampiloka:cafe:guide-welcome',
-        resume: activeView === 'pelanggan' && !showTableEntry && resumeCustomerTour,
+        resume: incomingGuide === activeView || (activeView === 'pelanggan' && !showTableEntry && resumeCustomerTour),
         actionSteps: activeView === 'pelanggan'
-          ? showTableEntry ? tableEntryTour(continueTableTour) : customerTour(isTableRoute, href(demo, 'staf'))
-          : staffTour(staffRole ?? '', isModuleEnabled('catalog') ? href(demo, 'pelanggan') : undefined),
+          ? showTableEntry ? tableEntryTour(continueTableTour) : customerTour(isTableRoute, guideHref('staf'))
+          : staffTour(staffRole ?? '', isModuleEnabled('catalog') ? guideHref('pelanggan') : undefined),
       } : undefined}
       views={[
         ...(isModuleEnabled('catalog') ? [{ id: 'pelanggan', label: t('Pelanggan', 'Customer'), icon: <ShoppingBag size={16} />, href: href(demo, 'pelanggan') }] : []),
