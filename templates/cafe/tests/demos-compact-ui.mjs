@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
+import { useReturningVisitor, chooseDemoStaff, enterTableMenu, openDemoOptions } from './demo-controls.mjs';
 /** Interaction-state UI regression. Uses only fresh local demo storage. */
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -24,7 +24,7 @@ async function ready(page,address){
 }
 async function context(){
  const ctx=await browser.newContext({locale:'id-ID',viewport:{width:390,height:844},reducedMotion:'reduce'});
- await ctx.addInitScript(() => localStorage.setItem('tampiloka:cafe:guide-welcome', '1'));
+ await useReturningVisitor(ctx);
  ctx.setDefaultTimeout(20000);
  await ctx.route('**/*',route=>{if(['GET','HEAD','OPTIONS'].includes(route.request().method()))return route.continue();writes.push(route.request().url());return route.abort();});
  ctx.on('page',page=>{page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});});

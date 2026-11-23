@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
+import { useReturningVisitor, chooseDemoStaff, enterTableMenu, openDemoOptions, selectCustomerBill } from './demo-controls.mjs';
 /**
  * Executable customer/staff visit acceptance tests for the static public demos.
  *
@@ -860,7 +860,7 @@ try {
     const result = { id: item.id, title: LIFECYCLE_CASES.find(entry => entry.id === item.id)?.title || item.id, status: 'running', pageErrors: [], consoleErrors: [], networkMutations: [] };
     const start = Date.now();
     const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
-    await context.addInitScript(() => localStorage.setItem('tampiloka:cafe:guide-welcome', '1'));
+    await useReturningVisitor(context);
     context.setDefaultTimeout(30000);
     context.on('page', page => {
       page.on('pageerror', error => result.pageErrors.push({ url: page.url(), message: error.message }));

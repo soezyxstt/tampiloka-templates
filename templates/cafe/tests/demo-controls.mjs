@@ -1,3 +1,11 @@
+export async function useReturningVisitor(context) {
+  await context.addInitScript(() => {
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      localStorage.setItem('tampiloka:cafe:guide-welcome', '1');
+    }
+  });
+}
+
 /** Shared browser helpers for the production-like showcase shell. */
 export async function selectCustomerBill(page, billId) {
   await page.getByRole('heading', { name: 'Pembayaran', exact: true }).waitFor();
