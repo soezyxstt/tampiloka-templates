@@ -1,4 +1,4 @@
-export async function useReturningVisitor(context) {
+export async function prepareReturningVisitor(context) {
   await context.addInitScript(() => {
     if (location.protocol === 'http:' || location.protocol === 'https:') {
       localStorage.setItem('tampiloka:cafe:guide-welcome', '1');
