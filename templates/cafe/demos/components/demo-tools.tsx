@@ -76,11 +76,11 @@ export function DemoTools({ snapshot, resetting, resetError, onReset, canUseScen
   };
 
   return <Dialog open={open} onOpenChange={changeOpen}>
-    <DialogTrigger asChild><button type="button" disabled={!snapshot} aria-label={t('Opsi demo', 'Demo options')} title={t('Opsi demo', 'Demo options')}><SlidersHorizontal size={16} aria-hidden="true" /></button></DialogTrigger>
+    <DialogTrigger asChild><button data-demo-target="demo-options" type="button" disabled={!snapshot} aria-label={t('Opsi demo', 'Demo options')} title={t('Opsi demo', 'Demo options')}><SlidersHorizontal size={16} aria-hidden="true" /></button></DialogTrigger>
     <DialogContent className="demo-tools-dialog" aria-describedby={undefined}>
       <div className="demo-tools-header">
         <div><DialogTitle className="demo-tools-title">{t('Pengaturan', 'Settings')}</DialogTitle></div>
-        <DialogClose asChild><button className="demo-tools-close" type="button" aria-label={t('Tutup', 'Close')}><X size={18} aria-hidden="true" /></button></DialogClose>
+        <DialogClose asChild><button data-demo-target="demo-options-close" className="demo-tools-close" type="button" aria-label={t('Tutup', 'Close')}><X size={18} aria-hidden="true" /></button></DialogClose>
       </div>
       <div className="demo-tools-body">
         <div className="demo-tools-reset">

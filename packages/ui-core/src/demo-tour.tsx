@@ -2,23 +2,53 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Button, Dialog } from './index';
+import { DemoActionTour, type DemoActionStep } from './demo-action-tour';
 
 export type DemoTourText = readonly [id: string, en: string];
 export type DemoTourStep = readonly [title: DemoTourText, instruction: DemoTourText, target: string, ...fallbacks: string[]];
 
-export interface DemoTourContent {
+interface DemoTourIdentity {
   /** Change when the visitor switches to a different role or feature mode. */
   id: string;
   language: 'id' | 'en';
   role: DemoTourText;
-  steps: readonly [DemoTourStep, ...DemoTourStep[]];
 }
 
-export function DemoTour({ language, role, steps }: DemoTourContent) {
-  const [open, setOpen] = useState(false);
+export type DemoTourContent = DemoTourIdentity & (
+  | { steps: readonly [DemoTourStep, ...DemoTourStep[]]; actionSteps?: never; resume?: never }
+  | { actionSteps: readonly [DemoActionStep, ...DemoActionStep[]]; steps?: never; resume?: boolean }
+);
+
+export function DemoTour(props: DemoTourContent) {
+  const [open, setOpen] = useState(Boolean(props.resume));
+  const trigger = useRef<HTMLButtonElement>(null);
+  const { language, role } = props;
+  const label = language === 'en' ? 'Demo guide' : 'Panduan demo';
+  return <>
+    <button ref={trigger} type="button" className="tl-demo-action-label tl-demo-tour-trigger"
+      aria-label={label} aria-haspopup={props.steps ? 'dialog' : undefined} aria-expanded={open} title={label}
+      onClick={event => { event.currentTarget.focus(); setOpen(value => !value); }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 7a5 5 0 0 0-5-5H3v16h4a5 5 0 0 1 5 4m0-15a5 5 0 0 1 5-5h4v16h-4a5 5 0 0 0-5 4m0-15v15" />
+      </svg>
+      <span>{language === 'en' ? 'Guide' : 'Panduan'}</span>
+    </button>
+    {props.actionSteps
+      ? open && <DemoActionTour language={language} role={role} steps={props.actionSteps} trigger={trigger} onClose={() => setOpen(false)} />
+      : <DemoOverviewTour language={language} role={role} steps={props.steps} open={open} onOpenChange={setOpen} trigger={trigger} />}
+  </>;
+}
+
+function DemoOverviewTour({ language, role, steps, open, onOpenChange, trigger }: {
+  language: DemoTourIdentity['language'];
+  role: DemoTourText;
+  steps: readonly [DemoTourStep, ...DemoTourStep[]];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger: React.RefObject<HTMLButtonElement | null>;
+}) {
   const [index, setIndex] = useState(0);
   const nextButton = useRef<HTMLButtonElement>(null);
-  const fallback = useRef<HTMLButtonElement>(null);
   const [spotlight, setSpotlight] = useState<{ top: number; left: number; width: number; height: number; panelAbove: boolean; panelSpace: number }>();
   const english = language === 'en';
   const translate = ([id, en]: DemoTourText) => english ? en : id;
@@ -50,7 +80,7 @@ export function DemoTour({ language, role, steps }: DemoTourContent) {
         if (target) {
           observer.observe(target);
           const box = target.getBoundingClientRect();
-          const toolbarBottom = fallback.current?.closest('.tl-demo-toolbar')?.getBoundingClientRect().bottom ?? 0;
+          const toolbarBottom = trigger.current?.closest('.tl-demo-toolbar')?.getBoundingClientRect().bottom ?? 0;
           if (box.left < 0 || box.right > innerWidth || box.bottom > innerHeight
             || (box.top < toolbarBottom && !target.closest('.tl-demo-toolbar'))) {
             target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
@@ -87,30 +117,16 @@ export function DemoTour({ language, role, steps }: DemoTourContent) {
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
     };
-  }, [open, index, selectors]);
+  }, [open, index, selectors, trigger]);
 
-  return <>
-    <button
-      ref={fallback}
-      type="button"
-      className="tl-demo-action-label tl-demo-tour-trigger"
-      aria-label={label}
-      aria-haspopup="dialog"
-      title={label}
-      onClick={event => {
-        event.currentTarget.focus();
-        setIndex(0);
-        setOpen(true);
-      }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 7a5 5 0 0 0-5-5H3v16h4a5 5 0 0 1 5 4m0-15a5 5 0 0 1 5-5h4v16h-4a5 5 0 0 0-5 4m0-15v15" />
-      </svg>
-      <span>{english ? 'Guide' : 'Panduan'}</span>
-    </button>
-    <Dialog
+  const close = () => {
+    onOpenChange(false);
+    setIndex(0);
+  };
+
+  return <Dialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={close}
       className={spotlight ? `tl-demo-tour tl-demo-tour-${spotlight.panelAbove ? 'above' : 'below'}` : 'tl-demo-tour'}
       style={spotlight ? { maxHeight: `calc(${spotlight.panelSpace}px - 24px)` } : undefined}
       overlay={spotlight && <div
@@ -121,13 +137,13 @@ export function DemoTour({ language, role, steps }: DemoTourContent) {
       title={`${label} · ${translate(role)}`}
       closeLabel={english ? 'Close guide' : 'Tutup panduan'}
       footer={<>
-        <Button variant="ghost" onClick={() => setOpen(false)}>{english ? 'Skip' : 'Lewati'}</Button>
+        <Button variant="ghost" onClick={() => close()}>{english ? 'Skip' : 'Lewati'}</Button>
         {index > 0 && <Button variant="outline" onClick={() => {
           if (index === 1) nextButton.current?.focus();
           setIndex(index - 1);
         }}>{english ? 'Back' : 'Kembali'}</Button>}
         <Button ref={nextButton} onClick={() => {
-          if (last) setOpen(false);
+          if (last) close();
           else setIndex(index + 1);
         }}>
           {last ? (english ? 'Finish' : 'Selesai') : (english ? 'Next' : 'Lanjut')}
@@ -142,5 +158,4 @@ export function DemoTour({ language, role, steps }: DemoTourContent) {
         </div>
       </div>
     </Dialog>
-  </>;
 }

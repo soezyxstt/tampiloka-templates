@@ -11,7 +11,7 @@ import { DemoTools } from './components/demo-tools';
 import { TableEntry } from './components/table-entry';
 import { LanguageToggle, useCafeLanguage } from '@/lib/language';
 import { staffRoleLabel } from '../lib/staff-role-label';
-import { customerTour, staffTour } from './tour';
+import { customerTour, staffTour, tableEntryTour } from './tour';
 import { toast } from 'sonner';
 
 type DemoStaff = { id: string; userName: string; role: string; active?: boolean };
@@ -43,6 +43,19 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
   const localized = localizeDemo(demo, language);
   const isTableRoute = /\/m\/[^/]+\/?$/.test(location.pathname);
   const [browsingWithoutTable, setBrowsingWithoutTable] = useState(false);
+  const tourResumeKey = `tampiloka:cafe-demo:${demo.id}:table-tour`;
+  const [resumeCustomerTour, setResumeCustomerTour] = useState(() => {
+    try { return isTableRoute && sessionStorage.getItem(tourResumeKey) === location.pathname; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { sessionStorage.removeItem(tourResumeKey); } catch { /* The guide can still be opened manually. */ }
+  }, [tourResumeKey]);
+  const continueTableTour = (target: HTMLElement) => {
+    if (!(target instanceof HTMLAnchorElement)) { setResumeCustomerTour(true); return; }
+    try { sessionStorage.setItem(tourResumeKey, new URL(target.href).pathname); }
+    catch { /* The linked menu still opens normally. */ }
+  };
   const canShowTableEntry = !browsingWithoutTable && activeView === 'pelanggan' && !isTableRoute && !new URLSearchParams(location.search).has('bill');
   const showTableEntry = canShowTableEntry && prepared?.snapshot.tables?.some((table: any) => table.active !== false && table.qrToken);
   const href = useCallback((target: DemoPreset, view: WorkspaceView) => {
@@ -189,6 +202,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
 
   const viewChanged = useCallback((view: WorkspaceView) => {
     if (view === activeView) return;
+    setResumeCustomerTour(false);
     const previousCustomerRoute = activeView === 'pelanggan' ? rememberCustomerRoute() : customerRoute;
     const next = demoNavigationUrl(demo, view, { currentUrl: location.href, currentDemoId: demo.id, theme, language, customerRoute: previousCustomerRoute });
     history.replaceState(null, '', next);
@@ -240,13 +254,16 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
       </>}
       viewLabel={t('Tampilan demo', 'Demo view')} activeView={activeView}
       tour={prepared && !error ? {
-        id: `${demo.id}:${activeView}:${staffRole ?? ''}:${showTableEntry}`,
+        id: `${demo.id}:${activeView}:${demoStaffId ?? ''}:${showTableEntry}`,
         language,
         role: activeView === 'pelanggan' ? ['Pelanggan', 'Customer'] : [
           staffRole ? staffRoleLabel(staffRole, id => id) : 'Staf',
           staffRole ? staffRoleLabel(staffRole, (_, en) => en) : 'Staff',
         ],
-        steps: activeView === 'pelanggan' ? customerTour(showTableEntry) : staffTour(staffRole ?? ''),
+        resume: activeView === 'pelanggan' && !showTableEntry && resumeCustomerTour,
+        actionSteps: activeView === 'pelanggan'
+          ? showTableEntry ? tableEntryTour(continueTableTour) : customerTour(isTableRoute, href(demo, 'staf'))
+          : staffTour(staffRole ?? '', isModuleEnabled('catalog') ? href(demo, 'pelanggan') : undefined),
       } : undefined}
       views={[
         ...(isModuleEnabled('catalog') ? [{ id: 'pelanggan', label: t('Pelanggan', 'Customer'), icon: <ShoppingBag size={16} />, href: href(demo, 'pelanggan') }] : []),

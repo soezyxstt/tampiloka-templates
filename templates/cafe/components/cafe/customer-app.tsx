@@ -4,6 +4,7 @@ import { canChooseCustomerTable } from '../../src/domain/customer-tables';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCafeLanguage } from '@/lib/language';
+import { reportDemoTourResult } from '@/lib/demo-tour-result';
 import { localizeSystemMessage } from '@/lib/system-messages';
 import { localizeSampleName } from '@/src/catalog/sample-menu';
 import QRCode from 'qrcode';
@@ -176,6 +177,7 @@ export function CustomerApp({
   const [shareUrl, setShareUrl] = useState('');
   const [paymentQrImage, setPaymentQrImage] = useState({ payload: '', url: '' });
   const [confirmOrderOpen, setConfirmOrderOpen] = useState(false);
+  const [lastSubmittedRequestId, setLastSubmittedRequestId] = useState<string>();
 
 
   // Customer identity & OTP state (C03 / C04)
@@ -306,6 +308,7 @@ export function CustomerApp({
   const currentVisit = (snapshot?.visits || []).find((visit: any) => visit.status === 'OPEN' && (visit.primaryTableId === selectedTableId || visit.tableLabelsJson?.includes(selectedTable.label)));
   const customerOrders = (snapshot?.orders || []).filter((order: any) => tableMatches(order) || (order.mode === orderMode && order.visitId === currentVisit?.id));
   const customerRequests = (snapshot?.orderRequests || []).filter(tableMatches);
+  const lastSubmittedOrderId = customerRequests.find((request: any) => request.id === lastSubmittedRequestId)?.acceptedOrderId;
   const pendingRequests = customerRequests.filter((request: any) => request.state === 'REQUESTED');
   const customerBills = (snapshot?.bills || []).filter((bill: any) => bill.lifecycle !== 'VOID' && (tableMatches(bill) || customerOrders.some((order: any) => order.visitId === bill.visitId)));
   const hasOrderInVisit = currentVisit && customerPrincipalId && customerRequests.some((request: any) =>
@@ -467,6 +470,7 @@ export function CustomerApp({
     ]);
 
     setConfiguringItem(null);
+    if (snapshot?.runtime?.demo) reportDemoTourResult('customer-add');
   };
 
   const handleVerifyOtp = () => {
@@ -545,7 +549,10 @@ export function CustomerApp({
     if (guestName.trim().length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering.")); return; }
     const quote = await handleRequestQuote();
-    if (quote) setConfirmOrderOpen(true);
+    if (quote) {
+      setConfirmOrderOpen(true);
+      if (snapshot?.runtime?.demo) reportDemoTourResult('customer-review');
+    }
   };
 
   const handleSubmitOrderRequest = async () => {
@@ -595,6 +602,10 @@ export function CustomerApp({
       updateCart([]);
       setConfirmOrderOpen(false);
       setScreenHistory(['menu', 'pesanan']);
+      if (snapshot?.runtime?.demo) {
+        setLastSubmittedRequestId(outcome?.orderRequestId);
+        reportDemoTourResult('customer-submit');
+      }
     } catch (err: any) {
       setCheckoutError(err.message);
     }
@@ -667,11 +678,11 @@ export function CustomerApp({
     const element = cartPreviewRef.current;
     const demo = element?.closest<HTMLElement>('.demo-session');
     if (!element || !demo || !cartPreviewVisible) return;
-    const measure = () => demo.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
+    const measure = () => document.documentElement.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
-    return () => { observer.disconnect(); demo.style.removeProperty('--demo-language-cart-offset'); };
+    return () => { observer.disconnect(); document.documentElement.style.removeProperty('--demo-language-cart-offset'); };
   }, [cartPreviewVisible]);
 
   return (
@@ -709,6 +720,7 @@ export function CustomerApp({
               {/* Interactive Table / Order Mode Selector */}
               {canOrder || snapshot?.tables?.length > 0 ? <button
                 type="button"
+                data-demo-target="customer-service"
                 onClick={() => setTableModalOpen(true)}
                 className="mt-0.5 inline-flex items-center gap-1 text-[13px] leading-[18px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer max-w-full"
               >
@@ -861,7 +873,7 @@ export function CustomerApp({
                         {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} {t('di keranjang', 'in cart')}</span>}
                       </div>
                       <div className={styles.menuCardBody}>
-                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle} data-demo-target="cafe-dish">{item.name}</button>
+                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle} data-demo-target="cafe-dish" data-orderable={item.isAvailable || undefined}>{item.name}</button>
                         <p className={styles.menuDescription}>{item.description}</p>
                         <div className={styles.dishActions}>
                           <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
@@ -1127,6 +1139,7 @@ export function CustomerApp({
                       size="lg"
                       className="w-full"
                       disabled={busy || tableUnavailable || (identityMode === 'MEMBER' && !loggedInMemberId)}
+                      data-demo-target="customer-review"
                       onClick={handleReviewOrder}
                     >
                       {t('Periksa pesanan', 'Review order')} · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
@@ -1224,7 +1237,10 @@ export function CustomerApp({
                     const billing = summarizeOrderBilling(ord.id, snapshot?.bills || []);
 
                     return (
-                      <article key={ord.id} data-order-id={ord.id} className={`${styles.orderArticle} space-y-3`}>
+                      <article key={ord.id} data-order-id={ord.id}
+                        data-demo-fulfillment={ord.id === lastSubmittedOrderId
+                          ? (units.length > 0 && units.every((unit: any) => ['DELIVERED', 'PICKED_UP', 'SERVED', 'CANCELLED'].includes(unit.fulfillmentStatus))
+                            && units.some((unit: any) => unit.fulfillmentStatus !== 'CANCELLED') ? 'complete' : 'active') : undefined} className={`${styles.orderArticle} space-y-3`}>
                         <div className={styles.orderHeaderBand}>
                           <div>
                             <p className="font-heading font-semibold text-[16px]">
@@ -1248,7 +1264,7 @@ export function CustomerApp({
                           </div>
                         </div>
 
-                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span><div className="flex flex-wrap items-center gap-2">{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} variant={bill.balanceIdr > 0 ? "primary" : "secondary"} size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{bill.balanceIdr > 0 ? `${t('Bayar', 'Pay')} · ${formatIdr(bill.balanceIdr)}` : t('Lunas · lihat struk', 'Paid · view receipt')}</Button>)}</div></div>}
+                        {billing.relatedBills.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted-foreground)]"><span>{billing.hasMergedBill ? t('Termasuk dalam tagihan gabungan', 'Included in a combined bill') : billing.relatedBills.length > 1 ? `${t('Dibagi menjadi', 'Split into')} ${billing.relatedBills.length} ${t('tagihan', 'bills')}` : t('Tagihan pesanan ini', 'Bill for this order')}</span><div className="flex flex-wrap items-center gap-2">{billing.hasPendingPayment && <StatusLabel label={t("Pembayaran dalam proses", "Payment in progress")} tone="info" />}{billing.relatedBills.map(bill => <Button key={bill.id} data-demo-target={ord.id === lastSubmittedOrderId ? "customer-order-bill" : undefined} variant={bill.balanceIdr > 0 ? "primary" : "secondary"} size="sm" onClick={() => { setSelectedBillId(bill.id); setActiveScreen('pembayaran'); }}>{bill.balanceIdr > 0 ? `${t('Bayar', 'Pay')} · ${formatIdr(bill.balanceIdr)}` : t('Lunas · lihat struk', 'Paid · view receipt')}</Button>)}</div></div>}
 
                         {/* Fulfillment per Unit (Open Hairline Rows) */}
                         <div className="divide-y divide-[var(--border)]">
@@ -1337,7 +1353,8 @@ export function CustomerApp({
 
               {!selectedBill && <EmptyState title={t("Belum ada tagihan", "No bills yet")} description={t("Tagihan akan muncul setelah pesanan diterima.", "A bill will appear once an order is accepted.")} actionLabel={customerOrders.length || pendingRequests.length ? t("Lihat pesanan","View orders") : t("Lihat menu","View menu")} onAction={() => setActiveScreen(customerOrders.length || pendingRequests.length ? "pesanan" : "menu")} />}
               {selectedBill && (
-                <div className="space-y-5" data-customer-bill-id={selectedBill.id}>
+                <div className="space-y-5" data-customer-bill-id={selectedBill.id}
+                  data-demo-payment-state={selectedBill.paymentState}>
                   {/* Single Highlighted Order-Type Callout Strip (ESB-inspired) */}
                   <div className={styles.contextStrip}>
                     <span className="text-[var(--muted-foreground)]">{t("Jenis pesanan", "Order type")}</span>
@@ -1482,18 +1499,19 @@ export function CustomerApp({
                                 <Money amount={selectedBill.balanceIdr} className="font-bold text-[16px] text-[var(--primary-ink)]" />
                               </div>
                             </div>
-                            <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={async () => {
+                            <Button data-demo-target="customer-create-payment" variant="primary" size="lg" className="w-full" disabled={busy} onClick={async () => {
                               setPaymentFeedback('');
                               try {
                                 const fingerprint = `${selectedBill.id}:${selectedBill.version}:${selectedPaymentMethod}:${selectedBill.balanceIdr}`;
                                 if (paymentSubmissionRef.current?.fingerprint !== fingerprint) paymentSubmissionRef.current = { fingerprint, key: `customer_payment_${crypto.randomUUID()}` };
                                 await onCommand('RECORD_PAYMENT', { billId: selectedBill.id, method: selectedPaymentMethod, amountIdr: selectedBill.balanceIdr, actorName: guestName || 'Pelanggan', createExternalAttemptOnly: true, idempotencyKey: paymentSubmissionRef.current.key });
                                 paymentSubmissionRef.current = null;
+                                if (snapshot?.runtime?.demo) reportDemoTourResult('customer-create-payment', selectedBill.id);
                               } catch (error: any) { setPaymentFeedback(error.message); }
                             }}>{busy ? t('Memuat…', 'Loading…') : selectedPaymentMethod === 'QRIS' ? t('Buat QRIS', 'Create QRIS') : t('Buat Virtual Account', 'Create virtual account')}</Button>
                           </>
                         ) : (
-                          <section className="py-4 text-center space-y-4">
+                          <section data-demo-target="customer-pending-payment" data-demo-tour-key={selectedBill.id} className="py-4 text-center space-y-4">
                             <div className="space-y-1">
                               <h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>
                               <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>
@@ -1527,7 +1545,7 @@ export function CustomerApp({
                     <section className="pt-4 border-t border-dashed border-[var(--border-strong)] space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-heading font-semibold text-[16px]">
+                          <p data-demo-target="customer-receipt" className="font-heading font-semibold text-[16px]">
                             {t("Struk Digital", "Digital receipt")}
                           </p>
                           <p className="text-[12px] text-[var(--muted-foreground)]">
@@ -1946,7 +1964,7 @@ export function CustomerApp({
                   {t("Estimasi", "Estimate")} <Money amount={cartSummary.totalIdr} />
                 </p>
               </div>
-              <Button variant="primary" onClick={() => setActiveScreen('keranjang')}>
+              <Button data-demo-target="customer-cart" variant="primary" onClick={() => setActiveScreen('keranjang')}>
                 <ShoppingCart className="w-4 h-4" />
                 <span>{t("Lihat Keranjang", "View cart")}</span>
               </Button>
@@ -1956,7 +1974,7 @@ export function CustomerApp({
       </AnimatePresence>
 
       <nav className={styles.bottomNav} aria-label={t("Navigasi pelanggan", "Customer navigation")}>
-        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Pelayan", "Staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" aria-current={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Pelayan", "Staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" data-demo-screen={screen} aria-current={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
         <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>{t("Bagikan menu", "Share menu")}</span></button>
       </nav>
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title={t("Bagikan menu", "Share menu")}>
@@ -1972,7 +1990,7 @@ export function CustomerApp({
           <div className="flex justify-between font-semibold"><span>{cartSummary.totalQty} item</span><Money amount={activeQuote?.totalIdr ?? cartSummary.totalIdr} /></div>
           <InlineError message={checkoutError} />
           {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
-          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button className="flex-1" disabled={busy || !cart.length || tableUnavailable} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
+          <div className="flex gap-3"><Button variant="secondary" className="flex-1" onClick={() => setConfirmOrderOpen(false)}>{t("Kembali", "Back")}</Button><Button data-demo-target="customer-submit" className="flex-1" disabled={busy || !cart.length || tableUnavailable} onClick={handleSubmitOrderRequest}>{busy ? 'Mengirim…' : t("Kirim pesanan", "Submit order")}</Button></div>
         </div>
       </DialogModal>
 
@@ -2151,6 +2169,7 @@ export function CustomerApp({
           <Button
             variant="primary"
             className="w-full"
+            data-demo-target="customer-service-save"
             onClick={() => setTableModalOpen(false)}
             disabled={tableUnavailable}
           >
@@ -2304,7 +2323,7 @@ export function CustomerApp({
                 itemLabel={configuringItem.name}
                 onChange={setItemQuantity}
               />
-              <Button variant="primary" className="flex-1" disabled={tableUnavailable || !configuringItem.isAvailable || !(configuringItem.variants || []).some((v: any) => v.id === selectedVariantId && v.availableToSell >= itemQuantity) || (configuringItem.modifierGroups || []).some((group: any) => { const count = (group.options || []).filter((option: any) => selectedModOptionIds.includes(option.id)).length; return count < (group.required ? group.minSelect : 0) || count > group.maxSelect; })} onClick={handleConfirmModalAdd}>
+              <Button variant="primary" className="flex-1" disabled={tableUnavailable || !configuringItem.isAvailable || !(configuringItem.variants || []).some((v: any) => v.id === selectedVariantId && v.availableToSell >= itemQuantity) || (configuringItem.modifierGroups || []).some((group: any) => { const count = (group.options || []).filter((option: any) => selectedModOptionIds.includes(option.id)).length; return count < (group.required ? group.minSelect : 0) || count > group.maxSelect; })} data-demo-target="customer-add" onClick={handleConfirmModalAdd}>
                 {!configuringItem.isAvailable ? t('Stok habis', 'Sold out') : editingLineId ? t('Simpan perubahan', 'Save changes') : t('Tambah ke keranjang', 'Add to cart')}
               </Button>
             </div></>}
