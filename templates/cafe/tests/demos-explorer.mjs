@@ -14,6 +14,7 @@ const ready = async () => {
 };
 try {
   await page.goto(`${base}/?lang=en`);
+  await page.getByRole('button', { name: 'Explore on my own' }).click();
   await ready();
   assert.equal(await page.locator('html').getAttribute('lang'), 'en', 'The gallery locale takes priority over the browser locale.');
   assert.equal(await page.getByRole('combobox', { name: 'Demo mode', exact: true }).textContent(), 'Full service', 'The hub opens an interactive demo immediately.');
@@ -42,7 +43,7 @@ try {
   await highlights('.demo-entry-open');
   assert.equal(await guide.getByRole('button', { name: 'Next', exact: true }).count(), 0, 'Action steps must use the real demo control.');
   assert.equal(await spotlight.count(), 1, 'Only the current target is highlighted.');
-  await guide.getByRole('button', { name: 'Skip', exact: true }).click();
+  await guide.getByRole('button', { name: 'End guide', exact: true }).click();
   await guide.waitFor({ state: 'hidden' });
   await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Demo guide');
   await guideButton.click();
@@ -80,7 +81,7 @@ try {
   await manager.getByRole('button', { name: 'Panduan demo', exact: true }).click();
   const staffGuide = manager.getByRole('region', { name: 'Panduan demo · Pelayan' });
   await staffGuide.getByText('Layani meja', { exact: true }).waitFor();
-  await staffGuide.getByRole('button', { name: 'Lewati', exact: true }).click();
+  await staffGuide.getByRole('button', { name: 'Akhiri panduan', exact: true }).click();
   await staffGuide.waitFor({ state: 'hidden' });
   await manager.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ }).click();
   await manager.getByRole('button', { name: 'Atur denah', exact: true }).click();

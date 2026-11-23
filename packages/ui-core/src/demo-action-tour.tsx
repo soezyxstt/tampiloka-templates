@@ -9,6 +9,12 @@ export interface DemoActionStep {
   title: DemoTourText;
   instruction: DemoTourText;
   target: string;
+  prerequisite?: {
+    selector: string;
+    scope?: string;
+    instruction: DemoTourText;
+    confirm?: DemoTourText;
+  };
   /** Advance after the app confirms this action, rather than on click. */
   result?: string | readonly string[];
   /** A visible state that advances a waiting step. */
@@ -47,6 +53,9 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
   const [box, setBox] = useState<{ top: number; left: number; width: number; height: number }>();
   const [available, setAvailable] = useState(false);
   const [canFocus, setCanFocus] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [confirmed, setConfirmed] = useState<HTMLElement | null>(null);
+  const focusTarget = useRef<HTMLElement | null>(null);
   const panel = useRef<HTMLElement>(null);
   const [complete, setComplete] = useState(false);
   const currentTarget = useRef<HTMLElement | null>(null);
@@ -56,6 +65,10 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
   latest.current = { step, onClose };
   const en = language === 'en';
   const translate = (copy: DemoTourText) => copy[en ? 1 : 0];
+
+  useLayoutEffect(() => {
+    if (dialog) panel.current?.showPopover?.();
+  }, [dialog]);
 
   useLayoutEffect(() => {
     panel.current?.focus({ preventScroll: true });
@@ -99,18 +112,24 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       const candidates = matches(current.target, root).filter(element => !current.sameRecord || !record.current || matchesRecord(element));
       setAvailable(candidates.length > 0);
       const enabledTarget = candidates.find(element => !element.matches(':disabled,[aria-disabled="true"]'));
-      setCanFocus(Boolean(enabledTarget));
-      const target = enabledTarget ?? candidates[0] ?? null;
+      const action = enabledTarget ?? candidates[0];
+      const rule = current.prerequisite;
+      const scope = rule?.scope ? action?.closest(rule.scope) : root;
+      const field = rule && action && scope && matches(rule.selector, scope)[0];
+      const prerequisite = field && field !== confirmed ? field : null;
+      const target = prerequisite ?? action ?? null;
+      setPrompt(prerequisite?.dataset.demoTourPrompt ?? '');
+      focusTarget.current = prerequisite
+        ? prerequisite.matches('input,select,button') ? prerequisite : prerequisite.querySelector('input:not(:disabled),button:not(:disabled),select:not(:disabled)')
+        : enabledTarget ?? null;
+      setCanFocus(Boolean(focusTarget.current));
       if (target !== currentTarget.current) {
         currentTarget.current = target;
         if (target) {
-          const rect = target.getBoundingClientRect();
-          const toolbarBottom = trigger.current?.closest('.tl-demo-toolbar')?.getBoundingClientRect().bottom ?? 0;
-          const viewport = activeDialog?.getBoundingClientRect();
-          if (rect.top < (viewport?.top ?? toolbarBottom + 56) || rect.bottom > (viewport?.bottom ?? innerHeight - 72)
-            || !target.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2))) {
-            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
-          }
+          target.scrollIntoView({
+            block: 'center', inline: 'nearest',
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+          });
         }
       }
       const rect = target?.getBoundingClientRect();
@@ -157,7 +176,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       childList: true,
       attributes: true,
       attributeFilter: ['aria-current', 'aria-hidden', 'class', 'data-active', 'data-demo-fulfillment', 'data-demo-next-status',
-        'data-demo-bill-paid', 'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-key', 'data-state', 'disabled', 'hidden', 'open', 'style'],
+        'data-demo-bill-paid', 'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-prompt', 'data-demo-tour-key', 'data-state', 'disabled', 'hidden', 'open', 'style'],
     });
     document.addEventListener('click', activate, true);
     document.addEventListener(resultEvent, result);
@@ -173,7 +192,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       window.removeEventListener('scroll', schedule, true);
       window.removeEventListener('resize', schedule);
     };
-  }, [index, steps.length, complete, trigger]);
+  }, [index, steps.length, complete, trigger, confirmed]);
 
   const above = !complete && box && box.top > window.innerHeight - box.top - box.height;
   const label = `${en ? 'Demo guide' : 'Panduan demo'} · ${translate(role)}`;
@@ -185,25 +204,29 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
   return <>
     {!complete && box && createPortal(<div aria-hidden="true" className="tl-demo-tour-spotlight tl-demo-action-spotlight" style={box} />, document.body)}
     {createPortal(<section
-      className={`tl-demo-tour tl-demo-action-tour ${dialog ? 'tl-demo-action-tour-in-dialog' : above ? 'tl-demo-action-tour-top' : 'tl-demo-action-tour-bottom'}`}
+      className={`tl-demo-tour tl-demo-action-tour ${above ? 'tl-demo-action-tour-top' : 'tl-demo-action-tour-bottom'}`}
+      popover={dialog ? 'manual' : undefined}
       ref={panel}
       tabIndex={-1}
       aria-label={label}
     >
       <div className="tl-demo-tour-step" aria-live="polite" aria-atomic="true">
         {(complete || steps.length > 1) && <p className="tl-demo-tour-progress">{complete ? label : en ? `Step ${index + 1} of ${steps.length}` : `Langkah ${index + 1} dari ${steps.length}`}</p>}
-        <h3>{complete ? (en ? 'Guide complete' : 'Panduan selesai') : translate(step.title)}</h3>
-        {!complete && <p>{translate(!available && step.unavailable ? step.unavailable : step.instruction)}</p>}
+        <div key={prompt || index} className="tl-demo-tour-copy">
+          <h3>{complete ? (en ? 'Guide complete' : 'Panduan selesai') : prompt || translate(step.title)}</h3>
+          {!complete && <p>{translate(prompt && step.prerequisite ? step.prerequisite.instruction : !available && step.unavailable ? step.unavailable : step.instruction)}</p>}
+        </div>
       </div>
       <div className="tl-demo-action-tour-controls">
-        <Button size="sm" variant="ghost" onClick={dismiss}>{complete ? (en ? 'Finish' : 'Selesai') : (en ? 'Skip' : 'Lewati')}</Button>
+        <Button size="sm" variant="ghost" onClick={dismiss}>{complete ? (en ? 'Finish' : 'Selesai') : (en ? 'End guide' : 'Akhiri panduan')}</Button>
         {!complete && step.link && <a href={step.link.href} target="_blank" rel="noopener" className="tl-button tl-button-outline tl-button-sm">{translate(step.link.label)}</a>}
         {!complete && !available && step.unavailable && <Button size="sm" variant="outline" onClick={() => {
           if (!step.sameRecord) record.current = undefined;
           if (index === steps.length - 1) setComplete(true);
           else setIndex(index + 1);
         }}>{en ? 'Skip this step' : 'Lewati langkah ini'}</Button>}
-        {!complete && canFocus && !step.waitFor && <Button size="sm" variant="outline" onClick={() => currentTarget.current?.focus()}>{en ? 'Focus action' : 'Fokus tindakan'}</Button>}
+        {!complete && prompt && step.prerequisite?.confirm && <Button size="sm" onClick={() => setConfirmed(currentTarget.current)}>{translate(step.prerequisite.confirm)}</Button>}
+        {!complete && canFocus && !step.waitFor && <Button size="sm" variant="outline" onClick={() => focusTarget.current?.focus()}>{en ? 'Go to highlighted item' : 'Ke bagian yang disorot'}</Button>}
       </div>
     </section>, dialog ?? document.body)}
   </>;

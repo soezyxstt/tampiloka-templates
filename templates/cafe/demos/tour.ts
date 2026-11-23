@@ -15,6 +15,11 @@ const step = (title: DemoTourText, instruction: DemoTourText, selector: string, 
 const action = (name: string, title: DemoTourText, instruction: DemoTourText, options?: StepOptions) =>
   step(title, instruction, target(name), options);
 
+const requiredChoice = {
+  selector: 'div[data-demo-tour-prompt],fieldset[data-demo-tour-prompt],#pos-variant[data-demo-tour-prompt]',
+  instruction: ['Pilih dari opsi yang disorot.', 'Select from the highlighted options.'],
+} as const;
+
 export function tableEntryTour(onOpenTable: (target: HTMLElement) => void): Steps {
   return [step(
     ['Mulai dari meja', 'Start at a table'],
@@ -43,7 +48,7 @@ export function customerTour(tableRoute: boolean, staffHref: string): Steps {
   ));
   if (!order) return steps;
   steps.push(
-    action('customer-add', ['Tambahkan ke keranjang', 'Add to cart'], ['Pilih varian dan opsi wajib, lalu klik Tambah ke keranjang.', 'Choose a size and any required options, then select Add to cart.'], { result: 'customer-add' }),
+    action('customer-add', ['Tambahkan ke keranjang', 'Add to cart'], ['Klik Tambah ke keranjang untuk menyimpan pilihan Anda.', 'Select Add to cart to save your choices.'], { result: 'customer-add', prerequisite: requiredChoice }),
     action('customer-cart', ['Buka keranjang', 'Open the cart'], ['Klik Lihat keranjang untuk mengecek item dan jumlahnya.', 'Select View cart to check the items and quantities.']),
     action('customer-review', ['Periksa pesanan', 'Review the order'], ['Isi nama pemesan, lalu klik Periksa pesanan untuk melihat total akhir.', 'Enter your name, then select Review order to see the final total.'], { result: 'customer-review' }),
     action('customer-submit', ['Kirim pesanan', 'Submit the order'], ['Cek total, lalu klik Kirim pesanan.', 'Check the total, then select Submit order.'], { result: 'customer-submit' }),
@@ -83,7 +88,7 @@ function cashierTour(customerHref?: string): Steps {
   if (enabled('cashier')) steps.push(
     action('cashier-new-order', ['Catat pesanan di kasir', 'Enter a counter order'], ['Klik Pesanan baru untuk mencoba transaksi langsung di kasir.', 'Select New order to try a walk-up transaction.']),
     action('pos-item', ['Pilih hidangan', 'Choose an item'], ['Klik salah satu hidangan yang tersedia.', 'Select an available item.']),
-    action('pos-add', ['Tambahkan item', 'Add the item'], ['Pilih varian, jumlah, dan opsi wajib, lalu klik Tambah.', 'Choose the size, quantity, and any required options, then select Add.'], { result: 'pos-add' }),
+    action('pos-add', ['Tambahkan item', 'Add the item'], ['Klik Tambah untuk memasukkan item ke pesanan.', 'Select Add to include the item in the order.'], { result: 'pos-add', prerequisite: requiredChoice }),
     action('pos-review', ['Periksa pesanan', 'Review the order'], ['Klik Periksa pesanan dan cek total.', 'Select Review order and check the total.'], { result: 'pos-review' }),
     action('pos-submit', ['Buat tagihan', 'Create the bill'], ['Klik Buat tagihan untuk menyimpan pesanan dan membuka tagihannya.', 'Select Create bill to save the order and open its bill.'], { result: 'pos-submit' }),
     action('cashier-shift', ['Buka pengaturan shift', 'Manage the cashier shift'], ['Klik Buka shift sebelum menerima pembayaran tunai.', 'Select Open shift before accepting cash.'], { skipWhen: '[data-demo-shift-open="true"]', skipWhenForRecord: staffBillPaid }),
@@ -130,8 +135,8 @@ export function staffTour(role: string, customerHref?: string): Steps {
     action('waiter-resolve', ['Selesaikan panggilan', 'Resolve the request'], ['Setelah membantu tamu, klik Selesai pada panggilan tersebut.', 'After helping the guest, select Done on that request.'],
       { result: 'waiter-resolve', sameRecord: true, unavailable: ['Belum ada panggilan yang sedang ditangani.', 'No guest requests are in progress.'] }),
     step(['Periksa antrean', 'Review the waitlist'], ['Pilih Antrean untuk melihat siapa yang menunggu meja.', 'Select Waitlist to see who is waiting for a table.'], choice('ANTREAN')),
-    action('waiter-call', ['Panggil tamu', 'Call a guest'], ['Pilih meja yang tersedia pada baris antrean, lalu klik Panggil tamu.', 'Choose an available table in the waitlist row, then select Call guest.'], {
-      result: 'waiter-call', unavailable: ['Belum ada tamu yang menunggu meja yang tersedia.', 'No waiting guest has an available table.'],
+    action('waiter-call', ['Panggil tamu', 'Call a guest'], ['Klik Panggil tamu untuk memanggil tamu ke meja yang dipilih.', 'Select Call guest to invite the guest to the chosen table.'], {
+      result: 'waiter-call', prerequisite: { selector: '[data-demo-tour-prompt]', scope: '[data-waitlist-id]', instruction: ['Pilih salah satu meja yang tersedia.', 'Select an available table.'] }, unavailable: ['Belum ada tamu yang menunggu meja yang tersedia.', 'No waiting guest has an available table.'],
     }),
     action('waiter-seat', ['Tempatkan tamu', 'Seat the guest'], ['Setelah tamu datang, klik Tempatkan di meja pada baris yang sama.', 'When the guest arrives, select Seat at table on the same row.'], {
       result: 'waiter-seat', sameRecord: true, unavailable: ['Belum ada tamu yang siap ditempatkan.', 'No guests are ready to be seated.'],
@@ -146,8 +151,12 @@ export function staffTour(role: string, customerHref?: string): Steps {
       action('supervisor-stock', ['Buka batas stok harian', 'Open daily stock limits'], ['Buka Batas stok harian untuk melihat stok fisik dan porsi yang masih bisa dijual.', 'Open Daily stock limit to see physical stock and servings available to sell.'], {
         skipWhen: `details[open] > ${target('supervisor-stock')}`, unavailable: ['Belum ada stok dengan batas harian.', 'There are no daily stock limits.'],
       }),
-      action('supervisor-update-stock', ['Perbarui stok', 'Update stock'], ['Isi jumlah fisik yang sesuai, lalu klik Perbarui stok.', 'Enter the physical count, then select Update stock.'], {
-        result: 'supervisor-update-stock', unavailable: ['Belum ada stok yang bisa diperbarui.', 'There is no stock to update.'],
+      action('supervisor-update-stock', ['Perbarui stok', 'Update stock'], ['Klik Perbarui stok untuk menyimpan jumlah yang sudah diperiksa.', 'Select Update stock to save the count you checked.'], {
+        result: 'supervisor-update-stock', prerequisite: {
+          selector: 'input[data-demo-tour-prompt]', scope: '[data-stock-pool-id]',
+          instruction: ['Sesuaikan jumlah dengan stok fisik, lalu pilih Jumlah sudah sesuai.', 'Check the physical count, edit the number if needed, then select Count checked.'],
+          confirm: ['Jumlah sudah sesuai', 'Count checked'],
+        }, unavailable: ['Belum ada stok yang bisa diperbarui.', 'There is no stock to update.'],
       }),
     );
     const settings = step(['Buka pengaturan', 'Open settings'], ['Pilih Pengaturan untuk mengecek kebijakan operasional yang aktif.', 'Select Settings to review the active operating policies.'], section('pengaturan'));

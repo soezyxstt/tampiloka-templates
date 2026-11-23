@@ -352,6 +352,7 @@ try {
     const result = { id: demo.id, url: demoUrl(demo), theme: demo.theme, modules: demo.modules, status: 'running', views: [], pageErrors: [], consoleErrors: [], blockedNetworkMutations: [] };
     const started = Date.now();
     const context = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    await context.addInitScript(() => localStorage.setItem('tampiloka:cafe:guide-welcome', '1'));
     context.setDefaultTimeout(actionTimeout);
     await context.route('**/*', async route => {
       if (!['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) {

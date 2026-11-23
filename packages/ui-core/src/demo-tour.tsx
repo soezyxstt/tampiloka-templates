@@ -11,6 +11,7 @@ interface DemoTourIdentity {
   /** Change when the visitor switches to a different role or feature mode. */
   id: string;
   language: 'id' | 'en';
+  invitationKey?: string;
   role: DemoTourText;
 }
 
@@ -19,11 +20,30 @@ export type DemoTourContent = DemoTourIdentity & (
   | { actionSteps: readonly [DemoActionStep, ...DemoActionStep[]]; steps?: never; resume?: boolean }
 );
 
+const answeredInvitations = new Set<string>();
+
 export function DemoTour(props: DemoTourContent) {
   const [open, setOpen] = useState(Boolean(props.resume));
   const trigger = useRef<HTMLButtonElement>(null);
   const { language, role } = props;
   const label = language === 'en' ? 'Demo guide' : 'Panduan demo';
+  const [invited, setInvited] = useState(false);
+  const key = props.invitationKey;
+  useLayoutEffect(() => {
+    if (!key || props.resume || answeredInvitations.has(key)) return;
+    try { if (localStorage.getItem(key)) return; } catch { /* Storage may be unavailable. */ }
+    setInvited(true);
+  }, [key, props.resume]);
+  function answer(start: boolean) {
+    if (key) {
+      answeredInvitations.add(key);
+      try { localStorage.setItem(key, '1'); } catch { /* Remember for this visit. */ }
+    }
+    setInvited(false);
+    setOpen(start);
+    if (!start) trigger.current?.focus({ preventScroll: true });
+  }
+  const en = language === 'en';
   return <>
     <button ref={trigger} type="button" className="tl-demo-action-label tl-demo-tour-trigger"
       aria-label={label} aria-haspopup={props.steps ? 'dialog' : undefined} aria-expanded={open} title={label}
@@ -33,6 +53,15 @@ export function DemoTour(props: DemoTourContent) {
       </svg>
       <span>{language === 'en' ? 'Guide' : 'Panduan'}</span>
     </button>
+    {invited && <Dialog open onOpenChange={() => answer(false)} className="tl-demo-tour"
+      title={en ? 'Would you like a hand?' : 'Mau dipandu mencoba demo ini?'}
+      closeLabel={en ? 'Close' : 'Tutup'}
+      footer={<>
+        <Button variant="ghost" onClick={() => answer(false)}>{en ? 'Explore on my own' : 'Lewati, saya coba sendiri'}</Button>
+        <Button onClick={() => answer(true)}>{en ? 'Start guide' : 'Mulai panduan'}</Button>
+      </>}>
+      <p>{en ? 'Follow the highlighted area, one step at a time. You can open the guide again from the toolbar.' : 'Ikuti bagian yang disorot, satu langkah setiap kali. Panduan bisa dibuka kembali lewat tombol Panduan di bagian atas.'}</p>
+    </Dialog>}
     {props.actionSteps
       ? open && <DemoActionTour language={language} role={role} steps={props.actionSteps} trigger={trigger} onClose={() => setOpen(false)} />
       : <DemoOverviewTour language={language} role={role} steps={props.steps} open={open} onOpenChange={setOpen} trigger={trigger} />}

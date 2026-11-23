@@ -260,6 +260,7 @@ export default function DemoWorkspace({ demo }: { demo: DemoPreset }) {
           staffRole ? staffRoleLabel(staffRole, id => id) : 'Staf',
           staffRole ? staffRoleLabel(staffRole, (_, en) => en) : 'Staff',
         ],
+        invitationKey: 'tampiloka:cafe:guide-welcome',
         resume: activeView === 'pelanggan' && !showTableEntry && resumeCustomerTour,
         actionSteps: activeView === 'pelanggan'
           ? showTableEntry ? tableEntryTour(continueTableTour) : customerTour(isTableRoute, href(demo, 'staf'))
