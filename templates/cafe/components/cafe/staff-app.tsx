@@ -946,7 +946,7 @@ export function StaffApp({
               </div>
 
               {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout (Open Canvas · No Card-in-Card) */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className="lg:col-span-8 space-y-5">
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-tour-key={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className="lg:col-span-8 space-y-5">
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}

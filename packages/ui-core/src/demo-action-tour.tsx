@@ -15,6 +15,7 @@ export interface DemoActionStep {
   waitFor?: string;
   /** An alternative state that makes the step unnecessary. */
   skipWhen?: string;
+  skipWhenForRecord?: string;
   /** Adopt the record from an already completed action. */
   recordFrom?: string;
   /** Allow skipping this step when its sample data is absent. */
@@ -74,6 +75,9 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
     function matches(selector: string, root: ParentNode = document) {
       return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(visible);
     }
+    function matchesRecord(element: HTMLElement) {
+      return element.closest<HTMLElement>('[data-demo-tour-key]')?.dataset.demoTourKey === record.current;
+    }
     function refresh() {
       const current = latest.current.step;
       activeDialog = matches('[role="dialog"][data-state="open"]:not([aria-hidden="true"])').at(-1) ?? null;
@@ -87,11 +91,12 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
         return;
       }
       if ((current.skipWhen && matches(current.skipWhen, root).length)
+        || (current.skipWhenForRecord && record.current && matches(current.skipWhenForRecord, root).some(matchesRecord))
         || (current.waitFor && matches(current.waitFor, root).length)) {
         advance();
         return;
       }
-      const candidates = matches(current.target, root).filter(element => !current.sameRecord || !record.current || element.dataset.demoTourKey === record.current);
+      const candidates = matches(current.target, root).filter(element => !current.sameRecord || !record.current || matchesRecord(element));
       setAvailable(candidates.length > 0);
       const enabledTarget = candidates.find(element => !element.matches(':disabled,[aria-disabled="true"]'));
       setCanFocus(Boolean(enabledTarget));
@@ -127,7 +132,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       const target = event.target instanceof Element ? event.target.closest<HTMLElement>(current.target) : null;
       if (!target || (activeDialog && !activeDialog.contains(target)) || !visible(target)
         || target.matches(':disabled,[aria-disabled="true"]')
-        || (current.sameRecord && record.current && target.dataset.demoTourKey !== record.current)) return;
+        || (current.sameRecord && record.current && !matchesRecord(target))) return;
       if (current.onNavigate) { current.onNavigate(target); return; }
       activated = target;
       if (!current.result) advance();
@@ -152,7 +157,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       childList: true,
       attributes: true,
       attributeFilter: ['aria-current', 'aria-hidden', 'class', 'data-active', 'data-demo-fulfillment', 'data-demo-next-status',
-        'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-key', 'data-state', 'disabled', 'hidden', 'open', 'style'],
+        'data-demo-bill-paid', 'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-key', 'data-state', 'disabled', 'hidden', 'open', 'style'],
     });
     document.addEventListener('click', activate, true);
     document.addEventListener(resultEvent, result);
