@@ -7,6 +7,7 @@ const target = (name: string) => `[data-demo-target="${name}"]`;
 const choice = (name: string) => `#staff-content [data-choice="${name}"]`;
 const section = (name: string) => `[data-cafe-section="${name}"], .staff-mobile-nav [data-choice="${name}"]`;
 const paid = '[data-demo-payment-state="SETTLED"]';
+const staffBillPaid = '[data-demo-bill-paid]';
 const fulfilled = '[data-demo-fulfillment="complete"]';
 
 const step = (title: DemoTourText, instruction: DemoTourText, selector: string, options?: StepOptions): DemoActionStep =>
@@ -49,7 +50,7 @@ export function customerTour(tableRoute: boolean, staffHref: string): Steps {
     action('customer-order-bill', ['Buka tagihan pesanan', 'Open the order bill'], ['Klik tombol tagihan pada pesanan yang baru dikirim. Jika masih menunggu konfirmasi, terima pesanan dengan nama Anda sebagai kasir di tab staf, lalu kembali ke sini.', 'Select the bill on the order you placed. If it is awaiting confirmation, accept the order under your name as cashier in the staff tab, then return here.'], { link: staffLink }),
   );
   if (enabled('payments')) steps.push(
-    action('customer-create-payment', ['Buat instruksi pembayaran', 'Create payment instructions'], ['Pilih QRIS atau transfer bank, lalu klik tombol untuk membuat instruksi demo.', 'Choose QRIS or bank transfer, then select the button to create demo instructions.'], { result: 'customer-create-payment', skipWhen: paid }),
+    action('customer-create-payment', ['Buat instruksi pembayaran', 'Create payment instructions'], ['Pilih QRIS atau transfer bank, lalu klik tombol untuk membuat instruksi demo.', 'Choose QRIS or bank transfer, then select the button to create demo instructions.'], { result: 'customer-create-payment', skipWhen: paid, recordFrom: target('customer-pending-payment') }),
     action('demo-options', ['Buka simulasi pembayaran', 'Open payment simulation'], ['Klik Opsi demo pada toolbar untuk mencoba pembayaran tanpa uang sungguhan.', 'Select Demo options in the toolbar to try payment without real money.'], { skipWhen: paid }),
     action('demo-settle', ['Simulasikan pembayaran', 'Simulate payment'], ['Di bagian Pembayaran, klik Simulasikan lunas pada tagihan atas nama Anda.', 'Under Payments, select Simulate paid on the bill in your name.'], { result: 'demo-settle', sameRecord: true, skipWhen: paid }),
     action('demo-options-close', ['Kembali ke tagihan', 'Return to the bill'], ['Tutup Opsi demo untuk melihat status tagihan.', 'Close Demo options to see the bill status.'], { skipWhen: paid }),
@@ -85,29 +86,29 @@ function cashierTour(customerHref?: string): Steps {
     action('pos-add', ['Tambahkan item', 'Add the item'], ['Pilih varian, jumlah, dan opsi wajib, lalu klik Tambah.', 'Choose the size, quantity, and any required options, then select Add.'], { result: 'pos-add' }),
     action('pos-review', ['Periksa pesanan', 'Review the order'], ['Klik Periksa pesanan dan cek total.', 'Select Review order and check the total.'], { result: 'pos-review' }),
     action('pos-submit', ['Buat tagihan', 'Create the bill'], ['Klik Buat tagihan untuk menyimpan pesanan dan membuka tagihannya.', 'Select Create bill to save the order and open its bill.'], { result: 'pos-submit' }),
-    action('cashier-shift', ['Buka pengaturan shift', 'Manage the cashier shift'], ['Klik Buka shift sebelum menerima pembayaran tunai.', 'Select Open shift before accepting cash.'], { skipWhen: '[data-demo-shift-open="true"]' }),
-    action('cashier-open-shift', ['Buka shift kasir', 'Open the cashier shift'], ['Periksa modal awal, lalu klik Buka shift kasir.', 'Check the opening float, then select Open cashier shift.'], { result: 'OPEN_SHIFT', skipWhen: '[data-demo-shift-open="true"]' }),
-    step(['Kembali ke tagihan', 'Return to the bill'], ['Tutup pengaturan shift untuk melanjutkan pembayaran.', 'Close the shift settings to continue with payment.'], '[data-ui=dialog-content]:has([data-demo-shift-content]) > div > button[aria-label]', { skipWhen: '[data-demo-shift-open="true"]' }),
-    step(['Pilih tunai', 'Select cash'], ['Klik Tunai pada pilihan metode pembayaran.', 'Select Cash as the payment method.'], '.cafe-tender-method [data-choice="CASH"]'),
-    action('cashier-exact', ['Isi uang diterima', 'Enter cash received'], ['Klik Uang pas untuk mengisi jumlah sesuai saldo tagihan.', 'Select Exact amount to enter the balance due.'], { sameRecord: true }),
-    action('cashier-receive-cash', ['Catat pembayaran tunai', 'Record the cash payment'], ['Klik Terima tunai untuk mencatat pembayaran pada tagihan ini.', 'Select Accept cash to record payment on this bill.'], { result: 'cashier-receive-cash', sameRecord: true }),
+    action('cashier-shift', ['Buka pengaturan shift', 'Manage the cashier shift'], ['Klik Buka shift sebelum menerima pembayaran tunai.', 'Select Open shift before accepting cash.'], { skipWhen: `${staffBillPaid}, [data-demo-shift-open="true"]` }),
+    action('cashier-open-shift', ['Buka shift kasir', 'Open the cashier shift'], ['Periksa modal awal, lalu klik Buka shift kasir.', 'Check the opening float, then select Open cashier shift.'], { result: 'OPEN_SHIFT', skipWhen: `${staffBillPaid}, [data-demo-shift-open="true"]` }),
+    step(['Kembali ke tagihan', 'Return to the bill'], ['Tutup pengaturan shift untuk melanjutkan pembayaran.', 'Close the shift settings to continue with payment.'], '[data-ui=dialog-content]:has([data-demo-shift-content]) > div > button[aria-label]', { skipWhen: `${staffBillPaid}, [data-demo-shift-open="true"]` }),
+    step(['Pilih tunai', 'Select cash'], ['Klik Tunai pada pilihan metode pembayaran.', 'Select Cash as the payment method.'], '.cafe-tender-method [data-choice="CASH"]', { skipWhen: staffBillPaid }),
+    action('cashier-exact', ['Isi uang diterima', 'Enter cash received'], ['Klik Uang pas untuk mengisi jumlah sesuai saldo tagihan.', 'Select Exact amount to enter the balance due.'], { sameRecord: true, skipWhen: staffBillPaid }),
+    action('cashier-receive-cash', ['Catat pembayaran tunai', 'Record the cash payment'], ['Klik Terima tunai untuk mencatat pembayaran pada tagihan ini.', 'Select Accept cash to record payment on this bill.'], { result: 'cashier-receive-cash', sameRecord: true, skipWhen: staffBillPaid }),
   );
   if (!enabled('cashier') && enabled('payments')) steps.push(
     action('demo-options', ['Buka opsi demo', 'Open demo options'], ['Klik Opsi demo untuk melihat instruksi pembayaran yang dibuat pelanggan.', 'Select Demo options to find payment instructions created by customers.']),
     action('demo-settle', ['Selesaikan simulasi pembayaran', 'Complete the payment simulation'], ['Klik Simulasikan lunas pada pembayaran yang ingin dicoba.', 'Select Simulate paid on the payment you want to try.'], {
-      result: 'demo-settle', unavailable: ['Jika tidak ada instruksi, buat QRIS atau transfer bank sebagai pelanggan, lalu buka kembali Opsi demo.', 'If no instructions appear, create QRIS or bank transfer instructions as a customer, then reopen Demo options.'],
+      result: 'demo-settle', sameRecord: true, unavailable: ['Jika tidak ada instruksi, buat QRIS atau transfer bank sebagai pelanggan, lalu buka kembali Opsi demo.', 'If no instructions appear, create QRIS or bank transfer instructions as a customer, then reopen Demo options.'],
     }),
     action('demo-options-close', ['Kembali ke pesanan', 'Return to orders'], ['Tutup Opsi demo untuk kembali ke pesanan masuk.', 'Close Demo options to return to incoming orders.']),
   );
   if (!enabled('cashier') && !enabled('payments')) steps.push(
-    action('counter-open', ['Pilih tagihan kasir', 'Choose a counter bill'], ['Klik Konfirmasi pembayaran kasir pada tagihan.', 'Select Confirm counter payment on a bill.'], { unavailable: ['Belum ada tagihan yang menunggu pembayaran kasir.', 'No bills are awaiting counter payment.'] }),
+    action('counter-open', ['Pilih tagihan kasir', 'Choose a counter bill'], ['Klik Konfirmasi pembayaran kasir pada tagihan.', 'Select Confirm counter payment on a bill.'], { sameRecord: true, unavailable: ['Belum ada tagihan yang menunggu pembayaran kasir.', 'No bills are awaiting counter payment.'] }),
     action('counter-confirm', ['Konfirmasi penerimaan', 'Confirm payment received'], ['Isi referensi, centang konfirmasi, lalu klik Catat pembayaran kasir.', 'Enter a reference, check the confirmation box, then select Record counter payment.'],
-      { result: 'counter-confirm', unavailable: ['Buka tagihan untuk mengisi konfirmasi, atau lewati jika tidak ada tagihan.', 'Open a bill to complete confirmation, or skip if no bill is available.'] }),
+      { result: 'counter-confirm', sameRecord: true, unavailable: ['Buka tagihan untuk mengisi konfirmasi, atau lewati jika tidak ada tagihan.', 'Open a bill to complete confirmation, or skip if no bill is available.'] }),
   );
   if (!enabled('kitchen')) steps.push(
     step(['Buka daftar pesanan', 'Open the order list'], ['Kembali ke Pesanan masuk untuk melihat pesanan yang sudah diterima.', 'Return to Incoming orders to see accepted orders.'], choice('orders'), { skipWhen: '#incoming-orders' }),
     action('cashier-serve', ['Serahkan pesanan', 'Hand over the order'], ['Klik Sudah disajikan atau Sudah diambil setelah pesanan diserahkan.', 'Select Served or Collected after handing over the order.'], {
-      result: 'cashier-serve', unavailable: ['Belum ada pesanan aktif yang bisa diserahkan. Periksa konfirmasi dan pembayaran terlebih dahulu.', 'No active orders can be handed over yet. Check acceptance and payment first.'],
+      result: 'cashier-serve', sameRecord: true, unavailable: ['Belum ada pesanan aktif yang bisa diserahkan. Periksa konfirmasi dan pembayaran terlebih dahulu.', 'No active orders can be handed over yet. Check acceptance and payment first.'],
     }),
   );
   return steps;

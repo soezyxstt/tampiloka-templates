@@ -678,11 +678,11 @@ export function CustomerApp({
     const element = cartPreviewRef.current;
     const demo = element?.closest<HTMLElement>('.demo-session');
     if (!element || !demo || !cartPreviewVisible) return;
-    const measure = () => demo.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
+    const measure = () => document.documentElement.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
-    return () => { observer.disconnect(); demo.style.removeProperty('--demo-language-cart-offset'); };
+    return () => { observer.disconnect(); document.documentElement.style.removeProperty('--demo-language-cart-offset'); };
   }, [cartPreviewVisible]);
 
   return (
@@ -1511,7 +1511,7 @@ export function CustomerApp({
                             }}>{busy ? t('Memuat…', 'Loading…') : selectedPaymentMethod === 'QRIS' ? t('Buat QRIS', 'Create QRIS') : t('Buat Virtual Account', 'Create virtual account')}</Button>
                           </>
                         ) : (
-                          <section data-demo-target="customer-pending-payment" className="py-4 text-center space-y-4">
+                          <section data-demo-target="customer-pending-payment" data-demo-tour-key={selectedBill.id} className="py-4 text-center space-y-4">
                             <div className="space-y-1">
                               <h3 className="font-heading text-lg font-semibold">{pendingAttempt.method === 'QRIS' ? 'QRIS' : 'Virtual Account'}</h3>
                               <p className="text-sm text-[var(--muted-foreground)]">{snapshot?.outlet?.name}</p>

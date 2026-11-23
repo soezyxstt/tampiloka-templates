@@ -858,8 +858,8 @@ export function StaffApp({
                             disabled={busy}
                             onClick={async () => {
                               try {
-                                await runStaffCommand('ACCEPT_ORDER_REQUEST', { orderRequestId: req.id });
-                                if (snapshot.runtime?.demo) reportDemoTourResult('cashier-accept', req.id);
+                                const response = await runStaffCommand('ACCEPT_ORDER_REQUEST', { orderRequestId: req.id });
+                                if (snapshot.runtime?.demo) reportDemoTourResult('cashier-accept', response?.result?.billId, req.id);
                                 toast.success(t(`Pesanan ${req.customerName} diterima.`, `Order for ${req.customerName} accepted.`));
                               } catch { /* The actionable error is shown above the workspace. */ }
                             }}
@@ -946,7 +946,7 @@ export function StaffApp({
               </div>
 
               {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout (Open Canvas · No Card-in-Card) */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} className="lg:col-span-8 space-y-5">
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className="lg:col-span-8 space-y-5">
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}

@@ -15,6 +15,8 @@ export interface DemoActionStep {
   waitFor?: string;
   /** An alternative state that makes the step unnecessary. */
   skipWhen?: string;
+  /** Adopt the record from an already completed action. */
+  recordFrom?: string;
   /** Allow skipping this step when its sample data is absent. */
   unavailable?: DemoTourText;
   /** Use the identity of the previous successful action. */
@@ -78,6 +80,12 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       setDialog(activeDialog);
       if (complete) return;
       const root = activeDialog ?? document;
+      const existing = current.recordFrom && matches(current.recordFrom, root)[0];
+      if (existing && existing.dataset.demoTourKey) {
+        record.current = existing.dataset.demoTourKey;
+        advance();
+        return;
+      }
       if ((current.skipWhen && matches(current.skipWhen, root).length)
         || (current.waitFor && matches(current.waitFor, root).length)) {
         advance();
@@ -125,10 +133,10 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       if (!current.result) advance();
     }
     function result(event: Event) {
-      const detail = (event as CustomEvent<{ action: string; record?: string }>).detail;
+      const detail = (event as CustomEvent<{ action: string; record?: string; activationKey?: string }>).detail;
       const expected = latest.current.step.result;
       if (advancing || !activated || !detail || !(typeof expected === 'string' ? expected === detail.action : expected?.includes(detail.action))
-        || (activated.dataset.demoTourKey && activated.dataset.demoTourKey !== detail.record)) return;
+        || (activated.dataset.demoTourKey && activated.dataset.demoTourKey !== (detail.activationKey ?? detail.record))) return;
       if (detail.record) record.current = detail.record;
       advance();
     }
@@ -186,7 +194,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
         <Button size="sm" variant="ghost" onClick={dismiss}>{complete ? (en ? 'Finish' : 'Selesai') : (en ? 'Skip' : 'Lewati')}</Button>
         {!complete && step.link && <a href={step.link.href} target="_blank" rel="noopener" className="tl-button tl-button-outline tl-button-sm">{translate(step.link.label)}</a>}
         {!complete && !available && step.unavailable && <Button size="sm" variant="outline" onClick={() => {
-          record.current = undefined;
+          if (!step.sameRecord) record.current = undefined;
           if (index === steps.length - 1) setComplete(true);
           else setIndex(index + 1);
         }}>{en ? 'Skip this step' : 'Lewati langkah ini'}</Button>}

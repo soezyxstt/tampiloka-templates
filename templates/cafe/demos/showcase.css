@@ -110,3 +110,8 @@
   .demo-tools-reset { align-items:flex-start; flex-direction:column; }
 }
 
+
+body:has(.demo-session[data-demo-view=pelanggan]) > .tl-demo-action-tour-bottom {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px) + var(--demo-language-cart-offset, 0px) + 52px);
+}
+body:has(.demo-session) > .tl-demo-action-tour-top { top: calc(var(--demo-height) + 12px); }
