@@ -1,0 +1,101 @@
+name: Migrate public demos from D1 to Turso (one time)
+on:
+  push:
+    branches: [ops/turso-demo-cutover]
+    paths: ['.github/workflows/migrate-turso-demos-once.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  migrate:
+    if: github.repository == 'soezyxstt/tampiloka-templates' && github.ref == 'refs/heads/ops/turso-demo-cutover'
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [commerce, booking, school]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    concurrency:
+      group: catalog-and-demo-release
+      queue: max
+    env:
+      EXPECTED_MAIN_SHA: 6b62027f6063bac79a65fde282bb28312b6751d0
+      WRANGLER_SEND_METRICS: 'false'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin application source to the verified main revision
+        run: |
+          install -m 600 scripts/ops-turso-demo-cutover.mjs "$RUNNER_TEMP/tl-cutover.mjs"
+          node --check "$RUNNER_TEMP/tl-cutover.mjs"
+          git checkout --detach "$EXPECTED_MAIN_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$EXPECTED_MAIN_SHA"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Test and build the verified source before the maintenance window
+        run: |
+          pnpm --filter @tampiloka/template-${{ matrix.family }} test
+          pnpm --filter @tampiloka/template-${{ matrix.family }} typecheck
+          pnpm build:${{ matrix.family }}
+      - name: Install Chromium for release verification
+        run: pnpm --filter @tampiloka/template-${{ matrix.family }} exec playwright install --with-deps chromium
+      - name: Capture School previews
+        if: matrix.family == 'school'
+        run: |
+          pnpm test:school:browser
+          mkdir -p templates/school/dist/previews
+          cp templates/school/test-results/school/*-preview.jpg templates/school/dist/previews/
+      - name: Check Booking with local SQLite
+        if: matrix.family == 'booking'
+        run: pnpm --filter @tampiloka/template-booking test:e2e
+      - name: Stamp the exact main deployment
+        run: node scripts/demo-release.mjs stamp '${{ matrix.family }}' 'templates/${{ matrix.family }}/dist'
+      - name: Freeze source writes, transfer and verify all data, migrate, switch Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURSO_AUTH_TOKEN: ${{ secrets[format('TURSO_{0}_AUTH_TOKEN', matrix.family)] }}
+        run: |
+          umask 077
+          node "$RUNNER_TEMP/tl-cutover.mjs" '${{ matrix.family }}'
+      - name: Verify hosted customer and staff flows
+        env:
+          COMMERCE_BASE_URL: https://ecommerce.tampiloka.site
+          SCHOOL_URL: https://school.tampiloka.site
+          SCHOOL_SCREENSHOTS: test-results/live-school
+          BOOKING_TEST_URL: https://booking.tampiloka.site
+        run: |
+          case '${{ matrix.family }}' in
+            commerce) pnpm --filter @tampiloka/template-commerce test:e2e ;;
+            school) (cd templates/school && node tests/live-smoke.mjs && pnpm test:e2e) ;;
+            booking) BOOKING_CHECK_FILTER='^Full customer booking, failed attempt, retry, payment, receipt, QR image and staff check-in$' pnpm --filter @tampiloka/template-booking test:e2e ;;
+          esac
+      - name: Verify hosted previews and release identity
+        run: |
+          node scripts/check-release-previews.mjs '${{ matrix.family }}' 'templates/${{ matrix.family }}/dist'
+          case '${{ matrix.family }}' in
+            commerce) origin=https://ecommerce.tampiloka.site ;;
+            *) origin=https://${{ matrix.family }}.tampiloka.site ;;
+          esac
+          node scripts/demo-release.mjs verify '${{ matrix.family }}' 'templates/${{ matrix.family }}/dist' "$origin"
+  canonical-release:
+    needs: migrate
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start canonical verified release on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run release-demos.yml --ref main
