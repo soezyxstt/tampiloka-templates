@@ -28,9 +28,9 @@ assert.equal(config.name,name);
 assert.equal(config.vars.DEMO_MODE,'true');
 const url = config.vars.TURSO_DATABASE_URL;
 assert.equal(new URL(url).hostname,name+'-soezyxstt.aws-ap-south-1.turso.io');
-for(const key of ['CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','TURSO_AUTH_TOKEN','EXPECTED_MAIN_SHA']) assert.ok(process.env[key], 'Missing '+key);
+for(const key of ['CLOUDFLARE_API_TOKEN','CLOUDFLARE_D1_MIGRATION_TOKEN','CLOUDFLARE_ACCOUNT_ID','TURSO_AUTH_TOKEN','EXPECTED_MAIN_SHA']) assert.ok(process.env[key], 'Missing '+key);
 process.env.TURSO_DATABASE_URL=url;
-const run = (cmd,args,dir=root) => execFileSync(cmd,args,{cwd:dir,stdio:'inherit',env:process.env});
+const run = (cmd,args,dir=root,env=process.env) => execFileSync(cmd,args,{cwd:dir,stdio:'inherit',env});
 const checkMain = () => {
   const actual=execFileSync('git',['ls-remote','origin','refs/heads/main'],{cwd:root,encoding:'utf8'}).split(/\s+/)[0];
   assert.equal(actual,process.env.EXPECTED_MAIN_SHA,'main changed; stop before modifying or deploying.');
@@ -38,7 +38,8 @@ const checkMain = () => {
 };
 const account='/accounts/'+process.env.CLOUDFLARE_ACCOUNT_ID;
 async function cf(method,path,body) {
-  const r=await fetch('https://api.cloudflare.com/client/v4'+account+path,{method,headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(45000)});
+  const token=path.startsWith('/d1/') ? process.env.CLOUDFLARE_D1_MIGRATION_TOKEN : process.env.CLOUDFLARE_API_TOKEN;
+  const r=await fetch('https://api.cloudflare.com/client/v4'+account+path,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(45000)});
   const result=await r.json();
   if(!r.ok || !result.success) throw new Error('Cloudflare '+method+' '+path+' failed: HTTP '+r.status+' codes '+(result.errors||[]).map(x=>x.code).join(','));
   return result.result;
@@ -114,7 +115,7 @@ try {
   const installed=await query("SELECT name FROM sqlite_schema WHERE name GLOB '"+guardPrefix+"*'");
   assert.deepEqual(installed.map(x=>x.name).sort(),[...guards].sort(),'Source write guards missing.');
   console.log('D1 write barrier active for '+family+'; expires '+new Date(expiration*1000).toISOString());
-  run('pnpm',['exec','wrangler','d1','export',name,'--remote','--output',join(work,'source.sql')],cwd);
+  run('pnpm',['exec','wrangler','d1','export',name,'--remote','--output',join(work,'source.sql')],cwd,{...process.env,CLOUDFLARE_API_TOKEN:process.env.CLOUDFLARE_D1_MIGRATION_TOKEN});
   // Remove only our temporary write guards from the private export. Preserve all application
   // triggers, data, and original D1 migration history. No raw data is uploaded as an artifact.
   const python=String.raw`
