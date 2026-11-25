@@ -2,7 +2,7 @@ name: Migrate public demos from D1 to Turso (one time)
 on:
   push:
     branches: [ops/turso-demo-cutover]
-    paths: ['.github/workflows/migrate-turso-demos-once.yml']
+    paths: ['scripts/ops-turso-demo-cutover.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -62,6 +62,7 @@ jobs:
       - name: Freeze source writes, transfer and verify all data, migrate, switch Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_D1_MIGRATION_TOKEN: ${{ secrets.CLOUDFLARE_D1_MIGRATION_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURSO_AUTH_TOKEN: ${{ secrets[format('TURSO_{0}_AUTH_TOKEN', matrix.family)] }}
         run: |
