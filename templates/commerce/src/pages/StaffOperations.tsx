@@ -1,9 +1,9 @@
 import { t, sampleText } from '../lib/language';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/shadcn/input-group';
-import { Badge } from '../components/shadcn/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Checkbox } from '../components/shadcn/checkbox';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/shadcn/table';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 import { Download, Edit3, Plus, Search } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import type { Coupon, StaffSnapshot, StoreConfig, ShippingMethod, CommerceFeature } from '../shared/contracts';

@@ -1,5 +1,5 @@
 import { t, sampleText } from '../lib/language';
-import { Button as ShadcnButton } from './shadcn/button';
+import { Button as ShadcnButton } from './ui/button';
 import { MessageCircle } from 'lucide-react';
 import { useCommerce } from '../lib/store';
 import { ContactAction } from './ContactAction';

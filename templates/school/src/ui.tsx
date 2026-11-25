@@ -1,9 +1,22 @@
-import { createContext, useContext, useId, type ReactNode, type MouseEventHandler } from 'react';
-import * as Select from '@radix-ui/react-select';
-import * as RadixCollapsible from '@radix-ui/react-collapsible';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronDown, Check, Menu as MenuIcon } from 'lucide-react';
-import { Button, Input, Textarea } from '@tampiloka/ui-core';
+import { createContext, isValidElement, useContext, useId, type ReactElement, type ReactNode, type MouseEventHandler } from 'react';
+import { ChevronDown, Menu as MenuIcon } from 'lucide-react';
+import {
+    Button,
+    Collapsible as UiCollapsible,
+    CollapsiblePanel,
+    CollapsibleTrigger,
+    Input,
+    Menu,
+    MenuContent,
+    MenuItem,
+    MenuTrigger,
+    SelectContent,
+    SelectItem,
+    SelectRoot,
+    SelectTrigger,
+    SelectValue,
+    Textarea,
+} from '@tampiloka/ui-core';
 import type { Field, Locale, Snapshot, Text } from './domain/types.ts';
 import { visible } from './cms/registry.ts';
 export interface AppContext {
@@ -49,15 +62,21 @@ export function Pick({ label, value, options, onChange, demo = false, required =
     placeholder?: string;
 }) {
     const id = useId();
-    return <div className={demo ? 'school-demo-pick' : 'field'}>{!demo && <label id={id}>{label}</label>}<Select.Root value={value} onValueChange={onChange} required={required}><Select.Trigger type="button" className={demo ? 'tl-demo-select' : 'school-select'} aria-label={label} aria-labelledby={demo ? undefined : id}><Select.Value placeholder={placeholder} /><Select.Icon><ChevronDown size={16} aria-hidden/></Select.Icon></Select.Trigger><Select.Portal><Select.Content className="tl-demo-select-menu school-select-popup" position="popper" sideOffset={6}><Select.Viewport>{options.map(x => <Select.Item className="tl-demo-select-item" value={x.value} key={x.value}><Select.ItemText>{x.label}</Select.ItemText><Select.ItemIndicator className="school-select-check"><Check size={16}/></Select.ItemIndicator></Select.Item>)}</Select.Viewport></Select.Content></Select.Portal></Select.Root></div>;
+    return <div className={demo ? 'school-demo-pick' : 'field'}>{!demo && <label id={id}>{label}</label>}<SelectRoot value={value} onValueChange={v => { if (typeof v === 'string') onChange(v); }} items={options} placeholder={placeholder} required={required}><SelectTrigger type="button" className={demo ? 'tl-demo-select' : 'school-select'} aria-label={label} aria-labelledby={demo ? undefined : id}><SelectValue /></SelectTrigger><SelectContent className="tl-demo-select-menu school-select-popup" sideOffset={6}>{options.map(x => <SelectItem className="tl-demo-select-item" value={x.value} key={x.value}>{x.label}</SelectItem>)}</SelectContent></SelectRoot></div>;
 }
 export function Collapsible({ title, children }: { title: ReactNode; children: ReactNode }) {
-    return <RadixCollapsible.Root className="school-disclosure"><RadixCollapsible.Trigger className="school-disclosure-trigger"><span>{title}</span><ChevronDown aria-hidden="true" size={20}/></RadixCollapsible.Trigger><RadixCollapsible.Content className="school-disclosure-content">{children}</RadixCollapsible.Content></RadixCollapsible.Root>;
+    return <UiCollapsible className="school-disclosure"><CollapsibleTrigger className="school-disclosure-trigger"><span>{title}</span><ChevronDown aria-hidden="true" size={20}/></CollapsibleTrigger><CollapsiblePanel className="school-disclosure-content">{children}</CollapsiblePanel></UiCollapsible>;
 }
 export function NavigationMenu({ label, children }: { label: string; children: ReactNode }) {
-    return <DropdownMenu.Root><DropdownMenu.Trigger asChild><Button className="mobile-menu" variant="ghost" size="icon" aria-label={label}><MenuIcon /></Button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="school-navigation-menu" align="end" sideOffset={6}>{children}</DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>;
+    return <Menu><MenuTrigger render={<Button className="mobile-menu" variant="ghost" size="icon" aria-label={label}><MenuIcon /></Button>} /><MenuContent className="school-navigation-menu" align="end" sideOffset={6}>{children}</MenuContent></Menu>;
 }
-export const NavigationMenuItem = DropdownMenu.Item;
+export function NavigationMenuItem({ asChild, children, value }: { asChild?: boolean; children: ReactNode; value?: string }) {
+    const fallbackId = useId();
+    if (asChild && isValidElement(children)) {
+        return <MenuItem value={value ?? fallbackId} render={children as ReactElement} />;
+    }
+    return <MenuItem value={value ?? fallbackId}>{children}</MenuItem>;
+}
 export function FieldInput({ field, values, set }: {
     field: Field;
     values: Record<string, unknown>;

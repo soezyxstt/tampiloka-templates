@@ -1,7 +1,7 @@
 import { t, sampleText } from '../lib/language';
 import { MemberAccess } from '../components/MemberAccess';
 import { rememberOrderAccess } from '../components/OrderTracking';
-import { RadioGroup, RadioGroupItem } from '../components/shadcn/radio-group';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Input, Textarea } from '../components/ui';
 import { ArrowLeft, ArrowRight, Check, CreditCard, MapPin, Package, ShoppingBag, Truck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';

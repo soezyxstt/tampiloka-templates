@@ -1,8 +1,8 @@
 import { t, sampleText } from '../lib/language';
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '../components/shadcn/sheet';
-import { Badge } from '../components/shadcn/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Button as ShadcnButton } from '../components/shadcn/button';
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '../components/ui/sheet';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Button as ShadcnButton } from '../components/ui/button';
 import { ArrowRight, BarChart3, Boxes, CircleDollarSign, ClipboardList, LayoutDashboard, LogOut, Menu, Package, RefreshCw, Settings2, Store, Tags, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { StaffRole, StaffSnapshot } from '../shared/contracts';

@@ -1,7 +1,7 @@
 import { ProductGallery, GalleryFinishNote } from './ProductGallery';
 import { t, sampleText, choose } from '../lib/language';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './shadcn/accordion';
-import { Button as ShadcnButton } from './shadcn/button';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion';
+import { Button as ShadcnButton } from './ui/button';
 import { ContactAction } from './ContactAction';
 import { ArrowUpRight, Check, Heart, Package, ShieldCheck, ShoppingBag, Share2, Truck } from 'lucide-react';
 import { useEffect, useState } from 'react';

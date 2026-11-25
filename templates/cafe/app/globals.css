@@ -1,5 +1,7 @@
+@layer ui-sdk;
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@tampiloka/ui-core/styles.css";
 @import "../components/ui/workspace.css";
 @import "../components/ui/motion.css";
 

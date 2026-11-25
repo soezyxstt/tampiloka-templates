@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { choose, sampleText } from '../lib/language';
 import { sampleFinishes } from '../../content/finishes';
 import type { Product, Variant } from '../shared/contracts';
-import { Button } from './shadcn/button';
+import { Button } from './ui/button';
 import { ProductImage } from './ui';
 
 const demoCaptions: Record<string, [string, string]> = {

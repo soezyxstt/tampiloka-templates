@@ -867,17 +867,29 @@ export function CustomerApp({
                     const favorite = favoriteIds.has(item.id);
                     return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${browsingWholeMenu && itemIndex === 0 && photos[0] && item.isAvailable ? styles.openingDish : ''} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
-                        {photos[0] ? <Image src={photos[0]} alt="" width={640} height={480} unoptimized loading={itemIndex < 2 ? 'eager' : 'lazy'} /> : <Coffee aria-hidden="true" className="w-12 h-12 text-[var(--primary-ink)] m-auto" />}
-                        <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? t('Hapus', 'Remove') : t('Simpan', 'Save')} ${item.name} ${favorite ? t('dari', 'from') : t('ke', 'to')} ${t('favorit', 'favorites')}`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
-                        {!item.isAvailable && <span className={styles.soldOutBadge}>{t("Habis", "Sold out")}</span>}
-                        {canOrder && quantity > 0 && <span className={styles.quantityBadge}>{quantity} {t('di keranjang', 'in cart')}</span>}
+                        {photos[0] ? <Image src={photos[0]} alt="" width={200} height={200} unoptimized loading={itemIndex < 4 ? 'eager' : 'lazy'} /> : <Coffee aria-hidden="true" className="w-8 h-8 text-[var(--primary-ink)] m-auto" />}
+                        {canOrder && (
+                          <div className={styles.quickAddSlot}>
+                            <button
+                              type="button"
+                              data-demo-target="cafe-add-dish"
+                              aria-label={`${t('Tambah', 'Add')} ${item.name}${quantity > 0 ? ` (${quantity})` : ''}`}
+                              disabled={!item.isAvailable || busy || tableUnavailable}
+                              onClick={() => handleQuickAddOrConfigure(item)}
+                              className={styles.quickAddBtn}
+                            >
+                              {quantity > 0 ? <span>{quantity}</span> : <Plus className="w-4 h-4" aria-hidden="true" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className={styles.menuCardBody}>
                         <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle} data-demo-target="cafe-dish" data-orderable={item.isAvailable || undefined}>{item.name}</button>
-                        <p className={styles.menuDescription}>{item.description}</p>
-                        <div className={styles.dishActions}>
-                          <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className="font-semibold text-sm sm:text-base" />
-                          {canOrder && <Button data-demo-target="cafe-add-dish" variant="subtle" size="sm" aria-label={`${t('Tambah', 'Add')} ${item.name}`} disabled={!item.isAvailable || busy || tableUnavailable} onClick={() => handleQuickAddOrConfigure(item)} className="min-h-[44px] min-w-[44px]"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t("Tambah", "Add")}</span></Button>}
+                        {item.description && <p className={styles.menuDescription}>{item.description}</p>}
+                        <div className={styles.dishMetaRow}>
+                          <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className={styles.dishPrice} />
+                          {!item.isAvailable && <span className={styles.soldOutText}>{t("Habis", "Sold out")}</span>}
+                          <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? t('Hapus', 'Remove') : t('Simpan', 'Save')} ${item.name} ${favorite ? t('dari', 'from') : t('ke', 'to')} ${t('favorit', 'favorites')}`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
                         </div>
                       </div>
                     </MotionItem>;
@@ -1949,26 +1961,25 @@ export function CustomerApp({
           <motion.div
             ref={cartPreviewRef}
             data-ui="customer-cart-bar"
-            initial={shouldReduceMotion ? { opacity: 0 } : { y: 64, opacity: 0 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { y: 48, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { y: 64, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-            className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] inset-x-0 z-20 px-4 py-3 pointer-events-none"
+            exit={shouldReduceMotion ? { opacity: 0 } : { y: 48, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] inset-x-0 z-20 px-4 py-2 pointer-events-none"
           >
-            <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3 bg-[var(--foreground)] text-[var(--background)] rounded-2xl px-5 py-3 shadow-xl pointer-events-auto">
-              <div>
-                <p className="text-[13px] font-medium opacity-75">
-                  {cartSummary.totalQty} item di keranjang
-                </p>
-                <p className="text-[15px] font-bold text-[var(--background)] tabular-nums">
-                  {t("Estimasi", "Estimate")} <Money amount={cartSummary.totalIdr} />
-                </p>
-              </div>
-              <Button data-demo-target="customer-cart" variant="primary" onClick={() => setActiveScreen('keranjang')}>
-                <ShoppingCart className="w-4 h-4" />
-                <span>{t("Lihat Keranjang", "View cart")}</span>
-              </Button>
-            </div>
+            <button
+              type="button"
+              data-demo-target="customer-cart"
+              onClick={() => setActiveScreen('keranjang')}
+              className="w-full max-w-[640px] mx-auto flex items-center justify-between gap-3 min-h-[48px] bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] rounded-full px-5 py-2.5 shadow-lg pointer-events-auto transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-2 text-[14px] font-semibold">
+                <ShoppingCart className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>{t("Keranjang", "Cart")}</span>
+                <span className="opacity-85 tabular-nums">· {cartSummary.totalQty} {t("item", "items")}</span>
+              </span>
+              <Money amount={cartSummary.totalIdr} className="text-[15px] font-bold text-[var(--primary-foreground)]" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

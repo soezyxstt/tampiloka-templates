@@ -1,14 +1,20 @@
 import { statusLabels } from "../lib/labels";
 import { useId, cloneElement, isValidElement, type ReactElement, type ReactNode, type ComponentProps } from "react";
-import * as Select from "@radix-ui/react-select";
-import * as Collapsible from "@radix-ui/react-collapsible";
-import { Check, ChevronDown, LoaderCircle } from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 import {
   Button,
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
   Input,
   Textarea,
   Dialog as SharedDialog,
   Reveal,
+  SelectContent,
+  SelectItem,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
 } from "@tampiloka/ui-core";
 import { useBooking, useErrorText } from "../lib/store";
 export { Input, Textarea, Reveal };
@@ -79,54 +85,44 @@ export function Picker({
   const generated = useId(),
     id = givenId || generated;
   return (
-    <Select.Root
+    <SelectRoot
       value={value || "_all"}
-      onValueChange={(v) => onChange(v === "_all" ? "" : v)}
+      onValueChange={(v) => onChange(v === "_all" || typeof v !== "string" ? "" : v)}
+      items={options.map((option) => ({ value: option.value || "_all", label: option.label }))}
       disabled={disabled}
     >
-      <Select.Trigger
+      <SelectTrigger
         id={id}
         className={compact ? "b-select tl-demo-select" : "b-select"}
         aria-label={label}
         aria-describedby={describedBy}
       >
-        <Select.Value />
-        <Select.Icon>
-          <ChevronDown size={14} />
-        </Select.Icon>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content
-          position="popper"
-          sideOffset={6}
-          className={
-            compact ? "b-select-menu tl-demo-select-menu" : "b-select-menu"
-          }
-        >
-          <Select.Viewport>
-            {options.map((option) => (
-              <Select.Item
-                key={option.value}
-                value={option.value || "_all"}
-                className="b-select-option"
-              >
-                <Select.ItemText>{option.label}</Select.ItemText>
-                <Select.ItemIndicator>
-                  <Check size={15} />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent
+        sideOffset={6}
+        className={
+          compact ? "b-select-menu tl-demo-select-menu" : "b-select-menu"
+        }
+      >
+        {options.map((option) => (
+          <SelectItem
+            key={option.value}
+            value={option.value || "_all"}
+            className="b-select-option"
+          >
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </SelectRoot>
   );
 }
 export function Disclosure({ title, children, className = "" }: { title: ReactNode; children: ReactNode; className?: string }) {
-  return <Collapsible.Root className={`b-disclosure ${className}`}>
-    <Collapsible.Trigger className="b-disclosure-trigger"><span>{title}</span><ChevronDown size={18} aria-hidden="true" /></Collapsible.Trigger>
-    <Collapsible.Content className="b-disclosure-content">{children}</Collapsible.Content>
-  </Collapsible.Root>;
+  return <Collapsible className={`b-disclosure ${className}`}>
+    <CollapsibleTrigger className="b-disclosure-trigger"><span>{title}</span><ChevronDown size={18} aria-hidden="true" /></CollapsibleTrigger>
+    <CollapsiblePanel className="b-disclosure-content">{children}</CollapsiblePanel>
+  </Collapsible>;
 }
 export function ErrorNote({ error }: { error: unknown }) {
   const text = useErrorText(error);

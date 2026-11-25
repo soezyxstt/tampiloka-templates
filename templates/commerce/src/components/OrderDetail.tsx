@@ -1,5 +1,5 @@
 import { t, sampleText } from '../lib/language';
-import { Badge } from './shadcn/badge';
+import { Badge } from './ui/badge';
 import { ArrowUpRight, Check, Clock, Copy, MapPin, Package, Printer, Truck } from 'lucide-react';
 import type { Order } from '../shared/contracts';
 import { dateTime, money, orderLabels, paymentLabels, returnLabels } from '../lib/format';

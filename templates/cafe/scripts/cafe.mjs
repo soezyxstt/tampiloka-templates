@@ -337,7 +337,7 @@ async function init(target, options) {
   for (const group of DEPENDENCY_GROUPS) for (const name of Object.keys(pkg[group] || {})) {
     if (name.startsWith('@tampiloka/')) {
       const id = name.slice('@tampiloka/'.length);
-      if (id !== 'storage') throw new Error(`Missing standalone shared package: ${id}`);
+      if (id !== 'storage' && id !== 'ui-core') throw new Error(`Missing standalone shared package: ${id}`);
       if (!shared.includes(id)) shared.push(id);
       pkg[group][name] = `file:./packages/${id}`;
     }

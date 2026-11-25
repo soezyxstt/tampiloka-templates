@@ -1,28 +1,94 @@
 'use client';
 
 import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
+import {
+  DialogBackdrop,
+  DialogClose as CoreDialogClose,
+  DialogContent as CoreDialogContent,
+  DialogDescription,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger as CoreDialogTrigger,
+} from '@tampiloka/ui-core';
 import { cn } from '@/lib/utils';
 
-// shadcn-style composable Radix primitives. Cafe-specific copy lives in DialogModal.
-export const Dialog = DialogPrimitive.Root;
-export const DialogTrigger = DialogPrimitive.Trigger;
-export const DialogPortal = DialogPrimitive.Portal;
-export const DialogClose = DialogPrimitive.Close;
-export const DialogTitle = DialogPrimitive.Title;
-export const DialogDescription = DialogPrimitive.Description;
-
-export const DialogOverlay = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Overlay>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>>(
-  ({ className, ...props }, ref) => <DialogPrimitive.Overlay ref={ref} {...props} data-ui="dialog-overlay" className={cn('fixed inset-0 z-50 bg-[var(--overlay)] backdrop-blur-sm', className)} />
-);
-DialogOverlay.displayName = 'DialogOverlay';
-
-export const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>>(
-  ({ className, children, ...props }, ref) => <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content {...props} ref={ref} data-ui="dialog-content" className={cn('fixed bottom-0 left-1/2 z-50 flex max-h-[92dvh] w-full -translate-x-1/2 flex-col overflow-hidden rounded-t-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_70px_color-mix(in_srgb,var(--foreground)_22%,transparent)] focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[var(--radius-panel)]', className)}>
+export function Dialog({
+  open,
+  onOpenChange,
+  children,
+  ...props
+}: Omit<React.ComponentPropsWithoutRef<typeof DialogRoot>, 'onOpenChange'> & {
+  onOpenChange?: (open: boolean) => void;
+}) {
+  return (
+    <DialogRoot
+      open={open}
+      onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}
+      {...props}
+    >
       {children}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-);
-DialogContent.displayName = 'DialogContent';
+    </DialogRoot>
+  );
+}
+
+export function DialogTrigger({
+  asChild,
+  children,
+  ...props
+}: Omit<React.ComponentPropsWithoutRef<typeof CoreDialogTrigger>, 'children'> & {
+  asChild?: boolean;
+  children?: React.ReactNode;
+}) {
+  if (asChild && React.isValidElement(children)) {
+    return <CoreDialogTrigger render={children} {...props} />;
+  }
+  return <CoreDialogTrigger {...props}>{children}</CoreDialogTrigger>;
+}
+
+export function DialogClose({
+  asChild,
+  children,
+  ...props
+}: Omit<React.ComponentPropsWithoutRef<typeof CoreDialogClose>, 'children'> & {
+  asChild?: boolean;
+  children?: React.ReactNode;
+}) {
+  if (asChild && React.isValidElement(children)) {
+    return <CoreDialogClose render={children} {...props} />;
+  }
+  return <CoreDialogClose {...props}>{children}</CoreDialogClose>;
+}
+
+export { DialogTitle, DialogDescription };
+
+export function DialogOverlay({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogBackdrop>) {
+  return <DialogBackdrop data-ui="dialog-overlay" className={cn('backdrop-blur-xs', className)} {...props} />;
+}
+
+export function DialogContent({
+  className,
+  children,
+  onOpenAutoFocus: _onOpenAutoFocus,
+  onCloseAutoFocus: _onCloseAutoFocus,
+  ...props
+}: Omit<React.ComponentPropsWithoutRef<typeof CoreDialogContent>, 'children'> & {
+  children?: React.ReactNode;
+  onOpenAutoFocus?: (event: Event) => void;
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
+  return (
+    <>
+      <DialogOverlay />
+      <CoreDialogContent
+        data-ui="dialog-content"
+        className={cn(
+          'fixed bottom-0 left-1/2 top-auto z-50 flex max-h-[92dvh] w-full -translate-x-1/2 translate-y-0 flex-col overflow-hidden rounded-t-[var(--radius-panel)] rounded-b-none border border-[var(--border)] bg-[var(--surface)] sm:bottom-auto sm:top-1/2 sm:max-h-[88dvh] sm:-translate-y-1/2 sm:rounded-[var(--radius-panel)]',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </CoreDialogContent>
+    </>
+  );
+}

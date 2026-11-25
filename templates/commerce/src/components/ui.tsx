@@ -1,9 +1,9 @@
 import { t, choose } from '../lib/language';
-import { Button as CoreButton } from './shadcn/button';
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from './shadcn/dialog';
-import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from './shadcn/sheet';
-import { Input } from './shadcn/input';
-import { Textarea } from './shadcn/textarea';
+import { Button as CoreButton } from './ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from './ui/dialog';
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from './ui/sheet';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 export { Input, Textarea };
 import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type ComponentProps, type ReactNode } from 'react';
 import { Check, LoaderCircle, Minus, Plus, X } from 'lucide-react';
