@@ -682,6 +682,16 @@
   z-index: 100;
   background: var(--tl-scrim);
 }
+.tl-dialog-overlay[data-closed],
+.tl-dialog-overlay[inert],
+.tl-dialog[data-closed],
+.tl-dialog[inert],
+.tl-drawer-backdrop[data-closed],
+.tl-drawer-backdrop[inert],
+.tl-drawer-content[data-closed],
+.tl-drawer-content[inert] {
+  pointer-events: none;
+}
 .tl-drawer-content {
   z-index: 101;
   display: flex;

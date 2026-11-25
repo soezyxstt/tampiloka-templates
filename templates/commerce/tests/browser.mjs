@@ -62,6 +62,7 @@ const addProduct = async (name, variant) => {
 };
 const checkout = async ({ payment = 'manual', pickup = false, coupon = '' } = {}) => {
   await page.getByRole('button', { name: 'Lanjut ke checkout', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Keranjang/ }).waitFor({ state: 'hidden' });
   await page.getByRole('heading', { name: 'Selesaikan pesanan' }).waitFor();
   await page.getByLabel('Nama lengkap', { exact: true }).fill('Pelanggan Uji Tampiloka');
   await page.getByLabel('Nomor WhatsApp', { exact: true }).fill('081234567890');

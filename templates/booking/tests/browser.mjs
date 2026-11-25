@@ -305,9 +305,11 @@ try {
           palette: "rose",
         });
         await picker(page, "Demo theme", "Slate");
-        assert.equal(
-          await page.locator(".booking-app").getAttribute("data-palette"),
-          "slate",
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector(".booking-app")
+              ?.getAttribute("data-palette") === "slate",
         );
         assert.equal(
           new URL(page.url()).searchParams.get("layout"),

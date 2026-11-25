@@ -244,7 +244,9 @@ try {
         await page.getByRole('dialog').waitFor();
         assert.equal((await current(page)).enrollments.find(e => e.id === id).status, 'active', 'Opening confirmation must not cancel');
         await page.getByRole('button', { name: 'Keep application', exact: true }).click();
+        await page.getByRole('dialog').waitFor({ state: 'hidden' });
         await page.getByRole('button', { name: 'Cancel application', exact: true }).click();
+        await page.getByRole('dialog').waitFor();
         await page.getByRole('button', { name: 'Confirm cancellation', exact: true }).click();
         await page.locator('.enrollment-card .section-title > .status-cancelled').first().waitFor();
         await page.reload(); await ready(page);
