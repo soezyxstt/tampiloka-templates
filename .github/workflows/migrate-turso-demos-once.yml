@@ -2,7 +2,7 @@ name: Migrate public demos from D1 to Turso (one time)
 on:
   push:
     branches: [ops/turso-demo-cutover]
-    paths: ['scripts/ops-turso-demo-cutover.mjs']
+    paths: ['scripts/ops-turso-demo-cutover.mjs', '.github/workflows/migrate-turso-demos-once.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,6 +40,34 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
+      - name: Check migration and deployment credentials before installing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_D1_MIGRATION_TOKEN: ${{ secrets.CLOUDFLARE_D1_MIGRATION_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURSO_AUTH_TOKEN: ${{ secrets[format('TURSO_{0}_AUTH_TOKEN', matrix.family)] }}
+          FAMILY: ${{ matrix.family }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          for (const key of ['CLOUDFLARE_API_TOKEN','CLOUDFLARE_D1_MIGRATION_TOKEN','CLOUDFLARE_ACCOUNT_ID','TURSO_AUTH_TOKEN']) {
+            assert.ok(process.env[key], 'Missing GitHub Actions secret: '+key);
+          }
+          const ids={commerce:'4236b694-99df-4e48-82a6-f4d5a8ce457e',booking:'c7a803d3-5f89-4091-8ae9-06bfa16ce279',school:'5f81449b-a3c9-435d-bdae-ecf86d47ba89'};
+          const family=process.env.FAMILY;
+          const name='tampiloka-'+family+'-demo';
+          const account='https://api.cloudflare.com/client/v4/accounts/'+process.env.CLOUDFLARE_ACCOUNT_ID;
+          async function get(path,token,label) {
+            const response=await fetch(account+path,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(30000)});
+            const data=await response.json();
+            assert.ok(response.ok&&data.success,label+' failed: HTTP '+response.status+' codes '+(data.errors||[]).map(e=>e.code).join(','));
+            console.log(label+' passed.');
+            return data.result;
+          }
+          assert.equal((await get('/d1/database/'+ids[family],process.env.CLOUDFLARE_D1_MIGRATION_TOKEN,'D1 migration credential')).name,name);
+          const worker=await get('/workers/scripts/'+name+'/settings',process.env.CLOUDFLARE_API_TOKEN,'Worker deployment credential');
+          assert.ok(worker.bindings.some(b=>b.type==='d1'&&b.name==='DB'&&b.id===ids[family]),'Source Worker is not bound to expected D1.');
+          JS
       - run: pnpm install --frozen-lockfile
       - name: Test and build the verified source before the maintenance window
         run: |
