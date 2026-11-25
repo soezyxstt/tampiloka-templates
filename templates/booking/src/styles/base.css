@@ -310,19 +310,17 @@ small {
 }
 .b-select-menu {
   z-index: 300;
-  min-width: var(--radix-select-trigger-width);
+  min-width: 180px;
   max-width: calc(100vw - 24px);
-  max-height: min(400px, var(--radix-select-content-available-height));
-  overflow: hidden;
+  max-height: min(400px, 60dvh);
+  overflow: auto;
+  padding: 5px;
   background: var(--surface);
   border: 1px solid var(--control-border);
   border-radius: var(--radius);
   color: var(--ink);
   box-shadow: 0 12px 35px color-mix(in srgb, var(--ink) 14%, transparent);
   animation: b-popup 0.18s ease-out;
-}
-.b-select-menu [data-radix-select-viewport] {
-  padding: 5px;
 }
 .b-select-option {
   position: relative;
@@ -726,14 +724,15 @@ small {
 }
 .b-disclosure > .b-disclosure-trigger > span { display: inline-flex; align-items: center; gap: 8px; }
 .b-disclosure > .b-disclosure-trigger > svg { flex-shrink: 0; transition: transform 220ms ease; }
-.b-disclosure[data-state="open"] > .b-disclosure-trigger > svg { transform: rotate(180deg); }
+.b-disclosure:is([data-open], [data-state="open"]) > .b-disclosure-trigger > svg,
+.b-disclosure-trigger:is([data-open], [data-state="open"]) > svg { transform: rotate(180deg); }
 .b-disclosure-content { overflow: hidden; }
-.b-disclosure-content[data-state="open"] { animation: b-disclosure-open 220ms ease-out; }
-.b-disclosure-content[data-state="closed"] { animation: b-disclosure-close 120ms ease-in; }
-@keyframes b-disclosure-open { from { height: 0; opacity: 0; } to { height: var(--radix-collapsible-content-height); opacity: 1; } }
-@keyframes b-disclosure-close { from { height: var(--radix-collapsible-content-height); opacity: 1; } to { height: 0; opacity: 0; } }
+.b-disclosure-content:is([data-open], [data-state="open"]) { animation: b-disclosure-open 220ms ease-out; }
+.b-disclosure-content:is([data-closed], [data-state="closed"]) { animation: b-disclosure-close 120ms ease-in; }
+@keyframes b-disclosure-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes b-disclosure-close { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-4px); } }
 .b-disclosure > .b-disclosure-trigger:focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 3px; }
-.b-select-menu[data-state="closed"] { animation: b-popup-out 120ms ease-in; }
+.b-select-menu:is([data-closed], [data-state="closed"]) { animation: b-popup-out 120ms ease-in; }
 @keyframes b-popup-out { to { opacity: 0; transform: translateY(4px); } }
 
 /* Route feedback preserves language/theme state and never delays actions. */

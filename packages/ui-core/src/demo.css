@@ -116,9 +116,10 @@
 }
 .tl-demo-tour.tl-demo-tour-above { top: max(12px, env(safe-area-inset-top)); }
 .tl-demo-tour.tl-demo-tour-below { bottom: max(12px, env(safe-area-inset-bottom)); }
-.tl-demo-tour:is(.tl-demo-tour-above, .tl-demo-tour-below)[data-state="closed"] { animation: tl-fade-out .15s ease-in; }
+.tl-demo-tour:is(.tl-demo-tour-above, .tl-demo-tour-below):is([data-state="closed"], [data-closed]) { animation: tl-demo-tour-out .15s ease-in; }
 .tl-demo-tour-copy { display: grid; gap: var(--demo-gap); animation: tl-demo-tour-in .2s ease-out; }
 @keyframes tl-demo-tour-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tl-demo-tour-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) {
   .tl-demo-tour-spotlight { transition: none; }
   .tl-demo-tour-copy { animation: none; }
@@ -296,8 +297,8 @@
 
 .tl-demo-collapsed-dock {
   position: fixed;
-  top: max(6px, env(safe-area-inset-top, 0px));
-  right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: var(--demo-lang-bottom, max(12px, env(safe-area-inset-bottom, 0px)));
+  left: max(12px, env(safe-area-inset-left, 0px));
   z-index: 95;
   pointer-events: none;
 }

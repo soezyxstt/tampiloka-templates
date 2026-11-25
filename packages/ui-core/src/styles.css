@@ -1,4 +1,4 @@
-@layer ui-sdk;
+@layer ui-sdk, components;
 
 @layer ui-sdk {
   :where([data-slot][hidden]:not([hidden="until-found"])) {
@@ -40,6 +40,7 @@
   --tl-normal: 220ms;
 }
 
+@layer components {
 /* ─── Button ─────────────────────────────────────────────────────────────────── */
 .tl-button {
   display: inline-flex;
@@ -1081,6 +1082,12 @@
   .tl-grid-cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 639px) {
+  .tl-button-sm { min-height: 40px; }
+  .tl-button-md,
+  .tl-button-lg { min-height: 44px; }
+  .tl-button-icon { width: 44px; height: 44px; }
+  .tl-button-icon-sm { width: 40px; height: 40px; }
+  .tl-stepper-btn { width: 38px; height: 38px; }
   .tl-input,
   .tl-select-trigger { font-size: 16px; }
   .tl-grid-cols-2,
@@ -1099,21 +1106,30 @@
   .tl-select-trigger,
   .tl-select-chevron,
   .tl-select-content,
+  .tl-select-item,
   .tl-checkbox,
   .tl-switch,
   .tl-switch-thumb,
   .tl-radio,
+  .tl-radio-indicator,
   .tl-slider-thumb,
+  .tl-tabs-tab,
   .tl-segmented-indicator,
   .tl-dialog,
   .tl-dialog-overlay,
+  .tl-dialog-close,
+  .tl-drawer-content,
+  .tl-drawer-backdrop,
+  .tl-accordion-trigger,
   .tl-accordion-chevron,
   .tl-accordion-panel,
+  .tl-collapsible-trigger,
   .tl-collapsible-panel,
   .tl-menu-content,
   .tl-card-interactive,
   .tl-stepper,
-  .tl-stepper-btn {
+  .tl-stepper-btn,
+  .tl-skeleton {
     transition: none !important;
     animation: none !important;
   }
@@ -1121,4 +1137,5 @@
   .tl-stepper-btn:active:not(:disabled) {
     transform: none;
   }
+}
 }

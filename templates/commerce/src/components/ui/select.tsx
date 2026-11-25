@@ -13,6 +13,31 @@ import {
 } from '@tampiloka/ui-core';
 import { cn } from '../../lib/utils';
 
+function textFromNode(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textFromNode).join('');
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return textFromNode(node.props.children);
+  return '';
+}
+
+function extractSelectItems(children: React.ReactNode): Array<{ value: string; label: string }> {
+  const items: Array<{ value: string; label: string }> = [];
+  const walk = (node: React.ReactNode) => {
+    React.Children.forEach(node, (child) => {
+      if (!React.isValidElement<{ value?: unknown; children?: React.ReactNode }>(child)) return;
+      if (child.type === SelectItem || child.type === CoreSelectItem) {
+        if (typeof child.props.value === 'string') {
+          items.push({ value: child.props.value, label: textFromNode(child.props.children).trim() || child.props.value });
+        }
+        return;
+      }
+      if (child.props.children) walk(child.props.children);
+    });
+  };
+  walk(children);
+  return items;
+}
+
 export function Select({
   value,
   defaultValue,
@@ -24,6 +49,7 @@ export function Select({
   open,
   defaultOpen,
   onOpenChange,
+  items,
   children,
 }: {
   value?: string;
@@ -36,12 +62,15 @@ export function Select({
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  items?: Array<{ value: string; label: string }>;
   children?: React.ReactNode;
 }) {
+  const resolvedItems = React.useMemo(() => items ?? extractSelectItems(children), [items, children]);
   return (
     <SelectRoot
       value={value}
       defaultValue={defaultValue}
+      items={resolvedItems.length ? resolvedItems : undefined}
       onValueChange={(next) => {
         if (typeof next === 'string') onValueChange?.(next);
       }}

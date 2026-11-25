@@ -313,10 +313,16 @@ export function RadioGroup({
 
 export function RadioItem({
   className,
+  render,
   ...props
 }: ComponentPropsWithoutRef<typeof UiRadio>) {
   return (
-    <UiRadio className={mergeClassName('tl-radio', className)} {...props}>
+    <UiRadio
+      className={mergeClassName('tl-radio', className)}
+      data-value={props.value}
+      render={render ?? <button value={props.value} />}
+      {...props}
+    >
       <UiRadioIndicator className="tl-radio-indicator" />
     </UiRadio>
   );

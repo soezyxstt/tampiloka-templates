@@ -41,8 +41,8 @@
   text-overflow: ellipsis;
 }
 .sidebarCollapseBtn {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -65,11 +65,11 @@
 }
 .sidebarItem {
   width: 100%;
-  height: 32px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -352,8 +352,8 @@
   gap: 6px;
 }
 .cashierPresetBtn {
-  min-height: 30px;
-  padding: 3px 9px;
+  min-height: 40px;
+  padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: var(--surface-muted);

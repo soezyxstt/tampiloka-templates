@@ -58,7 +58,7 @@ const addProduct = async (name, variant) => {
   if (variant) await dialog.getByRole('button', { name: variant, exact: true }).click();
   await dialog.getByRole('button', { name: 'Tambah ke keranjang', exact: true }).click();
   await page.getByRole('dialog', { name: /^Keranjang/ }).waitFor();
-  assert.equal(await page.getByRole('dialog', { name: /^Keranjang/ }).getAttribute('data-slot'), 'sheet-content');
+  assert.equal(await page.getByRole('dialog', { name: /^Keranjang/ }).getAttribute('data-slot'), 'drawer-content');
 };
 const checkout = async ({ payment = 'manual', pickup = false, coupon = '' } = {}) => {
   await page.getByRole('button', { name: 'Lanjut ke checkout', exact: true }).click();

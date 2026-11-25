@@ -108,10 +108,10 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 8px;
-  border: 1.5px solid var(--surface);
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 2px solid var(--surface);
   border-radius: 999px;
   background: var(--primary);
   color: var(--primary-foreground);
@@ -133,8 +133,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px -6px 0;
   border-radius: 999px;
   color: var(--muted-foreground);
   background: transparent;

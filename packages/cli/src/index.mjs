@@ -186,7 +186,7 @@ async function createCommerce(sourceRoot,temp,target,options,template) {
   const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
   delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
   await writeJson(join(uiPath,'package.json'),uiPackage);
-  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo-action-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
   const mainPath=join(temp,'src/main.tsx'),appPath=join(temp,'src/App.tsx');
   const main=await readFile(mainPath,'utf8'),app=await readFile(appPath,'utf8');
   const clientMain=main.replace(/^import\s+['"]@tampiloka\/ui-core\/demo\.css['"];?\s*$/m,'');
@@ -234,7 +234,7 @@ async function createBooking(sourceRoot,temp,target,options,template) {
   const uiPath=join(temp,'packages/ui-core'),uiPackage=await json(join(uiPath,'package.json'));
   delete uiPackage.exports['./demo'];delete uiPackage.exports['./demo.css'];
   await writeJson(join(uiPath,'package.json'),uiPackage);
-  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
+  for(const path of ['src/demo-shell.tsx','src/demo-tour.tsx','src/demo-action-tour.tsx','src/demo.css','src/assets','src/tampiloka-wordmark-dark.svg'])await rm(join(uiPath,path),{recursive:true,force:true});
   const registry=await import(pathToFileURL(join(sourceRoot,'packages/registry/src/index.mjs')).href);
   const chosen=registry.bookingPresets[options.preset];
   const script=`import {presetContent} from ${JSON.stringify(pathToFileURL(join(source,'content/presets.ts')).href)};console.log(JSON.stringify(presetContent(${JSON.stringify(options.preset)})));`;

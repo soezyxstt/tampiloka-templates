@@ -13,18 +13,28 @@ import {
 import { XIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+function findSheetSide(children: React.ReactNode): 'top' | 'right' | 'bottom' | 'left' | undefined {
+  let found: 'top' | 'right' | 'bottom' | 'left' | undefined;
+  React.Children.forEach(children, (child) => {
+    if (found || !React.isValidElement<{ side?: 'top' | 'right' | 'bottom' | 'left' }>(child)) return;
+    if (child.type === SheetContent && child.props.side) found = child.props.side;
+  });
+  return found;
+}
+
 export function Sheet({
   open,
   onOpenChange,
   children,
-  side = 'right',
+  side,
   ...props
 }: Omit<React.ComponentPropsWithoutRef<typeof DrawerRoot>, 'onOpenChange'> & {
   onOpenChange?: (open: boolean) => void;
   side?: 'top' | 'right' | 'bottom' | 'left';
 }) {
+  const resolvedSide = side ?? findSheetSide(children) ?? 'right';
   return (
-    <DrawerRoot open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined} side={side} {...props}>
+    <DrawerRoot open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined} side={resolvedSide} {...props}>
       {children}
     </DrawerRoot>
   );
@@ -50,7 +60,7 @@ export function SheetContent({
   return (
     <>
       <DrawerBackdrop />
-      <DrawerContent data-slot="sheet-content" data-side={side} className={cn(className)} {...props}>
+      <DrawerContent data-slot="sheet-content" {...(side ? { 'data-side': side } : {})} className={cn(className)} {...props}>
         {children}
         {showCloseButton && (
           <DrawerClose className="tl-drawer-close" aria-label="Close">

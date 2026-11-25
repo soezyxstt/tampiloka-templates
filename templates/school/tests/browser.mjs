@@ -123,7 +123,7 @@ try {
         await menu.click(); await page.getByRole('menu').waitFor(); await page.keyboard.press('Escape');
         assert.equal(await menu.evaluate(el => el === document.activeElement), true);
         await menu.click(); await page.getByRole('menuitem').first().click();
-        await page.getByRole('menu').waitFor({ state: 'detached' });
+        await page.getByRole('menu').waitFor({ state: 'hidden' });
         await ctx.close();
     }
     for (let i = 0; i < layouts.length; i++)
