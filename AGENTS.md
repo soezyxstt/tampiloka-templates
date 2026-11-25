@@ -243,7 +243,13 @@ PostgreSQL needs family-specific migrations and transaction tests; placeholder t
 - Before adding a workflow, job, or script, identify the distinct risk it checks, its trigger and owner, and why an existing check cannot cover it. Prefer extending an existing check, reuse shared setup, and avoid duplicate installs, builds and tests. Preserve meaningful coverage and deployment validation when removing duplication.
 - Production workflows run independently of CI; configure repository branch protection or rulesets to require the `verify` CI check before merging to `main` and prevent bypasses as appropriate. Workflow YAML alone does not enforce that protection. Review required check names before renaming or removing jobs; do not require path-filtered workflows, which can leave checks pending on unrelated changes.
 
+## UI SDK guidance
+
+Before using or extending `@tampiloka/ui-core` (powered by Vercel `@ui-sdk/react` and `@ui-sdk/core`), follow the `ui-sdk` skill if installed, and read `node_modules/@ui-sdk/react/docs/llms.txt`. To build a new primitive from scratch, search `node_modules/@ui-sdk/react/docs/core.md` by heading and read `rendering.md` next to it. Do not introduce `@radix-ui/*` or shadcn wrappers; extend `packages/ui-core` instead.
+
 ## Change log
+
+- **2026-11-24**: Replaced all Radix and shadcn wrappers across all templates with a shared Vercel UI SDK (`@ui-sdk/core`, `@ui-sdk/react`) reusable component library in `@tampiloka/ui-core`, made `DemoToolbarShell` collapsible by default with a floating restore pill, and revamped the Cafe customer UI into a clean GrabFood-inspired scannable layout.
 
 - **2026-11-23**: Demo Cafe menawarkan panduan saat kunjungan pertama dan menggulir ke bagian yang disorot pada setiap langkah.
 

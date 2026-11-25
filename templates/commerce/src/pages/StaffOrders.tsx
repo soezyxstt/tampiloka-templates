@@ -1,9 +1,9 @@
 import { t, choose } from '../lib/language';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/shadcn/input-group';
-import { Badge } from '../components/shadcn/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/shadcn/table';
-import { Button as ShadcnButton } from '../components/shadcn/button';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../components/ui/input-group';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Button as ShadcnButton } from '../components/ui/button';
 import { Input, Textarea } from '../components/ui';
 import { ArrowRight, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';

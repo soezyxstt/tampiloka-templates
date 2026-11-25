@@ -22,8 +22,6 @@
   "dependencies": {
     "@tampiloka/shared-utils": "workspace:*",
     "@fontsource/manrope": "5.3.0",
-    "@radix-ui/react-collapsible": "1.2.1",
-    "@radix-ui/react-select": "2.4.1",
     "@tampiloka/ui-core": "workspace:*",
     "jsqr": "1.4.0",
     "lucide-react": "0.553.0",

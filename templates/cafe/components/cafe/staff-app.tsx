@@ -70,6 +70,8 @@ import {
   RefreshCw,
   ArrowUpRight,
   ChefHat,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 export type StaffSection =
@@ -243,6 +245,7 @@ export function StaffApp({
   const canTables = isModuleEnabled('tables');
   const canMarketing = isModuleEnabled('marketing');
   const [activeSection, setActiveSection] = useState<StaffSection>(defaultSection);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [actionError, setActionError] = useState<string>('');
   const [cashierTask, setCashierTask] = useState<'orders' | 'bills' | 'visits'>('orders');
   const [billSearch, setBillSearch] = useState('');
@@ -714,38 +717,88 @@ export function StaffApp({
 
 
   return (
-    <div className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace} ${styles.explorationManaged}`}>
+    <div
+      data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined}
+      className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace} ${styles.explorationManaged}`}
+    >
       <aside className="staff-sidebar">
-        <div className="flex items-center gap-3 px-2 py-3">
-          <BrandMark />
-          <div className="min-w-0"><p className="font-heading font-bold text-base leading-snug break-words">{cafeConfig.brand.name}</p></div>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.sidebarBrand}>
+            <span className={styles.sidebarMark} aria-hidden="true">
+              {cafeConfig.brand.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+            </span>
+            <span className={styles.sidebarBrandName}>{cafeConfig.brand.name}</span>
+          </div>
+          <button
+            type="button"
+            className={styles.sidebarCollapseBtn}
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            aria-label={sidebarCollapsed ? t('Perluas sidebar', 'Expand sidebar') : t('Kecilkan sidebar', 'Collapse sidebar')}
+            title={sidebarCollapsed ? t('Perluas sidebar', 'Expand sidebar') : t('Kecilkan sidebar', 'Collapse sidebar')}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
+          </button>
         </div>
 
-        <nav aria-label={t("Navigasi operasional desktop", "Desktop operations navigation")} className="space-y-1.5">
+        <nav aria-label={t("Navigasi operasional desktop", "Desktop operations navigation")} className={styles.sidebarNav}>
           {navItems.map((item) => {
             const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
-            return <button key={item.id} type="button" data-cafe-section={item.id} aria-current={currentSection === item.id ? 'page' : undefined} onClick={() => { setActiveSection(item.id); setActionError(''); }} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-medium transition-colors ${currentSection === item.id ? 'bg-[var(--accent-surface)] text-[var(--primary-ink)]' : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]'}`}>
-              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" /><span className="min-w-0 flex-1">{item.label}</span>{Boolean(item.count) && <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[12px] tabular-nums">{item.count}</span>}
-            </button>;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                data-cafe-section={item.id}
+                aria-current={currentSection === item.id ? 'page' : undefined}
+                title={sidebarCollapsed ? item.label : undefined}
+                onClick={() => { setActiveSection(item.id); setActionError(''); }}
+                className={styles.sidebarItem}
+              >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className={styles.sidebarItemLabel}>{item.label}</span>
+                {Boolean(item.count) && <span className={styles.sidebarCount}>{item.count}</span>}
+              </button>
+            );
           })}
         </nav>
-        <div className="mt-auto space-y-4 pt-6">
 
-          {!explorationManaged && onBackToCustomer && <button type="button" onClick={onBackToCustomer} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--primary-ink)]">{t("Lihat menu pelanggan", "View customer menu")}<ArrowUpRight className="h-4 w-4" /></button>}
+        <div className={styles.sidebarFooter}>
+          <div className={styles.sidebarProfile} title={`${currentStaffObj.userName} · ${staffRoleLabel(currentStaffObj.role, t)}`}>
+            <span className={styles.sidebarAvatar} aria-hidden="true">
+              {(currentStaffObj.userName || 'S').slice(0, 1).toUpperCase()}
+            </span>
+            <div className={styles.sidebarProfileMeta}>
+              <p className={styles.sidebarProfileName}>{currentStaffObj.userName}</p>
+              <p className={styles.sidebarProfileRole}>{staffRoleLabel(currentStaffObj.role, t)}</p>
+            </div>
+          </div>
+          {!explorationManaged && onBackToCustomer && (
+            <button
+              type="button"
+              onClick={onBackToCustomer}
+              className={styles.sidebarItem}
+              title={t("Lihat menu pelanggan", "View customer menu")}
+            >
+              <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className={styles.sidebarItemLabel}>{t("Menu pelanggan", "Customer menu")}</span>
+            </button>
+          )}
         </div>
       </aside>
       <header className="staff-header">
         <div className="staff-toolbar">
           <div className="staff-identity">
-            {!explorationManaged && onBackToCustomer && <Button variant="ghost" size="icon" onClick={onBackToCustomer} aria-label={t("Kembali ke menu pelanggan", "Back to customer menu")} className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
-            <div><p className="text-sm font-semibold">{cafeConfig.brand.name}</p><p id="active-staff-role" className="text-xs text-[var(--muted-foreground)]">{currentStaffObj.userName} · {staffRoleLabel(currentStaffObj.role, t)}</p></div>
+            {!explorationManaged && onBackToCustomer && <Button variant="ghost" size="icon-sm" onClick={onBackToCustomer} aria-label={t("Kembali ke menu pelanggan", "Back to customer menu")} className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-[14px] font-semibold truncate">{navItems.find(item => item.id === currentSection)?.label || cafeConfig.brand.name}</p>
+              <span id="active-staff-role" className="text-[12px] text-[var(--muted-foreground)] truncate xl:hidden">{currentStaffObj.userName} · {staffRoleLabel(currentStaffObj.role, t)}</span>
+            </div>
           </div>
 
           <div className="staff-actions">
             {lastUpdated && <span className={styles.syncText}>{lastUpdated}</span>}
             <OrderNotifications snapshot={snapshot} />
-            <Button variant="ghost" size="icon" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label={t("Perbarui data operasional", "Refresh operational data")}><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
-            {!explorationManaged && <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} aria-label={t("Keluar dari portal staf", "Sign out of staff portal")}><LogOut className="h-4 w-4" /></Button>}
+            <Button variant="ghost" size="icon-sm" title={lastUpdated} disabled={busy || !onRefresh} onClick={onRefresh} aria-label={t("Perbarui data operasional", "Refresh operational data")}><RefreshCw className={busy ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /></Button>
+            {!explorationManaged && <Button variant="ghost" size="icon-sm" onClick={() => setIsAuthenticated(false)} aria-label={t("Keluar dari portal staf", "Sign out of staff portal")}><LogOut className="h-4 w-4" /></Button>}
           </div>
         </div>
         <div className="staff-mobile-nav"><AnimatedUnderlineTabs items={navItems} activeId={currentSection} onSelect={(id) => { setActiveSection(id); setActionError(''); }} ariaLabel={t('Navigasi operasional kafe', 'Cafe operations navigation')} layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
@@ -803,9 +856,9 @@ export function StaffApp({
             </div>
 
             {cashierTask === 'orders' && <div className="workspace-stack">
-              <Surface id="incoming-orders" variant="plain" className="space-y-3 scroll-mt-28">
+              <div id="incoming-orders" className="scroll-mt-28">
                 {!pendingOrderRequests.length && <EmptyState title={t("Tidak ada pesanan yang menunggu", "No orders awaiting confirmation")} />}
-                <div className="operation-list">
+                <div className={styles.cashierQueue}>
                   {pendingOrderRequests.map((req: any) => {
                     const matchedQuote = (snapshot?.quotes || []).find(
                       (q: any) => q.id === req.quoteId
@@ -816,38 +869,35 @@ export function StaffApp({
                       [];
                     const reqTotalIdr = matchedQuote?.totalIdr ?? req.totalIdr ?? 0;
                     return (
-                      <Surface as="div" variant="task"
+                      <article
                         key={req.id}
                         data-request-id={req.id}
-                        className="flex flex-wrap items-center justify-between gap-4"
+                        className={styles.cashierQueueCard}
                       >
-                        <div className="space-y-1 min-w-0 basis-[240px] flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-heading text-[16px] font-bold">
-                              {req.mode === 'TAKEAWAY' ? t('Bawa pulang', 'Takeaway') : t(`Meja ${req.tableLabel}`, `Table ${req.tableLabel}`)} · {req.customerName}
-                            </span>
-                          </div>
-                          <p className="text-sm text-[var(--muted-foreground)]">{lines.map((ln: any) => `${ln.quantity ?? ln.qty ?? 1}× ${sampleName(ln.menuItemId, ln.itemName)}`).join(', ')}</p>
-                          <details className={styles.disclosure}>
-                            <summary>{t('Rincian pesanan', 'Order details')}</summary>
-                            <div className="space-y-1 pt-2 text-sm">
-                              {lines.map((ln: any, idx: number) => <p key={idx}>
-                                <strong>{ln.quantity ?? ln.qty ?? 1}× {sampleName(ln.menuItemId, ln.itemName)}</strong>
-                                {ln.variantName ? ` (${sampleName(ln.variantId, ln.variantName)})` : ''}
-                                {ln.modifiers?.length ? ` · ${ln.modifiers.join(', ')}` : ''}
-                                {ln.note ? t(` · Catatan: "${ln.note}"`, ` · Note: "${ln.note}"`) : ''}
-                              </p>)}
-                            </div>
-                          </details>
+                        <div className={styles.cashierQueueMain}>
+                          <p className={styles.cashierQueueTitle}>
+                            {req.mode === 'TAKEAWAY' ? t('Bawa pulang', 'Takeaway') : t(`Meja ${req.tableLabel}`, `Table ${req.tableLabel}`)} · {req.customerName}
+                          </p>
+                          <p className={styles.cashierQueueItems}>
+                            {lines.map((ln: any) => `${ln.quantity ?? ln.qty ?? 1}× ${sampleName(ln.menuItemId, ln.itemName)}`).join(', ')}
+                          </p>
+                          {lines.some((ln: any) => ln.variantName || ln.modifiers?.length || ln.note) && (
+                            <details className={styles.disclosure}>
+                              <summary>{t('Rincian', 'Details')}</summary>
+                              <div className="space-y-1 pt-1 text-[13px] text-[var(--muted-foreground)]">
+                                {lines.map((ln: any, idx: number) => <p key={idx}>
+                                  <strong className="text-[var(--foreground)]">{ln.quantity ?? ln.qty ?? 1}× {sampleName(ln.menuItemId, ln.itemName)}</strong>
+                                  {ln.variantName ? ` (${sampleName(ln.variantId, ln.variantName)})` : ''}
+                                  {ln.modifiers?.length ? ` · ${ln.modifiers.join(', ')}` : ''}
+                                  {ln.note ? t(` · "${ln.note}"`, ` · "${ln.note}"`) : ''}
+                                </p>)}
+                              </div>
+                            </details>
+                          )}
                         </div>
 
-                        <div className="operation-actions">
-                          <div className="text-right mr-2">
-                            <span className="block text-[12px] text-[var(--muted-foreground)]">
-                              Total
-                            </span>
-                            <Money amount={reqTotalIdr} className="font-bold text-[16px]" />
-                          </div>
+                        <div className={styles.cashierQueueActions}>
+                          <Money amount={reqTotalIdr} className={styles.cashierQueueTotal} />
 
                           {!supervisor && <>
                           <Button
@@ -880,25 +930,25 @@ export function StaffApp({
                           </Button>
                           </>}
                         </div>
-                      </Surface>
+                      </article>
                     );
                   })}
                 </div>
-              </Surface>
+              </div>
               {!canKitchen && <OrderInbox snapshot={snapshot} busy={busy || supervisor} onCommand={runStaffCommand} />}
             </div>}
 
             {canCashier && cashierTask === 'bills' && <div className="workspace-stack">
               {!supervisor && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* LEFT 4 COLS: Active Bills List (Flat Hairline Rows · No Redundant Title) */}
-              <div className="lg:col-span-4 space-y-3 lg:pr-6 lg:border-r lg:border-[var(--border)]">
-                <div className="space-y-2.5">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* LEFT 4 COLS: Compact Active Bills List */}
+              <div className="lg:col-span-4 space-y-2.5">
+                <div className="space-y-2">
                   <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")} placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")} value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
                   <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
                 </div>
                 {filteredBills.length === 0 && <EmptyState title={t("Tidak ada tagihan", "No bills")} description={billSearch ? t("Coba nama pelanggan atau nomor meja lain.", "Try another customer name or table number.") : undefined} />}
-                <div className={filteredBills.length > 0 ? 'border-t border-[var(--border)]' : ''}>
+                <div className="space-y-1">
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
                     const payBadge = b.hasActiveExternalAttempt ? {label: t('Menunggu', 'Awaiting') + ' ' + ((b.attempts || []).find((a: any) => ['CREATING','PENDING','UNKNOWN'].includes(a.status))?.method === 'VIRTUAL_ACCOUNT' ? 'VA' : 'QRIS'), tone: 'info' as const} : formatPaymentStateLabel(b.paymentState, t);
@@ -919,41 +969,39 @@ export function StaffApp({
                           }
                         }}
                         aria-pressed={isSel}
-                        className="operation-choice w-full py-3 px-2.5 text-left transition-colors flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-[var(--accent-surface)]"
+                        className={styles.cashierBillRow}
                       >
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <p className="font-heading font-semibold text-[15px] text-[var(--foreground)]">{billLocationLabel(b)}</p>
-                          <p className="text-sm break-words">{billOwnerName(b)}</p>
-                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
-                            {(b.allocatedUnits || []).length} {t("porsi menu", "menu servings")}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-heading font-semibold text-[14px] text-[var(--foreground)] truncate">
+                            {billLocationLabel(b)} · {billOwnerName(b)}
+                          </p>
+                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums mt-0.5">
+                            {(b.allocatedUnits || []).length} {t("item", "items")} · {payBadge.label}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Money
-                            amount={
-                              b.balanceIdr !== 0
-                                ? Math.abs(b.balanceIdr)
-                                : b.originalTotalIdr ?? b.totalIdr ?? 0
-                            }
-                            className="block font-bold text-[15px] text-[var(--foreground)]"
-                          />
-                          <span className="flex items-center gap-1.5">{isSel && <Check className="h-4 w-4 text-[var(--primary-ink)]" aria-hidden="true" />}<StatusLabel label={payBadge.label} tone={payBadge.tone} /></span>
-                        </div>
+                        <Money
+                          amount={
+                            b.balanceIdr !== 0
+                              ? Math.abs(b.balanceIdr)
+                              : b.originalTotalIdr ?? b.totalIdr ?? 0
+                          }
+                          className="font-bold text-[14px] text-[var(--foreground)] shrink-0"
+                        />
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* RIGHT 8 COLS: Selected Bill Details & Cashier Checkout (Open Canvas · No Card-in-Card) */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-tour-key={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className="lg:col-span-8 space-y-5">
+              {/* RIGHT 8 COLS: Focused Selected Bill & Fast Checkout */}
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-tour-key={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className={`lg:col-span-8 ${selectedBill ? styles.cashierCheckoutCard : ''}`}>
                 {selectedBill ? (
                   <>
                     {/* Bill Header */}
-                    <div className="pb-4 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
+                    <div className="pb-3 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          <h2 className="font-heading text-[20px] font-bold">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="font-heading text-[18px] font-bold">
                             {billLocationLabel(selectedBill)} · {billOwnerName(selectedBill)}
                           </h2>
                           <StatusLabel
@@ -961,7 +1009,7 @@ export function StaffApp({
                             tone={formatPaymentStateLabel(selectedBill.paymentState, t).tone}
                           />
                         </div>
-                        <p className="text-[13px] text-[var(--muted-foreground)] mt-0.5">
+                        <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
                           {(selectedBill.allocatedUnits || []).length} {t("item", "items")}
                         </p>
                       </div>
@@ -1181,18 +1229,18 @@ export function StaffApp({
                             </div>
 
                             {tenderMethod === 'CASH' && (
-                              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                              <div className={styles.cashierCashRow}>
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {[
                                     {
-                                      label: t("Uang Pas", "Exact amount"),
+                                      label: t("Uang Pas", "Exact"),
                                       val: effectiveTenderAmount,
                                       exact: true,
                                       disabled: !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr),
                                     },
-                                    { label: 'Rp50.000', val: 50000, disabled: false },
-                                    { label: 'Rp100.000', val: 100000, disabled: false },
-                                    { label: 'Rp200.000', val: 200000, disabled: false },
+                                    { label: '50rb', val: 50000, disabled: false },
+                                    { label: '100rb', val: 100000, disabled: false },
+                                    { label: '200rb', val: 200000, disabled: false },
                                   ].map((preset) => (
                                     <button
                                       key={preset.label}
@@ -1201,26 +1249,29 @@ export function StaffApp({
                                       type="button"
                                       disabled={preset.disabled}
                                       onClick={() => setCashGivenInput(String(preset.val))}
-                                      className="min-h-10 px-3 py-1 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--accent-surface)] text-[var(--foreground)] text-[12px] font-medium tabular-nums cursor-pointer transition-colors disabled:opacity-50"
+                                      className={styles.cashierPresetBtn}
                                     >
                                       {preset.label}
                                     </button>
                                   ))}
                                 </div>
-                                <div className="text-[13px]">
-                                  <span className="text-[var(--muted-foreground)]">{t("Kembalian:", "Change:")} </span>
-                                  {cashGivenInput ? <Money amount={cashChangePreview} className="font-bold" /> : <span>—</span>}
+                                <div className="text-[13px] tabular-nums">
+                                  <span className="text-[var(--muted-foreground)]">{t("Kembali:", "Change:")} </span>
+                                  {cashGivenInput ? <Money amount={cashChangePreview} className="font-bold text-[var(--foreground)]" /> : <span>—</span>}
                                 </div>
                               </div>
                             )}
 
                             {partialPayment && !(Number.isSafeInteger(effectiveTenderAmount) && effectiveTenderAmount > 0 && effectiveTenderAmount <= selectedBill.balanceIdr) && (
-                              <p className="text-sm text-[var(--status-warning-fg)]">
+                              <p className="text-[13px] text-[var(--status-warning-fg)]">
                                 {t('Isi jumlah bayar bulat antara Rp1 hingga sisa tagihan.', 'Enter a whole payment amount between Rp1 and the balance due.')}
                               </p>
                             )}
-                            {tenderMethod === 'CASH' && !cashGivenInput.trim() && <p className="text-sm text-[var(--muted-foreground)]">{t('Masukkan uang tunai yang diterima.', 'Enter the cash received.')}</p>}
-                            {tenderMethod === 'CASH' && cashGivenInput.trim() !== '' && Number(cashGivenInput) < effectiveTenderAmount && <p className="text-sm text-[var(--status-warning-fg)]">{t('Uang tunai yang diterima kurang dari jumlah bayar.', 'Cash received is less than the amount to pay.')}</p>}
+                            {tenderMethod === 'CASH' && cashGivenInput.trim() !== '' && Number(cashGivenInput) < effectiveTenderAmount && (
+                              <p className="text-[13px] text-[var(--status-warning-fg)]">
+                                {t('Uang tunai kurang dari jumlah bayar.', 'Cash received is less than the amount to pay.')}
+                              </p>
+                            )}
                             <Button
                               variant="primary"
                               size="lg"

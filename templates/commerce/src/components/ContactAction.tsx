@@ -1,5 +1,5 @@
 import { t, choose } from '../lib/language';
-import { Button as ShadcnButton } from './shadcn/button';
+import { Button as ShadcnButton } from './ui/button';
 import { Copy, Download } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useCommerce } from '../lib/store';

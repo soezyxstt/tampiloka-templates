@@ -8,13 +8,11 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
-test('commerce template copy includes shadcn configuration and components', async t => {
+test('commerce template copy includes ui-core components without shadcn', async t => {
   const destination = await mkdtemp(join(tmpdir(), 'tampiloka-copy-'));
   t.after(() => rm(destination, { recursive: true, force: true }));
   await copyTree(resolve(root, 'templates/commerce'), destination, { template: true });
-  const config = JSON.parse(await readFile(join(destination, 'components.json'), 'utf8'));
-  assert.equal(config.aliases.ui, '@/components/shadcn');
-  assert.match(await readFile(join(destination, 'src/components/shadcn/sheet.tsx'), 'utf8'), /data-slot="sheet-content"/);
+  assert.match(await readFile(join(destination, 'src/components/ui/sheet.tsx'), 'utf8'), /data-slot="sheet-content"/);
 });
 
 test('cafe template copy includes language support without the demo portal', async t => {

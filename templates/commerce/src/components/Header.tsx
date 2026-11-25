@@ -1,5 +1,5 @@
 import { t, choose } from '../lib/language';
-import { Button as ShadcnButton } from './shadcn/button';
+import { Button as ShadcnButton } from './ui/button';
 import { ContactAction } from './ContactAction';
 import { Heart, Menu, Package, Search, ShoppingBag, X } from 'lucide-react';
 import { useState } from 'react';

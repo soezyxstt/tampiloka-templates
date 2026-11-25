@@ -46,8 +46,8 @@ export function PublicNav() {
         <div className="nav-actions">
             {shortcut}
             <NavigationMenu label={t('Buka menu', 'Open menu')}>
-                {navigation.map(n => <NavigationMenuItem key={n.page} asChild><Link to={{ page: n.page }}>{n.label[lang]}</Link></NavigationMenuItem>)}
-                {shortcut && <NavigationMenuItem asChild>{shortcut}</NavigationMenuItem>}
+                {navigation.map(n => <NavigationMenuItem key={n.page} value={n.page} asChild><Link to={{ page: n.page }}>{n.label[lang]}</Link></NavigationMenuItem>)}
+                {shortcut && <NavigationMenuItem value="shortcut" asChild>{shortcut}</NavigationMenuItem>}
             </NavigationMenu>
         </div>
     </header>;

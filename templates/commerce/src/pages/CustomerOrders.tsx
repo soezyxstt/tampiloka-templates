@@ -1,7 +1,7 @@
 import { t, sampleText } from '../lib/language';
-import { Badge } from '../components/shadcn/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Button as ShadcnButton } from '../components/shadcn/button';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Button as ShadcnButton } from '../components/ui/button';
 import { readAttempt, saveAttempt } from '../lib/checkoutAttempt';
 import { OrderAccess, TrackOrder } from '../components/OrderTracking';
 import { Textarea } from '../components/ui';

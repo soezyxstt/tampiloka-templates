@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { choose, sampleText, t } from '../lib/language';
 import { money } from '../lib/format';
 import type { Category, Product } from '../shared/contracts';
-import { Button as PlainButton } from './shadcn/button';
+import { Button as PlainButton } from './ui/button';
 import { Button, ProductImage } from './ui';
 import './hero-carousel.css';
 

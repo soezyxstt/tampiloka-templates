@@ -1,9 +1,9 @@
 import { t, sampleText, choose, useLanguage } from '../lib/language';
 import { HeroCarousel } from '../components/HeroCarousel';
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../components/shadcn/input-group';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Checkbox } from '../components/shadcn/checkbox';
-import { Button as ShadcnButton } from '../components/shadcn/button';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../components/ui/input-group';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
+import { Button as ShadcnButton } from '../components/ui/button';
 import { Heart, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';

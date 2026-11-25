@@ -305,9 +305,11 @@ try {
           palette: "rose",
         });
         await picker(page, "Demo theme", "Slate");
-        assert.equal(
-          await page.locator(".booking-app").getAttribute("data-palette"),
-          "slate",
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector(".booking-app")
+              ?.getAttribute("data-palette") === "slate",
         );
         assert.equal(
           new URL(page.url()).searchParams.get("layout"),
@@ -352,7 +354,7 @@ try {
           .waitFor();
         await page.getByRole("button", { name: "Customize demo" }).click();
         await picker(page, "Demo staff role", "Viewer");
-        await page.locator('[role="listbox"]').waitFor({ state: "detached" });
+        await page.locator('[role="listbox"]').waitFor({ state: "hidden" });
         await page.keyboard.press("Escape");
         await page.getByRole("dialog", { name: "Customize demo" }).waitFor({ state: "hidden" });
         await page
@@ -597,7 +599,7 @@ try {
         const scenarioResult = await scenario.json();
         assert.equal(scenario.ok(), true, JSON.stringify(scenarioResult));
         assert.equal(scenarioResult.created, 3);
-        await page.getByRole("dialog").waitFor({ state: "detached" });
+        await page.getByRole("dialog").waitFor({ state: "hidden" });
         await page
           .getByRole("link", { name: "Appointments", exact: true })
           .click();

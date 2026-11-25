@@ -1,8 +1,8 @@
 import { t, sampleText, choose } from '../lib/language';
-import { Badge } from '../components/shadcn/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/shadcn/select';
-import { Checkbox } from '../components/shadcn/checkbox';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/shadcn/table';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 import { Edit3, Package, Plus, Search, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import type { Product, StaffSnapshot, Variant } from '../shared/contracts';

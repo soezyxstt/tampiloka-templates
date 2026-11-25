@@ -93,7 +93,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
     }
     function refresh() {
       const current = latest.current.step;
-      activeDialog = matches('[role="dialog"][data-state="open"]:not([aria-hidden="true"])').at(-1) ?? null;
+      activeDialog = matches('[role="dialog"]:is([data-state="open"], [data-open]):not([aria-hidden="true"]):not([hidden])').at(-1) ?? null;
       setDialog(activeDialog);
       if (complete) return;
       const root = activeDialog ?? document;
@@ -166,7 +166,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
     }
     function escape(event: KeyboardEvent) {
       if (event.key === 'Escape' && !event.defaultPrevented && !activeDialog
-        && !document.querySelector('[role="listbox"][data-state="open"]')) { trigger.current?.focus({ preventScroll: true }); latest.current.onClose(); }
+        && !document.querySelector('[role="listbox"]:is([data-state="open"], [data-open]):not([hidden])')) { trigger.current?.focus({ preventScroll: true }); latest.current.onClose(); }
     }
     currentTarget.current = null;
     refresh();
@@ -176,7 +176,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       childList: true,
       attributes: true,
       attributeFilter: ['aria-current', 'aria-hidden', 'class', 'data-active', 'data-demo-fulfillment', 'data-demo-next-status',
-        'data-demo-bill-paid', 'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-prompt', 'data-demo-tour-key', 'data-state', 'disabled', 'hidden', 'open', 'style'],
+        'data-demo-bill-paid', 'data-demo-payment-state', 'data-demo-shift-open', 'data-demo-target', 'data-demo-tour-prompt', 'data-demo-tour-key', 'data-open', 'data-state', 'disabled', 'hidden', 'open', 'style'],
     });
     document.addEventListener('click', activate, true);
     document.addEventListener(resultEvent, result);

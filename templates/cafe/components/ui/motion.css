@@ -11,14 +11,14 @@
 @keyframes cafe-dialog-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(12px)}}
 @keyframes cafe-popover-in{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes cafe-popover-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(2px) scale(.98)}}
-[data-ui=dialog-overlay][data-state=open]{animation:cafe-overlay-in var(--motion-enter) var(--motion-ease) both}
-[data-ui=dialog-overlay][data-state=closed]{animation:cafe-overlay-out var(--motion-exit) ease-in both;pointer-events:none}
-[data-ui=dialog-content][data-state=open]{animation:cafe-dialog-in var(--motion-enter) var(--motion-ease) both}
-[data-ui=dialog-content][data-state=closed]{animation:cafe-dialog-out var(--motion-exit) ease-in both;pointer-events:none}
-[data-ui=select-content]{transform-origin:var(--radix-select-content-transform-origin)}
-[data-ui=select-content][data-state=open]{animation:cafe-popover-in var(--motion-enter) var(--motion-ease) both}
-[data-ui=select-content][data-state=closed]{animation:cafe-popover-out var(--motion-exit) ease-in both;pointer-events:none}
-[data-ui=select-trigger][data-state=open]>svg{transform:rotate(180deg)}
+[data-ui=dialog-overlay]:is([data-open],[data-state=open]){animation:cafe-overlay-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=dialog-overlay]:is([data-closed],[data-state=closed]){animation:cafe-overlay-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=dialog-content]:is([data-open],[data-state=open]){animation:cafe-dialog-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=dialog-content]:is([data-closed],[data-state=closed]){animation:cafe-dialog-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=select-content]{transform-origin:top center}
+[data-ui=select-content]:is([data-open],[data-state=open]){animation:cafe-popover-in var(--motion-enter) var(--motion-ease) both}
+[data-ui=select-content]:is([data-closed],[data-state=closed]){animation:cafe-popover-out var(--motion-exit) ease-in both;pointer-events:none}
+[data-ui=select-trigger]:is([data-open],[data-state=open])>svg{transform:rotate(180deg)}
 .choice-strip[data-motion-indicator]{isolation:isolate}
 .choice-strip[data-motion-indicator] .choice-item{position:relative;z-index:1;transition:color var(--motion-enter) ease,background-color var(--motion-enter) ease}
 .choice-strip[data-motion-indicator] .choice-item[data-active]{border-bottom-color:transparent}

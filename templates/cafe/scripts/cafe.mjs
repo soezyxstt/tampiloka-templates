@@ -190,7 +190,7 @@ const EXCLUDED_DIRECTORIES = new Set(['node_modules', '.git', '.next', '.local',
 // Traverse only the two ancestors of the reviewed CI file; no other GitHub
 // settings, deployment workflows, credentials, or hidden files are inherited.
 const CI_PATHS = new Set(['.github', join('.github', 'workflows'), join('.github', 'workflows', 'ci.yml')]);
-const SHOWCASE_PACKAGES = new Set(['@tampiloka/ui-core', '@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler']);
+const SHOWCASE_PACKAGES = new Set(['@noble/hashes', '@vitejs/plugin-react', 'vite', 'wrangler']);
 const DEPENDENCY_GROUPS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
 function clientPackage(source, name) {
@@ -337,7 +337,7 @@ async function init(target, options) {
   for (const group of DEPENDENCY_GROUPS) for (const name of Object.keys(pkg[group] || {})) {
     if (name.startsWith('@tampiloka/')) {
       const id = name.slice('@tampiloka/'.length);
-      if (id !== 'storage') throw new Error(`Missing standalone shared package: ${id}`);
+      if (id !== 'storage' && id !== 'ui-core') throw new Error(`Missing standalone shared package: ${id}`);
       if (!shared.includes(id)) shared.push(id);
       pkg[group][name] = `file:./packages/${id}`;
     }
