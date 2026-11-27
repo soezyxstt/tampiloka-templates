@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: [cafe, commerce, school, booking]
+        # Cafe demo is now deployed from soezyxstt/tampiloka-cafe (.github/workflows/deploy-demo.yml).
+        family: [commerce, school, booking]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
