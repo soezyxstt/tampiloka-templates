@@ -5,7 +5,8 @@ type Steps = [DemoActionStep, ...DemoActionStep[]];
 type StepOptions = Omit<DemoActionStep, 'title' | 'instruction' | 'target'>;
 const target = (name: string) => `[data-demo-target="${name}"]`;
 const choice = (name: string) => `#staff-content [data-choice="${name}"]`;
-const section = (name: string) => `[data-cafe-section="${name}"], .staff-mobile-nav [data-choice="${name}"]`;
+const section = (name: string) => `[data-cafe-section="${name}"]`;
+const onSection = (name: string) => `[data-active-section="${name}"]`;
 const paid = '[data-demo-payment-state="SETTLED"]';
 const staffBillPaid = '[data-demo-bill-paid]';
 const fulfilled = '[data-demo-fulfillment="complete"]';
@@ -50,7 +51,13 @@ export function customerTour(tableRoute: boolean, staffHref: string): Steps {
   steps.push(
     action('customer-add', ['Tambahkan ke keranjang', 'Add to cart'], ['Klik Tambah ke keranjang untuk menyimpan pilihan Anda.', 'Select Add to cart to save your choices.'], { result: 'customer-add', prerequisite: requiredChoice }),
     action('customer-cart', ['Buka keranjang', 'Open the cart'], ['Klik Lihat keranjang untuk mengecek item dan jumlahnya.', 'Select View cart to check the items and quantities.']),
-    action('customer-review', ['Periksa pesanan', 'Review the order'], ['Isi nama pemesan, lalu klik Pesan untuk melihat total akhir.', 'Enter your name, then select Order to see the final total.'], { result: 'customer-review' }),
+    action('customer-review', ['Periksa pesanan', 'Review the order'], ['Klik Pesan untuk melihat total akhir.', 'Select Order to see the final total.'], {
+      result: 'customer-review',
+      prerequisite: {
+        selector: '[data-demo-tour-prompt]',
+        instruction: ['Isi nama pemesan terlebih dahulu (minimal 2 karakter).', 'Enter your name first (at least 2 characters).'],
+      },
+    }),
     action('customer-submit', ['Kirim pesanan', 'Submit the order'], ['Cek total, lalu klik Kirim pesanan.', 'Check the total, then select Submit order.'], { result: 'customer-submit' }),
     action('customer-order-bill', ['Buka tagihan pesanan', 'Open the order bill'], ['Klik tombol tagihan pada pesanan yang baru dikirim. Jika masih menunggu konfirmasi, terima pesanan dengan nama Anda sebagai kasir di tab staf, lalu kembali ke sini.', 'Select the bill on the order you placed. If it is awaiting confirmation, accept the order under your name as cashier in the staff tab, then return here.'], { link: staffLink }),
   );
@@ -74,7 +81,7 @@ export function customerTour(tableRoute: boolean, staffHref: string): Steps {
   return steps;
 }
 
-const cashierSection = () => step(['Buka ruang kasir', 'Open the cashier workspace'], ['Pilih Kasir atau Pesanan masuk pada navigasi staf.', 'Select Cashier or Incoming orders in staff navigation.'], section('kasir'));
+const cashierSection = () => step(['Buka ruang kasir', 'Open the cashier workspace'], ['Pilih Kasir atau Pesanan masuk pada navigasi staf.', 'Select Cashier or Incoming orders in staff navigation.'], section('kasir'), { skipWhen: onSection('kasir') });
 const noRequests: DemoTourText = ['Belum ada pesanan masuk. Kirim pesanan dari tab pelanggan atau lewati langkah ini.', 'There are no incoming orders. Submit one from the customer tab or skip this step.'];
 const noWork: DemoTourText = ['Belum ada item yang bisa diproses. Pilih Stasiun saya dan filter Aktif, atau lewati langkah ini.', 'No items can be processed. Select My station and the Active filter, or skip this step.'];
 
@@ -122,13 +129,13 @@ function cashierTour(customerHref?: string): Steps {
 export function staffTour(role: string, customerHref?: string): Steps {
   if (role === 'CASHIER') return cashierTour(customerHref);
   if ((role === 'KITCHEN' || role === 'BAR') && enabled('kitchen')) return [
-    step(['Buka antrean persiapan', 'Open the prep queue'], ['Pilih Dapur & Bar untuk melihat tiket di stasiun Anda.', 'Select Kitchen & bar to see tickets for your station.'], section('dapur')),
+    step(['Buka antrean persiapan', 'Open the prep queue'], ['Pilih Dapur & Bar untuk melihat tiket di stasiun Anda.', 'Select Kitchen & bar to see tickets for your station.'], section('dapur'), { skipWhen: onSection('dapur') }),
     step(['Mulai siapkan', 'Start preparing'], ['Klik Mulai siapkan pada salah satu item antrean.', 'Select Start preparing on a queued item.'], '[data-demo-next-status="PREPARING"]', { result: 'PREPARING', unavailable: noWork }),
     step(['Tandai siap', 'Mark ready'], ['Setelah item siap, klik tombol untuk menandainya siap disajikan atau diambil.', 'When the item is ready, use its button to mark it ready for serving or pickup.'], '[data-demo-next-status="READY"]', { result: 'READY', sameRecord: true, unavailable: noWork }),
     step(['Serahkan item', 'Hand over the item'], ['Klik Sudah diantar atau Sudah diambil setelah item diserahkan.', 'Select Delivered or Collected after handing over the item.'], ':is([data-demo-next-status="DELIVERED"], [data-demo-next-status="PICKED_UP"])', { result: ['DELIVERED', 'PICKED_UP'], sameRecord: true, unavailable: noWork }),
   ];
   if (role === 'WAITER' && enabled('tables')) return [
-    step(['Layani meja', 'Help guests at tables'], ['Buka Meja & Antrean untuk melihat layanan meja.', 'Open Tables & waitlist to see table service.'], section('meja')),
+    step(['Layani meja', 'Help guests at tables'], ['Buka Meja & Antrean untuk melihat layanan meja.', 'Open Tables & waitlist to see table service.'], section('meja'), { skipWhen: onSection('meja') }),
     step(['Buka panggilan pelayan', 'Open guest requests'], ['Pilih Panggilan pelayan untuk melihat permintaan tamu.', 'Select Guest requests to see requests for help.'], choice('PANGGILAN')),
     action('waiter-acknowledge', ['Tangani permintaan', 'Handle a request'], ['Klik Tangani pada panggilan yang baru masuk.', 'Select Handle on a new guest request.'],
       { result: 'waiter-acknowledge', unavailable: ['Belum ada panggilan baru. Buat panggilan dari menu pelanggan atau lewati langkah ini.', 'No new guest requests. Call staff from the customer menu or skip this step.'] }),

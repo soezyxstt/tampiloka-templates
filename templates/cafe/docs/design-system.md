@@ -1,5 +1,13 @@
 # Cafe template design system
 
+## Staff workspace revamp, customer orders parity & guide prerequisite, 27 November 2026
+
+- **Customer Orders (`Pesanan`) & Guide**: Pending order requests and accepted orders now render inside `.sectionSurface` cards consistent with Cart, Promo, and Account screens. The interactive guide's `customer-review` step now checks for a valid guest name (`#guest-name-input`) as a prerequisite before prompting the visitor to submit the order.
+- **Role-scoped staff navigation**: Staff sections are now strictly scoped by operational role — Kitchen/Bar (`Dapur & Bar`, `Ketersediaan menu`), Waiter (`Meja & Antrean`), Cashier (`Kasir`, `Meja & Antrean`, `Ketersediaan menu`), and Owner/Manager (supervisory access across all enabled sections).
+- **Single-row mobile navigation (no double tabs)**: Removed the horizontal `.staff-mobile-nav` bar on mobile. Mobile staff views now use a single-row sticky toolbar with a `Menu` (`☰`) trigger that opens an accessible `Menu staf` navigation dialog, while desktop retains the collapsible sidebar (`216px` / `60px`).
+- **Unified minimalist tabs & compact controls**: All horizontal tab and filter strips across Customer and Staff views now use a single minimalist `underline` treatment (text + 2px `--primary` bottom indicator, no mixed boxed segmented controls). Staff buttons (`40px` mobile / `34px–38px` desktop) and inputs use tightened vertical padding for higher mobile space efficiency.
+- **Mobile-first Cashier, KDS, and Menu Availability**: Cashier Bills pairs unified underline filter tabs (`Belum lunas | Lunas | Semua`) with an inline collapsible search icon on one row, and uses a mobile master-detail flow (compact bill list → focused bill detail with `← Daftar tagihan` back bar). KDS item rows pair non-wrapping `StatusLabel` pills (`whitespace-nowrap`) with aligned action buttons. Menu Availability / Catalog combines the category selector, an inline collapsible search icon, and `+ Tambah` on one compact row above unified `Semua | Tersedia | Habis` underline tabs and a responsive 1/2-column card grid.
+
 ## Mobile-first customer simplicity & contrast rework, 27 November 2026
 
 - **Palette contrast**: Deepened the warm "Kopi Hangat" palette (`--background: #F8F4EE`, `--foreground: #1D1512`, `--muted-foreground: #55473F`, `--border: #DDD0C0`, `--border-strong: #7B695D`, `--primary: #9E3E1A`) and status tones so text, borders, and controls carry stronger visual separation across mobile and desktop.

@@ -17,7 +17,6 @@ import {
   Textarea,
   Label,
   SelectField,
-  AnimatedUnderlineTabs,
   AnimatedSegmentedControl,
   ImageCarousel,
   StatusLabel,
@@ -72,6 +71,8 @@ import {
   ChefHat,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
+  ChevronRight,
 } from 'lucide-react';
 
 export type StaffSection =
@@ -246,9 +247,14 @@ export function StaffApp({
   const canMarketing = isModuleEnabled('marketing');
   const [activeSection, setActiveSection] = useState<StaffSection>(defaultSection);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileBillOpen, setMobileBillOpen] = useState(false);
+  const [menuAvailabilityFilter, setMenuAvailabilityFilter] = useState<'ALL' | 'AVAILABLE' | 'SOLD_OUT'>('ALL');
   const [actionError, setActionError] = useState<string>('');
   const [cashierTask, setCashierTask] = useState<'orders' | 'bills' | 'visits'>('orders');
   const [billSearch, setBillSearch] = useState('');
+  const [billSearchExpanded, setBillSearchExpanded] = useState(false);
+  const billSearchInputRef = useRef<HTMLInputElement>(null);
   const [billFilter, setBillFilter] = useState<'OPEN' | 'PAID' | 'ALL'>('OPEN');
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('ACTIVE');
   const [showResolvedRequests, setShowResolvedRequests] = useState(false);
@@ -297,6 +303,8 @@ export function StaffApp({
 
   // Katalog & Stok state
   const [menuSearchQuery, setMenuSearchQuery] = useState<string>('');
+  const [menuSearchExpanded, setMenuSearchExpanded] = useState(false);
+  const menuSearchInputRef = useRef<HTMLInputElement>(null);
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('ALL');
   const [stockAdjustMap, setStockAdjustMap] = useState<Record<string, number>>({});
   const [addMenuModalOpen, setAddMenuModalOpen] = useState<boolean>(false);
@@ -367,9 +375,11 @@ export function StaffApp({
   const supervisor = supervisesOperations(role);
   const roleSections: StaffSection[] = role === 'BAR' || role === 'KITCHEN'
     ? [sectionEnabled('dapur') ? 'dapur' : 'kasir', 'menu']
-    : role === 'WAITER' ? ['meja', 'kasir', 'dapur']
-    : role === 'CASHIER' ? ['kasir', 'meja', 'dapur', 'menu']
-    : ['laporan', 'menu', 'pengaturan', 'kasir', 'dapur', 'meja'];
+    : role === 'WAITER'
+    ? [sectionEnabled('meja') ? 'meja' : 'kasir']
+    : role === 'CASHIER'
+    ? ['kasir', 'meja', 'menu']
+    : ['laporan', 'kasir', 'meja', 'dapur', 'menu', 'pengaturan'];
 
   // Reset role-owned UI before rendering the new identity, without an effect
   // that first commits the previous role's workspace.
@@ -378,6 +388,11 @@ export function StaffApp({
   if (workspaceIdentity !== identityKey) {
     setWorkspaceIdentity(identityKey);
     setActiveSection(roleSections.find(sectionEnabled) || defaultSection);
+    setMobileNavOpen(false);
+    setMobileBillOpen(false);
+    setBillSearchExpanded(false);
+    setMenuSearchExpanded(false);
+    setMenuAvailabilityFilter('ALL');
     setKitchenStatusFilter('ACTIVE');
     setCashierTask('orders');
     setFloorSubTab('KUNJUNGAN');
@@ -487,7 +502,7 @@ export function StaffApp({
     setActiveSection('kasir'); setCashierTask('bills'); setBillSearch(''); setBillFilter('ALL');
     setPartialPayment(false); setTenderAmountInput(''); setCashGivenInput(''); setTransferRefInput(''); setPaymentError('');
     setShowSplitMergePanel(false); setSelectedUnitIdsForSplit([]);
-    if (bill) setSelectedBillId(bill.id);
+    if (bill) { setSelectedBillId(bill.id); setMobileBillOpen(true); }
   };
 
   const handleExportReportCsv = () => {
@@ -719,6 +734,7 @@ export function StaffApp({
   return (
     <div
       data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined}
+      data-active-section={currentSection}
       className={`cafe-staff min-h-screen bg-[var(--background)] text-[var(--foreground)] ${styles.workspace} ${styles.explorationManaged}`}
     >
       <aside className="staff-sidebar">
@@ -750,7 +766,7 @@ export function StaffApp({
                 data-cafe-section={item.id}
                 aria-current={currentSection === item.id ? 'page' : undefined}
                 title={sidebarCollapsed ? item.label : undefined}
-                onClick={() => { setActiveSection(item.id); setActionError(''); }}
+                onClick={() => { setActiveSection(item.id); setMobileBillOpen(false); setActionError(''); }}
                 className={styles.sidebarItem}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -787,10 +803,26 @@ export function StaffApp({
       <header className="staff-header">
         <div className="staff-toolbar">
           <div className="staff-identity">
+            {navItems.length > 1 && (
+              <button
+                type="button"
+                data-demo-target="staff-nav-trigger"
+                aria-label={t('Buka menu navigasi staf', 'Open staff navigation menu')}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen(true)}
+                className={styles.mobileMenuBtn}
+              >
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              </button>
+            )}
             {!explorationManaged && onBackToCustomer && <Button variant="ghost" size="icon-sm" onClick={onBackToCustomer} aria-label={t("Kembali ke menu pelanggan", "Back to customer menu")} className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
-            <div className="flex items-center gap-2 min-w-0">
-              <p className="text-[14px] font-semibold truncate">{navItems.find(item => item.id === currentSection)?.label || cafeConfig.brand.name}</p>
-              <span id="active-staff-role" className="text-[12px] text-[var(--muted-foreground)] truncate xl:hidden">{currentStaffObj.userName} · {staffRoleLabel(currentStaffObj.role, t)}</span>
+            <div className="min-w-0">
+              <p className="font-heading text-[16px] leading-[20px] font-bold text-[var(--foreground)] truncate">
+                {navItems.find(item => item.id === currentSection)?.label || cafeConfig.brand.name}
+              </p>
+              <p id="active-staff-role" className="text-[12px] leading-[16px] text-[var(--muted-foreground)] truncate xl:hidden">
+                {currentStaffObj.userName} · {staffRoleLabel(currentStaffObj.role, t)}
+              </p>
             </div>
           </div>
 
@@ -801,8 +833,54 @@ export function StaffApp({
             {!explorationManaged && <Button variant="ghost" size="icon-sm" onClick={() => setIsAuthenticated(false)} aria-label={t("Keluar dari portal staf", "Sign out of staff portal")}><LogOut className="h-4 w-4" /></Button>}
           </div>
         </div>
-        <div className="staff-mobile-nav"><AnimatedUnderlineTabs items={navItems} activeId={currentSection} onSelect={(id) => { setActiveSection(id); setActionError(''); }} ariaLabel={t('Navigasi operasional kafe', 'Cafe operations navigation')} layoutId="staff-pos-nav-underline" className="border-b-0" /></div>
       </header>
+
+      {/* Mobile / Tablet Navigation Sheet (eliminates double tab bars) */}
+      <DialogModal
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        title={t('Menu staf', 'Staff menu')}
+      >
+        <div className="space-y-3">
+          <div className="pb-3 border-b border-[var(--border)] flex items-center gap-3">
+            <span className={styles.sidebarAvatar} aria-hidden="true">
+              {(currentStaffObj.userName || 'S').slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-[14px] text-[var(--foreground)] truncate">{currentStaffObj.userName}</p>
+              <p className="text-[12px] text-[var(--muted-foreground)]">{staffRoleLabel(currentStaffObj.role, t)}</p>
+            </div>
+          </div>
+          <nav aria-label={t('Navigasi operasional kafe', 'Cafe operations navigation')} className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const Icon = ({ kasir: Wallet, dapur: ChefHat, meja: LayoutGrid, menu: Coffee, laporan: ClipboardList, pengaturan: Settings2 })[item.id];
+              const active = currentSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-cafe-section={item.id}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setMobileBillOpen(false);
+                    setActionError('');
+                    setMobileNavOpen(false);
+                  }}
+                  className="w-full min-h-[48px] px-3 rounded-[var(--radius-control)] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer"
+                  style={active ? { background: 'var(--accent-surface)', color: 'var(--primary-ink)', fontWeight: 600 } : undefined}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span className="text-[14px] truncate">{item.label}</span>
+                  </span>
+                  {Boolean(item.count) && <span className={styles.sidebarCount}>{item.count}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </DialogModal>
       <a href="#staff-content" className="skip-link">{t("Ke ruang kerja", "Open workspace")}</a>
       <main id="staff-content" className="staff-main">
         {currentSection !== 'kasir' && currentSection !== 'meja' && (
@@ -843,7 +921,7 @@ export function StaffApp({
                   ...(!canTables ? [{ id: 'visits' as const, label: t('Kunjungan aktif', 'Active visits'), count: (snapshot?.visits || []).filter((visit: any) => visit.status === 'OPEN').length }] : []),
                 ]}
                 value={cashierTask}
-                onChange={task => { setCashierTask(task); setActionError(''); }}
+                onChange={task => { setCashierTask(task); setMobileBillOpen(false); setActionError(''); }}
               />
               {!supervisor && canCashier && (
                 <div className="pb-1.5">
@@ -940,15 +1018,72 @@ export function StaffApp({
 
             {canCashier && cashierTask === 'bills' && <div className="workspace-stack">
               {!supervisor && <ShiftControls snapshot={snapshot} busy={busy} onCommand={runStaffCommand} />}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* LEFT 4 COLS: Compact Active Bills List */}
-              <div className="lg:col-span-4 space-y-2.5">
-                <div className="space-y-2">
-                  <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" /><Input aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")} placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")} value={billSearch} onChange={(e) => setBillSearch(e.target.value)} className="pl-9" /></div>
-                  <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              {/* LEFT 4 COLS: Compact Active Bills List (hidden on mobile when a bill is open) */}
+              <div className={`lg:col-span-4 space-y-2.5 ${mobileBillOpen && selectedBill ? styles.mobilePanelHidden : ''}`}>
+                <div className={styles.inlineToolbarRow}>
+                  <div className="min-w-0 flex-1">
+                    <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")}
+                    aria-expanded={billSearchExpanded}
+                    onClick={() => {
+                      setBillSearchExpanded(true);
+                      requestAnimationFrame(() => billSearchInputRef.current?.focus());
+                    }}
+                    className={styles.inlineSearchTrigger}
+                  >
+                    <Search className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <AnimatePresence>
+                    {(billSearchExpanded || billSearch.length > 0) && (
+                      <motion.div
+                        initial={{ opacity: 0, scaleX: 0.94 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        exit={{ opacity: 0, scaleX: 0.94 }}
+                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                        style={{ transformOrigin: 'right center' }}
+                        className={styles.inlineSearchOverlay}
+                      >
+                        <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 pointer-events-none" aria-hidden="true" />
+                        <input
+                          ref={billSearchInputRef}
+                          type="search"
+                          aria-label={t("Cari tagihan berdasarkan meja atau pelanggan", "Search bills by table or customer")}
+                          placeholder={t("Cari meja atau pelanggan…", "Search table or customer…")}
+                          value={billSearch}
+                          onChange={(e) => setBillSearch(e.target.value)}
+                          onBlur={() => { if (!billSearch.trim()) setBillSearchExpanded(false); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setBillSearch('');
+                              setBillSearchExpanded(false);
+                              billSearchInputRef.current?.blur();
+                            }
+                          }}
+                          className={styles.inlineSearchInput}
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setBillSearch('');
+                            setBillSearchExpanded(false);
+                            billSearchInputRef.current?.blur();
+                          }}
+                          aria-label={t('Tutup pencarian', 'Close search')}
+                          className={styles.inlineSearchClose}
+                        >
+                          <X className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 {filteredBills.length === 0 && <EmptyState title={t("Tidak ada tagihan", "No bills")} description={billSearch ? t("Coba nama pelanggan atau nomor meja lain.", "Try another customer name or table number.") : undefined} />}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {filteredBills.map((b: any) => {
                     const isSel = b.id === selectedBill?.id;
                     const payBadge = b.hasActiveExternalAttempt ? {label: t('Menunggu', 'Awaiting') + ' ' + ((b.attempts || []).find((a: any) => ['CREATING','PENDING','UNKNOWN'].includes(a.status))?.method === 'VIRTUAL_ACCOUNT' ? 'VA' : 'QRIS'), tone: 'info' as const} : formatPaymentStateLabel(b.paymentState, t);
@@ -959,34 +1094,44 @@ export function StaffApp({
                         type="button"
                         onClick={() => {
                           setSelectedBillId(b.id);
+                          setMobileBillOpen(true);
                           setSelectedUnitIdsForSplit([]);
                           setPartialPayment(false); setTenderAmountInput('');
                           setCashGivenInput('');
                           setTransferRefInput('');
                           setPaymentError('');
                           if (window.matchMedia('(max-width: 1023px)').matches) {
-                            requestAnimationFrame(() => billDetailRef.current?.focus());
+                            requestAnimationFrame(() => {
+                              window.scrollTo({ top: 0, behavior: 'auto' });
+                              billDetailRef.current?.focus({ preventScroll: true });
+                            });
                           }
                         }}
                         aria-pressed={isSel}
                         className={styles.cashierBillRow}
                       >
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <p className="font-heading font-semibold text-[14px] text-[var(--foreground)] truncate">
                             {billLocationLabel(b)} · {billOwnerName(b)}
                           </p>
-                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums mt-0.5">
-                            {(b.allocatedUnits || []).length} {t("item", "items")} · {payBadge.label}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                              {(b.allocatedUnits || []).length} {t("item", "items")}
+                            </span>
+                            <StatusLabel label={payBadge.label} tone={payBadge.tone} />
+                          </div>
                         </div>
-                        <Money
-                          amount={
-                            b.balanceIdr !== 0
-                              ? Math.abs(b.balanceIdr)
-                              : b.originalTotalIdr ?? b.totalIdr ?? 0
-                          }
-                          className="font-bold text-[14px] text-[var(--foreground)] shrink-0"
-                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Money
+                            amount={
+                              b.balanceIdr !== 0
+                                ? Math.abs(b.balanceIdr)
+                                : b.originalTotalIdr ?? b.totalIdr ?? 0
+                            }
+                            className="font-bold text-[14px] text-[var(--foreground)]"
+                          />
+                          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)] lg:hidden" aria-hidden="true" />
+                        </div>
                       </button>
                     );
                   })}
@@ -994,9 +1139,18 @@ export function StaffApp({
               </div>
 
               {/* RIGHT 8 COLS: Focused Selected Bill & Fast Checkout */}
-              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-tour-key={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className={`lg:col-span-8 ${selectedBill ? styles.cashierCheckoutCard : ''}`}>
+              <div ref={billDetailRef} tabIndex={-1} data-selected-bill-id={selectedBill?.id} data-demo-tour-key={selectedBill?.id} data-demo-bill-paid={selectedBill?.paymentState === 'SETTLED' || undefined} className={`lg:col-span-8 ${!(mobileBillOpen && selectedBill) ? styles.mobilePanelHidden : ''} ${selectedBill ? styles.cashierCheckoutCard : ''}`}>
                 {selectedBill ? (
                   <>
+                    {/* Mobile Back to Bill List */}
+                    <button
+                      type="button"
+                      onClick={() => setMobileBillOpen(false)}
+                      className="lg:hidden -mt-1 -ml-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--primary-ink)] min-h-[36px] w-fit cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                      <span>{t('Daftar tagihan', 'Back to bills')}</span>
+                    </button>
                     {/* Bill Header */}
                     <div className="pb-3 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -1424,19 +1578,21 @@ export function StaffApp({
                         const actionLabel = unit.fulfillmentStatus === 'QUEUED' ? t('Mulai siapkan', 'Start preparing') : unit.fulfillmentStatus === 'PREPARING' ? (takeaway ? t('Siap diambil', 'Ready for pickup') : t('Siap diantar', 'Ready to serve')) : takeaway ? t('Sudah diambil', 'Picked up') : t('Disajikan', 'Served');
                         return <div key={unit.id} data-unit-id={unit.id} className={styles.kitchenItem}>
                           <div className="min-w-0 space-y-1">
-                            <p className="font-semibold">1× {itemName}{variantName && <span className="font-normal text-[var(--muted-foreground)]"> ({variantName})</span>}</p>
-                            {unit.modifiersSummary && <p className="text-sm">{t('Opsi:', 'Options:')} {unit.modifiersSummary}</p>}
-                            {unit.note && <p className="text-sm font-medium text-[var(--status-warning-fg)]">{t('Catatan:', 'Note:')} {unit.note}</p>}
-                            <p className="text-xs text-[var(--muted-foreground)]">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
-                            <StatusLabel label={status.label} tone={status.tone} />
+                            <p className="font-semibold text-[15px] leading-[21px]">1× {itemName}{variantName && <span className="font-normal text-[var(--muted-foreground)]"> ({variantName})</span>}</p>
+                            {unit.modifiersSummary && <p className="text-[13px] text-[var(--muted-foreground)]">{unit.modifiersSummary}</p>}
+                            {unit.note && <p className="text-[13px] font-medium text-[var(--status-warning-fg)]">{t('Catatan:', 'Note:')} {unit.note}</p>}
+                            <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">#{unit.id.slice(-6).toUpperCase()} · {new Date(unit.createdAt).toLocaleTimeString(language, { timeZone: cafeConfig.timezone, hour: '2-digit', minute: '2-digit' })}</p>
                           </div>
-                          {!supervisor && targetStatus && <Button data-demo-target="cafe-order-status" data-demo-next-status={canUpdateUnit ? targetStatus : undefined} data-demo-tour-key={unit.id} variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || !canUpdateUnit} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
-                            try {
-                              await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
-                              if (snapshot.runtime?.demo) reportDemoTourResult(targetStatus, unit.id);
-                              toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));
-                            } catch { /* The workspace shows the server error. */ }
-                          }}>{actionLabel}</Button>}
+                          <div className={styles.kitchenItemAction}>
+                            <StatusLabel label={status.label} tone={status.tone} />
+                            {!supervisor && targetStatus && <Button data-demo-target="cafe-order-status" data-demo-next-status={canUpdateUnit ? targetStatus : undefined} data-demo-tour-key={unit.id} variant={unit.fulfillmentStatus === 'READY' ? 'secondary' : 'primary'} size="sm" disabled={busy || !canUpdateUnit} aria-label={`${actionLabel}: ${itemName}, ${customerName}`} onClick={async () => {
+                              try {
+                                await runStaffCommand('TRANSITION_UNITS', { unitIds: [unit.id], targetStatus });
+                                if (snapshot.runtime?.demo) reportDemoTourResult(targetStatus, unit.id);
+                                toast.success(t(`Status ${itemName} diperbarui.`, `${itemName} status updated.`));
+                              } catch { /* The workspace shows the server error. */ }
+                            }}>{actionLabel}</Button>}
+                          </div>
                         </div>;
                       })}
                     </div>
@@ -1697,39 +1853,99 @@ export function StaffApp({
             key="pos-menu"
             className="space-y-4"
           >
-            {/* Unified Search, Category & Primary CTA Row */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <Input
-                  aria-label={t("Cari menu", "Search menu")}
-                  value={menuSearchQuery}
-                  onChange={(e) => setMenuSearchQuery(e.target.value)}
-                  placeholder={t("Cari nama menu atau kode...", "Search menu name or code...")}
-                  className="pl-10"
-                />
-              </div>
-              <div className="w-full sm:w-56">
-                <SelectField
-                  aria-label={t("Filter kategori katalog", "Filter catalogue categories")}
-                  value={menuCategoryFilter}
-                  onChange={(e) => setMenuCategoryFilter(e.target.value)}
-                >
-                  <option value="ALL">
-                    {t("Semua kategori (", "All categories (")}{(snapshot?.categories || []).length})
-                  </option>
-                  {(snapshot?.categories || []).map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+            {/* Minimalist inline category + collapsible search + unified underline availability tabs */}
+            <div className="space-y-2">
+              <div className={styles.inlineToolbarRow}>
+                <div className="flex-1 min-w-0 sm:max-w-[240px]">
+                  <SelectField
+                    aria-label={t("Filter kategori katalog", "Filter catalogue categories")}
+                    value={menuCategoryFilter}
+                    onChange={(e) => setMenuCategoryFilter(e.target.value)}
+                  >
+                    <option value="ALL">
+                      {t("Semua kategori (", "All categories (")}{(snapshot?.categories || []).length})
                     </option>
-                  ))}
-                </SelectField>
+                    {(snapshot?.categories || []).map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+                <button
+                  type="button"
+                  aria-label={t("Cari menu", "Search menu")}
+                  aria-expanded={menuSearchExpanded}
+                  onClick={() => {
+                    setMenuSearchExpanded(true);
+                    requestAnimationFrame(() => menuSearchInputRef.current?.focus());
+                  }}
+                  className={styles.inlineSearchTrigger}
+                >
+                  <Search className="w-4 h-4" aria-hidden="true" />
+                </button>
+                {supervisor && (
+                  <Button size="sm" onClick={() => setAddMenuModalOpen(true)} className="shrink-0 ml-auto">
+                    <Plus className="w-4 h-4" /><span>{t("Tambah", "Add")}</span>
+                  </Button>
+                )}
+                <AnimatePresence>
+                  {(menuSearchExpanded || menuSearchQuery.length > 0) && (
+                    <motion.div
+                      initial={{ opacity: 0, scaleX: 0.94 }}
+                      animate={{ opacity: 1, scaleX: 1 }}
+                      exit={{ opacity: 0, scaleX: 0.94 }}
+                      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ transformOrigin: 'right center' }}
+                      className={styles.inlineSearchOverlay}
+                    >
+                      <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 pointer-events-none" aria-hidden="true" />
+                      <input
+                        ref={menuSearchInputRef}
+                        type="search"
+                        aria-label={t("Cari menu", "Search menu")}
+                        value={menuSearchQuery}
+                        onChange={(e) => setMenuSearchQuery(e.target.value)}
+                        onBlur={() => { if (!menuSearchQuery.trim()) setMenuSearchExpanded(false); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setMenuSearchQuery('');
+                            setMenuSearchExpanded(false);
+                            menuSearchInputRef.current?.blur();
+                          }
+                        }}
+                        placeholder={t("Cari nama menu atau kode…", "Search menu name or code…")}
+                        className={styles.inlineSearchInput}
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setMenuSearchQuery('');
+                          setMenuSearchExpanded(false);
+                          menuSearchInputRef.current?.blur();
+                        }}
+                        aria-label={t('Tutup pencarian', 'Close search')}
+                        className={styles.inlineSearchClose}
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              {supervisor && (
-                <Button size="sm" onClick={() => setAddMenuModalOpen(true)}>
-                  <Plus className="w-4 h-4" />{t("Tambah menu", "Add menu item")}
-                </Button>
-              )}
+
+              <AnimatedSegmentedControl
+                ariaLabel={t('Filter ketersediaan menu', 'Filter menu availability')}
+                options={[
+                  { value: 'ALL', label: t('Semua', 'All') },
+                  { value: 'AVAILABLE', label: t('Tersedia', 'Available') },
+                  { value: 'SOLD_OUT', label: t('Habis', 'Sold out') },
+                ]}
+                value={menuAvailabilityFilter}
+                onChange={(val) => setMenuAvailabilityFilter(val as typeof menuAvailabilityFilter)}
+                layoutId="staff-menu-availability-filter"
+              />
             </div>
 
             {supervisor && (
@@ -1809,9 +2025,15 @@ export function StaffApp({
               </div>
             )}
 
-            {/* One menu entry and its availability controls per record. */}
-            <div className="operation-list">
-              {filteredCatalog.map((item: any) => {
+            {/* Clean responsive 1-col mobile / 2-col desktop menu availability cards */}
+            <div className={styles.availabilityGrid}>
+              {filteredCatalog
+                .filter((item: any) => {
+                  if (menuAvailabilityFilter === 'AVAILABLE') return Boolean(item.isAvailable);
+                  if (menuAvailabilityFilter === 'SOLD_OUT') return !item.isAvailable;
+                  return true;
+                })
+                .map((item: any) => {
                 const itemPhotos: string[] = Array.isArray(item.photos)
                   ? item.photos
                   : item.photoUrl
@@ -1822,54 +2044,55 @@ export function StaffApp({
                   <div
                     key={item.id}
                     data-menu-item-id={item.id}
-                    className="operation-record flex flex-wrap items-center justify-between gap-4"
+                    className={`${styles.availabilityCard} ${!item.isAvailable ? styles.availabilityCardSoldOut : ''}`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      {supervisor && itemPhotos[0] && (
-                        <div className="relative w-14 h-14 rounded-[var(--radius-image)] overflow-hidden shrink-0">
-                          <Image src={itemPhotos[0]} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                      )}
-
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <p className="font-heading font-semibold text-[16px] break-words">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        {itemPhotos[0] && (
+                          <div className="relative w-12 h-12 rounded-[var(--radius-control)] overflow-hidden shrink-0 bg-[var(--surface-muted)]">
+                            <Image src={itemPhotos[0]} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <p className="font-heading font-semibold text-[15px] leading-[20px] text-[var(--foreground)]">
                             {item.name}
                           </p>
-                          <StatusLabel
-                            label={item.manualSoldOut ? t("Habis", "Sold out") : item.isAvailable ? t("Tersedia", "Available") : t("Tidak tersedia", "Unavailable")}
-                            tone={item.isAvailable ? 'success' : 'danger'}
-                          />
+                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                            {formatStationName(item.stationCode, t)} · <strong className="text-[var(--foreground)]">{formatIdr(item.minPriceIdr)}</strong>
+                          </p>
                         </div>
-                        <p className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
-                          {formatStationName(item.stationCode, t)} {t("· Mulai", "· Starting at")}{' '}
-                          <strong className="text-[var(--foreground)]">
-                            {formatIdr(item.minPriceIdr)}
-                          </strong>
-                        </p>
                       </div>
+                      <StatusLabel
+                        label={item.manualSoldOut ? t("Habis", "Sold out") : item.isAvailable ? t("Tersedia", "Available") : t("Stok habis", "Out of stock")}
+                        tone={item.isAvailable ? 'success' : 'danger'}
+                      />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1 shrink-0">
-                      {supervisor && <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
-                        title={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
-                        onClick={() => {
-                          setEditingPhotosItem(item);
-                          setPhotoDraftList(itemPhotos);
-                          setNewPhotoUrlInput('');
-                        }}
-                      >
-                        <Images className="w-4 h-4" aria-hidden="true" />
-                        <span className="tabular-nums text-xs text-[var(--muted-foreground)]">{itemPhotos.length}</span>
-                      </Button>}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+                      {supervisor ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
+                          title={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
+                          onClick={() => {
+                            setEditingPhotosItem(item);
+                            setPhotoDraftList(itemPhotos);
+                            setNewPhotoUrlInput('');
+                          }}
+                        >
+                          <Images className="w-4 h-4" aria-hidden="true" />
+                          <span className="tabular-nums text-[12px]">{itemPhotos.length} {t('foto', 'photos')}</span>
+                        </Button>
+                      ) : (
+                        <span className="text-[12px] text-[var(--muted-foreground)]">
+                          {item.manualSoldOut ? t('Disembunyikan dari pesanan', 'Hidden from ordering') : t('Dapat dipesan tamu', 'Orderable by guests')}
+                        </span>
+                      )}
 
                       <Button
-                        variant={item.manualSoldOut ? 'primary' : 'ghost'}
+                        variant={item.manualSoldOut ? 'primary' : 'secondary'}
                         size="sm"
-                        className={item.manualSoldOut ? '' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
                         disabled={busy}
                         onClick={() =>
                           runStaffCommand('MENU_STOCK_ACTION', {
@@ -1879,7 +2102,7 @@ export function StaffApp({
                           })
                         }
                       >
-                        {item.manualSoldOut ? t("Aktifkan Kembali", "Reactivate") : t("Tandai Habis", "Mark sold out")}
+                        {item.manualSoldOut ? t("Aktifkan", "Reactivate") : t("Tandai habis", "Mark sold out")}
                       </Button>
                     </div>
                   </div>
@@ -2203,7 +2426,7 @@ export function StaffApp({
       {/* MODAL 1: BUAT PESANAN BARU OLEH KASIR / PELAYAN                       */}
       {/* ===================================================================== */}
       <DialogModal open={newOrderModalOpen} onClose={() => { if (!busy) setNewOrderModalOpen(false); }} title={t("Pesanan baru", "New orders")} maxWidth="max-w-5xl">
-        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onComplete={(billId) => { if (snapshot.runtime?.demo) reportDemoTourResult('pos-submit', billId); if (billId) { setSelectedBillId(billId); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
+        {newOrderModalOpen && <PosComposer snapshot={snapshot} busy={busy} actorId={activeStaff} actorName={currentStaffObj.userName} actorRole={currentStaffObj.role} onCommand={runStaffCommand} onComplete={(billId) => { if (snapshot.runtime?.demo) reportDemoTourResult('pos-submit', billId); if (billId) { setSelectedBillId(billId); setMobileBillOpen(true); setBillSearch(''); setBillFilter('ALL'); setCashierTask('bills'); } setNewOrderModalOpen(false); toast.success(t("Pesanan dibuat. Periksa tagihan dan status pembayarannya.", "Order created. Check the bill and payment status.")); }} />}
       </DialogModal>
 
       {/* ===================================================================== */}

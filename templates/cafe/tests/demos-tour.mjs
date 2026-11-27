@@ -36,11 +36,9 @@ try {
   await target(page, 'customer-add').click();
   await heading(customer, 'Open the cart');
   await target(page, 'customer-cart').click();
-  await heading(customer, 'Review the order');
-  await target(page, 'customer-review').click();
-  await page.getByText('Enter an order name with at least 2 characters.', { exact: true }).waitFor();
-  await heading(customer, 'Review the order');
+  await heading(customer, 'Enter your name');
   await page.locator('#guest-name-input').fill('Tour Guest');
+  await heading(customer, 'Review the order');
   await target(page, 'customer-review').click();
   await heading(customer, 'Submit the order');
   await target(page, 'customer-submit').click();
@@ -53,8 +51,6 @@ try {
   staff.on('pageerror', error => errors.push(error.message));
   await staff.setViewportSize({ width: 1024, height: 850 });
   const cashier = guide(staff, 'Cashier');
-  await heading(cashier, 'Open the cashier workspace');
-  await staff.locator('.staff-mobile-nav [data-choice="kasir"]').click();
   await heading(cashier, 'Open incoming orders');
   await staff.locator('#staff-content [data-choice="orders"]').click();
   await heading(cashier, 'Accept an order');
@@ -101,11 +97,9 @@ try {
   const barPage = await fulfillmentPage;
   barPage.on('pageerror', error => errors.push(error.message));
   await barPage.setViewportSize({ width: 1024, height: 850 });
-  await heading(guide(barPage, 'Cashier'), 'Open the cashier workspace');
+  await heading(guide(barPage, 'Cashier'), 'Open incoming orders');
   await chooseDemoStaff(barPage, 'staff_bar');
   const bar = guide(barPage, 'Bar');
-  await heading(bar, 'Open the prep queue');
-  await barPage.locator('.staff-mobile-nav [data-choice="dapur"]').click();
   for (const [name, status] of [['Start preparing', 'PREPARING'], ['Mark ready', 'READY'], ['Hand over the item', 'DELIVERED']]) {
     await heading(bar, name);
     await barPage.locator(`[data-demo-next-status="${status}"][data-demo-tour-key="${unitId}"]`).click();
@@ -120,7 +114,6 @@ try {
 
   await staff.goto(`${base}/p/full/staff?staff=staff_cashier&lang=en`);
   await openGuide(staff);
-  await staff.locator('.staff-mobile-nav [data-choice="kasir"]').click();
   await staff.locator('#staff-content [data-choice="orders"]').click();
   await heading(cashier, 'Accept an order');
   if (await target(staff, 'cashier-accept').count()) await target(staff, 'cashier-accept').first().click();
@@ -145,8 +138,7 @@ try {
   await staff.goto(`${base}/p/full/staff?staff=staff_waiter&lang=id`);
   await staff.getByRole('button', { name: 'Panduan demo', exact: true }).click();
   const waiter = staff.getByRole('region', { name: 'Panduan demo · Pelayan' });
-  await heading(waiter, 'Layani meja');
-  await staff.locator('.staff-mobile-nav [data-choice="meja"]').click();
+  await heading(waiter, 'Buka panggilan pelayan');
   await staff.locator('#staff-content [data-choice="PANGGILAN"]').click();
   await heading(waiter, 'Tangani permintaan');
   const guestRequest = staff.locator('[data-service-request-id="sreq_m01_napkin"]');

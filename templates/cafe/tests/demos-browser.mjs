@@ -133,7 +133,7 @@ async function checkGeometry(page, preset, surface, screenshotName) {
 
 async function checkCustomer(page, demo) {
   const modules = new Set(demo.modules);
-  await page.getByPlaceholder('Cari menu', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Cari menu', exact: true }).waitFor();
   const nav = page.getByRole('navigation', { name: 'Navigasi pelanggan', exact: true });
   await nav.waitFor();
   await assertPresence(nav.getByRole('button', { name: 'Keranjang', exact: true }), modules.has('ordering'), `${demo.id}: cart follows ordering capability.`);
@@ -161,13 +161,28 @@ async function checkCustomer(page, demo) {
 
 async function signInStaff(page) {
   await chooseDemoStaff(page);
-  await page.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true }).waitFor();
+  await page.locator('.cafe-staff > header').waitFor();
+}
+
+async function openStaffSection(page, name) {
+  const desktopNav = page.getByRole('navigation', { name: 'Navigasi operasional desktop', exact: true });
+  if (await desktopNav.isVisible().catch(() => false)) {
+    await desktopNav.getByRole('button', { name }).click();
+    return;
+  }
+  await page.locator('[data-demo-target="staff-nav-trigger"]').click();
+  await page.getByRole('dialog').getByRole('button', { name }).click();
 }
 
 async function checkStaff(page, demo) {
   await signInStaff(page);
   const modules = new Set(demo.modules);
-  const nav = page.getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true });
+  const trigger = page.locator('[data-demo-target="staff-nav-trigger"]');
+  const drawerOpened = await trigger.isVisible().catch(() => false);
+  if (drawerOpened) await trigger.click();
+  const nav = drawerOpened
+    ? page.getByRole('dialog').getByRole('navigation', { name: 'Navigasi operasional kafe', exact: true })
+    : page.getByRole('navigation', { name: 'Navigasi operasional desktop', exact: true });
   const expectedSections = [
     [/^Kasir/, modules.has('cashier')],
     [/^Pesanan masuk/, modules.has('ordering') && !modules.has('cashier')],
@@ -180,9 +195,10 @@ async function checkStaff(page, demo) {
   for (const [name, enabled] of expectedSections) {
     await assertPresence(nav.getByRole('button', { name }), enabled, `${demo.id}: ${name} capability navigation.`);
   }
+  if (drawerOpened) await page.keyboard.press('Escape');
   await assertPresence(page.getByRole('button', { name: /^Pesanan baru$/i }), false, 'Owners inspect cashier activity read-only.');
   if (modules.has('dashboard')) {
-    await nav.getByRole('button', { name: /^Laporan & Shift/ }).click();
+    await openStaffSection(page, /^Laporan & Shift/);
     const breakdown = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Rincian penjualan & pembayaran' }) });
     await breakdown.locator('summary').waitFor();
     assert.equal(await breakdown.evaluate(element => element.open), false);
@@ -190,8 +206,8 @@ async function checkStaff(page, demo) {
     await breakdown.getByRole('heading', { name: 'Rincian tagihan' }).waitFor();
   }
   if (modules.has('catalog') || modules.has('cashier')) {
-    await nav.getByRole('button', { name: /^Katalog & Stok/ }).click();
-    await page.getByRole('textbox', { name: 'Cari menu' }).waitFor();
+    await openStaffSection(page, /^Katalog & Stok/);
+    await page.getByRole('button', { name: 'Cari menu', exact: true }).waitFor();
     const tools = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Impor & cetak' }) });
     assert.equal(await tools.evaluate(element => element.open), false);
     await tools.locator('summary').click();
@@ -240,7 +256,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.equal(await customer.getByText('Verifikasi meja', { exact: true }).count(), 0, 'The table QR route should retain its table context after reload.');
   pass('full: customer cart persists after reload', { preset: demo.id });
 
-  await localClick(customer, customer.getByRole('button', { name: /Periksa pesanan ·/ }), 'before customer price review');
+  await localClick(customer, customer.locator('[data-demo-target="customer-review"]'), 'before customer price review');
   await localClick(customer, customer.getByRole('dialog').getByRole('button', { name: 'Kirim pesanan', exact: true }), 'before customer submission');
   await customer.getByRole('dialog').waitFor({ state: 'hidden' });
   // Polling is disabled in this staff tab. The existing queue must update from
@@ -266,8 +282,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   pass('full: customer UI order appears and is accepted in a second staff tab', { preset: demo.id, orderId: order.id, billId: bill.id });
 
   await customer.getByRole('button', { name: 'Perbarui', exact: true }).click();
-  await customer.getByRole('button', { name: 'Menu profil, pesanan, dan layanan meja', exact: true }).click();
-  await customer.getByRole('dialog').getByRole('button', { name: /^Pembayaran(?:\s|$)/ }).click();
+  await customer.getByRole('button', { name: 'Lihat tagihan dan pembayaran', exact: true }).click();
   await selectCustomerBill(customer, bill.id);
   await localClick(customer, customer.getByRole('button', { name: 'Buat QRIS', exact: true }), 'before demo QR creation');
   await customer.getByAltText('Kode QR tidak dapat dibayar', { exact: true }).waitFor();
@@ -315,6 +330,7 @@ async function fullWorkflow(context, customer, staff, demo, baseline) {
   assert.equal(afterReload.bills.find(entry => entry.id === bill.id)?.paymentState, 'SETTLED');
   assert.equal(afterReload.bills.find(entry => entry.id === posBill.id)?.discountIdr, 5000);
   await staff.getByRole('navigation', { name: 'Tugas kasir dan pesanan' }).getByRole('button', { name: /^Tagihan/ }).click();
+  await staff.getByRole('button', { name: 'Cari tagihan berdasarkan meja atau pelanggan', exact: true }).click();
   await staff.locator('input[placeholder*="Cari meja atau pelanggan"]').fill(posName);
   await staff.getByText(posName, { exact: false }).first().waitFor();
   await open(customer, tableUrl(demo, table.qrToken, bill.shareToken));

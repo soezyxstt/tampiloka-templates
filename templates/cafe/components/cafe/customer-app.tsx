@@ -1265,7 +1265,14 @@ export function CustomerApp({
                     </div>
 
                     {effectiveIdentityMode === 'GUEST' ? (
-                      <div className="space-y-1">
+                      <div
+                        className="space-y-1"
+                        data-demo-tour-prompt={
+                          guestName.trim().length < 2
+                            ? t('Isi nama pemesan', 'Enter your name')
+                            : undefined
+                        }
+                      >
                         <Label htmlFor="guest-name-input" className="sr-only">
                           {t("Nama", "Name")}
                         </Label>
@@ -1536,11 +1543,11 @@ export function CustomerApp({
               {/* Pending Order Requests waiting for staff */}
               {customerRequests.filter((r: any) => r.state === 'REQUESTED').length >
                 0 && (
-                <section className="space-y-2.5">
-                  <h2 className="font-heading text-[16px] font-semibold">
+                <section className={`${styles.sectionSurface} space-y-2.5`}>
+                  <h2 className="font-heading text-[15px] font-semibold">
                     {t("Menunggu konfirmasi kasir", "Awaiting staff confirmation")}
                   </h2>
-                  <div className={styles.orderList}>
+                  <div className="divide-y divide-[var(--border)]">
                     {customerRequests
                       .filter((r: any) => r.state === 'REQUESTED')
                       .map((req: any) => {
@@ -1548,18 +1555,18 @@ export function CustomerApp({
                           (q: any) => q.id === req.quoteId
                         );
                         return (
-                          <div key={req.id} className={`${styles.orderArticle} space-y-1.5`}>
+                          <div key={req.id} className="py-3 first:pt-1 last:pb-1 space-y-1.5">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="min-w-0 break-words font-semibold text-[15px]">
+                              <span className="min-w-0 break-words font-semibold text-[14px] text-[var(--foreground)]">
                                 {t('Meja', 'Table')} {req.tableLabel} · {req.customerName}
                               </span>
-                              <StatusLabel label={t("Menunggu konfirmasi kasir", "Awaiting staff confirmation")} tone="warning" />
+                              <StatusLabel label={t("Menunggu konfirmasi", "Awaiting confirmation")} tone="warning" />
                             </div>
                             <p className="text-[13px] text-[var(--muted-foreground)]">
-                              {t('Total estimasi:', 'Estimated total:')}{' '}
+                              {t('Estimasi:', 'Estimate:')}{' '}
                               <Money
                                 amount={matchedQuote?.totalIdr ?? req.totalIdr ?? 0}
-                                className="font-semibold"
+                                className="font-semibold text-[var(--foreground)]"
                               />{' '}
                               · {t('Diajukan pukul', 'Submitted at')}{' '}
                               {new Date(req.createdAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en', {
@@ -1575,9 +1582,9 @@ export function CustomerApp({
                 </section>
               )}
 
-              {/* Accepted Orders with 3 Distinct Status Axes (Flat Hairline Layout) */}
+              {/* Accepted Orders with 3 Distinct Status Axes (Consistent Surface Cards) */}
               {customerOrders.length > 0 && <section className="space-y-3">
-                <div className={styles.orderList}>
+                <div className="space-y-3">
                   {customerOrders.map((ord: any) => {
                     const units = (snapshot?.orderUnits || []).filter(
                       (u: any) => u.orderId === ord.id
@@ -1588,10 +1595,10 @@ export function CustomerApp({
                       <article key={ord.id} data-order-id={ord.id}
                         data-demo-fulfillment={ord.id === lastSubmittedOrderId
                           ? (units.length > 0 && units.every((unit: any) => ['DELIVERED', 'PICKED_UP', 'SERVED', 'CANCELLED'].includes(unit.fulfillmentStatus))
-                            && units.some((unit: any) => unit.fulfillmentStatus !== 'CANCELLED') ? 'complete' : 'active') : undefined} className={`${styles.orderArticle} space-y-3`}>
+                            && units.some((unit: any) => unit.fulfillmentStatus !== 'CANCELLED') ? 'complete' : 'active') : undefined} className={`${styles.sectionSurface} space-y-3`}>
                         <div className={styles.orderHeaderBand}>
                           <div>
-                            <p className="font-heading font-semibold text-[16px]">
+                            <p className="font-heading font-semibold text-[15px]">
                               {ord.customerName}
                             </p>
                             <p className="text-[12px] text-[var(--muted-foreground)]">
@@ -1604,7 +1611,7 @@ export function CustomerApp({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <StatusLabel label={t("Diterima Staf", "Accepted by staff")} tone="active" />
+                            <StatusLabel label={t("Diterima Staf", "Accepted")} tone="active" />
                             <StatusLabel
                               label={paymentLabel(billing.paymentState)}
                               tone={billing.paymentState === 'SETTLED' ? 'success' : billing.paymentState === 'REFUND_DUE' ? 'danger' : 'warning'}

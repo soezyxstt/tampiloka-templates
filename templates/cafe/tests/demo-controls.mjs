@@ -27,8 +27,18 @@ export async function chooseDemoStaff(page, id = 'staff_owner') {
   await picker.click();
   await page.getByRole('option').filter({ hasText: person.userName }).click();
   // These existing journeys exercise cashier tasks explicitly; owner landing is reports.
-  const cashier = page.getByRole('navigation', { name: /^Navigasi operasional (kafe|desktop)$/ }).getByRole('button', { name: /^Kasir|^Pesanan masuk/ });
-  if (await cashier.count()) await cashier.click();
+  const desktopCashier = page.getByRole('navigation', { name: 'Navigasi operasional desktop' }).getByRole('button', { name: /^Kasir|^Pesanan masuk/ });
+  if (await desktopCashier.isVisible().catch(() => false)) {
+    await desktopCashier.click();
+  } else if (id === 'staff_owner' || id === 'staff_manager') {
+    const trigger = page.locator('[data-demo-target="staff-nav-trigger"]');
+    if (await trigger.isVisible().catch(() => false)) {
+      await trigger.click();
+      const drawerCashier = page.getByRole('dialog').getByRole('button', { name: /^Kasir|^Pesanan masuk/ });
+      if (await drawerCashier.count()) await drawerCashier.click();
+      else await page.keyboard.press('Escape');
+    }
+  }
 }
 
 export async function enterTableMenu(page) {

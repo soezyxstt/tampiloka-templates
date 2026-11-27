@@ -221,9 +221,9 @@ export function StatusLabel({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'inline-flex max-w-full min-w-0 items-start gap-1.5 text-[12px] leading-[16px] font-medium whitespace-normal [overflow-wrap:anywhere]',
+        'inline-flex max-w-full shrink-0 items-center gap-1.5 text-[12px] leading-[16px] font-semibold whitespace-nowrap',
         cfg.fg,
-        withSurface ? cn(cfg.bg, 'px-2 py-1 rounded-[6px]') : '',
+        withSurface ? cn(cfg.bg, 'px-2 py-0.5 rounded-[6px]') : '',
         className
       )}
     >
