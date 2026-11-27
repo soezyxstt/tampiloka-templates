@@ -70,14 +70,14 @@ The old defaults (cool corporate blue on blue-grey, olive-grey on sand) read as 
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--background` | `#FBF8F3` | Page canvas (warm cream) |
+| `--background` | `#F8F4EE` | Page canvas (warm ivory) |
 | `--surface` | `#FFFFFF` | Cards, sheets, inputs |
-| `--surface-muted` | `#F4EEE6` | Quiet panels, table headers, skeletons |
-| `--foreground` | `#2A1F1A` | Body text (espresso) |
-| `--muted-foreground` | `#6B5C52` | Secondary text, placeholders |
-| `--border` | `#E6DCCF` | Dividers, card outlines (decorative) |
-| `--border-strong` | `#9A877A` | Input/checkbox outlines, focusable boundaries (≥3:1) |
-| `--primary` | from `config/cafe.json` → default `#A94C27` | Primary fills |
+| `--surface-muted` | `#EFE8DE` | Quiet panels, table headers, skeletons |
+| `--foreground` | `#1D1512` | Body text (deep espresso) |
+| `--muted-foreground` | `#55473F` | Secondary text, placeholders |
+| `--border` | `#DDD0C0` | Dividers, card outlines (decorative) |
+| `--border-strong` | `#7B695D` | Input/checkbox outlines, focusable boundaries (≥4.5:1) |
+| `--primary` | from `config/cafe.json` → default `#9E3E1A` | Primary fills |
 | `--primary-ink` | derived (`readableAccent`) | Brand-colored text, icons, focus rings |
 | `--primary-foreground` | derived (`foregroundForColor`) | Text on primary fill |
 | `--primary-hover` | primary + 18% black | Hover on primary fill |

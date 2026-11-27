@@ -50,7 +50,7 @@ export function customerTour(tableRoute: boolean, staffHref: string): Steps {
   steps.push(
     action('customer-add', ['Tambahkan ke keranjang', 'Add to cart'], ['Klik Tambah ke keranjang untuk menyimpan pilihan Anda.', 'Select Add to cart to save your choices.'], { result: 'customer-add', prerequisite: requiredChoice }),
     action('customer-cart', ['Buka keranjang', 'Open the cart'], ['Klik Lihat keranjang untuk mengecek item dan jumlahnya.', 'Select View cart to check the items and quantities.']),
-    action('customer-review', ['Periksa pesanan', 'Review the order'], ['Isi nama pemesan, lalu klik Periksa pesanan untuk melihat total akhir.', 'Enter your name, then select Review order to see the final total.'], { result: 'customer-review' }),
+    action('customer-review', ['Periksa pesanan', 'Review the order'], ['Isi nama pemesan, lalu klik Pesan untuk melihat total akhir.', 'Enter your name, then select Order to see the final total.'], { result: 'customer-review' }),
     action('customer-submit', ['Kirim pesanan', 'Submit the order'], ['Cek total, lalu klik Kirim pesanan.', 'Check the total, then select Submit order.'], { result: 'customer-submit' }),
     action('customer-order-bill', ['Buka tagihan pesanan', 'Open the order bill'], ['Klik tombol tagihan pada pesanan yang baru dikirim. Jika masih menunggu konfirmasi, terima pesanan dengan nama Anda sebagai kasir di tab staf, lalu kembali ke sini.', 'Select the bill on the order you placed. If it is awaiting confirmation, accept the order under your name as cashier in the staff tab, then return here.'], { link: staffLink }),
   );

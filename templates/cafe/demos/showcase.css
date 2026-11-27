@@ -14,7 +14,9 @@
 [data-ui=dialog-content] { z-index:101; }
 [data-ui=select-content] { z-index:250; }
 .demo-session[data-demo-view=pelanggan] .tl-demo-language { bottom:calc(76px + var(--demo-language-cart-offset,0px) + env(safe-area-inset-bottom,0px)); }
+.demo-session[data-demo-view=pelanggan]:has([data-no-bottom-nav="true"]) .tl-demo-language { bottom:calc(16px + var(--demo-language-cart-offset,0px) + env(safe-area-inset-bottom,0px)); }
 .demo-session[data-demo-view=pelanggan] { padding-bottom:64px; }
+.demo-session[data-demo-view=pelanggan]:has([data-no-bottom-nav="true"]) { padding-bottom:0; }
 /* Keep staff clearance inside the sticky grid so its sidebar can reach the page end. */
 .demo-session[data-demo-view=staf] .staff-main { padding-bottom:84px; }
 /* Demo tools live in a toolbar dialog, outside the customer and staff layouts. */

@@ -20,9 +20,30 @@ function assertSurface(surface: Surface): void {
 }
 
 function visibleSnapshot(service: Service, full: FullSnapshot, context: BrowserSnapshotContext) {
-  const snapshot = service.getSurfaceSnapshot(full, context.surface || 'customer', context.tableId, context.principalId);
+  const surface = context.surface || 'customer';
+  const snapshot = service.getSurfaceSnapshot(full, surface, context.tableId, context.principalId);
+  const includeDemoMembers = surface === 'customer' && isModuleEnabled('loyalty');
+  const demoMembers = includeDemoMembers
+    ? full.members.map(({ id, displayName, qualifiedVisitsCount, status, favoriteMenuIdsJson }) => ({
+        id,
+        displayName,
+        qualifiedVisitsCount,
+        status,
+        favoriteMenuIdsJson,
+      }))
+    : undefined;
+  const demoRewards = includeDemoMembers
+    ? full.rewardEntitlements.map(({ id, memberId, title, state, expiresAt }) => ({
+        id,
+        memberId,
+        title,
+        state,
+        expiresAt,
+      }))
+    : undefined;
   return wire({
     ...snapshot,
+    ...(demoMembers ? { demoMembers, demoRewards } : {}),
     runtime: {
       ...snapshot.runtime,
       mode: 'browser-demo' as const,

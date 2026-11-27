@@ -5,35 +5,35 @@
 @import "../components/ui/workspace.css";
 @import "../components/ui/motion.css";
 
-/* Warm "Kopi Hangat" palette. The only place raw colors live (see AGENTS.md).
- * Contrast: foreground 15.1:1, muted 6.0:1 on --background; border-strong 3.4:1 on white. */
+/* Warm high-contrast "Kopi Hangat" palette. The only place raw colors live (see AGENTS.md).
+ * Contrast: foreground 16.5:1, muted 7.2:1 on --background; primary 6.3:1 on white; border-strong 4.6:1 on white. */
 :root {
-  --background: #FBF8F3;
+  --background: #F8F4EE;
   --surface: #FFFFFF;
-  --foreground: #2A1F1A;
-  --muted-foreground: #6B5C52;
-  --border: #E6DCCF;
-  --primary: #A94C27;
-  --primary-ink: #A94C27;
+  --foreground: #1D1512;
+  --muted-foreground: #55473F;
+  --border: #DDD0C0;
+  --primary: #9E3E1A;
+  --primary-ink: #9E3E1A;
   --primary-foreground: #FFFFFF;
   --primary-hover: color-mix(in srgb, var(--primary) 82%, black);
-  --surface-muted: #F4EEE6;
-  --border-strong: #9A877A;
-  --accent-surface: var(--brand-tint, #F8F1EE);
-  --overlay: color-mix(in srgb, var(--foreground) 45%, transparent);
+  --surface-muted: #EFE8DE;
+  --border-strong: #7B695D;
+  --accent-surface: var(--brand-tint, #F7ECE6);
+  --overlay: color-mix(in srgb, var(--foreground) 50%, transparent);
   --selection: color-mix(in srgb, var(--primary) 18%, white);
-  --shadow-soft: 0 4px 20px color-mix(in srgb, var(--foreground) 8%, transparent);
+  --shadow-soft: 0 4px 20px color-mix(in srgb, var(--foreground) 10%, transparent);
 
-  --status-success-fg: #2E6B3E;
-  --status-success-bg: #EAF4EC;
-  --status-warning-fg: #8A5300;
-  --status-warning-bg: #FCF1E0;
-  --status-danger-fg: #A3302A;
-  --status-danger-bg: #FCEBE8;
-  --status-danger-border: #F1C6BF;
-  --status-danger-hover: #F8DCD7;
-  --status-info-fg: #2B5D78;
-  --status-info-bg: #E9F1F6;
+  --status-success-fg: #1E5A2F;
+  --status-success-bg: #E5F3E8;
+  --status-warning-fg: #7B4600;
+  --status-warning-bg: #FCEFD9;
+  --status-danger-fg: #99221D;
+  --status-danger-bg: #FDE7E4;
+  --status-danger-border: #ECBCB5;
+  --status-danger-hover: #F7D7D2;
+  --status-info-fg: #1D4E6A;
+  --status-info-bg: #E4F0F7;
   --radius-control: 8px;
   --radius-panel: 12px;
   --radius-image: 14px;

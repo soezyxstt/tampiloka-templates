@@ -1,16 +1,16 @@
 .dp-demo-portal {
   /* Demo chrome tokens: mirror the cafe "Kopi Hangat" palette in app/globals.css. */
-  --dp-bg: #FBF8F3;
+  --dp-bg: #F8F4EE;
   --dp-surface: #FFFFFF;
-  --dp-surface-muted: #F4EEE6;
-  --dp-ink: #2A1F1A;
-  --dp-muted: #6B5C52;
-  --dp-line: #E6DCCF;
-  --dp-line-strong: #9A877A;
-  --dp-brand: #A94C27;
-  --dp-brand-hover: #8B3E20;
-  --dp-tint: #F8F1EE;
-  --dp-success: #2E6B3E;
+  --dp-surface-muted: #EFE8DE;
+  --dp-ink: #1D1512;
+  --dp-muted: #55473F;
+  --dp-line: #DDD0C0;
+  --dp-line-strong: #7B695D;
+  --dp-brand: #9E3E1A;
+  --dp-brand-hover: #7F3114;
+  --dp-tint: #F7ECE6;
+  --dp-success: #1E5A2F;
   --dp-heading: var(--font-brand-heading, 'Manrope'), ui-sans-serif, system-ui, sans-serif;
   --dp-body: var(--font-sans, 'Source Sans 3'), ui-sans-serif, system-ui, sans-serif;
   min-height: 100dvh;
