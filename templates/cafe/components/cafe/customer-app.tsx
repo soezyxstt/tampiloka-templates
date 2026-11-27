@@ -275,6 +275,9 @@ export function CustomerApp({
     return demoMembers.find((m: any) => m.id === loggedInMemberId) || null;
   }, [demoMembers, loggedInMemberId]);
 
+  const effectiveIdentityMode = canUseLoyalty ? identityMode : 'GUEST';
+  const activeMemberId = effectiveIdentityMode === 'MEMBER' && currentMember ? currentMember.id : undefined;
+
   const memberRewards = useMemo(() => {
     if (!currentMember) return [];
     return demoRewards.filter((r: any) => r.memberId === currentMember.id && r.state === 'AVAILABLE');
@@ -293,6 +296,8 @@ export function CustomerApp({
     setLoggedInMemberId('');
     setIdentityMode('GUEST');
     setActiveQuote(null);
+    setPromoCodeInput('');
+    setCheckoutError('');
     toast.success(t('Keluar dari akun member.', 'Signed out of member account.'));
   };
 
@@ -308,7 +313,7 @@ export function CustomerApp({
       const stored = JSON.parse(localStorage.getItem(`${storageKey}:cart`) || '{}');
       if (Array.isArray(stored.cart)) setCart(stored.cart.filter((line: CartLineDraft) => line && Number.isInteger(line.quantity) && line.quantity > 0 && line.quantity <= 20 && typeof line.menuItemId === 'string' && typeof line.variantId === 'string' && typeof line.cartLineId === 'string' && typeof line.itemName === 'string' && typeof line.variantName === 'string' && typeof line.note === 'string' && Number.isFinite(line.unitPriceIdr) && line.unitPriceIdr >= 0 && Array.isArray(line.modifierOptionIds) && line.modifierOptionIds.every((id) => typeof id === 'string') && Array.isArray(line.modifierNames) && line.modifierNames.every((name) => typeof name === 'string')));
       if (typeof stored.name === 'string') setGuestName(stored.name);
-      if (typeof stored.memberId === 'string' && stored.memberId) {
+      if (canUseLoyalty && typeof stored.memberId === 'string' && stored.memberId) {
         setLoggedInMemberId(stored.memberId);
         setIdentityMode('MEMBER');
       }
@@ -324,7 +329,7 @@ export function CustomerApp({
     setCustomerPrincipalId(principal);
     try { localStorage.setItem(`${storageKey}:guest`, principal); } catch { /* In-memory session still works. */ }
     setCartLoaded(true);
-  }, [storageKey]);
+  }, [storageKey, canUseLoyalty]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -333,9 +338,9 @@ export function CustomerApp({
 
   useEffect(() => {
     if (cartLoaded) {
-      try { localStorage.setItem(`${storageKey}:cart`, JSON.stringify({ cart, name: guestName, memberId: loggedInMemberId, favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
+      try { localStorage.setItem(`${storageKey}:cart`, JSON.stringify({ cart, name: guestName, memberId: canUseLoyalty ? loggedInMemberId : '', favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
     }
-  }, [cart, guestName, loggedInMemberId, localFavoriteIds, cartLoaded, storageKey]);
+  }, [cart, guestName, loggedInMemberId, localFavoriteIds, cartLoaded, storageKey, canUseLoyalty]);
 
   useEffect(() => {
     if (!shareOpen) return;
@@ -529,7 +534,7 @@ export function CustomerApp({
     navigator.geolocation.getCurrentPosition(async (position) => {
       try {
         const res = await onCommand('VERIFY_PRESENCE', {
-          principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
+          principalId: activeMemberId || customerPrincipalId,
           lat: position.coords.latitude, lng: position.coords.longitude, accuracyMeters: position.coords.accuracy,
         });
         const check = res?.result || res;
@@ -544,7 +549,7 @@ export function CustomerApp({
     setCheckoutError('');
     try {
       const res = await onCommand('VERIFY_PRESENCE', {
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
+        principalId: activeMemberId || customerPrincipalId,
         joinCode: joinCodeInput,
       });
       const check = res?.result || res;
@@ -558,17 +563,17 @@ export function CustomerApp({
     }
   };
 
+  const activeDiscountIdr = activeQuote?.discountIdr ?? 0;
+  const appliedPromoCode = activeDiscountIdr > 0 && activeQuote?.promoCode ? String(activeQuote.promoCode).toUpperCase() : '';
+
   const handleRequestQuote = async (overridePromoCode?: string) => {
     setCheckoutError('');
     const codeToApply =
-      typeof overridePromoCode === 'string' ? overridePromoCode : promoCodeInput.trim();
-    if (typeof overridePromoCode === 'string') {
-      setPromoCodeInput(overridePromoCode);
-    }
+      typeof overridePromoCode === 'string' ? overridePromoCode.trim() : promoCodeInput.trim();
     try {
       const res = await onCommand('CREATE_QUOTE', {
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
-        memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
+        principalId: activeMemberId || customerPrincipalId,
+        memberId: activeMemberId,
         mode: orderMode,
         tableId: orderMode === 'DINE_IN' ? selectedTableId : undefined,
         promoCode: canUsePromos ? codeToApply || undefined : undefined,
@@ -582,6 +587,9 @@ export function CustomerApp({
       });
       const quote = res?.result || res;
       setActiveQuote(quote);
+      if (typeof overridePromoCode === 'string') {
+        setPromoCodeInput(quote?.promoCode || codeToApply);
+      }
       return quote;
     } catch (err: any) {
       setCheckoutError(err.message);
@@ -590,12 +598,12 @@ export function CustomerApp({
   };
 
   const handleReviewOrder = async () => {
-    const effectiveName = identityMode === 'MEMBER' && currentMember?.displayName ? currentMember.displayName : guestName.trim();
+    const effectiveName = activeMemberId && currentMember?.displayName ? currentMember.displayName : guestName.trim();
     if (tableUnavailable) { setCheckoutError(t('Meja belum siap. Minta bantuan pelayan.', 'This table is not ready. Ask staff for help.')); return; }
-    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t('Pilih akun member demo atau lanjutkan sebagai tamu.', 'Choose a demo member account or continue as a guest.')); return; }
+    if (effectiveIdentityMode === 'MEMBER' && !activeMemberId) { setCheckoutError(t('Pilih akun member demo atau lanjutkan sebagai tamu.', 'Choose a demo member account or continue as a guest.')); return; }
     if (effectiveName.length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering.")); return; }
-    const quote = await handleRequestQuote();
+    const quote = await handleRequestQuote(appliedPromoCode);
     if (quote) {
       setConfirmOrderOpen(true);
       if (snapshot?.runtime?.demo) reportDemoTourResult('customer-review');
@@ -604,8 +612,8 @@ export function CustomerApp({
 
   const handleSubmitOrderRequest = async () => {
     setCheckoutError('');
-    const effectiveName = identityMode === 'MEMBER' && currentMember?.displayName ? currentMember.displayName : guestName.trim();
-    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t("Pilih akun member demo atau lanjutkan sebagai tamu.", "Choose a demo member account or continue as a guest.")); return; }
+    const effectiveName = activeMemberId && currentMember?.displayName ? currentMember.displayName : guestName.trim();
+    if (effectiveIdentityMode === 'MEMBER' && !activeMemberId) { setCheckoutError(t("Pilih akun member demo atau lanjutkan sebagai tamu.", "Choose a demo member account or continue as a guest.")); return; }
     if (effectiveName.length < 2) {
       setCheckoutError(
         t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")
@@ -620,7 +628,7 @@ export function CustomerApp({
     try {
       const quoteToUse = activeQuote;
       if (!quoteToUse || Date.parse(quoteToUse.expiresAt) <= Date.now()) {
-        const renewed = await handleRequestQuote();
+        const renewed = await handleRequestQuote(appliedPromoCode);
         if (renewed) setCheckoutError(t("Ringkasan harga telah diperbarui. Periksa total sebelum mengirim pesanan kembali.", "The price summary has been updated. Check the total before resubmitting your order."));
         return;
       }
@@ -628,8 +636,8 @@ export function CustomerApp({
       const idemKey = `idem_${quoteToUse.quoteId}`;
       const subRes = await onCommand('SUBMIT_ORDER_REQUEST', {
         quoteId: quoteToUse.quoteId,
-        principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
-        memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
+        principalId: activeMemberId || customerPrincipalId,
+        memberId: activeMemberId,
         customerName: effectiveName,
         mode: orderMode,
         tableId: orderMode === 'DINE_IN' ? selectedTableId : undefined,
@@ -740,7 +748,6 @@ export function CustomerApp({
   }, [cartPreviewVisible, checkoutBarVisible]);
 
   const hasOrderNotice = canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0 || pendingRequests.length > 0);
-  const activeDiscountIdr = activeQuote?.discountIdr ?? 0;
   const finalTotalIdr = activeQuote?.totalIdr ?? cartSummary.totalIdr;
   const preDiscountTotalIdr = activeDiscountIdr > 0 ? cartSummary.totalIdr : finalTotalIdr;
 
@@ -1214,6 +1221,7 @@ export function CustomerApp({
                       type="button"
                       onClick={() => {
                         setCheckoutError('');
+                        setPromoCodeInput(appliedPromoCode);
                         setActiveScreen('promo');
                       }}
                       className={styles.promoTriggerRow}
@@ -1222,8 +1230,8 @@ export function CustomerApp({
                         <Tag className="w-4 h-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
                         <span className="min-w-0">
                           <span className="block font-semibold text-[14px] text-[var(--foreground)] truncate">
-                            {activeDiscountIdr > 0 && promoCodeInput.trim()
-                              ? `Promo · ${promoCodeInput.trim().toUpperCase()}`
+                            {appliedPromoCode
+                              ? `Promo · ${appliedPromoCode}`
                               : 'Promo'}
                           </span>
                           {activeDiscountIdr > 0 && (
@@ -1249,14 +1257,14 @@ export function CustomerApp({
                           { value: 'GUEST', label: t('Tamu', 'Guest') },
                           { value: 'MEMBER', label: 'Member' },
                         ]}
-                        value={identityMode}
+                        value={effectiveIdentityMode}
                         onChange={(mode) => { setIdentityMode(mode); setActiveQuote(null); }}
                         ariaLabel={t("Mode identitas pemesan", "Order identity")}
                         layoutId="customer-identity-mode"
                       />}
                     </div>
 
-                    {identityMode === 'GUEST' ? (
+                    {effectiveIdentityMode === 'GUEST' ? (
                       <div className="space-y-1">
                         <Label htmlFor="guest-name-input" className="sr-only">
                           {t("Nama", "Name")}
@@ -1398,7 +1406,13 @@ export function CustomerApp({
                     )}
                   </section>
 
-                  {identityMode === 'MEMBER' && !loggedInMemberId && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t('Pilih Lanjut sebagai tamu untuk memesan.','Choose Continue as guest to order.')}</p>}
+                  {effectiveIdentityMode === 'MEMBER' && !activeMemberId && (
+                    <p role="status" className="text-sm text-[var(--status-warning-fg)]">
+                      {snapshot?.runtime?.demo && demoMembers.length > 0
+                        ? t('Pilih akun member demo atau lanjut sebagai tamu untuk memesan.', 'Choose a demo member account or continue as guest to order.')
+                        : t('Pilih Lanjut sebagai tamu untuk memesan.', 'Choose Continue as guest to order.')}
+                    </p>
+                  )}
                   {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
                   <InlineError message={checkoutError} />
                 </div>
@@ -1430,7 +1444,7 @@ export function CustomerApp({
                     variant="primary"
                     disabled={busy || !promoCodeInput.trim()}
                     onClick={async () => {
-                      const quote = await handleRequestQuote();
+                      const quote = await handleRequestQuote(promoCodeInput.trim());
                       if (quote) {
                         toast.success(t('Promo diterapkan.', 'Promo applied.'));
                         goBack();
@@ -1444,7 +1458,7 @@ export function CustomerApp({
                 {activeDiscountIdr > 0 && (
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border)] text-[13px]">
                     <span className="text-[var(--status-success-fg)] font-semibold">
-                      {t('Promo aktif:', 'Active promo:')} {promoCodeInput.trim().toUpperCase()} (-{formatIdr(activeDiscountIdr)})
+                      {t('Promo aktif:', 'Active promo:')} {appliedPromoCode || promoCodeInput.trim().toUpperCase()} (-{formatIdr(activeDiscountIdr)})
                     </span>
                     <button
                       type="button"
@@ -1474,7 +1488,7 @@ export function CustomerApp({
                 ) : (
                   <div className="space-y-2">
                     {(snapshot?.promotionRules || []).map((p: any) => {
-                      const isApplied = activeDiscountIdr > 0 && promoCodeInput.trim().toUpperCase() === String(p.code || '').toUpperCase();
+                      const isApplied = Boolean(appliedPromoCode) && appliedPromoCode === String(p.code || '').toUpperCase();
                       return (
                         <button
                           key={p.id}
@@ -2406,7 +2420,7 @@ export function CustomerApp({
                 <span className="text-[12px] font-medium text-[var(--muted-foreground)]">
                   {t('Total', 'Total')}
                 </span>
-                {activeDiscountIdr > 0 && (
+                {activeDiscountIdr > 0 && preDiscountTotalIdr > finalTotalIdr && (
                   <Money
                     amount={preDiscountTotalIdr}
                     className="text-[12px] text-[var(--muted-foreground)] line-through"
@@ -2430,7 +2444,7 @@ export function CustomerApp({
               variant="primary"
               size="lg"
               className="shrink-0 px-6 min-h-[46px]"
-              disabled={busy || tableUnavailable || (identityMode === 'MEMBER' && !loggedInMemberId)}
+              disabled={busy || tableUnavailable || (effectiveIdentityMode === 'MEMBER' && !activeMemberId)}
               data-demo-target="customer-review"
               onClick={handleReviewOrder}
             >
