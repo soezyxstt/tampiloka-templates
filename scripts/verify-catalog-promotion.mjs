@@ -37,8 +37,23 @@ const download = async (run, family) => {
     await rm(directory, { recursive: true, force: true });
   }
 };
+const EXTERNAL_DEMO_FAMILIES = new Set(['cafe']);
+
+async function verifyExternalFamilyLive(entries) {
+  const urls = [...new Set(entries.flatMap(entry => [entry.url, entry.imageUrl]))];
+  for (const target of urls) {
+    const res = await fetch(target, {
+      method: 'HEAD', cache: 'no-store', redirect: 'follow',
+      headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return false;
+  }
+  return urls.length > 0;
+}
+
 const { catalog, blocked } = await reconcileCatalogPromotion(previous, next, (family, release) => {
   const entries = next.entries.filter(entry => entry.family === family);
+  if (EXTERNAL_DEMO_FAMILIES.has(family)) return verifyExternalFamilyLive(entries);
   const origins = [...new Set(entries.flatMap(entry => [entry.url, entry.imageUrl, ...Object.values(entry.modeUrls ?? {})]).map(url => new URL(url).origin))];
   return readReleaseEvidence(family, release, origins[0], {
     request, download, fingerprint: releaseFingerprint,
