@@ -76,9 +76,6 @@ try{
   await page.locator('[data-demo-target="staff-nav-trigger"]').click();
   await page.getByRole('dialog').getByRole('button',{name:/^Dapur & Bar/}).click();
   await page.getByRole('heading',{name:'Dapur & Bar',exact:true}).waitFor();
-  const filters = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Tampilkan pesanan' }) });
-  assert.equal(await filters.evaluate(element => element.open), false);
-  await filters.locator('summary').click();
   assert.equal(await page.getByRole('group',{name:'Status pesanan dapur'}).getAttribute('data-ui'),'choice-strip');
   await geometry(page,'kitchen-390-shared-controls');
  });

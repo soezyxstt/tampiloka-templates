@@ -237,11 +237,54 @@
   background: color-mix(in srgb, var(--surface-muted) 60%, var(--surface));
 }
 
-.disclosure summary,
+.disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  overflow: hidden;
+}
+.disclosure > :not(summary) {
+  padding: 0 12px 12px;
+}
+.disclosure summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.disclosure summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.75px solid var(--muted-foreground);
+  border-bottom: 1.75px solid var(--muted-foreground);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.disclosure[open] > summary::after {
+  transform: rotate(225deg);
+}
+.disclosure summary:hover {
+  background: var(--surface-muted);
+}
 .workspace :global(.visit-details summary) {
   width: fit-content;
-  min-height: 40px;
-  padding: 8px 0;
+  min-height: 36px;
+  padding: 6px 0;
   color: var(--primary-ink);
   font-size: 13px;
   font-weight: 600;
@@ -250,7 +293,7 @@
 .disclosure summary:focus-visible,
 .workspace :global(.visit-details summary:focus-visible) {
   outline: 2px solid var(--primary-ink);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 /* Kitchen KDS grid */

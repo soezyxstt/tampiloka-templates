@@ -35,7 +35,7 @@ button.stat-item:hover{background:var(--accent-surface)}
 .staff-account{grid-column:1/-1;grid-row:2;min-width:0;width:100%}
 .staff-actions{display:flex;align-items:center;gap:2px;flex:none}
 .staff-mobile-nav{display:none}
-.staff-main{min-width:0;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.staff-main{min-width:0;padding:10px 12px 72px;display:flex;flex-direction:column;gap:10px}
 .staff-main>div{min-width:0}
 .staff-main .workspace-stack{display:flex;flex-direction:column;gap:10px;min-width:0}
 .staff-main .workspace-stack>*{min-width:0}

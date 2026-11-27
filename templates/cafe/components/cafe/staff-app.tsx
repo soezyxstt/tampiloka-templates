@@ -817,9 +817,16 @@ export function StaffApp({
             )}
             {!explorationManaged && onBackToCustomer && <Button variant="ghost" size="icon-sm" onClick={onBackToCustomer} aria-label={t("Kembali ke menu pelanggan", "Back to customer menu")} className="xl:hidden"><ArrowLeft className="h-4 w-4" /></Button>}
             <div className="min-w-0">
-              <p className="font-heading text-[16px] leading-[20px] font-bold text-[var(--foreground)] truncate">
-                {navItems.find(item => item.id === currentSection)?.label || cafeConfig.brand.name}
-              </p>
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="font-heading text-[16px] leading-[20px] font-bold text-[var(--foreground)] truncate">
+                  {navItems.find(item => item.id === currentSection)?.label || cafeConfig.brand.name}
+                </p>
+                {supervisor && ['kasir', 'dapur', 'meja'].includes(currentSection) && (
+                  <span className="shrink-0 px-2 py-0.5 rounded-full text-[12px] font-medium bg-[var(--surface-muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
+                    {t('Mode pantau', 'View only')}
+                  </span>
+                )}
+              </div>
               <p id="active-staff-role" className="text-[12px] leading-[16px] text-[var(--muted-foreground)] truncate xl:hidden">
                 {currentStaffObj.userName} · {staffRoleLabel(currentStaffObj.role, t)}
               </p>
@@ -885,9 +892,6 @@ export function StaffApp({
       <main id="staff-content" className="staff-main">
         {currentSection !== 'kasir' && currentSection !== 'meja' && (
           <h1 className="sr-only">{navItems.find(item => item.id === currentSection)?.label || t('Operasional', 'Operations')}</h1>
-        )}
-        {supervisor && ['kasir', 'dapur', 'meja'].includes(currentSection) && (
-          <p className="text-xs text-[var(--muted-foreground)]">{t('Hanya lihat', 'View only')}</p>
         )}
         <AnimatePresence>
           {actionError && (
@@ -1345,7 +1349,15 @@ export function StaffApp({
 
                             </div>
 
-                            <Button size="sm" variant="ghost" aria-pressed={partialPayment} onClick={() => { setPartialPayment(value => !value); setTenderAmountInput(''); setCashGivenInput(''); }}>{partialPayment ? t('Bayar penuh','Pay in full') : t('Bayar sebagian','Partial payment')}</Button>
+                            <label className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--foreground)] cursor-pointer select-none min-h-[32px]">
+                              <input
+                                type="checkbox"
+                                checked={partialPayment}
+                                onChange={(e) => { setPartialPayment(e.target.checked); setTenderAmountInput(''); setCashGivenInput(''); }}
+                                className="w-4 h-4 accent-[var(--primary-ink)] rounded"
+                              />
+                              <span>{t('Bayar sebagian', 'Partial payment')}</span>
+                            </label>
                             <div className="space-y-3">
                               {partialPayment && <div className="space-y-1.5">
                                 <Label htmlFor="cashier-tender-amount">
@@ -1542,27 +1554,24 @@ export function StaffApp({
         {sectionEnabled('dapur') && currentSection === 'dapur' && (
           <div
             key="pos-dapur"
-            className="space-y-6"
+            className="space-y-3"
           >
-            <details className={styles.disclosure}>
-              <summary data-demo-target="cafe-station-filter">{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
-              <div className="space-y-2.5 pt-2">
-                <div className="max-w-[240px]">
-                  <SelectField
-                    aria-label={t('Filter stasiun kerja', 'Filter work station')}
-                    value={stationFilter}
-                    onChange={(e) => setStationFilter(e.target.value)}
-                  >
-                    <option value="MINE">{role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations')}</option>
-                    {['BAR', 'KITCHEN'].includes(role) && <option value="ALL">{t('Lihat stasiun lain', 'View other stations')}</option>}
-                    {['BAR', 'KITCHEN', 'PASTRY'].map(value => (
-                      <option key={value} value={value}>{formatStationName(value, t)}</option>
-                    ))}
-                  </SelectField>
-                </div>
-                <ChoiceStrip ariaLabel={t('Status pesanan dapur', 'Kitchen order status')} items={kitchenStatuses} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
+            <div className="space-y-2">
+              <div className="max-w-[240px]" data-demo-target="cafe-station-filter">
+                <SelectField
+                  aria-label={t('Filter stasiun kerja', 'Filter work station')}
+                  value={stationFilter}
+                  onChange={(e) => setStationFilter(e.target.value)}
+                >
+                  <option value="MINE">{role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations')}</option>
+                  {['BAR', 'KITCHEN'].includes(role) && <option value="ALL">{t('Lihat stasiun lain', 'View other stations')}</option>}
+                  {['BAR', 'KITCHEN', 'PASTRY'].map(value => (
+                    <option key={value} value={value}>{formatStationName(value, t)}</option>
+                  ))}
+                </SelectField>
               </div>
-            </details>
+              <ChoiceStrip ariaLabel={t('Status pesanan dapur', 'Kitchen order status')} items={kitchenStatuses} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
+            </div>
             {kitchenUnits.length === 0 ? (
               <EmptyState title={t("Tidak ada pesanan", "No orders")} />
             ) : (
