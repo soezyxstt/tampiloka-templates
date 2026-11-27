@@ -4,7 +4,7 @@ import { DemoToolbarShell } from '@tampiloka/ui-core/demo';
 import { KafeWorkspace, type WorkspaceView } from '../components/cafe/kafe-workspace';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { cafeConfig, hasStaffModules, isModuleEnabled, THEMES, type ThemeId } from './config';
-import { DEMOS, demoNavigationPath, demoNavigationUrl, localizeDemo } from './manifest';
+import { DEMOS, PRIMARY_DEMOS, demoNavigationPath, demoNavigationUrl, localizeDemo } from './manifest';
 import type { DemoPreset } from './components/demo-portal';
 import type { DemoSeedLevel } from '../src/db/seed';
 import { DemoTools } from './components/demo-tools';
@@ -239,6 +239,7 @@ export default function DemoWorkspace({ demo, initialGuideView }: { demo: DemoPr
     }
   };
 
+  const modeOptions = PRIMARY_DEMOS.some(item => item.id === demo.id) ? PRIMARY_DEMOS : [...PRIMARY_DEMOS, demo];
   const staffRole = prepared?.staff.find(person => person.id === demoStaffId)?.role;
   return <div className="demo-session" data-demo-view={activeView} data-table-entry={showTableEntry ? "true" : undefined}>
     <DemoToolbarShell family="cafe" label={t('Pengaturan demo Tampiloka', 'Tampiloka demo settings')} galleryLabel={t('Kembali ke template Tampiloka', 'Back to Tampiloka templates')} galleryUrl={gallery}
@@ -249,7 +250,7 @@ export default function DemoWorkspace({ demo, initialGuideView }: { demo: DemoPr
         </Select>
         <Select value={demo.id} onValueChange={changeMode}>
           <SelectTrigger className="tl-demo-select" aria-label={t('Mode demo', 'Demo mode')}><SelectValue /></SelectTrigger>
-          <SelectContent className="tl-demo-select-menu" position="popper" align="start" sideOffset={6}>{DEMOS.map(item => <SelectItem key={item.id} value={item.id}>{localizeDemo(item, language).name}</SelectItem>)}</SelectContent>
+          <SelectContent className="tl-demo-select-menu" position="popper" align="start" sideOffset={6}>{modeOptions.map(item => <SelectItem key={item.id} value={item.id}>{localizeDemo(item, language).name}</SelectItem>)}</SelectContent>
         </Select>
         {activeView === 'staf' && prepared && prepared.staff.length > 0 && demoStaffId && <Select value={demoStaffId} onValueChange={changeStaff}>
           <SelectTrigger className="tl-demo-select" aria-label={t('Identitas staf demo', 'Demo staff identity')}><SelectValue /></SelectTrigger>

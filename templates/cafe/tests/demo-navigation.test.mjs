@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEMOS, demoNavigationPath, demoNavigationUrl, resolveDemo } from '../demos/manifest.ts';
+import { DEMOS, PRIMARY_DEMOS, demoNavigationPath, demoNavigationUrl, resolveDemo } from '../demos/manifest.ts';
 
-test('an explicit mode path wins over a legacy preset host', () => {
+test('primary demo list focuses on the four core workflows while keeping all nine presets resolvable', () => {
+  assert.deepEqual(PRIMARY_DEMOS.map(demo => demo.id), ['order-at-cashier', 'order-and-pay', 'operations', 'full']);
+  assert.equal(DEMOS.length, 9);
+});
+
+test('an explicit mode path wins over query mode and a legacy preset host', () => {
   assert.equal(resolveDemo('cafe-order.tampiloka.site', '/p/cashier/staff')?.id, 'cashier');
-  assert.equal(resolveDemo('cafe-full.tampiloka.site', '/p/catalog/')?.id, 'catalog');
+  assert.equal(resolveDemo('cafe-full.tampiloka.site', '/p/catalog/', '?mode=operations')?.id, 'catalog');
+  assert.equal(resolveDemo('cafe.tampiloka.site', '/', '?theme=editorial&mode=order-and-pay')?.id, 'order-and-pay');
+  assert.equal(resolveDemo('cafe.tampiloka.site', '/', '?theme=boxy&mode=operations')?.id, 'operations');
   assert.equal(resolveDemo('cafe-order.tampiloka.site', '/staff')?.id, 'order-at-cashier');
 });
 

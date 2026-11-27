@@ -6,15 +6,17 @@ export const DEMO_HUB = `https://cafe.${DEMO_DOMAIN}`;
 
 const definitions: Array<[string, string, string, string, string, ThemeId]> = [
   ['catalog', 'Menu dan permintaan pelayan', 'Pelanggan memilih menu dan menyampaikan daftar pesanan kepada pelayan. Pembayaran dilakukan langsung di kafe.', 'Untuk layanan meja tanpa kasir digital atau pembayaran online.', 'cafe-catalog', 'editorial'],
-  ['order-at-cashier', 'Pesan, bayar di kasir', 'Pelanggan mengirim pesanan dari meja, lalu membayar melalui kasir.', 'Untuk pemesanan mandiri dengan pembayaran di tempat.', 'cafe-order', 'rounded'],
-  ['order-and-pay', 'Pesan dan bayar', 'Pelanggan memilih menu, mengirim pesanan, dan mencoba simulasi pembayaran online.', 'Untuk mencoba alur pesan dan bayar dari meja.', 'cafe-pay', 'airy'],
+  ['order-at-cashier', 'Menu & pesan di meja', 'Pelanggan mengirim pesanan dari meja, lalu membayar melalui kasir.', 'Untuk pemesanan mandiri dengan pembayaran di tempat.', 'cafe-order', 'rounded'],
+  ['order-and-pay', 'Pesan & bayar online', 'Pelanggan memilih menu, mengirim pesanan, dan mencoba simulasi pembayaran online.', 'Untuk mencoba alur pesan dan bayar dari meja.', 'cafe-pay', 'airy'],
   ['cashier', 'Kasir', 'Staf mencatat pesanan, menerapkan diskon, menerima uang tunai, dan mengelola giliran kerja.', 'Untuk melayani pesanan langsung di kasir.', 'cafe-pos', 'boxy'],
   ['cashier-kitchen', 'Kasir dan dapur', 'Pesanan yang dicatat kasir masuk ke antrean persiapan dapur dan bar.', 'Untuk tim kasir dan dapur yang bekerja bersama.', 'cafe-kitchen', 'playful'],
-  ['operations', 'Operasional kafe', 'Kelola pesanan di kasir, pantau persiapan, dan lihat laporan dalam satu ruang staf.', 'Untuk memantau pekerjaan dan penjualan harian.', 'cafe-operations', 'boxy'],
+  ['operations', 'Kasir & dapur', 'Kelola pesanan di kasir, pantau persiapan, dan lihat laporan dalam satu ruang staf.', 'Untuk memantau pekerjaan dan penjualan harian.', 'cafe-operations', 'boxy'],
   ['menu-cashier', 'Menu dan kasir', 'Pelanggan melihat menu, sementara staf mencatat dan mengelola pesanan.', 'Untuk menu digital dengan pemesanan melalui staf.', 'cafe-menu-pos', 'rounded'],
   ['menu-order-cashier', 'Menu, pesanan, dan kasir', 'Pelanggan memesan dari meja; kasir mengelola tagihan dan pembayaran.', 'Untuk layanan meja dengan kasir yang mengelola tagihan.', 'cafe-menu-order-pos', 'editorial'],
   ['full', 'Layanan lengkap', 'Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan dalam satu demo.', 'Untuk melihat bagaimana seluruh bagian layanan bekerja bersama.', 'cafe-full', 'rounded'],
 ];
+
+export const PRIMARY_DEMO_IDS = ['order-at-cashier', 'order-and-pay', 'operations', 'full'] as const;
 
 export const DEMOS: DemoPreset[] = definitions.map(([id, name, description, useCase, subdomain, theme]) => ({
   id, name, description, useCase, subdomain, theme,
@@ -23,13 +25,17 @@ export const DEMOS: DemoPreset[] = definitions.map(([id, name, description, useC
   ...(PRESETS[id].modules.some(module => ['ordering', 'cashier', 'kitchen', 'dashboard', 'tables', 'marketing'].includes(module)) ? { staffPath: '/staff' } : {}),
 }));
 
+export const PRIMARY_DEMOS: DemoPreset[] = PRIMARY_DEMO_IDS
+  .map(id => DEMOS.find(demo => demo.id === id))
+  .filter((demo): demo is DemoPreset => Boolean(demo));
+
 const english: Record<string, [string, string, string]> = {
   catalog: ['Menu and waiter requests', 'Customers choose items and share their order with a waiter. Payment is made at the cafe.', 'For table service without a digital cashier or online payment.'],
-  'order-at-cashier': ['Order, pay at the counter', 'Customers order from their table, then pay at the counter.', 'For self-service ordering with payment on site.'],
-  'order-and-pay': ['Order and pay', 'Customers choose items, place an order and try a simulated online payment.', 'Try ordering and paying from a table.'],
+  'order-at-cashier': ['Menu & table ordering', 'Customers order from their table, then pay at the counter.', 'For self-service ordering with payment on site.'],
+  'order-and-pay': ['Order & pay online', 'Customers choose items, place an order and try a simulated online payment.', 'Try ordering and paying from a table.'],
   cashier: ['Cashier', 'Staff record orders, apply discounts, accept cash and manage shifts.', 'For serving orders directly at the counter.'],
   'cashier-kitchen': ['Cashier and kitchen', 'Orders entered at the counter reach the kitchen and bar preparation queue.', 'For cashier and kitchen teams working together.'],
-  operations: ['Cafe operations', 'Manage counter orders, monitor preparation and view reports in one staff workspace.', 'For monitoring daily work and sales.'],
+  operations: ['Cashier & kitchen', 'Manage counter orders, monitor preparation and view reports in one staff workspace.', 'For monitoring daily work and sales.'],
   'menu-cashier': ['Menu and cashier', 'Customers browse the menu while staff record and manage orders.', 'For a digital menu with staff-assisted ordering.'],
   'menu-order-cashier': ['Menu, orders and cashier', 'Customers order from their table; cashiers manage bills and payments.', 'For table service with cashier-managed billing.'],
   full: ['Full service', 'Try the customer, cashier, kitchen, table service and reporting flows in one demo.', 'See how all parts of service work together.'],
@@ -40,11 +46,16 @@ export function localizeDemo(demo: DemoPreset, language: 'id' | 'en'): DemoPrese
   return translation ? { ...demo, name: translation[0], description: translation[1], useCase: translation[2] } : demo;
 }
 
-/** Canonical hosts select one preset; /p/<id> also supports local/Pages previews. */
-export function resolveDemo(hostname: string, pathname: string): DemoPreset | undefined {
+/** Canonical hosts select one preset; /p/<id> and ?mode=<id> also support hub/preview links. */
+export function resolveDemo(hostname: string, pathname: string, search = ''): DemoPreset | undefined {
   // Explicit mode paths take priority so the switcher can stay on the same origin.
   const pathId = pathname.match(/^\/p\/([^/]+)/)?.[1];
   if (pathId) return DEMOS.find(demo => demo.id === pathId);
+  const queryId = search ? new URLSearchParams(search).get('mode') : null;
+  if (queryId) {
+    const matched = DEMOS.find(demo => demo.id === queryId);
+    if (matched) return matched;
+  }
   const outlet = pathname.match(/^\/(?:t|staff)\/[^/]+\/([^/]+)/)?.[1];
   if (outlet) return DEMOS.find(demo => demo.subdomain === outlet);
   return DEMOS.find(demo => hostname === `${demo.subdomain}.${DEMO_DOMAIN}`);
@@ -68,17 +79,20 @@ export function demoNavigationUrl(demo: DemoPreset, view: 'pelanggan' | 'staf', 
   const wasStaff = /\/staff(?:\/|$)/.test(url.pathname);
   if (!sameMode) {
     url.pathname = demoNavigationPath(demo, view, url.hostname);
-    for (const key of ['bill', 'table', 'principal']) url.searchParams.delete(key);
+    for (const key of ['bill', 'table', 'principal', 'mode']) url.searchParams.delete(key);
     url.hash = '';
   } else if (view === 'staf') {
-    if (!wasStaff) url.pathname = demoNavigationPath(demo, view, url.hostname);
+    if (!wasStaff) {
+      url.pathname = demoNavigationPath(demo, view, url.hostname);
+      url.searchParams.delete('mode');
+    }
   } else if (wasStaff) {
     let restored = false;
     if (options.customerRoute) {
       try {
         const previous = new URL(options.customerRoute, url);
         const defaultCustomerRoute = previous.pathname === '/' || /^\/m\/[^/]+\/?$/.test(previous.pathname);
-        const previousMode = resolveDemo(previous.hostname, previous.pathname)?.id || (defaultCustomerRoute ? 'full' : undefined);
+        const previousMode = resolveDemo(previous.hostname, previous.pathname, previous.search)?.id || (defaultCustomerRoute ? 'full' : undefined);
         if (previous.origin === url.origin && previousMode === demo.id && !/\/staff(?:\/|$)/.test(previous.pathname)) {
           for (const key of new Set(url.searchParams.keys())) previous.searchParams.delete(key);
           for (const [key, value] of url.searchParams) previous.searchParams.append(key, value);
@@ -88,7 +102,10 @@ export function demoNavigationUrl(demo: DemoPreset, view: 'pelanggan' | 'staf', 
         }
       } catch { /* A stale stored route falls back to this mode's customer entry. */ }
     }
-    if (!restored) url.pathname = demoNavigationPath(demo, view, url.hostname);
+    if (!restored) {
+      url.pathname = demoNavigationPath(demo, view, url.hostname);
+      url.searchParams.delete('mode');
+    }
   }
   url.searchParams.set('theme', options.theme);
   url.searchParams.set('lang', options.language);
@@ -100,8 +117,8 @@ export function demoBasePath(demo: DemoPreset): string {
 }
 
 export function portalDemos(): DemoPreset[] {
-  if (location.hostname === `cafe.${DEMO_DOMAIN}`) return DEMOS;
-  return DEMOS.map(demo => ({ ...demo,
+  if (location.hostname === `cafe.${DEMO_DOMAIN}`) return PRIMARY_DEMOS;
+  return PRIMARY_DEMOS.map(demo => ({ ...demo,
     ...(demo.customerPath ? { customerUrl: `/p/${demo.id}/` } : {}),
     ...(demo.staffPath ? { staffUrl: `/p/${demo.id}/staff` } : {}),
   }));
