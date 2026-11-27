@@ -172,6 +172,7 @@ async function openStaffSection(page, name) {
   }
   await page.locator('[data-demo-target="staff-nav-trigger"]').click();
   await page.getByRole('dialog').getByRole('button', { name }).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
 }
 
 async function checkStaff(page, demo) {
@@ -195,7 +196,10 @@ async function checkStaff(page, demo) {
   for (const [name, enabled] of expectedSections) {
     await assertPresence(nav.getByRole('button', { name }), enabled, `${demo.id}: ${name} capability navigation.`);
   }
-  if (drawerOpened) await page.keyboard.press('Escape');
+  if (drawerOpened) {
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  }
   await assertPresence(page.getByRole('button', { name: /^Pesanan baru$/i }), false, 'Owners inspect cashier activity read-only.');
   if (modules.has('dashboard')) {
     await openStaffSection(page, /^Laporan & Shift/);

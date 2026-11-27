@@ -41,8 +41,8 @@
   text-overflow: ellipsis;
 }
 .sidebarCollapseBtn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -191,6 +191,10 @@
 .mobileMenuBtn:hover {
   background: var(--surface-muted);
   color: var(--primary-ink);
+}
+.mobileMenuBtn:focus-visible {
+  outline: 2px solid var(--primary-ink);
+  outline-offset: -2px;
 }
 @media (min-width: 1280px) {
   .mobileMenuBtn {
@@ -507,6 +511,11 @@
 }
 .inlineSearchClose:hover {
   color: var(--foreground);
+}
+.inlineSearchClose:focus-visible {
+  outline: 2px solid var(--primary-ink);
+  outline-offset: -2px;
+  border-radius: var(--radius-control);
 }
 
 /* Simplified, focused Cashier POS layout */

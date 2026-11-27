@@ -874,7 +874,7 @@ export function StaffApp({
                     setActionError('');
                     setMobileNavOpen(false);
                   }}
-                  className="w-full min-h-[48px] px-3 rounded-[var(--radius-control)] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer"
+                  className="w-full min-h-[48px] px-3 rounded-[var(--radius-control)] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer hover:bg-[var(--surface-muted)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--primary-ink)]"
                   style={active ? { background: 'var(--accent-surface)', color: 'var(--primary-ink)', fontWeight: 600 } : undefined}
                 >
                   <span className="flex items-center gap-3 min-w-0">
@@ -1158,7 +1158,7 @@ export function StaffApp({
                     <button
                       type="button"
                       onClick={() => setMobileBillOpen(false)}
-                      className="lg:hidden -mt-1 -ml-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--primary-ink)] min-h-[36px] w-fit cursor-pointer"
+                      className="lg:hidden -mt-1 -ml-1 inline-flex items-center gap-1.5 px-1 rounded-[var(--radius-control)] text-[13px] font-semibold text-[var(--primary-ink)] min-h-[40px] w-fit cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-ink)]"
                     >
                       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                       <span>{t('Daftar tagihan', 'Back to bills')}</span>
@@ -1349,7 +1349,7 @@ export function StaffApp({
 
                             </div>
 
-                            <label className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--foreground)] cursor-pointer select-none min-h-[32px]">
+                            <label className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--foreground)] cursor-pointer select-none min-h-[40px]">
                               <input
                                 type="checkbox"
                                 checked={partialPayment}
@@ -2045,14 +2045,27 @@ export function StaffApp({
             )}
 
             {/* Clean responsive 1-col mobile / 2-col desktop menu availability cards */}
-            <div className={styles.availabilityGrid}>
-              {filteredCatalog
-                .filter((item: any) => {
-                  if (menuAvailabilityFilter === 'AVAILABLE') return Boolean(item.isAvailable);
-                  if (menuAvailabilityFilter === 'SOLD_OUT') return !item.isAvailable;
-                  return true;
-                })
-                .map((item: any) => {
+            {(() => {
+              const visibleCatalog = filteredCatalog.filter((item: any) => {
+                if (menuAvailabilityFilter === 'AVAILABLE') return Boolean(item.isAvailable);
+                if (menuAvailabilityFilter === 'SOLD_OUT') return !item.isAvailable;
+                return true;
+              });
+              if (visibleCatalog.length === 0) {
+                return (
+                  <EmptyState
+                    title={t("Tidak ada menu yang cocok", "No matching menu items")}
+                    description={
+                      menuSearchQuery
+                        ? t("Coba kata kunci, kategori, atau filter ketersediaan lain.", "Try another search term, category, or availability filter.")
+                        : t("Tidak ada item pada filter ketersediaan ini.", "There are no items in this availability filter.")
+                    }
+                  />
+                );
+              }
+              return (
+                <div className={styles.availabilityGrid}>
+                  {visibleCatalog.map((item: any) => {
                 const itemPhotos: string[] = Array.isArray(item.photos)
                   ? item.photos
                   : item.photoUrl
@@ -2125,7 +2138,9 @@ export function StaffApp({
                   </div>
                 );
               })}
-            </div>
+                </div>
+              );
+            })()}
 
 
           </div>

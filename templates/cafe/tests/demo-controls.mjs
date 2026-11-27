@@ -37,6 +37,7 @@ export async function chooseDemoStaff(page, id = 'staff_owner') {
       const drawerCashier = page.getByRole('dialog').getByRole('button', { name: /^Kasir|^Pesanan masuk/ });
       if (await drawerCashier.count()) await drawerCashier.click();
       else await page.keyboard.press('Escape');
+      await page.getByRole('dialog').waitFor({ state: 'hidden' });
     }
   }
 }

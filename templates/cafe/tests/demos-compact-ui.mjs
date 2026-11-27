@@ -75,6 +75,7 @@ try{
   await resize(page,390);
   await page.locator('[data-demo-target="staff-nav-trigger"]').click();
   await page.getByRole('dialog').getByRole('button',{name:/^Dapur & Bar/}).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.getByRole('heading',{name:'Dapur & Bar',exact:true}).waitFor();
   assert.equal(await page.getByRole('group',{name:'Status pesanan dapur'}).getAttribute('data-ui'),'choice-strip');
   await geometry(page,'kitchen-390-shared-controls');
