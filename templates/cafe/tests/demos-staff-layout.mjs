@@ -110,9 +110,8 @@ async function assertLayout(page, name, { atTop = true } = {}) {
 }
 
 async function verifyFloorService(page, context, demo) {
+  await chooseDemoStaff(page, 'staff_waiter');
   await resize(page, 1024);
-  const floor = p => p.locator('.staff-mobile-nav').getByRole('button', { name: /^Meja & Antrean/ });
-  await floor(page).click();
   const read = p => p.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data);
   const initial = await read(page);
   for (const room of initial.rooms) {
@@ -175,7 +174,6 @@ async function verifyFloorService(page, context, demo) {
   await observer.setViewportSize({width:768,height:1000});
   await observer.goto(urlFor(demo)+'?staff=staff_waiter&lang=id');
   await observer.locator('button[aria-label="Opsi demo"]:not(:disabled)').waitFor({timeout:120000});
-  await floor(observer).click();
   const tableId='tbl_m05';
   await page.locator(`svg [data-table-id="${tableId}"]`).click();
   await observer.locator(`svg [data-table-id="${tableId}"]`).click();
@@ -213,7 +211,6 @@ async function verifyFloorService(page, context, demo) {
   assert.ok((await page.locator(`svg [data-table-id="${tableId}"]`).getAttribute('aria-label')).includes('2 seats'));
   await page.reload();
   await page.locator('button[aria-label="Demo options"]:not(:disabled)').waitFor({timeout:120000});
-  await page.locator('.staff-mobile-nav').getByRole('button',{name:/^Tables & waitlist/}).click();
   await page.locator(`svg [data-table-id="${tableId}"]`).click();
   await page.getByRole('button',{name:'Mark clean & ready',exact:true}).waitFor();
   await page.screenshot({path:join(out,'floor-service-en-reload.png'),animations:'disabled'});

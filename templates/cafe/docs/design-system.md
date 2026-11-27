@@ -1,5 +1,13 @@
 # Cafe template design system
 
+## Staff workspace revamp, customer orders parity & guide prerequisite, 27 November 2026
+
+- **Customer Orders (`Pesanan`) & Guide**: Pending order requests and accepted orders now render inside `.sectionSurface` cards consistent with Cart, Promo, and Account screens. The interactive guide's `customer-review` step now checks for a valid guest name (`#guest-name-input`) as a prerequisite before prompting the visitor to submit the order.
+- **Role-scoped staff navigation**: Staff sections are now strictly scoped by operational role — Kitchen/Bar (`Dapur & Bar`, `Ketersediaan menu`), Waiter (`Meja & Antrean`), Cashier (`Kasir`, `Meja & Antrean`, `Ketersediaan menu`), and Owner/Manager (supervisory access across all enabled sections).
+- **Single-row mobile navigation (no double tabs)**: Removed the horizontal `.staff-mobile-nav` bar on mobile. Mobile staff views now use a single-row sticky toolbar with a `Menu` (`☰`) trigger that opens an accessible `Menu staf` navigation dialog, while desktop retains the collapsible sidebar (`216px` / `60px`).
+- **Unified minimalist tabs & compact controls (zero double horizontal tabs)**: All horizontal tab strips across Customer and Staff views use one minimalist `underline` treatment, with never more than one horizontal tab row per screen (secondary filters such as bill payment status and kitchen station use compact `<SelectField>` dropdowns). Staff buttons (`40px` mobile / `34px–38px` desktop), inputs, and cards use tightened vertical padding for higher mobile space efficiency.
+- **Mobile-first Cashier, KDS, Tables, and Menu Availability**: Cashier Bills pairs a compact payment-status `<SelectField>` with an inline collapsible search icon on one row, and uses a mobile master-detail flow (compact bill list → focused bill detail with `← Daftar tagihan` back bar). KDS uses a compact station `<SelectField>` above a single status tab strip. Tables puts the room selector and `Tempatkan tamu` inline on one row. Menu Availability / Catalog combines the category selector, an inline collapsible search icon, and `+ Tambah` on one compact row above a single `Semua | Tersedia | Habis` underline tab strip and single-row scannable menu cards.
+
 ## Mobile-first customer simplicity & contrast rework, 27 November 2026
 
 - **Palette contrast**: Deepened the warm "Kopi Hangat" palette (`--background: #F8F4EE`, `--foreground: #1D1512`, `--muted-foreground: #55473F`, `--border: #DDD0C0`, `--border-strong: #7B695D`, `--primary: #9E3E1A`) and status tones so text, borders, and controls carry stronger visual separation across mobile and desktop.

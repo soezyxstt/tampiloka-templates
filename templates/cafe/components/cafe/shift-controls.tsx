@@ -72,7 +72,7 @@ export function ShiftControls({ snapshot, busy, onCommand }: {
     finally { setPending(false); }
   };
 
-  return <section data-demo-shift-open={Boolean(active)} className="py-1.5 border-b border-[var(--border)] space-y-1.5" aria-label={tr("Shift kasir", "Cashier shift")}>
+  return <section data-demo-shift-open={Boolean(active)} className="px-3 py-2 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] space-y-1.5" aria-label={tr("Shift kasir", "Cashier shift")}>
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2.5 text-sm">
         <StatusLabel label={active ? tr("Shift terbuka", "Shift open") : tr("Shift ditutup", "Shift closed")} tone={active ? 'success' : 'warning'} />

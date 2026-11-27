@@ -54,6 +54,7 @@ try{
   assert.equal(await page.locator('[data-ui="stat-strip"]').count(),0,'Summary cards must not compete with cashier tasks.');
   await page.getByRole('navigation',{name:'Tugas kasir dan pesanan'}).getByRole('button',{name:/^Tagihan/}).click();
   await geometry(page,'staff-390-compact');
+  await page.locator('[data-bill-id]').first().click();
   await page.getByRole('group',{name:'Metode pembayaran kasir',exact:true}).getByRole('button',{name:'QRIS',exact:true}).click();
   await page.getByRole('button',{name:/Buat instruksi pembayaran/}).click();
   const notice=page.locator('[data-sonner-toast]').filter({hasText:'Instruksi pembayaran dibuat.'});await notice.waitFor();await notice.hover();
@@ -72,13 +73,10 @@ try{
   const select=page.getByRole('combobox',{name:'Identitas staf demo',exact:true});
   for(const width of [360,390,768,1280]){await resize(page,width);await chooseDemoStaff(page, 'staff_manager');await geometry(page,'staff-selector-'+width);}
   await resize(page,390);
-  const nav=page.getByRole('navigation',{name:'Navigasi operasional kafe',exact:true});
-  await nav.getByRole('button',{name:/^Kasir/}).focus();await page.keyboard.press('ArrowRight');
+  await page.locator('[data-demo-target="staff-nav-trigger"]').click();
+  await page.getByRole('dialog').getByRole('button',{name:/^Dapur & Bar/}).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.getByRole('heading',{name:'Dapur & Bar',exact:true}).waitFor();
-  assert.equal(await nav.getAttribute('data-ui'),'choice-strip');
-  const filters = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Tampilkan pesanan' }) });
-  assert.equal(await filters.evaluate(element => element.open), false);
-  await filters.locator('summary').click();
   assert.equal(await page.getByRole('group',{name:'Status pesanan dapur'}).getAttribute('data-ui'),'choice-strip');
   await geometry(page,'kitchen-390-shared-controls');
  });

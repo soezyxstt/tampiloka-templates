@@ -29,11 +29,11 @@ try {
   await page.getByRole('button', { name: 'Opsi demo' }).waitFor({ timeout: 120000 });
   await page.locator('.tl-demo-actions button:is([aria-label="Opsi demo"], [aria-label="Demo options"]):not(:disabled)').waitFor({ timeout: 120000 });
   await enterTableMenu(page);
-  await page.getByPlaceholder('Cari menu').waitFor({ timeout: 120000 });
+  await page.getByRole('button', { name: 'Cari menu', exact: true }).waitFor({ timeout: 120000 });
   const localOnly = await page.evaluate(async () => (await (await fetch('/api/v1/snapshot?surface=staff')).json()).data?.runtime?.localOnly === true);
   assert.equal(localOnly, true, 'Order checks require the local-only demo runtime.');
   await page.getByRole('button', { name: 'Ganti bahasa ke Inggris' }).click();
-  await page.getByPlaceholder('Search menu').waitFor();
+  await page.getByRole('button', { name: 'Search menu', exact: true }).waitFor();
   await page.getByRole('button', { name: 'Add Iced Jasmine Leaf Tea' }).click();
   await page.getByRole('dialog', { name: 'Iced Jasmine Leaf Tea' }).getByRole('button', { name: 'Add to cart' }).click();
   await page.getByRole('navigation', { name: 'Customer navigation' }).getByRole('button', { name: 'Cart', exact: true }).click();
@@ -45,7 +45,7 @@ try {
   assert.match(await page.getByText('Restaurant tax \/ PB1 (10%)', { exact: true }).locator('..').innerText(), /1[.,]890/);
   assert.match(await page.getByText('Bill total', { exact: true }).locator('..').innerText(), /20[.,]790/);
   await page.getByPlaceholder('Your name').fill('Demo guest');
-  await page.getByRole('button', { name: /Review order/ }).click();
+  await page.locator('[data-demo-target="customer-review"]').click();
   const confirmation = page.getByRole('dialog', { name: 'Submit order?' });
   await confirmation.waitFor({ timeout: 120000 });
   await confirmation.getByRole('button', { name: 'Submit order', exact: true }).click();
