@@ -1023,7 +1023,15 @@ export function StaffApp({
               <div className={`lg:col-span-4 space-y-2.5 ${mobileBillOpen && selectedBill ? styles.mobilePanelHidden : ''}`}>
                 <div className={styles.inlineToolbarRow}>
                   <div className="min-w-0 flex-1">
-                    <AnimatedSegmentedControl ariaLabel={t('Filter pembayaran tagihan', 'Filter bills by payment status')} options={[{ value: 'OPEN', label: t("Belum lunas", "Unpaid") }, { value: 'PAID', label: t("Lunas", "Paid") }, { value: 'ALL', label: t("Semua", "All") }]} value={billFilter} onChange={(value) => setBillFilter(value as typeof billFilter)} layoutId="staff-bill-filter" />
+                    <SelectField
+                      aria-label={t('Filter pembayaran tagihan', 'Filter bills by payment status')}
+                      value={billFilter}
+                      onChange={(e) => setBillFilter(e.target.value as typeof billFilter)}
+                    >
+                      <option value="OPEN">{t("Belum lunas", "Unpaid")}</option>
+                      <option value="PAID">{t("Lunas", "Paid")}</option>
+                      <option value="ALL">{t("Semua tagihan", "All bills")}</option>
+                    </SelectField>
                   </div>
                   <button
                     type="button"
@@ -1538,18 +1546,20 @@ export function StaffApp({
           >
             <details className={styles.disclosure}>
               <summary data-demo-target="cafe-station-filter">{t('Tampilkan pesanan', 'Show orders')} · {stationFilter === 'MINE' ? t('Stasiun saya', 'My station') : stationFilter === 'ALL' ? t('Semua bagian', 'All stations') : formatStationName(stationFilter, t)} · {kitchenStatuses.find(option => option.id === kitchenStatusFilter)?.label}</summary>
-              <div className="space-y-3">
-                <AnimatedSegmentedControl
-                  ariaLabel={t('Filter stasiun kerja', 'Filter work station')}
-                  options={[
-                    { value: 'MINE', label: role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations') },
-                    ...(['BAR', 'KITCHEN'].includes(role) ? [{ value: 'ALL', label: t('Lihat stasiun lain', 'View other stations') }] : []),
-                    ...['BAR', 'KITCHEN', 'PASTRY'].map(value => ({ value, label: formatStationName(value, t) })),
-                  ]}
-                  value={stationFilter}
-                  onChange={setStationFilter}
-                  layoutId="kds-station-filter"
-                />
+              <div className="space-y-2.5 pt-2">
+                <div className="max-w-[240px]">
+                  <SelectField
+                    aria-label={t('Filter stasiun kerja', 'Filter work station')}
+                    value={stationFilter}
+                    onChange={(e) => setStationFilter(e.target.value)}
+                  >
+                    <option value="MINE">{role === 'BAR' || role === 'KITCHEN' ? t('Stasiun saya', 'My station') : t('Semua bagian', 'All stations')}</option>
+                    {['BAR', 'KITCHEN'].includes(role) && <option value="ALL">{t('Lihat stasiun lain', 'View other stations')}</option>}
+                    {['BAR', 'KITCHEN', 'PASTRY'].map(value => (
+                      <option key={value} value={value}>{formatStationName(value, t)}</option>
+                    ))}
+                  </SelectField>
+                </div>
                 <ChoiceStrip ariaLabel={t('Status pesanan dapur', 'Kitchen order status')} items={kitchenStatuses} value={kitchenStatusFilter} onChange={setKitchenStatusFilter} variant="underline" />
               </div>
             </details>
@@ -2046,64 +2056,62 @@ export function StaffApp({
                     data-menu-item-id={item.id}
                     className={`${styles.availabilityCard} ${!item.isAvailable ? styles.availabilityCardSoldOut : ''}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         {itemPhotos[0] && (
-                          <div className="relative w-12 h-12 rounded-[var(--radius-control)] overflow-hidden shrink-0 bg-[var(--surface-muted)]">
+                          <div className="relative w-11 h-11 rounded-[var(--radius-control)] overflow-hidden shrink-0 bg-[var(--surface-muted)]">
                             <Image src={itemPhotos[0]} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         )}
                         <div className="min-w-0 flex-1 space-y-0.5">
-                          <p className="font-heading font-semibold text-[15px] leading-[20px] text-[var(--foreground)]">
-                            {item.name}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-heading font-semibold text-[14px] leading-[19px] text-[var(--foreground)]">
+                              {item.name}
+                            </p>
+                            {!item.isAvailable && (
+                              <StatusLabel
+                                label={item.manualSoldOut ? t("Habis", "Sold out") : t("Stok habis", "Out of stock")}
+                                tone="danger"
+                              />
+                            )}
+                          </div>
                           <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
                             {formatStationName(item.stationCode, t)} · <strong className="text-[var(--foreground)]">{formatIdr(item.minPriceIdr)}</strong>
                           </p>
                         </div>
                       </div>
-                      <StatusLabel
-                        label={item.manualSoldOut ? t("Habis", "Sold out") : item.isAvailable ? t("Tersedia", "Available") : t("Stok habis", "Out of stock")}
-                        tone={item.isAvailable ? 'success' : 'danger'}
-                      />
-                    </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
-                      {supervisor ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {supervisor && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t(`Kelola foto ${item.name} (${itemPhotos.length} foto)`, `Manage photos for ${item.name} (${itemPhotos.length} photos)`)}
+                            title={`${itemPhotos.length} ${t('foto', 'photos')}`}
+                            onClick={() => {
+                              setEditingPhotosItem(item);
+                              setPhotoDraftList(itemPhotos);
+                              setNewPhotoUrlInput('');
+                            }}
+                          >
+                            <Images className="w-4 h-4 text-[var(--muted-foreground)]" aria-hidden="true" />
+                          </Button>
+                        )}
                         <Button
-                          variant="ghost"
+                          variant={item.manualSoldOut ? 'primary' : 'secondary'}
                           size="sm"
-                          aria-label={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
-                          title={t(`Kelola foto ${item.name}`, `Manage photos for ${item.name}`)}
-                          onClick={() => {
-                            setEditingPhotosItem(item);
-                            setPhotoDraftList(itemPhotos);
-                            setNewPhotoUrlInput('');
-                          }}
+                          disabled={busy}
+                          onClick={() =>
+                            runStaffCommand('MENU_STOCK_ACTION', {
+                              action: 'TOGGLE_SOLD_OUT',
+                              menuItemId: item.id,
+                              manualSoldOut: !item.manualSoldOut,
+                            })
+                          }
                         >
-                          <Images className="w-4 h-4" aria-hidden="true" />
-                          <span className="tabular-nums text-[12px]">{itemPhotos.length} {t('foto', 'photos')}</span>
+                          {item.manualSoldOut ? t("Aktifkan", "Activate") : t("Habis", "Sold out")}
                         </Button>
-                      ) : (
-                        <span className="text-[12px] text-[var(--muted-foreground)]">
-                          {item.manualSoldOut ? t('Disembunyikan dari pesanan', 'Hidden from ordering') : t('Dapat dipesan tamu', 'Orderable by guests')}
-                        </span>
-                      )}
-
-                      <Button
-                        variant={item.manualSoldOut ? 'primary' : 'secondary'}
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          runStaffCommand('MENU_STOCK_ACTION', {
-                            action: 'TOGGLE_SOLD_OUT',
-                            menuItemId: item.id,
-                            manualSoldOut: !item.manualSoldOut,
-                          })
-                        }
-                      >
-                        {item.manualSoldOut ? t("Aktifkan", "Reactivate") : t("Tandai habis", "Mark sold out")}
-                      </Button>
+                      </div>
                     </div>
                   </div>
                 );

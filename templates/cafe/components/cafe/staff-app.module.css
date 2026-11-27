@@ -315,7 +315,7 @@
   }
 }
 .reportSummary > div {
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
@@ -326,10 +326,10 @@
   font-weight: 500;
 }
 .reportSummary dd {
-  margin-top: 4px;
+  margin-top: 2px;
   font-family: var(--font-heading);
-  font-size: 19px;
-  line-height: 24px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
