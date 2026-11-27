@@ -35,7 +35,7 @@ export const PRESETS = Object.freeze({
 
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion: 1,
-  brand: { name: 'Dapur Pagi', shortName: 'DP', description: 'Kopi, sajian hangat, dan waktu yang menyenangkan.', logo: '', primaryColor: '#A94C27' },
+  brand: { name: 'Dapur Pagi', shortName: 'DP', description: 'Kopi, sajian hangat, dan waktu yang menyenangkan.', logo: '', primaryColor: '#9E3E1A' },
   theme: 'rounded',
   modules: Object.keys(MODULES),
   venue: { tenantSlug: 'dapur-pagi', outletSlug: 'dapur-pagi', name: 'Dapur Pagi', address: 'Bandung, Jawa Barat', phone: '' },

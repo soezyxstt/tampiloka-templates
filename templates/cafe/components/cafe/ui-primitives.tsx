@@ -353,27 +353,33 @@ export function QuantityControl({
   min = 0,
   max = 20,
   itemLabel = 'item',
+  variant = 'default',
 }: {
   value: number;
   onChange: (next: number) => void;
   min?: number;
   max?: number;
   itemLabel?: string;
+  variant?: 'default' | 'minimal';
 }) {
   const { t } = useCafeLanguage();
+  const isMinimal = variant === 'minimal';
+  const btnClass = isMinimal
+    ? 'min-h-[40px] min-w-[36px] flex items-center justify-center rounded-[var(--radius-control)] border-0 bg-transparent text-[var(--foreground)] hover:text-[var(--primary-ink)] disabled:opacity-35 cursor-pointer transition-colors'
+    : 'min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-50 cursor-pointer transition-colors';
   return (
-    <div className="inline-flex items-center gap-1.5">
+    <div className={cn('inline-flex items-center', isMinimal ? 'gap-0.5' : 'gap-1.5')}>
       <motion.button
         type="button"
         whileTap={{ scale: 0.9 }}
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
         aria-label={t(`Kurangi jumlah ${itemLabel}`, `Decrease quantity of ${itemLabel}`)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-50 cursor-pointer transition-colors"
+        className={btnClass}
       >
         <Minus className="w-4 h-4" />
       </motion.button>
-      <div className="min-w-[28px] overflow-hidden text-center">
+      <div className={cn('overflow-hidden text-center', isMinimal ? 'min-w-[22px]' : 'min-w-[28px]')}>
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
             key={value}
@@ -381,7 +387,7 @@ export function QuantityControl({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -8, opacity: 0 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
-            className="block font-semibold text-[15px] tabular-nums"
+            className="block font-semibold text-[15px] tabular-nums text-[var(--foreground)]"
           >
             {value}
           </motion.span>
@@ -393,7 +399,7 @@ export function QuantityControl({
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
         aria-label={t(`Tambah jumlah ${itemLabel}`, `Increase quantity of ${itemLabel}`)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--accent-surface)] disabled:opacity-50 cursor-pointer transition-colors"
+        className={btnClass}
       >
         <Plus className="w-4 h-4" />
       </motion.button>

@@ -1,5 +1,13 @@
 # Cafe template design system
 
+## Mobile-first customer simplicity & contrast rework, 27 November 2026
+
+- **Palette contrast**: Deepened the warm "Kopi Hangat" palette (`--background: #F8F4EE`, `--foreground: #1D1512`, `--muted-foreground: #55473F`, `--border: #DDD0C0`, `--border-strong: #7B695D`, `--primary: #9E3E1A`) and status tones so text, borders, and controls carry stronger visual separation across mobile and desktop.
+- **2-column mobile menu cards**: Menu items now render as a 2-column grid of vertical cards on mobile (`3` on tablet, `4` on wide desktop), keeping subtle hairline borders/shadows on `rounded`, `boxy`, `editorial`, and `airy` while retaining the bold offset-shadow border on `playful`.
+- **Inline status + expanding search**: Order status ("Awaiting staff confirmation" / balance / progress) and search share one compact row; search starts as a 44×44 icon button that smoothly expands over the row on focus and collapses on blur when empty.
+- **Unified sub-screen header & Cart/Promo flow**: All non-menu customer views share a single sticky top bar with a borderless back arrow and screen title. Cart hides the bottom navigation bar in favor of a fixed bottom checkout bar showing seamless before/after-discount totals and a primary Order button, uses borderless minimal `-`/`+` quantity icons, and replaces inline voucher inputs with a compact Grab/Gojek-style Promo row opening a dedicated Promo screen.
+- **Shared demo bar & guide**: Collapsing `DemoToolbarShell` now keeps a slim top bar labelled `Demo Settings` (preserving `--demo-height` measurement). `DemoActionTour` spotlights the entire menu card and renders dialog spotlights in the top layer with higher-contrast card padding and button hierarchy.
+
 ## Minimal-card flat layout revamp, 21 November 2026
 
 Customer and staff workspaces now default to an open, flat canvas separated by crisp `1px` hairline rules (`--border`), quiet full-bleed tinted metadata bands (`--surface-muted`), and typography hierarchy instead of nested bordered cards. Bordered surfaces are reserved strictly for the elements that genuinely require framing: multi-column 2D photo menu cards (`rounded`, `boxy`, `airy`, `playful`; `editorial` stays a flat 1-column hairline list), a single order-type callout strip on customer cart/payment screens, the scannable QR quiet-zone frame during active online payment, the active waitlist ticket callout, the spatial SVG floor plan, and side-by-side multi-column KDS kitchen tickets.

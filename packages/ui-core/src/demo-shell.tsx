@@ -68,12 +68,6 @@ export function DemoToolbarShell({
   };
 
   useLayoutEffect(() => {
-    if (collapsed) {
-      document.documentElement.style.setProperty('--demo-height', '0px');
-      return () => {
-        document.documentElement.style.removeProperty('--demo-height');
-      };
-    }
     const element = toolbar.current;
     if (!element) return;
     const measure = () =>
@@ -88,25 +82,25 @@ export function DemoToolbarShell({
   }, [collapsed]);
 
   const hideLabel = english ? 'Hide demo bar' : 'Sembunyikan bar demo';
-  const showLabel = english ? 'Show demo bar' : 'Tampilkan bar demo';
+  const showLabel = english ? 'Show demo settings' : 'Tampilkan pengaturan demo';
 
   if (collapsed) {
     return (
-      <div className="tl-demo-collapsed-dock" role="region" aria-label={label}>
+      <aside ref={toolbar} className="tl-demo-toolbar tl-demo-toolbar-collapsed demo-toolbar" aria-label={label}>
         <button
           type="button"
-          className="tl-demo-restore-pill"
+          className="tl-demo-restore-bar"
           onClick={() => toggleCollapsed(false)}
           aria-label={showLabel}
           title={showLabel}
         >
           <span className="tl-demo-restore-dot" aria-hidden="true" />
-          <span>Demo</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <span>Demo Settings</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
-      </div>
+      </aside>
     );
   }
 

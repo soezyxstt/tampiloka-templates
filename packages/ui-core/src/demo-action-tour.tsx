@@ -57,6 +57,7 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
   const [confirmed, setConfirmed] = useState<HTMLElement | null>(null);
   const focusTarget = useRef<HTMLElement | null>(null);
   const panel = useRef<HTMLElement>(null);
+  const spotlight = useRef<HTMLDivElement>(null);
   const [complete, setComplete] = useState(false);
   const currentTarget = useRef<HTMLElement | null>(null);
   const record = useRef<string | undefined>(undefined);
@@ -67,8 +68,26 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
   const translate = (copy: DemoTourText) => copy[en ? 1 : 0];
 
   useLayoutEffect(() => {
-    if (dialog) panel.current?.showPopover?.();
-  }, [dialog]);
+    if (dialog) {
+      let openedSpotlight = false;
+      if (spotlight.current && !spotlight.current.matches(':popover-open')) {
+        try {
+          spotlight.current.showPopover?.();
+          openedSpotlight = true;
+        } catch { /* Popover may be unsupported. */ }
+      }
+      if (panel.current) {
+        try {
+          if (openedSpotlight && panel.current.matches(':popover-open')) {
+            panel.current.hidePopover?.();
+          }
+          if (!panel.current.matches(':popover-open')) {
+            panel.current.showPopover?.();
+          }
+        } catch { /* Popover may be unsupported. */ }
+      }
+    }
+  }, [dialog, box, complete]);
 
   useLayoutEffect(() => {
     panel.current?.focus({ preventScroll: true });
@@ -120,8 +139,10 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
       const target = prerequisite ?? action ?? null;
       setPrompt(prerequisite?.dataset.demoTourPrompt ?? '');
       focusTarget.current = prerequisite
-        ? prerequisite.matches('input,select,button') ? prerequisite : prerequisite.querySelector('input:not(:disabled),button:not(:disabled),select:not(:disabled)')
-        : enabledTarget ?? null;
+        ? prerequisite.matches('input,select,button,a[href]') ? prerequisite : prerequisite.querySelector('input:not(:disabled),button:not(:disabled),select:not(:disabled),a[href]')
+        : enabledTarget
+          ? enabledTarget.matches('input,select,button,a[href],[tabindex]') ? enabledTarget : enabledTarget.querySelector('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled)')
+          : null;
       setCanFocus(Boolean(focusTarget.current));
       if (target !== currentTarget.current) {
         currentTarget.current = target;
@@ -202,7 +223,16 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
     onClose();
   };
   return <>
-    {!complete && box && createPortal(<div aria-hidden="true" className="tl-demo-tour-spotlight tl-demo-action-spotlight" style={box} />, document.body)}
+    {!complete && box && createPortal(
+      <div
+        ref={spotlight}
+        aria-hidden="true"
+        popover={dialog ? 'manual' : undefined}
+        className="tl-demo-tour-spotlight tl-demo-action-spotlight"
+        style={box}
+      />,
+      dialog ?? document.body,
+    )}
     {createPortal(<section
       className={`tl-demo-tour tl-demo-action-tour ${above ? 'tl-demo-action-tour-top' : 'tl-demo-action-tour-bottom'}`}
       popover={dialog ? 'manual' : undefined}
@@ -218,15 +248,15 @@ export function DemoActionTour({ language, role, steps, onClose, trigger }: Prop
         </div>
       </div>
       <div className="tl-demo-action-tour-controls">
-        <Button size="sm" variant="ghost" onClick={dismiss}>{complete ? (en ? 'Finish' : 'Selesai') : (en ? 'End guide' : 'Akhiri panduan')}</Button>
+        <Button size="sm" variant={complete ? 'solid' : 'outline'} onClick={dismiss}>{complete ? (en ? 'Finish' : 'Selesai') : (en ? 'End guide' : 'Akhiri panduan')}</Button>
         {!complete && step.link && <a href={step.link.href} target="_blank" rel="noopener" className="tl-button tl-button-outline tl-button-sm">{translate(step.link.label)}</a>}
         {!complete && !available && step.unavailable && <Button size="sm" variant="outline" onClick={() => {
           if (!step.sameRecord) record.current = undefined;
           if (index === steps.length - 1) setComplete(true);
           else setIndex(index + 1);
         }}>{en ? 'Skip this step' : 'Lewati langkah ini'}</Button>}
-        {!complete && prompt && step.prerequisite?.confirm && <Button size="sm" onClick={() => setConfirmed(currentTarget.current)}>{translate(step.prerequisite.confirm)}</Button>}
-        {!complete && canFocus && !step.waitFor && <Button size="sm" variant="outline" onClick={() => focusTarget.current?.focus()}>{en ? 'Go to highlighted item' : 'Ke bagian yang disorot'}</Button>}
+        {!complete && prompt && step.prerequisite?.confirm && <Button size="sm" variant="solid" onClick={() => setConfirmed(currentTarget.current)}>{translate(step.prerequisite.confirm)}</Button>}
+        {!complete && canFocus && !step.waitFor && <Button size="sm" variant="solid" onClick={() => focusTarget.current?.focus()}>{en ? 'Go to highlighted item' : 'Ke bagian yang disorot'}</Button>}
       </div>
     </section>, dialog ?? document.body)}
   </>;

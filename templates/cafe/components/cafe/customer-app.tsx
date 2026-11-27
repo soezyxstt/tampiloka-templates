@@ -30,7 +30,6 @@ import {
   ImageCarousel,
   ThumbnailImageSlider,
   StatusLabel,
-  SearchField,
   QuantityControl,
   PaymentBreakdown,
   EmptyState,
@@ -72,6 +71,8 @@ import {
   BookOpenText,
   ShoppingBag,
   ClipboardList,
+  Search,
+  Tag,
 } from 'lucide-react';
 
 
@@ -91,6 +92,7 @@ export interface CartLineDraft {
 export type CustomerScreenView =
   | 'menu'
   | 'keranjang'
+  | 'promo'
   | 'pesanan'
   | 'pembayaran'
   | 'bantuan'
@@ -131,6 +133,7 @@ export function CustomerApp({
   const [customerPrincipalId, setCustomerPrincipalId] = useState('');
   const screenEnabled = (screen: CustomerScreenView) => {
     if (['keranjang', 'pesanan', 'pembayaran'].includes(screen)) return canOrder;
+    if (screen === 'promo') return canOrder && canUsePromos;
     if (['bantuan', 'antrean'].includes(screen)) return canUseTables;
     if (screen === 'member') return canUseLoyalty || canUsePromos;
     return true;
@@ -155,8 +158,16 @@ export function CustomerApp({
   // Menu Filtering (Shadcn SelectField Category + Search + Favorites filter)
   const [activeCategoryId, setActiveCategoryId] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchExpanded, setSearchExpanded] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [onlyFavorites, setOnlyFavorites] = useState<boolean>(false);
   const [onlyAvailable, setOnlyAvailable] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (searchExpanded) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+  }, [searchExpanded]);
 
   // Item configuration modal + Multi-photo carousel index
   const [configuringItem, setConfiguringItem] = useState<any | null>(null);
@@ -250,9 +261,40 @@ export function CustomerApp({
 
   const hasTableQrContext = Boolean(initialTableId && selectedTableId === initialTableId && orderMode === 'DINE_IN' && selectedTable.qrToken);
 
+  const demoMembers = useMemo<any[]>(() => {
+    const list = snapshot?.demoMembers || snapshot?.members || [];
+    return Array.isArray(list) ? list : [];
+  }, [snapshot]);
+
+  const demoRewards = useMemo<any[]>(() => {
+    const list = snapshot?.demoRewards || snapshot?.rewardEntitlements || [];
+    return Array.isArray(list) ? list : [];
+  }, [snapshot]);
+
   const currentMember = useMemo(() => {
-    return snapshot?.members?.find((m: any) => m.id === loggedInMemberId) || null;
-  }, [snapshot, loggedInMemberId]);
+    return demoMembers.find((m: any) => m.id === loggedInMemberId) || null;
+  }, [demoMembers, loggedInMemberId]);
+
+  const memberRewards = useMemo(() => {
+    if (!currentMember) return [];
+    return demoRewards.filter((r: any) => r.memberId === currentMember.id && r.state === 'AVAILABLE');
+  }, [demoRewards, currentMember]);
+
+  const signInDemoMember = (member: any) => {
+    setLoggedInMemberId(member.id);
+    setIdentityMode('MEMBER');
+    setGuestName(member.displayName || '');
+    setActiveQuote(null);
+    setCheckoutError('');
+    toast.success(t(`Masuk sebagai ${member.displayName}.`, `Signed in as ${member.displayName}.`));
+  };
+
+  const signOutDemoMember = () => {
+    setLoggedInMemberId('');
+    setIdentityMode('GUEST');
+    setActiveQuote(null);
+    toast.success(t('Keluar dari akun member.', 'Signed out of member account.'));
+  };
 
   const favoriteIds = useMemo(() => {
     return new Set<string>([...((currentMember?.favoriteMenuIdsJson as string[]) || []), ...localFavoriteIds]);
@@ -266,6 +308,10 @@ export function CustomerApp({
       const stored = JSON.parse(localStorage.getItem(`${storageKey}:cart`) || '{}');
       if (Array.isArray(stored.cart)) setCart(stored.cart.filter((line: CartLineDraft) => line && Number.isInteger(line.quantity) && line.quantity > 0 && line.quantity <= 20 && typeof line.menuItemId === 'string' && typeof line.variantId === 'string' && typeof line.cartLineId === 'string' && typeof line.itemName === 'string' && typeof line.variantName === 'string' && typeof line.note === 'string' && Number.isFinite(line.unitPriceIdr) && line.unitPriceIdr >= 0 && Array.isArray(line.modifierOptionIds) && line.modifierOptionIds.every((id) => typeof id === 'string') && Array.isArray(line.modifierNames) && line.modifierNames.every((name) => typeof name === 'string')));
       if (typeof stored.name === 'string') setGuestName(stored.name);
+      if (typeof stored.memberId === 'string' && stored.memberId) {
+        setLoggedInMemberId(stored.memberId);
+        setIdentityMode('MEMBER');
+      }
       if (Array.isArray(stored.favorites)) setLocalFavoriteIds(stored.favorites.filter((id: unknown) => typeof id === 'string'));
     } catch { /* A damaged local cart starts empty. */ }
     try {
@@ -287,9 +333,9 @@ export function CustomerApp({
 
   useEffect(() => {
     if (cartLoaded) {
-      try { localStorage.setItem(`${storageKey}:cart`, JSON.stringify({ cart, name: guestName, favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
+      try { localStorage.setItem(`${storageKey}:cart`, JSON.stringify({ cart, name: guestName, memberId: loggedInMemberId, favorites: localFavoriteIds })); } catch { /* Storage may be unavailable in private browsing. */ }
     }
-  }, [cart, guestName, localFavoriteIds, cartLoaded, storageKey]);
+  }, [cart, guestName, loggedInMemberId, localFavoriteIds, cartLoaded, storageKey]);
 
   useEffect(() => {
     if (!shareOpen) return;
@@ -544,9 +590,10 @@ export function CustomerApp({
   };
 
   const handleReviewOrder = async () => {
+    const effectiveName = identityMode === 'MEMBER' && currentMember?.displayName ? currentMember.displayName : guestName.trim();
     if (tableUnavailable) { setCheckoutError(t('Meja belum siap. Minta bantuan pelayan.', 'This table is not ready. Ask staff for help.')); return; }
-    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t('Lanjutkan sebagai tamu.', 'Continue as a guest.')); return; }
-    if (guestName.trim().length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
+    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t('Pilih akun member demo atau lanjutkan sebagai tamu.', 'Choose a demo member account or continue as a guest.')); return; }
+    if (effectiveName.length < 2) { setCheckoutError(t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")); return; }
     if (orderMode === 'DINE_IN' && !hasTableQrContext && !presenceVerified) { setCheckoutError(t("Periksa lokasi atau masukkan kode meja dari staf sebelum mengirim pesanan.", "Check your location or enter a staff-provided table code before ordering.")); return; }
     const quote = await handleRequestQuote();
     if (quote) {
@@ -557,8 +604,9 @@ export function CustomerApp({
 
   const handleSubmitOrderRequest = async () => {
     setCheckoutError('');
-    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t("Lanjutkan sebagai tamu.", "Continue as a guest.")); return; }
-    if (guestName.trim().length < 2) {
+    const effectiveName = identityMode === 'MEMBER' && currentMember?.displayName ? currentMember.displayName : guestName.trim();
+    if (identityMode === 'MEMBER' && !loggedInMemberId) { setCheckoutError(t("Pilih akun member demo atau lanjutkan sebagai tamu.", "Choose a demo member account or continue as a guest.")); return; }
+    if (effectiveName.length < 2) {
       setCheckoutError(
         t("Isi nama pemesan, minimal 2 karakter.", "Enter an order name with at least 2 characters.")
       );
@@ -582,7 +630,7 @@ export function CustomerApp({
         quoteId: quoteToUse.quoteId,
         principalId: identityMode === 'MEMBER' ? loggedInMemberId : customerPrincipalId,
         memberId: identityMode === 'MEMBER' ? loggedInMemberId : undefined,
-        customerName: guestName.trim(),
+        customerName: effectiveName,
         mode: orderMode,
         tableId: orderMode === 'DINE_IN' ? selectedTableId : undefined,
         presenceVerified,
@@ -672,49 +720,62 @@ export function CustomerApp({
     return configuringItem.photoUrl ? [configuringItem.photoUrl] : [];
   }, [configuringItem]);
 
+  const hideBottomNav = activeScreen === 'keranjang' || activeScreen === 'promo';
   const cartPreviewVisible = canOrder && activeScreen === 'menu' && cart.length > 0;
+  const checkoutBarVisible = canOrder && activeScreen === 'keranjang' && cart.length > 0;
   const cartPreviewRef = useRef<HTMLDivElement>(null);
+  const checkoutBarRef = useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
-    const element = cartPreviewRef.current;
+    const element = cartPreviewVisible ? cartPreviewRef.current : checkoutBarVisible ? checkoutBarRef.current : null;
     const demo = element?.closest<HTMLElement>('.demo-session');
-    if (!element || !demo || !cartPreviewVisible) return;
+    if (!element || !demo) {
+      document.documentElement.style.removeProperty('--demo-language-cart-offset');
+      return;
+    }
     const measure = () => document.documentElement.style.setProperty('--demo-language-cart-offset', `${Math.ceil(element.getBoundingClientRect().height) + 12}px`);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => { observer.disconnect(); document.documentElement.style.removeProperty('--demo-language-cart-offset'); };
-  }, [cartPreviewVisible]);
+  }, [cartPreviewVisible, checkoutBarVisible]);
+
+  const hasOrderNotice = canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0 || pendingRequests.length > 0);
+  const activeDiscountIdr = activeQuote?.discountIdr ?? 0;
+  const finalTotalIdr = activeQuote?.totalIdr ?? cartSummary.totalIdr;
+  const preDiscountTotalIdr = activeDiscountIdr > 0 ? cartSummary.totalIdr : finalTotalIdr;
+
+  const subScreenTitle: Record<Exclude<CustomerScreenView, 'menu'>, string> = {
+    keranjang: t('Keranjang', 'Cart'),
+    promo: 'Promo',
+    pesanan: t('Pesanan', 'Orders'),
+    pembayaran: t('Pembayaran', 'Payment'),
+    bantuan: t('Panggil pelayan', 'Call staff'),
+    wifi: t('Info kedai', 'Cafe info'),
+    member: 'Member',
+    antrean: t('Antrean meja', 'Table waitlist'),
+  };
 
   return (
-    <div data-ui="cafe-customer" className={`${styles.customer} min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col`}>
+    <div
+      data-ui="cafe-customer"
+      data-no-bottom-nav={hideBottomNav ? 'true' : undefined}
+      className={`${styles.customer} min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col`}
+    >
       {/* ===================================================================== */}
       {/* STICKY MOBILE-FIRST CUSTOMER HEADER                                   */}
       {/* ===================================================================== */}
       <a className="skip-link" href="#customer-content">{t("Lewati ke menu", "Skip to menu")}</a>
       <header data-ui="customer-header" className="sticky top-0 z-30 bg-[var(--surface)] border-b border-[var(--border)]">
+        {activeScreen === 'menu' ? (
         <div className="max-w-[1080px] mx-auto px-4 py-2 flex items-center justify-between gap-2">
-          {/* Left: Clean ArrowLeft Back Icon (when on sub-screen) + Outlet & Table Context */}
+          {/* Left: Outlet & Table Context */}
           <div className="flex items-center gap-2 min-w-0">
-            {activeScreen !== 'menu' ? (
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.9 }}
-                onClick={goBack}
-                aria-label={previousScreen === 'menu' ? t("Kembali ke menu utama", "Back to main menu") : t('Kembali', 'Back')}
-                className="w-11 h-11 -ml-1.5 flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </motion.button>
-            ) : null}
-
             <BrandMark className="hidden min-[370px]:inline-flex" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-heading text-[21px] leading-[25px] font-bold text-[var(--foreground)] truncate">
+                <span className="font-heading text-[20px] leading-[24px] font-bold text-[var(--foreground)] truncate">
                   {cafeConfig.brand.name}
                 </span>
-
-
               </div>
 
               {/* Interactive Table / Order Mode Selector */}
@@ -735,20 +796,13 @@ export function CustomerApp({
             </div>
           </div>
 
-          {/* Right: 3 Clean Unboxed Action Icons (Favorites Heart, Shopping Cart, Profile/Services) */}
+          {/* Right: Clean Unboxed Action Icons (Favorites Heart, Shopping Cart, Profile/Services) */}
           <div className="flex items-center gap-1 shrink-0 -mr-1">
             {/* 1. Love / Favorites Icon Button (No card wrapper) */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                if (activeScreen !== 'menu') {
-                  setActiveScreen('menu');
-                  setOnlyFavorites(true);
-                } else {
-                  setOnlyFavorites(!onlyFavorites);
-                }
-              }}
+              onClick={() => setOnlyFavorites(!onlyFavorites)}
               aria-label={t("Filter menu favorit", "Filter favorite items")}
               aria-pressed={onlyFavorites}
               className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
@@ -777,19 +831,11 @@ export function CustomerApp({
             {canOrder && <motion.button
               type="button"
               whileTap={{ scale: 0.9 }}
-              onClick={() =>
-                setActiveScreen(activeScreen === 'keranjang' ? 'menu' : 'keranjang')
-              }
+              onClick={() => setActiveScreen('keranjang')}
               aria-label={`${t('Keranjang belanja', 'Shopping cart')} (${cartSummary.totalQty} ${t('item', 'items')})`}
-              className={`relative w-12 h-12 hidden sm:flex items-center justify-center transition-colors cursor-pointer ${
-                activeScreen === 'keranjang'
-                  ? 'text-[var(--primary-ink)]'
-                  : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
-              }`}
+              className="relative w-12 h-12 hidden sm:flex items-center justify-center text-[var(--foreground)] hover:text-[var(--primary-ink)] transition-colors cursor-pointer"
             >
-              <ShoppingCart
-                className={`w-5 h-5 ${activeScreen === 'keranjang' ? 'stroke-[2.4]' : ''}`}
-              />
+              <ShoppingCart className="w-5 h-5" />
               <AnimatePresence mode="popLayout">
                 {cartSummary.totalQty > 0 && (
                   <motion.span
@@ -803,9 +849,8 @@ export function CustomerApp({
                   </motion.span>
                 )}
               </AnimatePresence>
-            </motion.button>
+            </motion.button>}
 
-            }
             {/* 3. Profile, Orders, Payment & Table Services Icon Button (No card wrapper) */}
             <motion.button
               type="button"
@@ -813,10 +858,7 @@ export function CustomerApp({
               onClick={() => setProfileDrawerOpen(true)}
               aria-label={t("Menu profil, pesanan, dan layanan meja", "Profile, orders and table service menu")}
               className={`relative w-12 h-12 flex items-center justify-center transition-colors cursor-pointer ${
-                profileDrawerOpen ||
-                ['pesanan', 'pembayaran', 'bantuan', 'wifi', 'member', 'antrean'].includes(
-                  activeScreen
-                )
+                profileDrawerOpen
                   ? 'text-[var(--primary-ink)]'
                   : 'text-[var(--foreground)] hover:text-[var(--primary-ink)]'
               }`}
@@ -825,6 +867,73 @@ export function CustomerApp({
             </motion.button>
           </div>
         </div>
+        ) : (
+        <div className="max-w-[1080px] mx-auto px-3 sm:px-6 min-h-[52px] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.9 }}
+              onClick={goBack}
+              aria-label={previousScreen === 'menu' ? t("Kembali ke menu utama", "Back to main menu") : t('Kembali', 'Back')}
+              className="w-11 h-11 -ml-1.5 flex items-center justify-center border-0 bg-transparent text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer shrink-0 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+            </motion.button>
+            <h1 className="font-heading text-[18px] leading-[24px] font-bold text-[var(--foreground)] truncate">
+              {subScreenTitle[activeScreen]}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-0.5 shrink-0 -mr-1">
+            {activeScreen === 'keranjang' && (
+              <button
+                type="button"
+                aria-label={t("+ Tambah menu", "+ Add items")}
+                title={t("Tambah menu", "Add items")}
+                onClick={() => setActiveScreen('menu')}
+                className="w-11 h-11 flex items-center justify-center border-0 bg-transparent text-[var(--foreground)] hover:text-[var(--primary-ink)] cursor-pointer transition-colors"
+              >
+                <Plus className="w-5 h-5" aria-hidden="true" />
+              </button>
+            )}
+            {activeScreen === 'pesanan' && (
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label={t("Perbarui", "Refresh")}
+                  title={t("Perbarui", "Refresh")}
+                  onClick={() => onRefresh?.()}
+                  className="w-11 h-11 flex items-center justify-center border-0 bg-transparent text-[var(--foreground)] hover:text-[var(--primary-ink)] disabled:opacity-40 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                  title={t("Lihat tagihan dan pembayaran", "View bill and payment")}
+                  onClick={() => setActiveScreen('pembayaran')}
+                  className="w-11 h-11 flex items-center justify-center border-0 bg-transparent text-[var(--primary-ink)] hover:opacity-80 cursor-pointer transition-colors"
+                >
+                  <Receipt className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </>
+            )}
+            {activeScreen === 'antrean' && waitlistTicket && (
+              <button
+                type="button"
+                disabled={busy}
+                aria-label={t("Perbarui antrean", "Refresh waitlist")}
+                title={t("Perbarui antrean", "Refresh waitlist")}
+                onClick={refreshWaitlist}
+                className="w-11 h-11 flex items-center justify-center border-0 bg-transparent text-[var(--foreground)] hover:text-[var(--primary-ink)] disabled:opacity-40 cursor-pointer transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+        )}
       </header>
 
       {/* ===================================================================== */}
@@ -841,23 +950,127 @@ export function CustomerApp({
               className="space-y-2.5"
             >
               {snapshot?.outlet?.availabilityNote && <p className="text-xs text-[var(--muted-foreground)]">{snapshot.outlet.availabilityNote}</p>}
-              {canOrder && (activeOrdersCount > 0 || unpaidBills.length > 0 || pendingRequests.length > 0) && (
-                <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
-                  <span className="flex items-center gap-3"><span className="text-[var(--primary-ink)]"><ClipboardList className="h-4 w-4 text-[var(--primary-ink)]" /></span><span className="font-medium text-sm">{pendingRequests.length ? t("Menunggu konfirmasi kasir", "Awaiting staff confirmation") : unpaidBills.some((bill: any) => bill.hasActiveExternalAttempt) ? t("Pembayaran dalam proses", "Payment in progress") : unpaidBills.length ? `${t("Sisa tagihan", "Balance due")} ${formatIdr(unpaidBills.reduce((sum: number, bill: any) => sum + bill.balanceIdr, 0))}` : activeOrdersCount ? t("Pesanan diproses", "Order in progress") : t("Pesanan ditolak · lihat alasan", "Order rejected · view reason")}</span></span>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              )}
               {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
+
               <div className={styles.menuToolbar} data-demo-target="cafe-menu-filters">
-                <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t("Cari menu", "Search menu")} />
+                {/* Inline Awaiting/Order Status + Animated Expanding Search Icon */}
+                <div className={styles.statusSearchRow}>
+                  {hasOrderNotice ? (
+                    <button type="button" onClick={() => setActiveScreen('pesanan')} className={styles.orderNotice}>
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <ClipboardList className="h-4 w-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                        <span className="font-semibold text-[13px] truncate">
+                          {pendingRequests.length
+                            ? t("Menunggu konfirmasi kasir", "Awaiting staff confirmation")
+                            : unpaidBills.some((bill: any) => bill.hasActiveExternalAttempt)
+                            ? t("Pembayaran dalam proses", "Payment in progress")
+                            : unpaidBills.length
+                            ? `${t("Sisa tagihan", "Balance due")} ${formatIdr(unpaidBills.reduce((sum: number, bill: any) => sum + bill.balanceIdr, 0))}`
+                            : activeOrdersCount
+                            ? t("Pesanan diproses", "Order in progress")
+                            : t("Pesanan ditolak · lihat alasan", "Order rejected · view reason")}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <h1 className="font-heading font-bold text-[18px] leading-[24px] truncate">
+                        <RevealText key={onlyFavorites ? 'fav' : activeCategoryId}>
+                          {onlyFavorites
+                            ? t('Favorit', 'Favorites')
+                            : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items')) || 'Menu'}
+                        </RevealText>
+                      </h1>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    aria-label={t('Cari menu', 'Search menu')}
+                    aria-expanded={searchExpanded || Boolean(searchQuery)}
+                    onClick={() => setSearchExpanded(true)}
+                    className={styles.searchIconBtn}
+                  >
+                    <Search className="w-4 h-4" aria-hidden="true" />
+                  </button>
+
+                  <AnimatePresence>
+                    {(searchExpanded || Boolean(searchQuery)) && (
+                      <motion.div
+                        key="expanding-search"
+                        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scaleX: 0.2 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scaleX: 0.2 }}
+                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        className={styles.searchExpandedWrap}
+                      >
+                        <label htmlFor="search-menu-input" className="sr-only">
+                          {t('Cari menu', 'Search menu')}
+                        </label>
+                        <Search className="w-4 h-4 text-[var(--muted-foreground)] absolute left-3 pointer-events-none" aria-hidden="true" />
+                        <input
+                          ref={searchInputRef}
+                          id="search-menu-input"
+                          type="search"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onBlur={() => {
+                            if (!searchQuery.trim()) setSearchExpanded(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setSearchQuery('');
+                              setSearchExpanded(false);
+                              searchInputRef.current?.blur();
+                            }
+                          }}
+                          placeholder={t('Cari menu…', 'Search menu…')}
+                          className={styles.searchExpandedInput}
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSearchExpanded(false);
+                            searchInputRef.current?.blur();
+                          }}
+                          aria-label={t('Tutup pencarian', 'Close search')}
+                          className={styles.searchCloseBtn}
+                        >
+                          <X className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 <ChoiceStrip items={categoriesWithCounts.map((category:any)=>({ id:category.id, label:category.id==='ALL'?t('Semua', 'All'):category.name }))} value={activeCategoryId} onChange={setActiveCategoryId} ariaLabel={t("Kategori menu", "Menu categories")} variant="underline" />
               </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <h1 className="font-heading font-semibold text-lg"><RevealText key={onlyFavorites ? 'fav' : activeCategoryId}>{onlyFavorites ? t('Favorit', 'Favorites') : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items')) || 'Menu'}</RevealText></h1>
-                <div className="flex flex-wrap items-center gap-1"><FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">{t("Favorit", "Favorites")}</FilterToggle><FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>{t("Tersedia saja", "Available only")}</FilterToggle></div>
+                {hasOrderNotice ? (
+                  <h1 className="font-heading font-semibold text-[16px] leading-[22px]">
+                    <RevealText key={onlyFavorites ? 'fav' : activeCategoryId}>
+                      {onlyFavorites
+                        ? t('Favorit', 'Favorites')
+                        : categoriesWithCounts.find((category: any) => category.id === activeCategoryId)?.name?.replace('Semua Kategori', t('Semua menu', 'All items')) || 'Menu'}
+                    </RevealText>
+                  </h1>
+                ) : (
+                  <span className="text-[13px] text-[var(--muted-foreground)] tabular-nums">
+                    {filteredCatalog.length} {t('menu', 'items')}
+                  </span>
+                )}
+                <div className="flex flex-wrap items-center gap-1">
+                  <FilterToggle pressed={onlyFavorites} onPressedChange={setOnlyFavorites} className="sm:hidden">{t("Favorit", "Favorites")}</FilterToggle>
+                  <FilterToggle pressed={onlyAvailable} onPressedChange={setOnlyAvailable}>{t("Tersedia saja", "Available only")}</FilterToggle>
+                </div>
               </div>
+
               {filteredCatalog.length === 0 ? (
-                <EmptyState title={t("Menu tidak ditemukan", "No menu items found")} description={t("Coba kata kunci lain atau pilih kategori yang berbeda.", "Try another search or category.")} actionLabel={t("Reset pencarian", "Reset search")} onAction={() => { setSearchQuery(''); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
+                <EmptyState title={t("Menu tidak ditemukan", "No menu items found")} description={t("Coba kata kunci lain atau pilih kategori yang berbeda.", "Try another search or category.")} actionLabel={t("Reset pencarian", "Reset search")} onAction={() => { setSearchQuery(''); setSearchExpanded(false); setActiveCategoryId('ALL'); setOnlyFavorites(false); setOnlyAvailable(false); }} />
               ) : (
                 <div className={styles.menuGrid} role="list" aria-label="Menu"><AnimatePresence initial={false} mode="popLayout">
                   {filteredCatalog.map((item: any, itemIndex: number) => {
@@ -865,9 +1078,9 @@ export function CustomerApp({
                     const photos = item.photos?.length ? item.photos : item.photoUrl ? [item.photoUrl] : [];
                     const quantity = cart.filter((line) => line.menuItemId === item.id).reduce((total, line) => total + line.quantity, 0);
                     const favorite = favoriteIds.has(item.id);
-                    return <MotionItem order={itemIndex} key={item.id} role="listitem" className={`${styles.menuCard} ${browsingWholeMenu && itemIndex === 0 && photos[0] && item.isAvailable ? styles.openingDish : ''} ${!item.isAvailable ? styles.soldOut : ''}`}>
+                    return <MotionItem order={itemIndex} key={item.id} role="listitem" data-demo-target="cafe-dish" data-orderable={item.isAvailable || undefined} className={`${styles.menuCard} ${browsingWholeMenu && itemIndex === 0 && photos[0] && item.isAvailable ? styles.openingDish : ''} ${!item.isAvailable ? styles.soldOut : ''}`}>
                       <div className={styles.menuImage}>
-                        {photos[0] ? <Image src={photos[0]} alt="" width={200} height={200} unoptimized loading={itemIndex < 4 ? 'eager' : 'lazy'} /> : <Coffee aria-hidden="true" className="w-8 h-8 text-[var(--primary-ink)] m-auto" />}
+                        {photos[0] ? <Image src={photos[0]} alt="" width={280} height={210} unoptimized loading={itemIndex < 4 ? 'eager' : 'lazy'} /> : <Coffee aria-hidden="true" className="w-8 h-8 text-[var(--primary-ink)] m-auto" />}
                         {canOrder && (
                           <div className={styles.quickAddSlot}>
                             <button
@@ -884,11 +1097,13 @@ export function CustomerApp({
                         )}
                       </div>
                       <div className={styles.menuCardBody}>
-                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle} data-demo-target="cafe-dish" data-orderable={item.isAvailable || undefined}>{item.name}</button>
+                        <button type="button" onClick={() => openItemModal(item)} aria-label={`${t('Lihat', 'View')} ${item.name}`} className={styles.dishTitle}>{item.name}</button>
                         {item.description && <p className={styles.menuDescription}>{item.description}</p>}
                         <div className={styles.dishMetaRow}>
-                          <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className={styles.dishPrice} />
-                          {!item.isAvailable && <span className={styles.soldOutText}>{t("Habis", "Sold out")}</span>}
+                          <div className="flex flex-col min-w-0">
+                            <Money amount={item.minPriceIdr || variant?.priceIdr || 0} className={styles.dishPrice} />
+                            {!item.isAvailable && <span className={styles.soldOutText}>{t("Habis", "Sold out")}</span>}
+                          </div>
                           <button type="button" onClick={() => setLocalFavoriteIds((ids) => favorite ? ids.filter((id) => id !== item.id) : [...ids, item.id])} aria-label={`${favorite ? t('Hapus', 'Remove') : t('Simpan', 'Save')} ${item.name} ${favorite ? t('dari', 'from') : t('ke', 'to')} ${t('favorit', 'favorites')}`} aria-pressed={favorite} className={styles.favorite}><Heart className={`w-4 h-4 ${favorite ? 'fill-[var(--primary-ink)] text-[var(--primary-ink)]' : ''}`} /></button>
                         </div>
                       </div>
@@ -896,40 +1111,27 @@ export function CustomerApp({
                   })}
                 </AnimatePresence></div>
               )}
-              <p className="text-center text-sm text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet, language)}</p>
+              <p className="text-center text-xs text-[var(--muted-foreground)] pt-2">{formatOutletChargePolicy(snapshot?.outlet, language)}</p>
             </MotionPanel>
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 2: KERANJANG, IDENTITAS, LOKASI & QUOTE PROMO (C03–C06)    */}
+          {/* SCREEN 2: KERANJANG, IDENTITAS, LOKASI & PROMO (C03–C06)          */}
           {/* ================================================================= */}
           {screenEnabled('keranjang') && activeScreen === 'keranjang' && (
             <MotionPanel
               key="screen-keranjang"
-              className="space-y-6"
+              className="space-y-4"
             >
-              <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[20px] font-bold">{t("Keranjang", "Cart")}</h1>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t("+ Tambah menu", "+ Add items")}
-                  title={t("Tambah menu", "Add items")}
-                  onClick={() => setActiveScreen('menu')}
-                >
-                  <Plus className="w-5 h-5" aria-hidden="true" />
-                </Button>
-              </div>
-
               {tableUnavailable && <InlineNotice tone="warning"><div className="space-y-2"><p>{tableUnavailableMessage}</p><Button variant="secondary" size="sm" disabled={!selectedTableId} onClick={() => setActiveScreen('bantuan')}>{t('Panggil pelayan','Call staff')}</Button></div></InlineNotice>}
-                  {cart.length === 0 ? (
+              {cart.length === 0 ? (
                 <EmptyState
                   title={t("Keranjang masih kosong", "Your cart is empty")}
                   actionLabel={t("Lihat menu", "View menu")}
                   onAction={() => setActiveScreen('menu')}
                 />
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <button type="button" onClick={() => setTableModalOpen(true)} className={`${styles.contextStrip} text-left cursor-pointer`}>
                     <span className="text-[var(--muted-foreground)]">{t('Jenis pesanan', 'Order type')}</span>
                     <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
@@ -938,23 +1140,32 @@ export function CustomerApp({
                     </span>
                   </button>
 
-                  {/* 1. Daftar Item Keranjang (Open Hairline List · No outer box card) */}
-                  <section className="space-y-2">
-                    <h2 className="font-heading text-[16px] font-semibold">
-                      {t('Menu', 'Items')} ({cartSummary.totalQty} {t('item', 'items')})
-                    </h2>
-                    <div className={styles.orderList}>
+                  {/* 1. Daftar Item Keranjang (Borderless minimal -/+ controls) */}
+                  <section className={styles.sectionSurface}>
+                    <div className="flex items-center justify-between gap-2 pb-2 border-b border-[var(--border)]">
+                      <h2 className="font-heading text-[15px] font-semibold">
+                        {t('Pesanan', 'Items')} ({cartSummary.totalQty})
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScreen('menu')}
+                        className="text-[13px] font-semibold text-[var(--primary-ink)] hover:underline cursor-pointer"
+                      >
+                        + {t('Tambah', 'Add')}
+                      </button>
+                    </div>
+                    <div className="divide-y divide-[var(--border)]">
                       {cart.map((line, idx) => (
                         <motion.div
                           key={line.cartLineId}
                           layout="position"
-                          className={`${styles.cartLine} flex items-start justify-between gap-3`}
+                          className="py-3 first:pt-3 last:pb-1 flex items-start justify-between gap-2"
                         >
-                          <div className="space-y-0.5 min-w-0">
-                            <p className="font-semibold text-[15px] text-[var(--foreground)]">
+                          <div className="space-y-0.5 min-w-0 flex-1">
+                            <p className="font-semibold text-[14px] leading-[20px] text-[var(--foreground)]">
                               {sampleName(line.menuItemId, line.itemName)}
                             </p>
-                            <p className="text-[13px] text-[var(--muted-foreground)]">
+                            <p className="text-[12px] leading-[17px] text-[var(--muted-foreground)]">
                               {sampleName(line.variantId, line.variantName)}
                               {line.modifierNames.length > 0
                                 ? ` · ${line.modifierNames.join(', ')}`
@@ -962,16 +1173,24 @@ export function CustomerApp({
                             </p>
                             {line.note && (
                               <p className="text-[12px] text-[var(--muted-foreground)] italic">
-                                {t('Catatan:', 'Note:')} &ldquo;{line.note}&rdquo;
+                                &ldquo;{line.note}&rdquo;
                               </p>
                             )}
-                            <div className="flex items-center gap-4 pt-2">
-                              <Money amount={line.unitPriceIdr * line.quantity} className="font-semibold text-[14px]" />
-                              <button type="button" className="text-sm text-[var(--primary-ink)] inline-flex items-center gap-1" onClick={() => editCartLine(line)}><Pencil className="h-3 w-3" /> {t("Ubah", "Edit")}</button>
+                            <div className="flex items-center gap-3 pt-1.5">
+                              <Money amount={line.unitPriceIdr * line.quantity} className="font-bold text-[14px] text-[var(--foreground)]" />
+                              <button
+                                type="button"
+                                className="text-[12px] font-semibold text-[var(--primary-ink)] inline-flex items-center gap-1 hover:underline cursor-pointer"
+                                onClick={() => editCartLine(line)}
+                              >
+                                <Pencil className="h-3 w-3" aria-hidden="true" />
+                                {t("Ubah", "Edit")}
+                              </button>
                             </div>
                           </div>
 
                           <QuantityControl
+                            variant="minimal"
                             value={line.quantity}
                             itemLabel={line.itemName}
                             onChange={(nextQty) => {
@@ -989,13 +1208,45 @@ export function CustomerApp({
                     </div>
                   </section>
 
-                  {/* 2. Identitas Pemesan (Unboxed Section with Shadcn Input & AnimatedSegmentedControl) */}
-                  <section className="space-y-3 pt-1">
+                  {/* 2. Grab/Gojek-style Promo Trigger Row */}
+                  {canUsePromos && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckoutError('');
+                        setActiveScreen('promo');
+                      }}
+                      className={styles.promoTriggerRow}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <Tag className="w-4 h-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                        <span className="min-w-0">
+                          <span className="block font-semibold text-[14px] text-[var(--foreground)] truncate">
+                            {activeDiscountIdr > 0 && promoCodeInput.trim()
+                              ? `Promo · ${promoCodeInput.trim().toUpperCase()}`
+                              : 'Promo'}
+                          </span>
+                          {activeDiscountIdr > 0 && (
+                            <span className="block text-[12px] font-semibold text-[var(--status-success-fg)] tabular-nums">
+                              {t('Hemat', 'Saved')} {formatIdr(activeDiscountIdr)}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 shrink-0 text-[13px] font-semibold text-[var(--primary-ink)]">
+                        <span>{activeDiscountIdr > 0 ? t('Ubah', 'Change') : t('Pilih promo', 'Use promo')}</span>
+                        <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" aria-hidden="true" />
+                      </span>
+                    </button>
+                  )}
+
+                  {/* 3. Identitas Pemesan */}
+                  <section className={`${styles.sectionSurface} space-y-3`}>
                     <div className="flex items-center justify-between gap-2">
-                      <h2 className="font-heading text-[16px] font-semibold">{t("Nama pemesan", "Order name")}</h2>
+                      <h2 className="font-heading text-[15px] font-semibold">{t("Nama pemesan", "Order name")}</h2>
                       {canUseLoyalty && <AnimatedSegmentedControl
                         options={[
-                          { value: 'GUEST', label: 'Tamu' },
+                          { value: 'GUEST', label: t('Tamu', 'Guest') },
                           { value: 'MEMBER', label: 'Member' },
                         ]}
                         value={identityMode}
@@ -1006,20 +1257,64 @@ export function CustomerApp({
                     </div>
 
                     {identityMode === 'GUEST' ? (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="guest-name-input">
+                      <div className="space-y-1">
+                        <Label htmlFor="guest-name-input" className="sr-only">
                           {t("Nama", "Name")}
                         </Label>
                         <Input
                           id="guest-name-input"
                           value={guestName}
                           onChange={(e) => { setGuestName(e.target.value); setActiveQuote(null); }}
-                          placeholder={t("Nama Anda", "Your name")}
+                          placeholder={t("Masukkan nama Anda", "Enter your name")}
                         />
+                      </div>
+                    ) : currentMember ? (
+                      <div className="flex items-center justify-between gap-3 py-1">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[14px] text-[var(--foreground)] truncate">
+                            {currentMember.displayName}
+                          </p>
+                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                            {currentMember.qualifiedVisitsCount ?? 0}/5 {t('stempel loyalitas', 'loyalty stamps')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={signOutDemoMember}
+                          className="text-[12px] font-semibold text-[var(--primary-ink)] hover:underline cursor-pointer shrink-0"
+                        >
+                          {t('Keluar', 'Sign out')}
+                        </button>
+                      </div>
+                    ) : snapshot?.runtime?.demo && demoMembers.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-[12px] text-[var(--muted-foreground)]">
+                          {t('Pilih akun member contoh untuk mencoba login & promo khusus member:', 'Choose a sample member account to try sign-in & member-only promos:')}
+                        </p>
+                        <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                          {demoMembers.map((m: any) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => signInDemoMember(m)}
+                              className="w-full py-2.5 px-1 flex items-center justify-between gap-2 text-left hover:bg-[var(--accent-surface)]/60 transition-colors cursor-pointer"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[14px] text-[var(--foreground)] truncate">{m.displayName}</p>
+                                <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                                  {m.qualifiedVisitsCount ?? 0}/5 {t('stempel', 'stamps')}
+                                </p>
+                              </div>
+                              <span className="text-[13px] font-semibold text-[var(--primary-ink)] shrink-0">
+                                {t('Masuk', 'Sign in')}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       <InlineNotice tone="info">
-                        <div className="space-y-2.5">
+                        <div className="space-y-2">
                           <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
                           <Button variant="secondary" size="sm" onClick={() => { setIdentityMode('GUEST'); setActiveQuote(null); }}>{t("Lanjut sebagai tamu", "Continue as guest")}</Button>
                         </div>
@@ -1027,173 +1322,200 @@ export function CustomerApp({
                     )}
                   </section>
 
-                  {/* 3. Verifikasi Kehadiran Meja (Unboxed Section with Hairline Top Divider) */}
-                  {orderMode === 'DINE_IN' && !hasTableQrContext && <section className="pt-5 border-t border-[var(--border)] space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h2 className="font-heading text-[16px] font-semibold">
-                        {t("Verifikasi meja", "Verify table")}
-                      </h2>
-                      <StatusLabel
-                        label={presenceVerified ? t('Terverifikasi', 'Verified') : t('Belum terverifikasi', 'Not verified')}
-                        tone={presenceVerified ? 'success' : 'warning'}
-                      />
-                    </div>
-                    <p className="text-[13px] text-[var(--muted-foreground)]">
-                      {t("Untuk memesan dari meja, izinkan akses lokasi atau masukkan kode yang diberikan staf.", "To order from your table, allow location access or enter the code provided by staff.")}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        disabled={busy}
-                        onClick={() => handleCheckGpsPresence()}
-                      >
-                        <MapPin className="w-4 h-4" />
-                        <span>{t("Cek lokasi", "Check location")}</span>
-                      </Button>
-                      <div className="flex items-center gap-2 flex-1 min-w-[210px]">
-                        <Input
-                          aria-label={t("Kode gabung meja dari staf", "Table join code from staff")}
-                          value={joinCodeInput}
-                          onChange={(e) => setJoinCodeInput(e.target.value)}
-                          placeholder={t("Kode meja dari staf", "Table code from staff")}
-                          className="uppercase tabular-nums"
+                  {/* 4. Verifikasi Kehadiran Meja (when required) */}
+                  {orderMode === 'DINE_IN' && !hasTableQrContext && (
+                    <section className={`${styles.sectionSurface} space-y-3`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <h2 className="font-heading text-[15px] font-semibold">
+                          {t("Verifikasi meja", "Verify table")}
+                        </h2>
+                        <StatusLabel
+                          label={presenceVerified ? t('Terverifikasi', 'Verified') : t('Belum terverifikasi', 'Not verified')}
+                          tone={presenceVerified ? 'success' : 'warning'}
                         />
+                      </div>
+                      <p className="text-[13px] text-[var(--muted-foreground)]">
+                        {t("Izinkan lokasi atau masukkan kode meja dari staf.", "Allow location access or enter the table code from staff.")}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="secondary"
                           disabled={busy}
-                          onClick={handleUseJoinCode}
+                          onClick={() => handleCheckGpsPresence()}
                         >
-                          {t("Terapkan", "Apply")}
+                          <MapPin className="w-4 h-4" />
+                          <span>{t("Cek lokasi", "Check location")}</span>
                         </Button>
+                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                          <Input
+                            aria-label={t("Kode gabung meja dari staf", "Table join code from staff")}
+                            value={joinCodeInput}
+                            onChange={(e) => setJoinCodeInput(e.target.value)}
+                            placeholder={t("Kode meja", "Table code")}
+                            className="uppercase tabular-nums"
+                          />
+                          <Button
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={handleUseJoinCode}
+                          >
+                            {t("Terapkan", "Apply")}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    {presenceStatusText && (
-                      <p className="text-[12px] text-[var(--muted-foreground)]">
-                        {presenceStatusText}
+                      {presenceStatusText && (
+                        <p className="text-[12px] text-[var(--muted-foreground)]">
+                          {presenceStatusText}
+                        </p>
+                      )}
+                    </section>
+                  )}
+
+                  {/* 5. Rincian Biaya */}
+                  <section className={`${styles.sectionSurface} space-y-3`}>
+                    <h2 className="font-heading text-[15px] font-semibold">
+                      {t("Rincian pembayaran", "Payment details")}
+                    </h2>
+                    <PaymentBreakdown
+                      subtotalIdr={activeQuote?.subtotalIdr ?? cartSummary.subtotalIdr}
+                      discountIdr={activeQuote?.discountIdr ?? cartSummary.discountIdr}
+                      serviceIdr={activeQuote?.serviceIdr ?? cartSummary.serviceIdr}
+                      taxIdr={activeQuote?.taxIdr ?? cartSummary.taxIdr}
+                      totalIdr={finalTotalIdr}
+                      serviceChargeBps={cartSummary.serviceChargeBps}
+                      taxBps={cartSummary.taxBps}
+                      taxInclusiveDisplay={cartSummary.taxInclusiveDisplay}
+                    />
+                    {activeQuote && (
+                      <p className="pt-2 border-t border-[var(--border)] text-[12px] text-[var(--muted-foreground)]">
+                        {t('Harga berlaku hingga', 'Price valid until')}{' '}
+                        {new Date(activeQuote.expiresAt).toLocaleTimeString('id-ID', {
+                          timeZone: cafeConfig.timezone,
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     )}
-                  </section>}
-
-                  {/* 4. Promo Voucher & Rincian Biaya (Single Subtle Summary Surface) */}
-                  <section className="pt-5 border-t border-[var(--border)] space-y-4">
-                    <h2 className="font-heading text-[16px] font-semibold">
-                      {t("Ringkasan", "Summary")}
-                    </h2>
-
-                    {canUsePromos && <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="promo-code-input"
-                          value={promoCodeInput}
-                          onChange={(e) => { setPromoCodeInput(e.target.value); setActiveQuote(null); }}
-                          placeholder={t("Kode promo", "Promo code")}
-                          className="uppercase"
-                        />
-                        <Button
-                          variant="secondary"
-                          disabled={busy}
-                          onClick={() => handleRequestQuote()}
-                        >
-                          {t("Terapkan", "Apply")}
-                        </Button>
-                      </div>
-
-                      {(snapshot?.promotionRules || []).length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <span className="text-[12px] text-[var(--muted-foreground)]">
-                            {t("Voucher tersedia:", "Available vouchers:")}
-                          </span>
-                          {(snapshot?.promotionRules || []).map((p: any) => (
-                            <motion.button
-                              key={p.id}
-                              type="button"
-                              whileTap={{ scale: 0.96 }}
-                              onClick={() => handleRequestQuote(p.code)}
-                              className="min-h-[44px] inline-flex items-center px-3 py-1.5 rounded-[6px] bg-[var(--accent-surface)] border border-[var(--border)] text-[12px] font-semibold text-[var(--primary-ink)] text-left hover:bg-[var(--surface-muted)] cursor-pointer transition-colors"
-                            >
-                              {p.code} ({p.name})
-                            </motion.button>
-                          ))}
-                        </div>
-                      )}
-                    </div>}
-
-                    <div className={`${styles.summary} space-y-3`}>
-                      <PaymentBreakdown
-                        subtotalIdr={activeQuote?.subtotalIdr ?? cartSummary.subtotalIdr}
-                        discountIdr={activeQuote?.discountIdr ?? cartSummary.discountIdr}
-                        serviceIdr={activeQuote?.serviceIdr ?? cartSummary.serviceIdr}
-                        taxIdr={activeQuote?.taxIdr ?? cartSummary.taxIdr}
-                        totalIdr={activeQuote?.totalIdr ?? cartSummary.totalIdr}
-                        serviceChargeBps={cartSummary.serviceChargeBps}
-                        taxBps={cartSummary.taxBps}
-                        taxInclusiveDisplay={cartSummary.taxInclusiveDisplay}
-                      />
-
-                      {activeQuote && (
-                        <div className="pt-2 border-t border-[var(--border)] text-[12px] text-[var(--primary-ink)] font-medium">
-                          {t('Harga berlaku hingga', 'Price valid until')}{' '}
-                          {new Date(activeQuote.expiresAt).toLocaleTimeString('id-ID', {
-                            timeZone: cafeConfig.timezone,
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {identityMode === 'MEMBER' && !loggedInMemberId && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t('Pilih Lanjut sebagai tamu untuk memesan.','Choose Continue as guest to order.')}</p>}
-                    {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
-                    <InlineError message={checkoutError} />
-
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      disabled={busy || tableUnavailable || (identityMode === 'MEMBER' && !loggedInMemberId)}
-                      data-demo-target="customer-review"
-                      onClick={handleReviewOrder}
-                    >
-                      {t('Periksa pesanan', 'Review order')} · {formatIdr(activeQuote?.totalIdr ?? cartSummary.totalIdr)}
-                    </Button>
                   </section>
+
+                  {identityMode === 'MEMBER' && !loggedInMemberId && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{t('Pilih Lanjut sebagai tamu untuk memesan.','Choose Continue as guest to order.')}</p>}
+                  {tableUnavailable && <p role="status" className="text-sm text-[var(--status-warning-fg)]">{tableUnavailableMessage}</p>}
+                  <InlineError message={checkoutError} />
                 </div>
               )}
             </MotionPanel>
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 3: STATUS PESANAN 3 SUMBU (C07 · Less Cards, Clean Dividers)*/}
+          {/* SCREEN 2B: HALAMAN PROMO (Grab/Gojek-style voucher & manual code) */}
+          {/* ================================================================= */}
+          {screenEnabled('promo') && activeScreen === 'promo' && (
+            <MotionPanel
+              key="screen-promo"
+              className="space-y-4"
+            >
+              <section className={`${styles.sectionSurface} space-y-3`}>
+                <Label htmlFor="promo-code-input" className="text-[14px] font-semibold">
+                  {t('Punya kode promo?', 'Have a promo code?')}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="promo-code-input"
+                    value={promoCodeInput}
+                    onChange={(e) => { setPromoCodeInput(e.target.value); setCheckoutError(''); }}
+                    placeholder={t("Masukkan kode promo", "Enter promo code")}
+                    className="uppercase"
+                  />
+                  <Button
+                    variant="primary"
+                    disabled={busy || !promoCodeInput.trim()}
+                    onClick={async () => {
+                      const quote = await handleRequestQuote();
+                      if (quote) {
+                        toast.success(t('Promo diterapkan.', 'Promo applied.'));
+                        goBack();
+                      }
+                    }}
+                  >
+                    {t("Pakai", "Apply")}
+                  </Button>
+                </div>
+                <InlineError message={checkoutError} />
+                {activeDiscountIdr > 0 && (
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border)] text-[13px]">
+                    <span className="text-[var(--status-success-fg)] font-semibold">
+                      {t('Promo aktif:', 'Active promo:')} {promoCodeInput.trim().toUpperCase()} (-{formatIdr(activeDiscountIdr)})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPromoCodeInput('');
+                        setActiveQuote(null);
+                        setCheckoutError('');
+                        toast.success(t('Promo dihapus.', 'Promo removed.'));
+                      }}
+                      className="text-[12px] font-semibold text-[var(--status-danger-fg)] hover:underline cursor-pointer"
+                    >
+                      {t('Hapus', 'Remove')}
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-2.5">
+                <h2 className="font-heading text-[15px] font-semibold">
+                  {t('Promo tersedia', 'Available promos')}
+                </h2>
+                {(snapshot?.promotionRules || []).length === 0 ? (
+                  <EmptyState
+                    title={t('Belum ada promo tersedia', 'No promos available')}
+                    description={t('Masukkan kode promo secara manual jika Anda memilikinya.', 'Enter a promo code above if you have one.')}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {(snapshot?.promotionRules || []).map((p: any) => {
+                      const isApplied = activeDiscountIdr > 0 && promoCodeInput.trim().toUpperCase() === String(p.code || '').toUpperCase();
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          disabled={busy}
+                          onClick={async () => {
+                            const quote = await handleRequestQuote(p.code);
+                            if (quote) {
+                              toast.success(t(`Promo ${p.code} diterapkan.`, `Promo ${p.code} applied.`));
+                              goBack();
+                            }
+                          }}
+                          className={`${styles.sectionSurface} w-full text-left flex items-center justify-between gap-3 cursor-pointer hover:border-[var(--primary-ink)] transition-colors ${isApplied ? 'border-[var(--primary-ink)] bg-[var(--accent-surface)]' : ''}`}
+                        >
+                          <div className="min-w-0 space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <Tag className="w-3.5 h-3.5 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                              <span className="font-bold text-[14px] text-[var(--foreground)]">{p.code}</span>
+                            </div>
+                            <p className="text-[13px] text-[var(--muted-foreground)]">{p.name}</p>
+                          </div>
+                          <span className={`shrink-0 text-[13px] font-semibold ${isApplied ? 'text-[var(--status-success-fg)]' : 'text-[var(--primary-ink)]'}`}>
+                            {isApplied ? t('Dipakai', 'Applied') : t('Pakai', 'Apply')}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </MotionPanel>
+          )}
+
+          {/* ================================================================= */}
+          {/* SCREEN 3: STATUS PESANAN 3 SUMBU (C07 · Clean Mobile-First)       */}
           {/* ================================================================= */}
           {screenEnabled('pesanan') && activeScreen === 'pesanan' && (
             <MotionPanel
               key="screen-pesanan"
-              className="space-y-6"
+              className="space-y-4"
             >
-              <div className={styles.ordersHeading}>
-                <h1 className="font-heading text-[20px] font-bold">{t("Pesanan", "Orders")}</h1>
-                <div className={styles.ordersActions}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={busy}
-                    aria-label={t("Perbarui", "Refresh")}
-                    title={t("Perbarui", "Refresh")}
-                    onClick={() => onRefresh?.()}
-                  >
-                    <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("Lihat tagihan dan pembayaran", "View bill and payment")}
-                    title={t("Lihat tagihan dan pembayaran", "View bill and payment")}
-                    onClick={() => setActiveScreen('pembayaran')}
-                  >
-                    <Receipt className="w-4 h-4 text-[var(--primary-ink)]" aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
 
               {customerOrders.length === 0 && customerRequests.length === 0 && <EmptyState title={t("Belum ada pesanan", "No orders yet")} actionLabel={t("Lihat menu", "View menu")} onAction={() => setActiveScreen('menu')} />}
               {customerRequests.filter((request: any) => ['EXPIRED', 'REJECTED', 'CANCELLED'].includes(request.state)).map((request: any) => <InlineNotice key={request.id} tone="warning"><div className="space-y-2"><p className="font-semibold">{request.state === 'EXPIRED' ? t('Pesanan kedaluwarsa', 'Order expired') : t('Pesanan dibatalkan', 'Order cancelled')}</p><p>{request.reason || request.rejectionReason || t('Pesanan belum diterima. Silakan pilih menu lagi atau hubungi staf.', 'The order was not accepted. Choose items again or contact staff.')}</p><Button variant="secondary" size="sm" onClick={() => setActiveScreen('menu')}>{t("Pilih menu lagi", "Choose more items")}</Button></div></InlineNotice>)}
@@ -1343,23 +1665,22 @@ export function CustomerApp({
           {screenEnabled('pembayaran') && activeScreen === 'pembayaran' && (
             <MotionPanel
               key="screen-pembayaran"
-              className="space-y-6"
+              className="space-y-4"
             >
-              <div className={styles.screenHeading}>
-                <h1 className="font-heading text-[22px] font-bold">{t("Pembayaran", "Payment")}</h1>
-                {customerBills.length > 1 && <SelectField
+              {customerBills.length > 1 && (
+                <SelectField
                   aria-label={t("Pilih tagihan meja", "Choose a table bill")}
                   value={selectedBill?.id || ''}
                   onChange={(e) => setSelectedBillId(e.target.value)}
-                  wrapperClassName="w-auto min-w-[230px]"
+                  wrapperClassName="w-full"
                 >
                   {customerBills.map((b: any) => (
                     <option key={b.id} value={b.id}>
                       {billLocation(b, snapshot.visits || [], t)} · {t("Sisa", "Remaining")} {formatIdr(b.balanceIdr)} · {billOwnerName(b)}
                     </option>
                   ))}
-                </SelectField>}
-              </div>
+                </SelectField>
+              )}
 
               {customerBills.length > 1 && <InlineNotice tone="info" className="text-sm"><div className="space-y-1" aria-label={t("Ringkasan seluruh tagihan", "Summary of all bills")}><p className="font-semibold">{customerBills.length} {t('tagihan dalam kunjungan Anda', 'bills during your visit')} · {t("Sisa:", "Outstanding:")} <Money amount={customerBills.reduce((sum: number, bill: any) => sum + Math.max(0, bill.balanceIdr), 0)} /></p><p>{t("Pesanan tambahan dan tagihan yang dipisah perlu dibayar masing-masing. Pilih tagihan yang ingin Anda bayar.", "Additional orders and split bills must be paid separately. Select the bill you want to pay.")}</p></div></InlineNotice>}
 
@@ -1601,28 +1922,23 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 5: BANTUAN MEJA / PANGGIL STAF (C10 · Less Cards)          */}
+          {/* SCREEN 5: BANTUAN MEJA / PANGGIL STAF (C10 · Mobile-First)        */}
           {/* ================================================================= */}
           {screenEnabled('bantuan') && activeScreen === 'bantuan' && (
             <MotionPanel
               key="screen-bantuan"
-              className="space-y-5"
+              className="space-y-4"
             >
-              {previousScreen === 'keranjang' && <Button variant="ghost" onClick={goBack}><ArrowLeft size={16} aria-hidden="true" />{t('Kembali ke keranjang', 'Back to cart')}</Button>}
-              <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                {t("Panggil pelayan", "Call staff")}
-              </h1>
-
-              <section className="space-y-4">
-                <h2 className="font-heading text-[16px] font-semibold">
-                  {selectedTable.id ? t(`Kirim permintaan ke staf untuk Meja ${selectedTable.label}`, `Send a request for table ${selectedTable.label}`) : t('Pilih meja untuk menghubungi pelayan.', 'Choose a table to call staff.')}
+              <section className={`${styles.sectionSurface} space-y-4`}>
+                <h2 className="font-heading text-[15px] font-semibold">
+                  {selectedTable.id ? t(`Permintaan untuk Meja ${selectedTable.label}`, `Request for table ${selectedTable.label}`) : t('Pilih meja untuk menghubungi pelayan.', 'Choose a table to call staff.')}
                 </h2>
                 <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {[
                     { code: 'CALL_WAITER', label: t("Panggil pelayan", "Call staff") },
                     { code: 'REQUEST_BILL', label: t('Minta tagihan', 'Request bill') },
-                    { code: 'CUTLERY_NAPKIN', label: 'Alat makan' },
-                    { code: 'PACK_LEFTOVER', label: 'Bungkus makanan' },
+                    { code: 'CUTLERY_NAPKIN', label: t('Alat makan', 'Cutlery & napkins') },
+                    { code: 'PACK_LEFTOVER', label: t('Bungkus makanan', 'Pack leftovers') },
                     { code: 'ORDER_ISSUE', label: t('Kendala pesanan', 'Order issue') },
                   ].map((opt) => {
                     const active = helpType === opt.code;
@@ -1631,10 +1947,10 @@ export function CustomerApp({
                         key={opt.code}
                         type="button"
                         onClick={() => setHelpType(opt.code as any)}
-                        className={`w-full py-3.5 px-2 flex items-center justify-between text-left text-[15px] transition-colors cursor-pointer ${
+                        className={`w-full py-3 px-2 flex items-center justify-between text-left text-[14px] transition-colors cursor-pointer ${
                           active
-                            ? 'text-[var(--primary-ink)] font-semibold bg-[var(--accent-surface)]/50'
-                            : 'text-[var(--foreground)] hover:bg-[var(--accent-surface)]/30 font-medium'
+                            ? 'text-[var(--primary-ink)] font-semibold bg-[var(--accent-surface)]/70'
+                            : 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]/60 font-medium'
                         }`}
                       >
                         <span>{opt.label}</span>
@@ -1659,6 +1975,8 @@ export function CustomerApp({
 
                 <Button
                   variant="primary"
+                  size="lg"
+                  className="w-full"
                   disabled={busy || !selectedTable.id}
                   onClick={async () => {
                     setHelpFeedback('');
@@ -1685,34 +2003,29 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 6: WI-FI GRATIS & INFO OUTLET (C12 · Less Cards)           */}
+          {/* SCREEN 6: WI-FI GRATIS & INFO OUTLET (C12 · Mobile-First)         */}
           {/* ================================================================= */}
           {activeScreen === 'wifi' && (
             <MotionPanel
               key="screen-wifi"
-              className="space-y-6"
+              className="space-y-4"
             >
-              {previousScreen === 'keranjang' && <Button variant="ghost" onClick={goBack}><ArrowLeft size={16} aria-hidden="true" />{t('Kembali ke keranjang', 'Back to cart')}</Button>}
-              <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                {t("Info kedai", "Cafe info")}
-              </h1>
-
-              {snapshot?.wifiNetworks?.length > 0 && <section className="space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">Wi-Fi</h2>
-                <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+              {snapshot?.wifiNetworks?.length > 0 && <section className={`${styles.sectionSurface} space-y-2`}>
+                <h2 className="font-heading text-[15px] font-semibold">Wi-Fi</h2>
+                <div className="divide-y divide-[var(--border)]">
                   {(snapshot?.wifiNetworks || []).map((w: any) => (
                     <div
                       key={w.id}
-                      className="py-4 flex flex-wrap items-center justify-between gap-3"
+                      className="py-3 first:pt-1 last:pb-1 flex flex-wrap items-center justify-between gap-3"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-[15px]">{w.label}</span>
+                          <span className="font-semibold text-[14px]">{w.label}</span>
                           <StatusLabel label={w.area} tone="info" />
                         </div>
-                        <p className="text-[14px] text-[var(--muted-foreground)]">
-                          SSID: <strong className="text-[var(--foreground)]">{w.ssid}</strong> ·
-                          {t('Kata sandi:', 'Password:')}{' '}
+                        <p className="text-[13px] text-[var(--muted-foreground)]">
+                          SSID: <strong className="text-[var(--foreground)]">{w.ssid}</strong> ·{' '}
+                          {t('Sandi:', 'Password:')}{' '}
                           <strong className="text-[var(--foreground)] tabular-nums">
                             {w.encryptedPassword}
                           </strong>
@@ -1736,9 +2049,9 @@ export function CustomerApp({
                 </div>
               </section>}
 
-              <section className="space-y-2.5 text-[14px]">
-                <h2 className="font-heading text-[16px] font-semibold">{t("Jam buka dan fasilitas", "Hours and facilities")}</h2>
-                <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+              <section className={`${styles.sectionSurface} space-y-2 text-[14px]`}>
+                <h2 className="font-heading text-[15px] font-semibold">{t("Jam buka dan fasilitas", "Hours and facilities")}</h2>
+                <div className="divide-y divide-[var(--border)]">
                   <div className="py-2.5 flex justify-between gap-4">
                     <span className="text-[var(--muted-foreground)]">{t("Alamat", "Address")}</span>
                     <span className="font-medium text-right">{snapshot?.outlet?.address}</span>
@@ -1755,7 +2068,7 @@ export function CustomerApp({
                       {snapshot?.outlet?.facilitiesText}
                     </span>
                   </div>
-                  <div className="py-2.5 flex justify-between gap-4">
+                  <div className="py-2.5 last:pb-1 flex justify-between gap-4">
                     <span className="text-[var(--muted-foreground)]">{t("Ketentuan biaya", "Charges")}</span>
                     <span className="font-medium text-right">
                       {formatOutletChargePolicy(snapshot?.outlet, language)}
@@ -1767,28 +2080,127 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 7: MEMBER, STEMPEL LOYALITAS & ULASAN (C11 · Less Cards)   */}
+          {/* SCREEN 7: MEMBER, STEMPEL LOYALITAS & ULASAN (C11 · Mobile-First) */}
           {/* ================================================================= */}
           {screenEnabled('member') && activeScreen === 'member' && (
             <MotionPanel
               key="screen-member"
-              className="space-y-6"
+              className="space-y-4"
             >
-              <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                Member
-              </h1>
+              {currentMember ? (
+                <section className={`${styles.sectionSurface} space-y-3`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="font-heading text-[16px] font-bold text-[var(--foreground)]">
+                          {currentMember.displayName}
+                        </h2>
+                        <StatusLabel label={t('Member aktif', 'Active member')} tone="success" />
+                      </div>
+                      <p className="text-[12px] text-[var(--muted-foreground)]">
+                        {t('Akun demo · favorit dan promo member aktif otomatis', 'Demo account · favorites and member promos active')}
+                      </p>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={signOutDemoMember}>
+                      {t('Keluar', 'Sign out')}
+                    </Button>
+                  </div>
 
-              <InlineNotice tone="info">
-                <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
-              </InlineNotice>
+                  {/* Loyalty stamp progress */}
+                  <div className="pt-3 border-t border-[var(--border)] space-y-2">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="font-semibold text-[var(--foreground)]">{t('Stempel loyalitas', 'Loyalty stamps')}</span>
+                      <span className="font-bold text-[var(--primary-ink)] tabular-nums">
+                        {currentMember.qualifiedVisitsCount ?? 0} / 5
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-2" aria-label={t('Progres stempel loyalitas', 'Loyalty stamp progress')}>
+                      {[1, 2, 3, 4, 5].map((slot) => {
+                        const earned = (currentMember.qualifiedVisitsCount ?? 0) >= slot;
+                        return (
+                          <div
+                            key={slot}
+                            className={`h-10 rounded-[var(--radius-control)] flex items-center justify-center border text-[13px] font-bold tabular-nums ${
+                              earned
+                                ? 'bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]'
+                                : 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--muted-foreground)]'
+                            }`}
+                          >
+                            {earned ? <Check className="w-4 h-4" aria-hidden="true" /> : slot}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(currentMember.qualifiedVisitsCount ?? 0) >= 4 && (
+                      <p className="text-[12px] font-medium text-[var(--status-success-fg)]">
+                        {t('Kunjungan ke-5 siap! Gunakan kode MEMBERKE5 di Keranjang → Promo untuk diskon 20%.', '5th visit unlocked! Use code MEMBERKE5 in Cart → Promo for 20% off.')}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Send Review (Unboxed with Hairline Top Divider) */}
-              <section className="pt-5 border-t border-[var(--border)] space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">{t("Ulasan", "Reviews")}</h2>
-                <div className="grid grid-cols-3 gap-2.5">
+                  {memberRewards.length > 0 && (
+                    <div className="pt-3 border-t border-[var(--border)] space-y-2">
+                      <p className="font-semibold text-[13px] text-[var(--foreground)]">
+                        {t('Hadiah tersedia', 'Available rewards')}
+                      </p>
+                      <div className="space-y-1.5">
+                        {memberRewards.map((reward: any) => (
+                          <div
+                            key={reward.id}
+                            className="flex items-center gap-2.5 p-2.5 rounded-[var(--radius-control)] bg-[var(--accent-surface)] border border-[var(--border)] text-[13px]"
+                          >
+                            <Award className="w-4 h-4 text-[var(--primary-ink)] shrink-0" aria-hidden="true" />
+                            <span className="font-medium text-[var(--foreground)]">{reward.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              ) : snapshot?.runtime?.demo && demoMembers.length > 0 ? (
+                <section className={`${styles.sectionSurface} space-y-3`}>
+                  <div className="space-y-1">
+                    <h2 className="font-heading text-[15px] font-semibold">
+                      {t('Masuk Member (Demo)', 'Member Sign-in (Demo)')}
+                    </h2>
+                    <p className="text-[13px] text-[var(--muted-foreground)]">
+                      {t('Pilih akun member contoh tanpa OTP untuk mencoba stempel loyalitas, hadiah, dan promo khusus member.', 'Choose a sample member account without OTP to try loyalty stamps, rewards, and member-only promos.')}
+                    </p>
+                  </div>
+                  <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                    {demoMembers.map((m: any) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => signInDemoMember(m)}
+                        className="w-full py-3 px-1 flex items-center justify-between gap-3 text-left hover:bg-[var(--accent-surface)]/60 transition-colors cursor-pointer"
+                      >
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="font-semibold text-[14px] text-[var(--foreground)] truncate">{m.displayName}</p>
+                          <p className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
+                            {m.qualifiedVisitsCount ?? 0}/5 {t('stempel', 'stamps')}
+                            {(m.qualifiedVisitsCount ?? 0) >= 4 ? ` · ${t('Siap promo MEMBERKE5', 'Eligible for MEMBERKE5')}` : ''}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[13px] font-semibold text-[var(--primary-ink)]">
+                          {t('Masuk', 'Sign in')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <InlineNotice tone="info">
+                  <p>{t("Masuk sebagai member belum tersedia. Anda tetap bisa melanjutkan sebagai tamu.", "Member sign-in is unavailable. You can continue as a guest.")}</p>
+                </InlineNotice>
+              )}
+
+              <section className={`${styles.sectionSurface} space-y-3`}>
+                <h2 className="font-heading text-[15px] font-semibold">{t("Ulasan", "Reviews")}</h2>
+                <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: t('Kepuasan', 'Satisfaction'), val: overallRating, set: setOverallRating },
-                    { label: t('Rasa Menu', 'Food and drink'), val: tasteRating, set: setTasteRating },
+                    { label: t('Rasa Menu', 'Food & drink'), val: tasteRating, set: setTasteRating },
                     { label: t('Layanan', 'Service'), val: serviceRating, set: setServiceRating },
                   ].map((r) => (
                     <div key={r.label} className="space-y-1">
@@ -1816,7 +2228,7 @@ export function CustomerApp({
                 <InlineError message={reviewSubmittedMsg} />
                 <Button
                   variant="primary"
-                  size="sm"
+                  className="w-full"
                   disabled={busy}
                   onClick={async () => {
                     setReviewSubmittedMsg('');
@@ -1850,19 +2262,15 @@ export function CustomerApp({
           )}
 
           {/* ================================================================= */}
-          {/* SCREEN 8: ANTREAN MEJA / WAITLIST (C13 · Less Cards)              */}
+          {/* SCREEN 8: ANTREAN MEJA / WAITLIST (C13 · Mobile-First)            */}
           {/* ================================================================= */}
           {screenEnabled('antrean') && activeScreen === 'antrean' && (
             <MotionPanel
               key="screen-antrean"
-              className="space-y-6"
+              className="space-y-4"
             >
-              <h1 className="font-heading text-[22px] font-bold pb-3 border-b border-[var(--border)]">
-                {t("Antrean meja", "Table waitlist")}
-              </h1>
-
-              <section className="space-y-3">
-                <h2 className="font-heading text-[16px] font-semibold">{t("Ambil antrean", "Join waitlist")}</h2>
+              <section className={`${styles.sectionSurface} space-y-3`}>
+                <h2 className="font-heading text-[15px] font-semibold">{t("Ambil antrean", "Join waitlist")}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="waitlist-guest-name">{t("Nama tamu", "Guest name")}</Label>
@@ -1888,6 +2296,7 @@ export function CustomerApp({
                 <InlineError message={waitlistError} />
                 <Button
                   variant="primary"
+                  className="w-full"
                   disabled={busy || (waitlistName || guestName).trim().length < 2 || !Number.isInteger(waitlistPartySize) || waitlistPartySize < 1 || waitlistPartySize > 20}
                   onClick={async () => {
                     setWaitlistError('');
@@ -1913,8 +2322,8 @@ export function CustomerApp({
                 </Button>
               </section>
 
-              <section className="pt-4 border-t border-[var(--border)] space-y-3" aria-label={t("Antrean Anda", "Your place in line")}>
-                <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-[16px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>{waitlistTicket && <Button size="icon" variant="ghost" aria-label={t("Perbarui antrean", "Refresh waitlist")} title={t("Perbarui antrean", "Refresh waitlist")} disabled={busy} onClick={refreshWaitlist}><RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" /></Button>}</div>
+              <section className={`${styles.sectionSurface} space-y-3`} aria-label={t("Antrean Anda", "Your place in line")}>
+                <h2 className="font-heading text-[15px] font-semibold">{t("Antrean Anda", "Your place in line")}</h2>
                 {waitlistTicket ? <article data-waitlist-id={waitlistTicket.id} className="space-y-3">
                   <div className={styles.contextStrip}>
                     <span className="font-semibold text-[var(--foreground)]">{t('Antrean', 'Waitlist')} #{waitlistTicket.publicSequence}</span>
@@ -1931,26 +2340,28 @@ export function CustomerApp({
           )}
         </AnimatePresence>
 
-        {/* Realistic Merchant Footer */}
-        <footer className="mt-10 pt-5 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--muted-foreground)]">
-          <div>
-            <span className="font-semibold text-[var(--foreground)]">
-              {cafeConfig.brand.name}
-            </span>{' '}
-            · {cafeConfig.venue.address}
-          </div>
-          <div className={styles.footerTools}>
-            <Button variant="ghost" onClick={() => setActiveScreen('wifi')}>
-              <MapPin aria-hidden="true" size={16} />{t("Info kedai", "Cafe info")}
-            </Button>
-            {canUseTables && <Button variant="ghost" onClick={() => setActiveScreen('bantuan')}>
-              <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
-            </Button>}
-            {onOpenStaffPortal && !snapshot?.runtime?.demo && <Button variant="ghost" onClick={onOpenStaffPortal}>
-              <Lock aria-hidden="true" size={16} />{t("Ruang staf dan kasir", "Staff and cashier")}
-            </Button>}
-          </div>
-        </footer>
+        {/* Realistic Merchant Footer (only on Menu to keep sub-screens uncluttered) */}
+        {activeScreen === 'menu' && (
+          <footer className="mt-8 pt-4 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--muted-foreground)]">
+            <div>
+              <span className="font-semibold text-[var(--foreground)]">
+                {cafeConfig.brand.name}
+              </span>{' '}
+              · {cafeConfig.venue.address}
+            </div>
+            <div className={styles.footerTools}>
+              <Button variant="ghost" onClick={() => setActiveScreen('wifi')}>
+                <MapPin aria-hidden="true" size={16} />{t("Info kedai", "Cafe info")}
+              </Button>
+              {canUseTables && <Button variant="ghost" onClick={() => setActiveScreen('bantuan')}>
+                <Bell aria-hidden="true" size={16} />{t("Panggil pelayan", "Call staff")}
+              </Button>}
+              {onOpenStaffPortal && !snapshot?.runtime?.demo && <Button variant="ghost" onClick={onOpenStaffPortal}>
+                <Lock aria-hidden="true" size={16} />{t("Ruang staf dan kasir", "Staff and cashier")}
+              </Button>}
+            </div>
+          </footer>
+        )}
       </main>
 
       {/* ===================================================================== */}
@@ -1984,10 +2395,57 @@ export function CustomerApp({
         )}
       </AnimatePresence>
 
-      <nav className={styles.bottomNav} aria-label={t("Navigasi pelanggan", "Customer navigation")}>
-        {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Pelayan", "Staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" data-demo-screen={screen} aria-current={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
-        <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>{t("Bagikan menu", "Share menu")}</span></button>
-      </nav>
+      {/* ===================================================================== */}
+      {/* STICKY BOTTOM CHECKOUT BAR ON CART VIEW (REPLACES BOTTOM NAV)         */}
+      {/* ===================================================================== */}
+      {checkoutBarVisible && (
+        <div ref={checkoutBarRef} data-ui="customer-checkout-bar" className={styles.checkoutBar}>
+          <div className={styles.checkoutBarInner}>
+            <div className="min-w-0 flex flex-col">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-[12px] font-medium text-[var(--muted-foreground)]">
+                  {t('Total', 'Total')}
+                </span>
+                {activeDiscountIdr > 0 && (
+                  <Money
+                    amount={preDiscountTotalIdr}
+                    className="text-[12px] text-[var(--muted-foreground)] line-through"
+                  />
+                )}
+              </div>
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <Money
+                  amount={finalTotalIdr}
+                  className="text-[17px] leading-[22px] font-bold text-[var(--foreground)]"
+                />
+                {activeDiscountIdr > 0 && (
+                  <span className="text-[12px] font-semibold text-[var(--status-success-fg)] tabular-nums">
+                    -{formatIdr(activeDiscountIdr)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="lg"
+              className="shrink-0 px-6 min-h-[46px]"
+              disabled={busy || tableUnavailable || (identityMode === 'MEMBER' && !loggedInMemberId)}
+              data-demo-target="customer-review"
+              onClick={handleReviewOrder}
+            >
+              {t('Pesan', 'Order')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!hideBottomNav && (
+        <nav className={styles.bottomNav} aria-label={t("Navigasi pelanggan", "Customer navigation")}>
+          {([{ screen: 'menu', label: 'Menu', icon: BookOpenText }, { screen: 'keranjang', label: t("Keranjang", "Cart"), icon: ShoppingBag }, { screen: 'pesanan', label: t("Pesanan", "Orders"), icon: ClipboardList }, { screen: 'bantuan', label: t("Pelayan", "Staff"), icon: Bell }] as const).filter(item => screenEnabled(item.screen)).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" data-demo-screen={screen} aria-current={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? 'page' : undefined} onClick={() => setActiveScreen(screen)} className={(activeScreen === screen || (activeScreen === 'pembayaran' && screen === 'pesanan')) ? styles.navActive : ''}><Icon className="w-5 h-5" strokeWidth={1.8} /><span>{label}</span></button>)}
+          <button type="button" onClick={() => setShareOpen(true)}><Share2 className="w-5 h-5" strokeWidth={1.8} /><span>{t("Bagikan menu", "Share menu")}</span></button>
+        </nav>
+      )}
       <DialogModal open={shareOpen} onClose={() => setShareOpen(false)} title={t("Bagikan menu", "Share menu")}>
         <div className="text-center space-y-4">
           {shareQr && <Image src={shareQr} width={320} height={320} unoptimized alt={t('Kode QR tautan menu', 'Menu link QR code')} className="w-64 h-64 mx-auto" />}
@@ -2017,14 +2475,14 @@ export function CustomerApp({
           {/* Customer Identity Header (Unboxed with Hairline Bottom Divider) */}
           <div className="pb-3 border-b border-[var(--border)] flex items-center justify-between gap-2">
             <div>
-              <p className="font-heading font-semibold text-[15px]">{guestName || t("Pelanggan baru", "New customer")}</p>
+              <p className="font-heading font-semibold text-[15px]">{currentMember?.displayName || guestName || t("Pelanggan baru", "New customer")}</p>
               <p className="text-[12px] text-[var(--muted-foreground)]">
                 {orderMode === 'DINE_IN'
                   ? selectedTable.id ? `Meja ${selectedTable.label} · ${selectedTable.areaName}` : cafeConfig.venue.address
                   : t("Bawa pulang", "Takeaway")}
               </p>
             </div>
-            {canUseLoyalty && <StatusLabel label={`${currentMember?.qualifiedVisitsCount ?? 0}/5 stempel`} tone="active" />}
+            {canUseLoyalty && <StatusLabel label={currentMember ? `${currentMember.qualifiedVisitsCount ?? 0}/5 ${t('stempel', 'stamps')}` : t('Tamu', 'Guest')} tone={currentMember ? 'active' : 'neutral'} />}
           </div>
 
           {/* Clean Hairline Tap Rows (No outer box border!) */}
@@ -2330,6 +2788,7 @@ export function CustomerApp({
             {/* Modal Footer: Quantity + Add to Cart */}
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between gap-3">
               <QuantityControl
+                variant="minimal"
                 value={itemQuantity}
                 min={1}
                 max={20}
