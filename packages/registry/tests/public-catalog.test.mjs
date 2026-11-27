@@ -25,15 +25,13 @@ test('public catalog has every ready demo and complete independent commerce mode
     assert.equal(url.searchParams.get('level'), mode);
   }
   const cafeEntries = catalog.entries.filter(item => item.family === 'cafe');
-  assert.equal(cafeEntries.length, 4);
-  const cafeFull = cafeEntries.find(item => item.id === 'cafe-full');
-  assert.equal(cafeFull.url, 'https://cafe.tampiloka.site/?theme=rounded&mode=full');
-  for (const [mode, href] of Object.entries(cafeFull.modeUrls)) {
-    const url = new URL(href);
+  assert.deepEqual(cafeEntries.map(item => item.id), ['cafe-order-at-cashier', 'cafe-order-and-pay', 'cafe-operations', 'cafe-full']);
+  for (const entry of cafeEntries) {
+    const url = new URL(entry.url);
     assert.equal(url.searchParams.get('theme'), 'rounded');
-    assert.equal(url.searchParams.get('mode'), mode);
   }
-  assert.deepEqual(Object.keys(cafeFull.modeUrls), ['order-at-cashier', 'order-and-pay', 'operations', 'full']);
+  const cafeFull = cafeEntries.find(item => item.id === 'cafe-full');
+  assert.equal(cafeFull.url, 'https://cafe-full.tampiloka.site/?theme=rounded');
 });
 
 test('private, unlisted, prospect, unfinished and planned entries cannot enter the public feed', () => {
