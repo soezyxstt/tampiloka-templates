@@ -109,11 +109,11 @@ export function buildPublicCatalog(registry, source, { updatedAt = new Date().to
     if (metadata.defaultMode !== undefined) family.defaultMode = metadata.defaultMode;
     const route = object(metadata.route, 'route');
     if (!['template', 'preset'].includes(route.base)) fail(`unknown route base in ${metadata.id}`);
-    for (const key of ['presetParam', 'modeParam']) {
+    for (const key of ['presetParam', 'modeParam', 'themeParam']) {
       if (route[key] !== undefined && (typeof route[key] !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(route[key]))) fail(`invalid route ${key}`);
     }
     for (const mode of family.modes ?? []) {
-      if (!template.levels?.[mode.id]) fail(`unknown registered mode ${mode.id}`);
+      if (!template.levels?.[mode.id] && !template.presets?.[mode.id]) fail(`unknown registered mode ${mode.id}`);
       if (!route.modeParam) fail(`missing mode query parameter in ${metadata.id}`);
     }
     for (const item of metadata.entries) {
@@ -122,6 +122,7 @@ export function buildPublicCatalog(registry, source, { updatedAt = new Date().to
       if (!preset) fail(`unknown preset ${metadata.template}/${item.preset}`);
       const url = new URL(https(route.base === 'preset' ? preset.url : template.demoUrl, 'registered demo URL'));
       if (route.presetParam) url.searchParams.set(route.presetParam, item.preset);
+      if (route.themeParam) url.searchParams.set(route.themeParam, slug(item.theme, `entry ${item.id} theme`));
       if (family.defaultMode) url.searchParams.set(route.modeParam, family.defaultMode);
       const entry = {
         id: item.id, family: family.id, name: item.name, description: item.description,

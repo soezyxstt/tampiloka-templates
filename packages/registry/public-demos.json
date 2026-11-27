@@ -147,142 +147,47 @@
         "en": "Try table ordering, cashier, kitchen, and staff tools."
       },
       "route": {
-        "base": "preset"
+        "base": "template",
+        "themeParam": "theme",
+        "modeParam": "mode"
       },
-      "entries": [
+      "defaultMode": "full",
+      "modes": [
         {
-          "id": "cafe-catalog",
-          "preset": "catalog",
-          "visibility": "public",
-          "ready": true,
+          "id": "order-at-cashier",
           "name": {
-            "id": "Menu + permintaan ke pelayan",
-            "en": "Menu + waiter request"
+            "id": "Menu & pesan di meja",
+            "en": "Menu & table ordering"
           },
           "description": {
-            "id": "Menu digital dan daftar pilihan pelanggan; pembayaran dilakukan di tempat.",
-            "en": "A digital menu and guest order list, with payment on site."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-catalog.webp",
-          "featured": false
+            "id": "Pelanggan memesan dari meja, lalu membayar melalui kasir.",
+            "en": "Guests order from their table and pay at the counter."
+          }
         },
         {
-          "id": "cafe-order-at-cashier",
-          "preset": "order-at-cashier",
-          "visibility": "public",
-          "ready": true,
+          "id": "order-and-pay",
           "name": {
-            "id": "Pesan, bayar di kasir",
-            "en": "Order, pay at cashier"
-          },
-          "description": {
-            "id": "Pelanggan memesan dari meja, lalu staf menerima pesanannya.",
-            "en": "Guests order from their table and staff receive the order."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-order-at-cashier.webp",
-          "featured": false
-        },
-        {
-          "id": "cafe-order-and-pay",
-          "preset": "order-and-pay",
-          "visibility": "public",
-          "ready": true,
-          "name": {
-            "id": "Pesan dan bayar",
-            "en": "Order and pay"
+            "id": "Pesan & bayar online",
+            "en": "Order & pay online"
           },
           "description": {
             "id": "Pilih menu, kirim pesanan, dan coba simulasi pembayaran online.",
             "en": "Choose items, place an order, and try simulated online payment."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-order-and-pay.webp",
-          "featured": false
+          }
         },
         {
-          "id": "cafe-cashier",
-          "preset": "cashier",
-          "visibility": "public",
-          "ready": true,
+          "id": "operations",
           "name": {
-            "id": "Kasir",
-            "en": "Cashier"
+            "id": "Kasir & dapur",
+            "en": "Cashier & kitchen"
           },
           "description": {
-            "id": "Catat pesanan langsung, diskon, pembayaran tunai, dan giliran kerja.",
-            "en": "Walk-in orders, discounts, cash payments, and shifts."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-cashier.webp",
-          "featured": false
+            "id": "Kelola pesanan di kasir, pantau persiapan dapur, dan lihat laporan.",
+            "en": "Manage counter orders, kitchen preparation, and daily reports."
+          }
         },
         {
-          "id": "cafe-cashier-kitchen",
-          "preset": "cashier-kitchen",
-          "visibility": "public",
-          "ready": true,
-          "name": {
-            "id": "Kasir + dapur",
-            "en": "Cashier + kitchen"
-          },
-          "description": {
-            "id": "Catat pesanan di kasir dan pantau antrean persiapan dapur.",
-            "en": "Record orders at the cashier and follow the kitchen queue."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-cashier-kitchen.webp",
-          "featured": false
-        },
-        {
-          "id": "cafe-operations",
-          "preset": "operations",
-          "visibility": "public",
-          "ready": true,
-          "name": {
-            "id": "Operasional",
-            "en": "Operations"
-          },
-          "description": {
-            "id": "Kelola pesanan, persiapan dapur, dan laporan dari ruang staf.",
-            "en": "Manage orders, kitchen preparation, and reports in the staff workspace."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-operations.webp",
-          "featured": false
-        },
-        {
-          "id": "cafe-menu-cashier",
-          "preset": "menu-cashier",
-          "visibility": "public",
-          "ready": true,
-          "name": {
-            "id": "Menu + kasir",
-            "en": "Menu + cashier"
-          },
-          "description": {
-            "id": "Pelanggan melihat menu digital; staf mencatat pesanan di kasir.",
-            "en": "Guests browse the menu and staff record orders."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-menu-cashier.webp",
-          "featured": false
-        },
-        {
-          "id": "cafe-menu-order-cashier",
-          "preset": "menu-order-cashier",
-          "visibility": "public",
-          "ready": true,
-          "name": {
-            "id": "Menu + pesanan + kasir",
-            "en": "Menu + orders + cashier"
-          },
-          "description": {
-            "id": "Pelanggan memesan dari meja; kasir mengelola tagihan.",
-            "en": "Guests order from their table and the cashier manages the bill."
-          },
-          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-menu-order-cashier.webp",
-          "featured": false
-        },
-        {
-          "id": "cafe-full",
-          "preset": "full",
-          "visibility": "public",
-          "ready": true,
+          "id": "full",
           "name": {
             "id": "Layanan lengkap",
             "en": "Full service"
@@ -290,9 +195,77 @@
           "description": {
             "id": "Coba alur pelanggan, kasir, dapur, layanan meja, dan laporan.",
             "en": "Explore the guest, cashier, kitchen, table service, and reporting flow."
+          }
+        }
+      ],
+      "entries": [
+        {
+          "id": "cafe-full",
+          "preset": "full",
+          "theme": "rounded",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Rounded",
+            "en": "Rounded"
+          },
+          "description": {
+            "id": "Sudut membulat dan tata letak hangat yang nyaman untuk coffee shop.",
+            "en": "Soft corners and balanced spacing suited for everyday coffee shops."
           },
           "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-full.webp",
           "featured": true
+        },
+        {
+          "id": "cafe-editorial",
+          "preset": "full",
+          "theme": "editorial",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Editorial",
+            "en": "Editorial"
+          },
+          "description": {
+            "id": "Judul berserif dan susunan menu lapang seperti buku menu cetak.",
+            "en": "Serif headings and open menu rows with a print-inspired feel."
+          },
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-editorial.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-boxy",
+          "preset": "full",
+          "theme": "boxy",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Boxy",
+            "en": "Boxy"
+          },
+          "description": {
+            "id": "Garis tegas dan ruang ringkas untuk daftar menu yang padat.",
+            "en": "Square edges and compact spacing for fast-moving menus."
+          },
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-boxy.webp",
+          "featured": false
+        },
+        {
+          "id": "cafe-playful",
+          "preset": "full",
+          "theme": "playful",
+          "visibility": "public",
+          "ready": true,
+          "name": {
+            "id": "Playful",
+            "en": "Playful"
+          },
+          "description": {
+            "id": "Garis tebal dan aksen ekspresif untuk kedai minuman atau dessert.",
+            "en": "Bold borders and lively typography for expressive beverage and dessert bars."
+          },
+          "imageUrl": "https://cafe.tampiloka.site/demo-previews/cafe-playful.webp",
+          "featured": false
         }
       ]
     },
